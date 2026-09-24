@@ -1,0 +1,7 @@
+/target/
+/build/
+/nbproject/private/
+/nbproject/aether-deploy.xml
+*. class
+*. jar
+*. war
