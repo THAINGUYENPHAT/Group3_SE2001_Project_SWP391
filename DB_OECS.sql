@@ -279,3 +279,170 @@ CREATE TABLE PURCHASE_ORDER_ITEMS (
     CONSTRAINT FK_POItems_PO FOREIGN KEY (po_id) REFERENCES PURCHASE_ORDERS(po_id) ON DELETE CASCADE,
     CONSTRAINT FK_POItems_SKU FOREIGN KEY (sku_id) REFERENCES PRODUCT_SKU(sku_id)
 );
+
+USE OECS;
+GO
+
+-- ========================================================
+-- 1. QUẢN LÝ NGƯỜI DÙNG & PHÂN QUYỀN (USER & AUTH)
+-- ========================================================
+
+-- ROLES
+INSERT INTO ROLES (role_name, description) VALUES 
+(N'Admin', N'Quản trị viên hệ thống - Toàn quyền'),
+(N'Staff', N'Nhân viên vận hành và xử lý đơn hàng'),
+(N'Customer', N'Khách hàng mua sắm');
+
+-- USER
+INSERT INTO [USER] (username, email, password_hash, phone) VALUES 
+('admin_sys', 'admin@oecs.com', 'e10adc3949ba59abbe56e057f20f883e', '0901111111'),
+('staff_khang', 'khang.staff@oecs.com', 'e10adc3949ba59abbe56e057f20f883e', '0902222222'),
+('phat_user', 'phat.user@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', '0903333333'),
+('lan_customer', 'lan.nguyen@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', '0904444444');
+
+-- USER_ROLES
+INSERT INTO USER_ROLES (user_id, role_id) VALUES 
+(1, 1), -- admin_sys -> Admin
+(2, 2), -- staff_khang -> Staff
+(3, 3), -- phat_user -> Customer
+(4, 3); -- lan_customer -> Customer
+
+-- STAFF
+INSERT INTO STAFF (user_id, department, position) VALUES 
+(2, N'Phòng Vận Hành', N'Chuyên viên kiểm duyệt đơn');
+
+-- ADDRESSBOOK
+INSERT INTO ADDRESSBOOK (user_id, recipient_name, phone_number, address_line, is_default) VALUES 
+(3, N'Trần Phát', '0903333333', N'123 Đường 3/2, Phường Xuân Khánh, Quận Ninh Kiều, Cần Thơ', 1),
+(3, N'Trần Phát (Văn phòng)', '0903333333', N'456 Nguyễn Văn Cừ, Phường An Khánh, Ninh Kiều, Cần Thơ', 0),
+(4, N'Nguyễn Thị Lan', '0904444444', N'789 Lê Duẩn, Quận 1, TP. Hồ Chí Minh', 1);
+
+-- ========================================================
+-- 2. DANH MỤC, SẢN PHẨM & THUỘC TÍNH (PRODUCT CATALOG)
+-- ========================================================
+
+-- CATEGORY
+INSERT INTO CATEGORY (category_name, parent_id) VALUES 
+(N'Điện thoại & Thiết bị di động', NULL), -- ID: 1
+(N'Máy tính & Laptop', NULL),             -- ID: 2
+(N'Smartphone', 1),                        -- ID: 3 (Con của ID 1)
+(N'Laptop Văn Phòng', 2);                 -- ID: 4 (Con của ID 2)
+
+-- BRAND
+INSERT INTO BRAND (brand_name, logo_url) VALUES 
+(N'Apple', 'https://cdn.oecs.com/brands/apple.png'),
+(N'Samsung', 'https://cdn.oecs.com/brands/samsung.png'),
+(N'Lenovo', 'https://cdn.oecs.com/brands/lenovo.png');
+
+-- PRODUCT
+INSERT INTO PRODUCT (category_id, brand_id, product_name, description) VALUES 
+(3, 1, N'iPhone 15 Pro', N'Điện thoại flagship cao cấp vỏ Titan từ Apple'),
+(3, 2, N'Samsung Galaxy S24 Ultra', N'Điện thoại cao cấp tích hợp Galaxy AI'),
+(4, 3, N'Lenovo LOQ 15', N'Laptop gaming/đồ họa hiệu năng cao trong tầm giá');
+
+-- ATTRIBUTE
+INSERT INTO ATTRIBUTE (attribute_name) VALUES 
+(N'Màn hình'),
+(N'RAM'),
+(N'Dung lượng lưu trữ'),
+(N'Chip xử lý (CPU)');
+
+-- PRODUCT_SPECIFICATION
+INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value) VALUES 
+(1, 1, N'6.1 inch Super Retina XDR OLED'),
+(1, 4, N'Apple A17 Pro'),
+(2, 1, N'6.8 inch Dynamic AMOLED 2X'),
+(2, 4, N'Snapdragon 8 Gen 3 for Galaxy'),
+(3, 2, N'16GB DDR5'),
+(3, 4, N'Intel Core i5-13420H');
+
+-- PRODUCT_SKU
+INSERT INTO PRODUCT_SKU (product_id, sku_code, price, stock_quantity) VALUES 
+(1, 'IP15P-128-BLK', 27990000.00, 15),
+(1, 'IP15P-256-SLV', 30990000.00, 10),
+(2, 'SS-S24U-256-GRY', 29990000.00, 20),
+(3, 'LOQ-15-16GB-512GB', 21490000.00, 8);
+
+-- ========================================================
+-- 3. GIỎ HÀNG (SHOPPING CART)
+-- ========================================================
+
+-- CART
+INSERT INTO CART (user_id) VALUES 
+(3),
+(4);
+
+-- CART_ITEMS
+INSERT INTO CART_ITEMS (cart_id, sku_id, quantity) VALUES 
+(1, 2, 1),
+(2, 4, 1);
+
+-- ========================================================
+-- 4. ĐƠN HÀNG, VẬN CHUYỂN & VOUCHER (ORDERS & SHIPPING)
+-- ========================================================
+
+-- SHIPPING_PARTNER
+INSERT INTO SHIPPING_PARTNER (partner_name, contact_phone) VALUES 
+(N'Giao Hàng Nhanh (GHN)', '19001201'),
+(N'Viettel Post', '19008095'),
+(N'Giao Hàng Tiết Kiệm (GHTK)', '18006092');
+
+-- VOUCHER
+INSERT INTO VOUCHER (code, discount_amount, min_order_value, valid_from, valid_to) VALUES 
+('OECSHELLO', 500000.00, 10000000.00, '2026-01-01', '2026-12-31'),
+('OECSVIP1M', 1000000.00, 25000000.00, '2026-01-01', '2026-12-31');
+
+-- ORDER
+INSERT INTO [ORDER] (user_id, address_id, shipping_partner_id, total_amount, shipping_fee) VALUES 
+(3, 1, 1, 27530000.00, 40000.00),
+(4, 3, 2, 29990000.00, 0.00);
+
+-- ORDER_ITEM
+INSERT INTO ORDER_ITEM (order_id, sku_id, price, quantity) VALUES 
+(1, 1, 27990000.00, 1),
+(2, 3, 29990000.00, 1);
+
+-- ORDER_STATUS_HISTORY
+INSERT INTO ORDER_STATUS_HISTORY (order_id, status) VALUES 
+(1, N'Pending'),
+(1, N'Shipping'),
+(1, N'Completed'),
+(2, N'Pending'),
+(2, N'Shipping');
+
+-- VOUCHER_USAGES
+INSERT INTO VOUCHER_USAGES (voucher_id, order_id, user_id) VALUES 
+(1, 1, 3);
+
+-- COD_SETTLEMENTS
+INSERT INTO COD_SETTLEMENTS (partner_id, total_cod_amount, status) VALUES 
+(1, 27530000.00, N'COMPLETED'),
+(2, 29990000.00, N'PENDING');
+
+-- ========================================================
+-- 5. ĐÁNH GIÁ SẢN PHẨM (REVIEWS)
+-- ========================================================
+
+INSERT INTO PRODUCT_REVIEWS (user_id, order_item_id, sku_id, rating, comment) VALUES 
+(3, 1, 1, 5, N'Hàng giao cực nhanh tại Cần Thơ, đóng gói cẩn thận, máy chuẩn mới 100%!'),
+(4, 2, 3, 4, N'Điện thoại mượt, camera chụp đêm rất nét nhưng pin hơi nhanh tụt.');
+
+-- ========================================================
+-- 6. QUẢN LÝ NHẬP HÀNG (PURCHASE ORDERS)
+-- ========================================================
+
+-- SUPPLIERS
+INSERT INTO SUPPLIERS (supplier_name, contact_email, phone, address) VALUES 
+(N'Công ty TNHH Apple Việt Nam', 'supply@apple.com.vn', '02839999999', N'Quận 1, TP. Hồ Chí Minh'),
+(N'Nhà phân phối Synnex FPT', 'contact@synnexfpt.com.vn', '02473006666', N'Quận Cầu Giấy, Hà Nội');
+
+-- PURCHASE_ORDERS
+INSERT INTO PURCHASE_ORDERS (supplier_id, total_cost) VALUES 
+(1, 240000000.00),
+(2, 180000000.00);
+
+-- PURCHASE_ORDER_ITEMS
+INSERT INTO PURCHASE_ORDER_ITEMS (po_id, sku_id, unit_cost, quantity) VALUES 
+(1, 1, 24000000.00, 10),
+(2, 4, 18000000.00, 10);
+GO
