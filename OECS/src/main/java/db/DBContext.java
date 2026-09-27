@@ -12,7 +12,7 @@ public class DBContext {
     // Thêm trustServerCertificate=true để tránh lỗi SSL Certificate trên SQL Server
     private final String DB_URL = "jdbc:sqlserver://127.0.0.1:1433;databaseName=OECS;encrypt=false;trustServerCertificate=true;";
     private final String DB_USER = "sa";     // Thay bằng username của bạn
-    private final String DB_PWD = "123456";  // Thay bằng password của bạn
+    private final String DB_PWD = "12345";  // Thay bằng password của bạn
 
     public DBContext() {
         try {

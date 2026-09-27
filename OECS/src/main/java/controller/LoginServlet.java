@@ -18,7 +18,7 @@
 //
 ///**
 // *
-// * @author tuan2
+// * @author quang
 // */
 //@WebServlet(name = "LoginServlet", urlPatterns = {"/login"})
 //public class LoginServlet extends HttpServlet {
