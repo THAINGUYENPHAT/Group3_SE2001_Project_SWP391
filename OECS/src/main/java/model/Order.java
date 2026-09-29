@@ -1,7 +1,7 @@
 package model;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.sql.Timestamp;
 
 public class Order {
 
@@ -11,7 +11,7 @@ public class Order {
     private Integer shippingPartnerId;
     private BigDecimal totalAmount;
     private BigDecimal shippingFee;
-    private LocalDateTime createdAt;
+    private Timestamp createdAt;
 
     public Order() {
     }
@@ -20,7 +20,7 @@ public class Order {
                  Integer shippingPartnerId,
                  BigDecimal totalAmount,
                  BigDecimal shippingFee,
-                 LocalDateTime createdAt) {
+                 Timestamp createdAt) {
 
         this.orderId = orderId;
         this.userId = userId;
@@ -79,11 +79,11 @@ public class Order {
         this.shippingFee = shippingFee;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Timestamp getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
     }
 }
