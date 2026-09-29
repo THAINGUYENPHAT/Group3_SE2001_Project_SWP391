@@ -2,14 +2,14 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-dark text-light py-4 mt-5 border-top border-secondary">
-        <div class="container text-center">
-            <p class="mb-1">&copy; 2026 <strong>OECS Store</strong> - Online E-Commerce System.</p>
-            <small class="text-secondary">Hệ thống Quản lý & Bán hàng Trực tuyến</small>
+    <footer class="py-4 mt-auto border-top text-center text-muted" style="background-color: transparent;">
+        <div class="container">
+            <p class="mb-1 fw-medium">&copy; 2026 OECS Store Management.</p>
+            <small>Được tối ưu hóa cho trải nghiệm quản trị E-Commerce.</small>
         </div>
     </footer>
 
-    <!-- Nhúng JS Bootstrap local từ thư mục assets -->
+    <!-- Bootstrap JS -->
     <script src="${pageContext.request.contextPath}/assets/js/bootstrap.bundle.js"></script>
 </body>
 </html>
