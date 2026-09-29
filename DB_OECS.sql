@@ -19,6 +19,9 @@ DROP TABLE IF EXISTS SUPPLIERS;
 DROP TABLE IF EXISTS PRODUCT_REVIEWS;
 DROP TABLE IF EXISTS COD_SETTLEMENTS;
 DROP TABLE IF EXISTS VOUCHER_USAGES;
+-- Order module dependencies must be dropped before dbo.[ORDER] on a fresh rebuild.
+DROP TABLE IF EXISTS PAYMENT_REFUND;
+DROP TABLE IF EXISTS PAYMENT_TRANSACTION;
 DROP TABLE IF EXISTS ORDER_STATUS_HISTORY;
 DROP TABLE IF EXISTS ORDER_ITEM;
 DROP TABLE IF EXISTS [ORDER];
@@ -446,3 +449,119 @@ INSERT INTO PURCHASE_ORDER_ITEMS (po_id, sku_id, unit_cost, quantity) VALUES
 (1, 1, 24000000.00, 10),
 (2, 4, 18000000.00, 10);
 GO
+
+-- ========================================================
+-- 7. ORDER MODULE EXTENSIONS (run after seed data)
+-- ========================================================
+/* OECS Order module - additive migration for SQL Server.
+   Execute AFTER DB_OECS.sql, against an existing OECS database.
+   Does not drop tables or delete existing rows. Review and back up before running.
+   Application rules (atomic order creation, reserved stock, timeout, callbacks) require Java transactions/jobs.
+*/
+USE [OECS];
+GO
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+
+-- Existing orders are legacy/demo rows. New business fields remain nullable for those records.
+IF COL_LENGTH('dbo.ORDER','order_status') IS NULL
+    ALTER TABLE dbo.[ORDER] ADD order_status VARCHAR(30) NULL;
+IF COL_LENGTH('dbo.ORDER','payment_method') IS NULL
+    ALTER TABLE dbo.[ORDER] ADD payment_method VARCHAR(20) NULL;
+IF COL_LENGTH('dbo.ORDER','payment_status') IS NULL
+    ALTER TABLE dbo.[ORDER] ADD payment_status VARCHAR(30) NULL;
+IF COL_LENGTH('dbo.ORDER','payment_expires_at') IS NULL
+    ALTER TABLE dbo.[ORDER] ADD payment_expires_at DATETIME2 NULL;
+IF COL_LENGTH('dbo.ORDER','recipient_name') IS NULL
+    ALTER TABLE dbo.[ORDER] ADD recipient_name NVARCHAR(100) NULL;
+IF COL_LENGTH('dbo.ORDER','recipient_phone') IS NULL
+    ALTER TABLE dbo.[ORDER] ADD recipient_phone VARCHAR(20) NULL;
+IF COL_LENGTH('dbo.ORDER','shipping_address') IS NULL
+    ALTER TABLE dbo.[ORDER] ADD shipping_address NVARCHAR(MAX) NULL;
+IF COL_LENGTH('dbo.ORDER','discount_amount') IS NULL
+    ALTER TABLE dbo.[ORDER] ADD discount_amount DECIMAL(18,2) NULL;
+IF COL_LENGTH('dbo.ORDER','stock_restored_at') IS NULL
+    ALTER TABLE dbo.[ORDER] ADD stock_restored_at DATETIME2 NULL;
+GO
+
+-- Best-effort legacy snapshot backfill; existing rows do not reveal original payment method/status.
+UPDATE o SET recipient_name = a.recipient_name,
+             recipient_phone = a.phone_number,
+             shipping_address = a.address_line
+FROM dbo.[ORDER] o JOIN dbo.ADDRESSBOOK a ON a.address_id = o.address_id
+WHERE o.recipient_name IS NULL OR o.recipient_phone IS NULL OR o.shipping_address IS NULL;
+
+;WITH newest AS (
+    SELECT order_id, status,
+           ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY updated_at DESC, status_id DESC) AS rn
+    FROM dbo.ORDER_STATUS_HISTORY
+)
+UPDATE o SET order_status = CASE UPPER(n.status)
+    WHEN 'PENDING' THEN 'PENDING_CONFIRMATION'
+    WHEN 'SHIPPING' THEN 'SHIPPING'
+    WHEN 'COMPLETED' THEN 'COMPLETED'
+    WHEN 'CANCELLED' THEN 'CANCELLED'
+    ELSE 'PENDING_CONFIRMATION' END
+FROM dbo.[ORDER] o JOIN newest n ON n.order_id = o.order_id AND n.rn = 1
+WHERE o.order_status IS NULL;
+UPDATE dbo.[ORDER] SET payment_status = 'UNKNOWN' WHERE payment_status IS NULL;
+
+-- Each online payment attempt is a distinct record. COD is tracked at order level.
+IF OBJECT_ID('dbo.PAYMENT_TRANSACTION','U') IS NULL
+BEGIN
+    CREATE TABLE dbo.PAYMENT_TRANSACTION (
+        transaction_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_PAYMENT_TRANSACTION PRIMARY KEY,
+        order_id INT NOT NULL,
+        payment_method VARCHAR(20) NOT NULL,
+        amount DECIMAL(18,2) NOT NULL,
+        transaction_code VARCHAR(100) NOT NULL,
+        provider_transaction_id VARCHAR(150) NULL,
+        status VARCHAR(30) NOT NULL CONSTRAINT DF_PaymentTransaction_Status DEFAULT 'PENDING',
+        provider_response_code VARCHAR(100) NULL,
+        created_at DATETIME2 NOT NULL CONSTRAINT DF_PaymentTransaction_Created DEFAULT SYSUTCDATETIME(),
+        completed_at DATETIME2 NULL,
+        CONSTRAINT FK_PaymentTransaction_Order FOREIGN KEY (order_id) REFERENCES dbo.[ORDER](order_id),
+        CONSTRAINT UQ_PaymentTransaction_Code UNIQUE (transaction_code),
+        CONSTRAINT CK_PaymentTransaction_Method CHECK (payment_method IN ('VNPAY','MOMO')),
+        CONSTRAINT CK_PaymentTransaction_Amount CHECK (amount >= 0),
+        CONSTRAINT CK_PaymentTransaction_Status CHECK (status IN ('PENDING','SUCCESS','FAILED','CANCELLED','EXPIRED'))
+    );
+END;
+
+-- Capture refund processing instead of treating a request as already refunded.
+IF OBJECT_ID('dbo.PAYMENT_REFUND','U') IS NULL
+BEGIN
+    CREATE TABLE dbo.PAYMENT_REFUND (
+        refund_id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_PAYMENT_REFUND PRIMARY KEY,
+        transaction_id BIGINT NOT NULL,
+        refund_amount DECIMAL(18,2) NOT NULL,
+        refund_status VARCHAR(30) NOT NULL CONSTRAINT DF_PaymentRefund_Status DEFAULT 'PENDING',
+        provider_refund_id VARCHAR(150) NULL,
+        reason NVARCHAR(500) NULL,
+        requested_at DATETIME2 NOT NULL CONSTRAINT DF_PaymentRefund_Requested DEFAULT SYSUTCDATETIME(),
+        completed_at DATETIME2 NULL,
+        CONSTRAINT FK_PaymentRefund_Transaction FOREIGN KEY (transaction_id) REFERENCES dbo.PAYMENT_TRANSACTION(transaction_id),
+        CONSTRAINT CK_PaymentRefund_Amount CHECK (refund_amount > 0),
+        CONSTRAINT CK_PaymentRefund_Status CHECK (refund_status IN ('PENDING','PROCESSING','SUCCESS','FAILED'))
+    );
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.PAYMENT_TRANSACTION') AND name='IX_PaymentTransaction_Order')
+    CREATE INDEX IX_PaymentTransaction_Order ON dbo.PAYMENT_TRANSACTION(order_id, created_at DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.ORDER') AND name='IX_Order_Expiry')
+    CREATE INDEX IX_Order_Expiry ON dbo.[ORDER](order_status, payment_expires_at);
+
+COMMIT TRANSACTION;
+GO
+/* New order required values must be validated in the Java service:
+ order_status: PENDING_PAYMENT, PENDING_CONFIRMATION, CONFIRMED, SHIPPING, COMPLETED, CANCELLED
+ payment_method: COD, VNPAY, MOMO
+ payment_status: UNPAID, PAID, FAILED, REFUND_PENDING, REFUNDED
+ Shipping fee calculation is UNDECIDED: do not silently assume free shipping.
+ For online orders, expires_at = order creation time + 15 minutes (consistent timezone).
+ On cancellation, restore stock only once in a database transaction using stock_restored_at guard.
+ On late SUCCESS callback, preserve CANCELLED and initiate PAYMENT_REFUND; verify provider signature.
+ On checkout, take ALL cart items, validate stock/price on server, atomically create order/items,
+ decrement stock and clear purchased cart rows; use idempotency token to prevent double submit.
+*/
+
