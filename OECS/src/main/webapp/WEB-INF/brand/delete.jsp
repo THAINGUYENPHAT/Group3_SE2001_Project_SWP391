@@ -5,55 +5,51 @@
 
 <div class="row justify-content-center">
     <div class="col-md-6 col-lg-5">
-        <div class="card border-danger shadow-sm">
-            <div class="card-header bg-danger text-white">
-                <h4 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Xác Nhận Xóa Thương Hiệu</h4>
-            </div>
-            <div class="card-body">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+            <!-- Dải màu đỏ cảnh báo trên cùng của Card -->
+            <div class="bg-danger" style="height: 4px;"></div>
+            
+            <div class="card-body p-4 p-md-5 text-center">
                 <c:choose>
-                    <%-- Nếu tìm thấy đối tượng Brand trong request --%>
                     <c:when test="${not empty brand}">
                         <form action="${pageContext.request.contextPath}/brand" method="POST">
-                            <%-- Hidden Fields truyền thông tin sang Servlet --%>
                             <input type="hidden" name="action" value="delete" />
                             <input type="hidden" name="id" value="${brand.brandId}" />
 
-                            <div class="text-center my-3">
-                                <%-- Hiển thị Logo nếu có --%>
-                                <c:if test="${not empty brand.logoUrl}">
-                                    <img src="${brand.logoUrl}" alt="${brand.brandName}" class="img-thumbnail mb-3" style="max-height: 80px; object-fit: contain;">
-                                </c:if>
-                                
-                                <p class="fs-5">
-                                    Bạn có chắc chắn muốn xóa thương hiệu <strong class="text-danger">${brand.brandName}</strong> (ID: <code>#${brand.brandId}</code>) không?
-                                </p>
-                                <p class="text-muted small">
-                                    <i class="bi bi-info-circle me-1"></i>Hành động này không thể hoàn tác sau khi xác nhận!
-                                </p>
+                            <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
+                                <i class="bi bi-trash3 fs-1"></i>
                             </div>
+                            
+                            <h4 class="fw-bold text-dark mb-2">Bạn chắc chắn chứ?</h4>
+                            <p class="text-muted mb-4">
+                                Bạn đang chuẩn bị xóa thương hiệu <strong class="text-dark fs-5">${brand.brandName}</strong>. Hành động này không thể hoàn tác.
+                            </p>
 
-                            <%-- Nút thao tác --%>
-                            <div class="d-flex justify-content-between pt-3 border-top">
-                                <a href="${pageContext.request.contextPath}/brand?view=list" class="btn btn-secondary">
-                                    <i class="bi bi-arrow-left"></i> Hủy / Quay lại
+                            <c:if test="${not empty brand.logoUrl}">
+                                <div class="mb-4">
+                                    <div class="bg-light border rounded d-inline-flex align-items-center justify-content-center p-2" style="width: 80px; height: 80px;">
+                                        <img src="${brand.logoUrl}" alt="${brand.brandName}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                    </div>
+                                </div>
+                            </c:if>
+
+                            <div class="d-flex gap-2 justify-content-center mt-2">
+                                <a href="${pageContext.request.contextPath}/brand?view=list" class="btn btn-light btn-lg border text-dark fs-6 px-4">
+                                    Hủy bỏ
                                 </a>
-                                <button type="submit" class="btn btn-danger">
-                                    <i class="bi bi-trash"></i> Xác Nhận Xóa
+                                <button type="submit" class="btn btn-danger btn-lg fs-6 px-4 shadow-sm">
+                                    Đúng, xóa nó!
                                 </button>
                             </div>
                         </form>
                     </c:when>
 
-                    <%-- Trường hợp không tìm thấy thương hiệu --%>
                     <c:otherwise>
-                        <div class="alert alert-warning text-center my-3" role="alert">
-                            <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
-                            Không tìm thấy thương hiệu cần xóa!
-                        </div>
-                        <div class="text-center">
-                            <a href="${pageContext.request.contextPath}/brand?view=list" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Quay lại danh sách
-                            </a>
+                        <div class="py-4">
+                            <i class="bi bi-exclamation-circle text-warning fs-1 mb-3 d-block"></i>
+                            <h5 class="fw-bold">Lỗi truy xuất!</h5>
+                            <p class="text-muted mb-4">Không tìm thấy thương hiệu cần xóa.</p>
+                            <a href="${pageContext.request.contextPath}/brand?view=list" class="btn btn-primary">Quay lại danh sách</a>
                         </div>
                     </c:otherwise>
                 </c:choose>
