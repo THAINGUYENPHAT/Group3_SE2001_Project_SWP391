@@ -10,16 +10,15 @@ public class User {
     private String passwordHash;
     private String phone;
     private Timestamp createdAt;
-    
-    // Thuộc tính phụ trợ cho việc Phân quyền & Vận hành
+
+    // Thuộc tính phụ trợ cho Phân quyền & Vận hành
     private int roleId;
     private String roleName;
 
-    // Constructors
     public User() {
     }
 
-    // Constructor đầy đủ thông tin từ DB
+    // Constructor cơ bản lấy thông tin từ bảng Users
     public User(int userId, String username, String email, String passwordHash, String phone, Timestamp createdAt) {
         this.userId = userId;
         this.username = username;
@@ -29,7 +28,7 @@ public class User {
         this.createdAt = createdAt;
     }
 
-    // Constructor mở rộng kèm Role (Dùng khi Login / Auth)
+    // Constructor mở rộng bao gồm Role (Dùng cho Authenticate / Session)
     public User(int userId, String username, String email, String passwordHash, String phone, Timestamp createdAt, int roleId, String roleName) {
         this.userId = userId;
         this.username = username;
@@ -41,7 +40,6 @@ public class User {
         this.roleName = roleName;
     }
 
-    // Getters and Setters
     public int getUserId() {
         return userId;
     }
@@ -109,31 +107,19 @@ public class User {
     // ========================================================
     // HELPER METHODS DÙNG CHO CHECK PHÂN QUYỀN TRONG AUTH FILTER & JSP
     // ========================================================
-    
-    /**
-     * Kiểm tra xem user có vai trò cụ thể hay không (không phân biệt hoa thường)
-     */
+
     public boolean hasRole(String role) {
         return this.roleName != null && this.roleName.equalsIgnoreCase(role);
     }
 
-    /**
-     * Kiểm tra xem user có phải là Admin hay không
-     */
     public boolean isAdmin() {
         return hasRole("Admin");
     }
 
-    /**
-     * Kiểm tra xem user có thuộc ban quản trị (Admin hoặc Staff) hay không
-     */
     public boolean isAdminOrStaff() {
         return hasRole("Admin") || hasRole("Staff");
     }
 
-    /**
-     * Kiểm tra xem user có phải là Khách hàng hay không
-     */
     public boolean isCustomer() {
         return hasRole("Customer");
     }

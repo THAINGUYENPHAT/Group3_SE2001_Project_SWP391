@@ -5,48 +5,47 @@ import java.sql.Timestamp;
 
 public class Order {
 
-    // ==================== ATTRIBUTES ====================
     private int orderId;
     private int userId;
     private int addressId;
-
     private Integer shippingPartnerId;
-
     private BigDecimal totalAmount;
     private BigDecimal shippingFee;
     private BigDecimal discountAmount;
-
     private String orderStatus;
     private String paymentMethod;
     private String paymentStatus;
-
     private String recipientName;
     private String recipientPhone;
     private String shippingAddress;
-
     private Timestamp createdAt;
     private Timestamp paymentExpiresAt;
 
-    // ==================== CONSTRUCTOR ====================
     public Order() {
     }
 
-    public Order(int orderId, int userId, int addressId,
-            Integer shippingPartnerId,
-            BigDecimal totalAmount,
-            BigDecimal shippingFee,
-            Timestamp createdAt) {
-
+    public Order(int orderId, int userId, int addressId, Integer shippingPartnerId, 
+                 BigDecimal totalAmount, BigDecimal shippingFee, BigDecimal discountAmount, 
+                 String orderStatus, String paymentMethod, String paymentStatus, 
+                 String recipientName, String recipientPhone, String shippingAddress, 
+                 Timestamp createdAt, Timestamp paymentExpiresAt) {
         this.orderId = orderId;
         this.userId = userId;
         this.addressId = addressId;
         this.shippingPartnerId = shippingPartnerId;
         this.totalAmount = totalAmount;
         this.shippingFee = shippingFee;
+        this.discountAmount = discountAmount;
+        this.orderStatus = orderStatus;
+        this.paymentMethod = paymentMethod;
+        this.paymentStatus = paymentStatus;
+        this.recipientName = recipientName;
+        this.recipientPhone = recipientPhone;
+        this.shippingAddress = shippingAddress;
         this.createdAt = createdAt;
+        this.paymentExpiresAt = paymentExpiresAt;
     }
 
-    // ==================== GETTER & SETTER ====================
     public int getOrderId() {
         return orderId;
     }

@@ -4,8 +4,8 @@ public class Category {
 
     private int categoryId;
     private String categoryName;
-    private Integer parentId; // Dùng Integer thay vì int để cho phép giá trị null (danh mục gốc)
-    private int displayOrder; // Thêm trường thứ tự hiển thị
+    private Integer parentId; // Integer để hỗ trợ NULL cho danh mục gốc
+    private int displayOrder;
 
     public Category() {
     }

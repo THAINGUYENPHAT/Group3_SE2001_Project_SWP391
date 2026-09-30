@@ -2,7 +2,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="py-4 mt-auto border-top text-center text-muted" style="background-color: transparent;">
+    <footer class="py-4 mt-auto border-top text-center text-muted bg-transparent">
         <div class="container">
             <p class="mb-1 fw-medium">&copy; 2026 OECS Store Management.</p>
             <small>Được tối ưu hóa cho trải nghiệm quản trị E-Commerce.</small>
