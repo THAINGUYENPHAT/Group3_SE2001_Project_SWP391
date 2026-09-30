@@ -174,4 +174,26 @@ public class AdminOrderDAO extends DBContext {
 
         return 0;
     }
+    
+    public int cancelOrder(int orderId) {
+
+        String sql = "INSERT INTO ORDER_STATUS_HISTORY "
+                + "(order_id, status) "
+                + "VALUES (?, ?)";
+
+        try (Connection conn = this.getConnection();
+             PreparedStatement statement = conn.prepareStatement(sql)) {
+
+            statement.setInt(1, orderId);
+            statement.setString(2, "Cancelled");
+
+            return statement.executeUpdate();
+
+        } catch (SQLException ex) {
+            Logger.getLogger(AdminOrderDAO.class.getName())
+                    .log(Level.SEVERE, "Lỗi hủy Order!", ex);
+        }
+
+        return 0;
+    }
 }
