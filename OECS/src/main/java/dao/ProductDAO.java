@@ -18,7 +18,6 @@ public class ProductDAO extends DBContext {
     // 1. Lấy danh sách sản phẩm kèm theo thông tin Brand & Category (JOIN 3 bảng)
     public List<Product> getList() {
         List<Product> list = new ArrayList<>();
-        // Đã thêm c.display_order vào câu truy vấn
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, "
                 + "c.category_id, c.category_name, c.parent_id, c.display_order, "
                 + "b.brand_id, b.brand_name, b.logo_url "
@@ -29,7 +28,6 @@ public class ProductDAO extends DBContext {
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
 
             while (rs.next()) {
-                // Đã cập nhật constructor 4 tham số cho Category
                 Category category = new Category(
                         rs.getInt("category_id"),
                         rs.getString("category_name"),
@@ -45,11 +43,13 @@ public class ProductDAO extends DBContext {
 
                 Product product = new Product(
                         rs.getInt("product_id"),
+                        category.getCategoryId(),
+                        brand.getBrandId(),
                         rs.getString("product_name"),
                         rs.getString("description"),
+                        rs.getTimestamp("created_at"),
                         category,
-                        brand,
-                        rs.getTimestamp("created_at")
+                        brand
                 );
 
                 list.add(product);
@@ -67,8 +67,8 @@ public class ProductDAO extends DBContext {
 
             statement.setString(1, product.getProductName());
             statement.setString(2, product.getDescription());
-            statement.setInt(3, product.getCategory().getCategoryId());
-            statement.setInt(4, product.getBrand().getBrandId());
+            statement.setInt(3, product.getCategory() != null ? product.getCategory().getCategoryId() : product.getCategoryId());
+            statement.setInt(4, product.getBrand() != null ? product.getBrand().getBrandId() : product.getBrandId());
 
             return statement.executeUpdate();
         } catch (SQLException ex) {
@@ -84,8 +84,8 @@ public class ProductDAO extends DBContext {
 
             statement.setString(1, product.getProductName());
             statement.setString(2, product.getDescription());
-            statement.setInt(3, product.getCategory().getCategoryId());
-            statement.setInt(4, product.getBrand().getBrandId());
+            statement.setInt(3, product.getCategory() != null ? product.getCategory().getCategoryId() : product.getCategoryId());
+            statement.setInt(4, product.getBrand() != null ? product.getBrand().getBrandId() : product.getBrandId());
             statement.setInt(5, product.getProductId());
 
             return statement.executeUpdate();
@@ -111,7 +111,6 @@ public class ProductDAO extends DBContext {
 
     // 5. Lấy sản phẩm chi tiết theo ID
     public Product getById(int id) {
-        // Đã thêm c.display_order vào câu truy vấn
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, "
                 + "c.category_id, c.category_name, c.parent_id, c.display_order, "
                 + "b.brand_id, b.brand_name, b.logo_url "
@@ -125,7 +124,6 @@ public class ProductDAO extends DBContext {
             statement.setInt(1, id);
             try (ResultSet rs = statement.executeQuery()) {
                 if (rs.next()) {
-                    // Đã cập nhật constructor 4 tham số cho Category
                     Category category = new Category(
                             rs.getInt("category_id"),
                             rs.getString("category_name"),
@@ -141,11 +139,13 @@ public class ProductDAO extends DBContext {
 
                     return new Product(
                             rs.getInt("product_id"),
+                            category.getCategoryId(),
+                            brand.getBrandId(),
                             rs.getString("product_name"),
                             rs.getString("description"),
+                            rs.getTimestamp("created_at"),
                             category,
-                            brand,
-                            rs.getTimestamp("created_at")
+                            brand
                     );
                 }
             }

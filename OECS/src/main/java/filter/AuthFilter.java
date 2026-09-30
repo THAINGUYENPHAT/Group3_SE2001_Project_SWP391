@@ -15,25 +15,29 @@ import java.util.Arrays;
 import java.util.List;
 import model.User;
 
-// 1. Áp dụng Filter cho TẤT CẢ các URL trong hệ thống
 @WebFilter(filterName = "AuthFilter", urlPatterns = {"/*"})
 public class AuthFilter implements Filter {
 
-    // 2. Danh sách trắng (Whitelist) các URL KHÔNG CẦN đăng nhập
+    // Danh sách các URL công khai không yêu cầu đăng nhập
     private static final List<String> PUBLIC_URLS = Arrays.asList(
+            "",
+            "/",
             "/login",
             "/register",
             "/logout",
             "/home",
-            "/index.html"
+            "/index.html",
+            "/product",
+            "/favicon.ico"
     );
 
-    // Danh sách các tiền tố tài nguyên tĩnh (Static resources)
+    // Danh sách tiền tố tài nguyên tĩnh (Static resources)
     private static final List<String> PUBLIC_PREFIXES = Arrays.asList(
             "/assets/",
             "/css/",
             "/js/",
-            "/images/"
+            "/images/",
+            "/uploads/"
     );
 
     @Override
@@ -52,14 +56,12 @@ public class AuthFilter implements Filter {
         String contextPath = httpRequest.getContextPath();
         String relativePath = requestURI.substring(contextPath.length());
 
-        // Lấy User từ Session
         User user = (session != null) ? (User) session.getAttribute("loggedInUser") : null;
 
         // ========================================================
-        // 0. BẮT TRƯỜNG HỢP TÀI KHOẢN ĐANG ĐĂNG NHẬP NHƯNG BỊ ADMIN KHÓA
+        // 0. XỬ LÝ TÀI KHOẢN ĐANG DÙNG NHƯNG BỊ ADMIN KHÓA (roleId == 0)
         // ========================================================
         if (user != null && user.getRoleId() == 0) {
-            // Cho phép tải tài nguyên tĩnh (CSS, JS, Images) để hiển thị giao diện trang Login đẹp
             boolean isStaticResource = PUBLIC_PREFIXES.stream().anyMatch(relativePath::startsWith);
             if (isStaticResource) {
                 chain.doFilter(request, response);
@@ -69,16 +71,14 @@ public class AuthFilter implements Filter {
             // Hủy Session ngay lập tức
             session.invalidate();
 
-            // Nếu không phải đang ở sẵn trang /login thì đẩy về /login kèm thông báo
-            if (!"/login".equals(relativePath)) {
-                httpRequest.setAttribute("errorMessage", "Tài khoản của bạn đã bị khóa bởi Admin!");
-                httpRequest.getRequestDispatcher("/WEB-INF/login.jsp").forward(httpRequest, httpResponse);
-                return;
-            }
+            // Chuyển hướng về trang login kèm thông báo lỗi
+            httpRequest.setAttribute("errorMessage", "Tài khoản của bạn đã bị khóa bởi quản trị viên!");
+            httpRequest.getRequestDispatcher("/WEB-INF/login.jsp").forward(httpRequest, httpResponse);
+            return;
         }
 
         // ========================================================
-        // 1. CHO PHÉP QUA NẾU LÀ PUBLIC URL HOẶC TÀI NGUYÊN TĨNH
+        // 1. KIỂM TRA TÀI NGUYÊN TĨNH & PUBLIC URL
         // ========================================================
         boolean isPublicUrl = PUBLIC_URLS.contains(relativePath);
         boolean isStaticResource = PUBLIC_PREFIXES.stream().anyMatch(relativePath::startsWith);
@@ -89,40 +89,36 @@ public class AuthFilter implements Filter {
         }
 
         // ========================================================
-        // 2. BẮT BỘ LỌC CHƯA ĐĂNG NHẬP (AUTHENTICATION)
+        // 2. YÊU CẦU ĐĂNG NHẬP (AUTHENTICATION)
         // ========================================================
         if (user == null) {
             if (session == null) {
                 session = httpRequest.getSession(true);
             }
 
-            // Lưu lại URL gốc để quay lại sau khi đăng nhập thành công
+            // Lưu lại URL gốc để tự động quay lại sau khi đăng nhập thành công
             String queryString = httpRequest.getQueryString();
             String fullRedirectUrl = requestURI + (queryString != null ? "?" + queryString : "");
             session.setAttribute("redirectUrl", fullRedirectUrl);
 
-            // Chuyển hướng về trang đăng nhập
             httpResponse.sendRedirect(contextPath + "/login");
             return;
         }
 
         // ========================================================
-        // 3. KIỂM TRA PHÂN QUYỀN (AUTHORIZATION DÀNH CHO ADMIN/STAFF)
+        // 3. KIỂM TRA PHÂN QUYỀN (AUTHORIZATION ADMIN / STAFF)
         // ========================================================
-        // Nếu URL thuộc khu vực Admin nhưng tài khoản lại là Customer
         if (relativePath.startsWith("/admin") || relativePath.startsWith("/WEB-INF/admin")) {
             if (!user.isAdminOrStaff()) {
-                // Lưu thông báo vào session để hiển thị bằng Toast/Alert ở giao diện trang chủ
-                session.setAttribute("toastMessage", "Bạn không có quyền truy cập vào trang quản trị!");
+                session.setAttribute("toastMessage", "Bạn không có quyền truy cập khu vực quản trị!");
                 session.setAttribute("toastType", "error");
 
-                // Chuyển hướng người dùng về trang chủ
                 httpResponse.sendRedirect(contextPath + "/home");
                 return;
             }
         }
 
-        // Cho phép request đi tiếp nếu đã đăng nhập và hợp lệ
+        // Cho phép Request đi tiếp
         chain.doFilter(request, response);
     }
 

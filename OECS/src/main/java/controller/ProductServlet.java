@@ -116,7 +116,7 @@ public class ProductServlet extends HttpServlet {
             Brand brand = new Brand();
             brand.setBrandId(brandId);
 
-            Product newProduct = new Product(0, name, description, category, brand, null);
+            Product newProduct = new Product(0, categoryId, brandId, name, description, null, category, brand);
             productDao.insert(newProduct);
 
             response.sendRedirect(request.getContextPath() + "/product?view=list");
@@ -134,7 +134,7 @@ public class ProductServlet extends HttpServlet {
             Brand brand = new Brand();
             brand.setBrandId(brandId);
 
-            Product product = new Product(id, name, description, category, brand, null);
+            Product product = new Product(id, categoryId, brandId, name, description, null, category, brand);
             productDao.update(product);
 
             response.sendRedirect(request.getContextPath() + "/product?view=list");

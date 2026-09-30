@@ -5,15 +5,24 @@ public class CartItem {
     private int cartItemId;
     private int cartId;
     private int skuId;
-
     private String skuCode;
     private String productName;
-
     private double price;
     private int quantity;
     private int stockQuantity;
 
     public CartItem() {
+    }
+
+    public CartItem(int cartItemId, int cartId, int skuId, String skuCode, String productName, double price, int quantity, int stockQuantity) {
+        this.cartItemId = cartItemId;
+        this.cartId = cartId;
+        this.skuId = skuId;
+        this.skuCode = skuCode;
+        this.productName = productName;
+        this.price = price;
+        this.quantity = quantity;
+        this.stockQuantity = stockQuantity;
     }
 
     public int getCartItemId() {
