@@ -1,11 +1,13 @@
 package dao;
 
 import db.DBContext;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,57 +15,23 @@ import model.CartItem;
 
 public class CartDAO extends DBContext {
 
-    // =========================================
-    // 1. Lấy cart_id của user
-    // =========================================
     public int getCartIdByUserId(int userId) {
 
         String sql = "SELECT cart_id "
-                   + "FROM CART "
-                   + "WHERE user_id = ?";
+                + "FROM CART "
+                + "WHERE user_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, userId);
-
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                return rs.getInt("cart_id");
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return -1;
-    }
-
-
-    // =========================================
-    // 2. Tạo cart mới
-    // =========================================
-    public int createCart(int userId) {
-
-        String sql = "INSERT INTO CART(user_id, created_at) "
-                   + "VALUES (?, GETDATE())";
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     sql,
-                     Statement.RETURN_GENERATED_KEYS)) {
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
 
             ps.setInt(1, userId);
 
-            int result = ps.executeUpdate();
-
-            if (result > 0) {
-
-                ResultSet rs = ps.getGeneratedKeys();
+            try (ResultSet rs = ps.executeQuery()) {
 
                 if (rs.next()) {
-                    return rs.getInt(1);
+                    return rs.getInt("cart_id");
                 }
             }
 
@@ -75,12 +43,42 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =========================================
-    // 3. Có cart rồi thì lấy, chưa có thì tạo
-    // =========================================
+    public int createCart(int userId) {
+
+        String sql = "INSERT INTO CART(user_id, created_at) "
+                + "VALUES (?, GETDATE())";
+
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(
+                        sql,
+                        Statement.RETURN_GENERATED_KEYS)
+        ) {
+
+            ps.setInt(1, userId);
+
+            if (ps.executeUpdate() > 0) {
+
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return -1;
+    }
+
+
     public int getOrCreateCart(int userId) {
 
-        int cartId = getCartIdByUserId(userId);
+        int cartId =
+                getCartIdByUserId(userId);
 
         if (cartId == -1) {
             cartId = createCart(userId);
@@ -90,73 +88,67 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =========================================
-    // 4. Lấy danh sách sản phẩm trong cart
-    // =========================================
     public List<CartItem> getCartItems(int cartId) {
 
-        List<CartItem> list = new ArrayList<>();
+        List<CartItem> list =
+                new ArrayList<>();
 
         String sql = "SELECT "
-                   + "ci.cart_item_id, "
-                   + "ci.cart_id, "
-                   + "ci.sku_id, "
-                   + "ci.quantity, "
-                   + "ps.sku_code, "
-                   + "ps.price, "
-                   + "ps.stock_quantity, "
-                   + "p.product_name "
-                   + "FROM CART_ITEMS ci "
-                   + "JOIN PRODUCT_SKU ps "
-                   + "ON ci.sku_id = ps.sku_id "
-                   + "JOIN PRODUCT p "
-                   + "ON ps.product_id = p.product_id "
-                   + "WHERE ci.cart_id = ?";
+                + "ci.cart_item_id, "
+                + "ci.cart_id, "
+                + "ci.sku_id, "
+                + "ci.quantity, "
+                + "ps.sku_code, "
+                + "ps.price, "
+                + "ps.stock_quantity, "
+                + "p.product_name "
+                + "FROM CART_ITEMS ci "
+                + "JOIN PRODUCT_SKU ps "
+                + "ON ci.sku_id = ps.sku_id "
+                + "JOIN PRODUCT p "
+                + "ON ps.product_id = p.product_id "
+                + "WHERE ci.cart_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
 
             ps.setInt(1, cartId);
 
-            ResultSet rs = ps.executeQuery();
+            try (ResultSet rs = ps.executeQuery()) {
 
-            while (rs.next()) {
+                while (rs.next()) {
 
-                CartItem item = new CartItem();
+                    CartItem item =
+                            new CartItem();
 
-                item.setCartItemId(
-                        rs.getInt("cart_item_id")
-                );
+                    item.setCartItemId(
+                            rs.getInt("cart_item_id"));
 
-                item.setCartId(
-                        rs.getInt("cart_id")
-                );
+                    item.setCartId(
+                            rs.getInt("cart_id"));
 
-                item.setSkuId(
-                        rs.getInt("sku_id")
-                );
+                    item.setSkuId(
+                            rs.getInt("sku_id"));
 
-                item.setQuantity(
-                        rs.getInt("quantity")
-                );
+                    item.setQuantity(
+                            rs.getInt("quantity"));
 
-                item.setSkuCode(
-                        rs.getString("sku_code")
-                );
+                    item.setSkuCode(
+                            rs.getString("sku_code"));
 
-                item.setPrice(
-                        rs.getDouble("price")
-                );
+                    item.setPrice(
+                            rs.getDouble("price"));
 
-                item.setStockQuantity(
-                        rs.getInt("stock_quantity")
-                );
+                    item.setStockQuantity(
+                            rs.getInt("stock_quantity"));
 
-                item.setProductName(
-                        rs.getString("product_name")
-                );
+                    item.setProductName(
+                            rs.getString("product_name"));
 
-                list.add(item);
+                    list.add(item);
+                }
             }
 
         } catch (SQLException e) {
@@ -167,25 +159,86 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =========================================
-    // 5. Kiểm tra SKU đã có trong giỏ chưa
-    // =========================================
-    public boolean exists(int cartId, int skuId) {
+    public int getStockQuantity(int skuId) {
 
-        String sql = "SELECT cart_item_id "
-                   + "FROM CART_ITEMS "
-                   + "WHERE cart_id = ? "
-                   + "AND sku_id = ?";
+        String sql = "SELECT stock_quantity "
+                + "FROM PRODUCT_SKU "
+                + "WHERE sku_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, skuId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return rs.getInt("stock_quantity");
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+
+    public int getCurrentQuantity(
+            int cartId,
+            int skuId) {
+
+        String sql = "SELECT quantity "
+                + "FROM CART_ITEMS "
+                + "WHERE cart_id = ? "
+                + "AND sku_id = ?";
+
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
 
             ps.setInt(1, cartId);
             ps.setInt(2, skuId);
 
-            ResultSet rs = ps.executeQuery();
+            try (ResultSet rs = ps.executeQuery()) {
 
-            return rs.next();
+                if (rs.next()) {
+                    return rs.getInt("quantity");
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+
+    public boolean exists(
+            int cartId,
+            int skuId) {
+
+        String sql = "SELECT 1 "
+                + "FROM CART_ITEMS "
+                + "WHERE cart_id = ? "
+                + "AND sku_id = ?";
+
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, cartId);
+            ps.setInt(2, skuId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -195,76 +248,17 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =========================================
-    // 6. Lấy số lượng tồn kho
-    // =========================================
-    public int getStockQuantity(int skuId) {
-
-        String sql = "SELECT stock_quantity "
-                   + "FROM PRODUCT_SKU "
-                   + "WHERE sku_id = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, skuId);
-
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                return rs.getInt("stock_quantity");
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return 0;
-    }
-
-
-    // =========================================
-    // 7. Lấy quantity hiện tại trong cart
-    // =========================================
-    public int getCurrentQuantity(int cartId, int skuId) {
-
-        String sql = "SELECT quantity "
-                   + "FROM CART_ITEMS "
-                   + "WHERE cart_id = ? "
-                   + "AND sku_id = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, cartId);
-            ps.setInt(2, skuId);
-
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                return rs.getInt("quantity");
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return 0;
-    }
-
-
-    // =========================================
-    // 8. Thêm sản phẩm vào cart
-    // =========================================
-    public boolean addToCart(int cartId,
-                             int skuId,
-                             int quantity) {
+    public boolean addToCart(
+            int cartId,
+            int skuId,
+            int quantity) {
 
         if (quantity <= 0) {
             return false;
         }
 
-        int stock = getStockQuantity(skuId);
+        int stock =
+                getStockQuantity(skuId);
 
         if (stock <= 0) {
             return false;
@@ -272,24 +266,27 @@ public class CartDAO extends DBContext {
 
         if (exists(cartId, skuId)) {
 
-            int currentQuantity =
-                    getCurrentQuantity(cartId, skuId);
+            int current =
+                    getCurrentQuantity(
+                            cartId,
+                            skuId);
 
             int newQuantity =
-                    currentQuantity + quantity;
+                    current + quantity;
 
             if (newQuantity > stock) {
                 return false;
             }
 
             String sql = "UPDATE CART_ITEMS "
-                       + "SET quantity = ? "
-                       + "WHERE cart_id = ? "
-                       + "AND sku_id = ?";
+                    + "SET quantity = ? "
+                    + "WHERE cart_id = ? "
+                    + "AND sku_id = ?";
 
-            try (Connection conn = getConnection();
-                 PreparedStatement ps =
-                         conn.prepareStatement(sql)) {
+            try (
+                    Connection conn = getConnection();
+                    PreparedStatement ps = conn.prepareStatement(sql)
+            ) {
 
                 ps.setInt(1, newQuantity);
                 ps.setInt(2, cartId);
@@ -308,12 +305,13 @@ public class CartDAO extends DBContext {
             }
 
             String sql = "INSERT INTO CART_ITEMS "
-                       + "(cart_id, sku_id, quantity) "
-                       + "VALUES (?, ?, ?)";
+                    + "(cart_id, sku_id, quantity) "
+                    + "VALUES (?, ?, ?)";
 
-            try (Connection conn = getConnection();
-                 PreparedStatement ps =
-                         conn.prepareStatement(sql)) {
+            try (
+                    Connection conn = getConnection();
+                    PreparedStatement ps = conn.prepareStatement(sql)
+            ) {
 
                 ps.setInt(1, cartId);
                 ps.setInt(2, skuId);
@@ -330,40 +328,40 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =========================================
-    // 9. Update quantity
-    // =========================================
-    public boolean updateQuantity(int cartItemId,
-                                  int quantity) {
+    public boolean updateQuantity(
+            int cartItemId,
+            int quantity) {
 
         if (quantity <= 0) {
             return false;
         }
 
-        String checkSql = "SELECT ps.stock_quantity "
-                        + "FROM CART_ITEMS ci "
-                        + "JOIN PRODUCT_SKU ps "
-                        + "ON ci.sku_id = ps.sku_id "
-                        + "WHERE ci.cart_item_id = ?";
+        String checkSql =
+                "SELECT ps.stock_quantity "
+                + "FROM CART_ITEMS ci "
+                + "JOIN PRODUCT_SKU ps "
+                + "ON ci.sku_id = ps.sku_id "
+                + "WHERE ci.cart_item_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement checkPs =
-                     conn.prepareStatement(checkSql)) {
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(checkSql)
+        ) {
 
-            checkPs.setInt(1, cartItemId);
+            ps.setInt(1, cartItemId);
 
-            ResultSet rs =
-                    checkPs.executeQuery();
+            try (ResultSet rs = ps.executeQuery()) {
 
-            if (!rs.next()) {
-                return false;
-            }
+                if (!rs.next()) {
+                    return false;
+                }
 
-            int stock =
-                    rs.getInt("stock_quantity");
+                int stock =
+                        rs.getInt("stock_quantity");
 
-            if (quantity > stock) {
-                return false;
+                if (quantity > stock) {
+                    return false;
+                }
             }
 
         } catch (SQLException e) {
@@ -371,15 +369,15 @@ public class CartDAO extends DBContext {
             return false;
         }
 
-
-        String updateSql =
+        String sql =
                 "UPDATE CART_ITEMS "
-              + "SET quantity = ? "
-              + "WHERE cart_item_id = ?";
+                + "SET quantity = ? "
+                + "WHERE cart_item_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(updateSql)) {
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
 
             ps.setInt(1, quantity);
             ps.setInt(2, cartItemId);
@@ -394,17 +392,17 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =========================================
-    // 10. Xóa một sản phẩm
-    // =========================================
-    public boolean deleteCartItem(int cartItemId) {
+    public boolean deleteCartItem(
+            int cartItemId) {
 
-        String sql = "DELETE FROM CART_ITEMS "
-                   + "WHERE cart_item_id = ?";
+        String sql =
+                "DELETE FROM CART_ITEMS "
+                + "WHERE cart_item_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
 
             ps.setInt(1, cartItemId);
 
@@ -418,20 +416,19 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =========================================
-    // 11. Xóa toàn bộ cart
-    // =========================================
-    public boolean clearCart(int cartId) {
+    public boolean clearCart(
+            int cartId) {
 
-        String sql = "DELETE FROM CART_ITEMS "
-                   + "WHERE cart_id = ?";
+        String sql =
+                "DELETE FROM CART_ITEMS "
+                + "WHERE cart_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
 
             ps.setInt(1, cartId);
-
             ps.executeUpdate();
 
             return true;
@@ -444,59 +441,29 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =========================================
-    // 12. Tổng tiền cart
-    // =========================================
-    public double getCartTotal(int cartId) {
+    public double getCartTotal(
+            int cartId) {
 
-        String sql = "SELECT "
-                   + "SUM(ci.quantity * ps.price) AS total "
-                   + "FROM CART_ITEMS ci "
-                   + "JOIN PRODUCT_SKU ps "
-                   + "ON ci.sku_id = ps.sku_id "
-                   + "WHERE ci.cart_id = ?";
+        String sql =
+                "SELECT "
+                + "SUM(ci.quantity * ps.price) AS total "
+                + "FROM CART_ITEMS ci "
+                + "JOIN PRODUCT_SKU ps "
+                + "ON ci.sku_id = ps.sku_id "
+                + "WHERE ci.cart_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
-
-            ps.setInt(1, cartId);
-
-            ResultSet rs =
-                    ps.executeQuery();
-
-            if (rs.next()) {
-                return rs.getDouble("total");
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return 0;
-    }
-
-
-    // =========================================
-    // 13. Đếm số item trong cart
-    // =========================================
-    public int countCartItems(int cartId) {
-
-        String sql = "SELECT SUM(quantity) AS total_quantity "
-                   + "FROM CART_ITEMS "
-                   + "WHERE cart_id = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement ps =
-                     conn.prepareStatement(sql)) {
+        try (
+                Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
 
             ps.setInt(1, cartId);
 
-            ResultSet rs =
-                    ps.executeQuery();
+            try (ResultSet rs = ps.executeQuery()) {
 
-            if (rs.next()) {
-                return rs.getInt("total_quantity");
+                if (rs.next()) {
+                    return rs.getDouble("total");
+                }
             }
 
         } catch (SQLException e) {

@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
 public class CartItem {
@@ -18,17 +14,6 @@ public class CartItem {
     private int stockQuantity;
 
     public CartItem() {
-    }
-
-    public CartItem(int cartItemId, int cartId, int skuId, String skuCode, String productName, double price, int quantity, int stockQuantity) {
-        this.cartItemId = cartItemId;
-        this.cartId = cartId;
-        this.skuId = skuId;
-        this.skuCode = skuCode;
-        this.productName = productName;
-        this.price = price;
-        this.quantity = quantity;
-        this.stockQuantity = stockQuantity;
     }
 
     public int getCartItemId() {

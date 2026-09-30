@@ -5,599 +5,558 @@
 <!DOCTYPE html>
 <html>
 
-    <head>
-        <meta charset="UTF-8">
+<head>
 
-        <title>Voucher Management</title>
+    <meta charset="UTF-8">
 
-        <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-            rel="stylesheet">
+    <title>Voucher Management</title>
 
-        <style>
-            body {
-                background-color: #f5f6f8;
-            }
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet">
 
-            .page-container {
-                margin-top: 40px;
-                margin-bottom: 40px;
-            }
-
-            .card {
-                border: none;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            }
-
-            .table-container {
-                background: white;
-                padding: 20px;
-                border-radius: 10px;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            }
-
-            .voucher-code {
-                font-weight: bold;
-            }
-
-            .action-buttons {
-                white-space: nowrap;
-            }
-        </style>
-    </head>
-
-    <body>
-
-        <div class="container page-container">
-
-            <h2 class="mb-4">
-                Quản lý Voucher
-            </h2>
+</head>
 
 
-            <!-- ============================== -->
-            <!-- SUCCESS MESSAGE -->
-            <!-- ============================== -->
-
-            <c:if test="${not empty sessionScope.successMessage}">
-
-                <div class="alert alert-success alert-dismissible fade show">
-
-                    ${sessionScope.successMessage}
-
-                    <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="alert">
-                    </button>
-
-                </div>
-
-                <c:remove
-                    var="successMessage"
-                    scope="session"/>
-
-            </c:if>
+<body class="bg-light">
 
 
-            <!-- ============================== -->
-            <!-- ERROR MESSAGE -->
-            <!-- ============================== -->
+<div class="container mt-5 mb-5">
 
-            <c:if test="${not empty sessionScope.errorMessage}">
 
-                <div class="alert alert-danger alert-dismissible fade show">
+    <h2 class="mb-4">
+        Quản lý Voucher
+    </h2>
 
-                    ${sessionScope.errorMessage}
 
-                    <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="alert">
-                    </button>
+    <c:if test="${not empty sessionScope.successMessage}">
+
+        <div class="alert alert-success">
+
+            ${sessionScope.successMessage}
+
+        </div>
+
+        <c:remove
+            var="successMessage"
+            scope="session"/>
+
+    </c:if>
+
+
+    <c:if test="${not empty sessionScope.errorMessage}">
+
+        <div class="alert alert-danger">
+
+            ${sessionScope.errorMessage}
+
+        </div>
+
+        <c:remove
+            var="errorMessage"
+            scope="session"/>
+
+    </c:if>
+
+
+    <div class="row g-4">
+
+
+        <!-- FORM -->
+
+        <div class="col-lg-4">
+
+
+            <div class="card">
+
+
+                <div class="card-header">
+
+                    <c:choose>
+
+                        <c:when test="${not empty editVoucher}">
+                            Cập nhật Voucher
+                        </c:when>
+
+                        <c:otherwise>
+                            Tạo Voucher
+                        </c:otherwise>
+
+                    </c:choose>
 
                 </div>
 
-                <c:remove
-                    var="errorMessage"
-                    scope="session"/>
 
-            </c:if>
+                <div class="card-body">
 
 
-            <div class="row g-4">
+                    <form
+                        action="${pageContext.request.contextPath}/admin/voucher"
+                        method="post">
 
 
-                <!-- ================================== -->
-                <!-- FORM CREATE / UPDATE -->
-                <!-- ================================== -->
+                        <c:choose>
 
-                <div class="col-lg-4">
+                            <c:when test="${not empty editVoucher}">
 
-                    <div class="card">
+                                <input
+                                    type="hidden"
+                                    name="action"
+                                    value="update">
 
-                        <div class="card-header">
+                                <input
+                                    type="hidden"
+                                    name="voucherId"
+                                    value="${editVoucher.voucherId}">
 
-                            <c:choose>
+                            </c:when>
 
-                                <c:when test="${not empty editVoucher}">
-                                    Cập nhật Voucher
-                                </c:when>
+                            <c:otherwise>
 
-                                <c:otherwise>
-                                    Tạo Voucher mới
-                                </c:otherwise>
+                                <input
+                                    type="hidden"
+                                    name="action"
+                                    value="create">
 
-                            </c:choose>
+                            </c:otherwise>
+
+                        </c:choose>
+
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Mã Voucher
+                            </label>
+
+                            <input
+                                type="text"
+                                name="code"
+                                class="form-control"
+                                value="${editVoucher.code}"
+                                required>
 
                         </div>
 
 
-                        <div class="card-body">
+                        <div class="mb-3">
 
-                            <form
-                                action="${pageContext.request.contextPath}/admin/voucher"
-                                method="post">
+                            <label class="form-label">
+                                Loại giảm
+                            </label>
 
+                            <select
+                                id="discountType"
+                                name="discountType"
+                                class="form-select">
 
-                                <!-- ACTION -->
+                                <option
+                                    value="AMOUNT"
+                                    ${editVoucher.discountType == 'AMOUNT' ? 'selected' : ''}>
 
-                                <c:choose>
+                                    Giảm tiền
 
-                                    <c:when test="${not empty editVoucher}">
+                                </option>
 
-                                        <input
-                                            type="hidden"
-                                            name="action"
-                                            value="update">
+                                <option
+                                    value="PERCENT"
+                                    ${editVoucher.discountType == 'PERCENT' ? 'selected' : ''}>
 
-                                        <input
-                                            type="hidden"
-                                            name="voucherId"
-                                            value="${editVoucher.voucherId}">
+                                    Giảm %
 
-                                    </c:when>
+                                </option>
 
-
-                                    <c:otherwise>
-
-                                        <input
-                                            type="hidden"
-                                            name="action"
-                                            value="create">
-
-                                    </c:otherwise>
-
-                                </c:choose>
-
-
-                                <!-- CODE -->
-
-                                <div class="mb-3">
-
-                                    <label
-                                        for="code"
-                                        class="form-label">
-
-                                        Mã Voucher
-
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        id="code"
-                                        name="code"
-                                        class="form-control"
-                                        value="${editVoucher.code}"
-                                        placeholder="VD: SALE50K"
-                                        maxlength="50"
-                                        required>
-
-                                </div>
-
-
-                                <!-- DISCOUNT -->
-
-                                <div class="mb-3">
-
-                                    <label
-                                        for="discountAmount"
-                                        class="form-label">
-
-                                        Số tiền giảm
-
-                                    </label>
-
-                                    <div class="input-group">
-                                        <c:choose>
-                                            <c:when test="${not empty editVoucher}">
-                                                <input
-                                                    type="number"
-                                                    id="discountAmount"
-                                                    name="discountAmount"
-                                                    class="form-control"
-                                                    value="${editVoucher.discountAmount}"
-                                                    min="1"
-                                                    step="1000"
-                                                    required>
-                                            </c:when>
-
-                                            <c:otherwise>
-                                                <input
-                                                    type="number"
-                                                    id="discountAmount"
-                                                    name="discountAmount"
-                                                    class="form-control"
-                                                    min="1"
-                                                    step="1000"
-                                                    required>
-                                            </c:otherwise>
-                                        </c:choose>
-
-                                        <span class="input-group-text">
-                                            đ
-                                        </span>
-
-                                    </div>
-
-                                </div>
-
-
-                                <!-- MIN ORDER -->
-
-                                <div class="mb-3">
-
-                                    <label
-                                        for="minOrderValue"
-                                        class="form-label">
-
-                                        Giá trị đơn tối thiểu
-
-                                    </label>
-
-                                    <div class="input-group">
-
-                                        <!-- MIN ORDER -->
-
-                                        <div class="mb-3">
-
-                                            <label
-                                                for="minOrderValue"
-                                                class="form-label">
-
-                                                Giá trị đơn tối thiểu
-
-                                            </label>
-
-                                            <div class="input-group">
-
-                                                <c:choose>
-
-                                                    <c:when test="${not empty editVoucher}">
-
-                                                        <input
-                                                            type="number"
-                                                            id="minOrderValue"
-                                                            name="minOrderValue"
-                                                            class="form-control"
-                                                            value="${editVoucher.minOrderValue}"
-                                                            min="0"
-                                                            step="1000"
-                                                            required>
-
-                                                    </c:when>
-
-                                                    <c:otherwise>
-
-                                                        <input
-                                                            type="number"
-                                                            id="minOrderValue"
-                                                            name="minOrderValue"
-                                                            class="form-control"
-                                                            min="0"
-                                                            step="1000"
-                                                            required>
-
-                                                    </c:otherwise>
-
-                                                </c:choose>
-
-
-                                                <span class="input-group-text">
-                                                    đ
-                                                </span>
-
-                                            </div>
-
-                                        </div>
-                                        <span class="input-group-text">
-                                            đ
-                                        </span>
-
-                                    </div>
-
-                                </div>
-
-
-                                <!-- VALID FROM -->
-
-                                <div class="mb-3">
-
-                                    <label
-                                        for="validFrom"
-                                        class="form-label">
-
-                                        Ngày bắt đầu
-
-                                    </label>
-
-                                    <input
-                                        type="datetime-local"
-                                        id="validFrom"
-                                        name="validFrom"
-                                        class="form-control"
-                                        required>
-
-                                </div>
-
-
-                                <!-- VALID TO -->
-
-                                <div class="mb-3">
-
-                                    <label
-                                        for="validTo"
-                                        class="form-label">
-
-                                        Ngày kết thúc
-
-                                    </label>
-
-                                    <input
-                                        type="datetime-local"
-                                        id="validTo"
-                                        name="validTo"
-                                        class="form-control"
-                                        required>
-
-                                </div>
-
-
-                                <!-- BUTTON -->
-
-                                <div class="d-flex gap-2">
-
-                                    <button
-                                        type="submit"
-                                        class="btn btn-primary">
-
-                                        <c:choose>
-
-                                            <c:when test="${not empty editVoucher}">
-                                                Cập nhật
-                                            </c:when>
-
-                                            <c:otherwise>
-                                                Tạo Voucher
-                                            </c:otherwise>
-
-                                        </c:choose>
-
-                                    </button>
-
-
-                                    <c:if test="${not empty editVoucher}">
-
-                                        <a
-                                            href="${pageContext.request.contextPath}/admin/voucher"
-                                            class="btn btn-secondary">
-
-                                            Hủy
-
-                                        </a>
-
-                                    </c:if>
-
-                                </div>
-
-                            </form>
+                            </select>
 
                         </div>
 
-                    </div>
 
-                </div>
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Giá trị giảm
+                            </label>
+
+                            <input
+                                id="discountValue"
+                                type="number"
+                                name="discountValue"
+                                class="form-control"
+                                value="${editVoucher.discountValue}"
+                                min="1"
+                                required>
+
+                        </div>
 
 
-                <!-- ================================== -->
-                <!-- TABLE -->
-                <!-- ================================== -->
+                        <div
+                            class="mb-3"
+                            id="maxDiscountGroup">
 
-                <div class="col-lg-8">
+                            <label class="form-label">
+                                Giảm tối đa
+                            </label>
 
-                    <div class="table-container">
+                            <input
+                                type="number"
+                                name="maxDiscount"
+                                class="form-control"
+                                value="${editVoucher.maxDiscount}">
 
-                        <h5 class="mb-3">
-                            Danh sách Voucher
-                        </h5>
+                        </div>
 
 
-                        <!-- EMPTY -->
+                        <div class="mb-3">
 
-                        <c:if test="${empty vouchers}">
+                            <label class="form-label">
+                                Đơn tối thiểu
+                            </label>
 
-                            <div class="alert alert-info">
+                            <input
+                                type="number"
+                                name="minOrderValue"
+                                class="form-control"
+                                value="${editVoucher.minOrderValue}"
+                                min="0"
+                                required>
 
-                                Chưa có Voucher nào.
+                        </div>
 
-                            </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Tổng lượt sử dụng
+                            </label>
+
+                            <input
+                                type="number"
+                                name="usageLimit"
+                                class="form-control"
+                                value="${editVoucher.usageLimit}"
+                                min="1">
+
+                            <small class="text-muted">
+                                Để trống nếu không giới hạn
+                            </small>
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Số lượt mỗi user
+                            </label>
+
+                            <input
+                                type="number"
+                                name="perUserLimit"
+                                class="form-control"
+                                value="${editVoucher.perUserLimit}"
+                                min="1">
+
+                            <small class="text-muted">
+                                Để trống nếu không giới hạn
+                            </small>
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Ngày bắt đầu
+                            </label>
+
+                            <input
+                                type="datetime-local"
+                                name="validFrom"
+                                class="form-control"
+                                value="${validFromValue}"
+                                required>
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Ngày kết thúc
+                            </label>
+
+                            <input
+                                type="datetime-local"
+                                name="validTo"
+                                class="form-control"
+                                value="${validToValue}"
+                                required>
+
+                        </div>
+
+
+                        <button
+                            class="btn btn-primary">
+
+                            Lưu Voucher
+
+                        </button>
+
+
+                        <c:if test="${not empty editVoucher}">
+
+                            <a
+                                href="${pageContext.request.contextPath}/admin/voucher"
+                                class="btn btn-secondary">
+
+                                Hủy
+
+                            </a>
 
                         </c:if>
 
 
-                        <!-- LIST -->
+                    </form>
 
-                        <c:if test="${not empty vouchers}">
-
-                            <div class="table-responsive">
-
-                                <table
-                                    class="table table-bordered table-hover align-middle">
-
-
-                                    <thead class="table-dark">
-
-                                        <tr>
-
-                                            <th>ID</th>
-
-                                            <th>Code</th>
-
-                                            <th>Giảm</th>
-
-                                            <th>Đơn tối thiểu</th>
-
-                                            <th>Bắt đầu</th>
-
-                                            <th>Kết thúc</th>
-
-                                            <th>Thao tác</th>
-
-                                        </tr>
-
-                                    </thead>
-
-
-                                    <tbody>
-
-                                        <c:forEach
-                                            var="voucher"
-                                            items="${vouchers}">
-
-
-                                            <tr>
-
-                                                <!-- ID -->
-
-                                                <td>
-
-                                                    ${voucher.voucherId}
-
-                                                </td>
-
-
-                                                <!-- CODE -->
-
-                                                <td>
-
-                                                    <span class="voucher-code">
-
-                                                        ${voucher.code}
-
-                                                    </span>
-
-                                                </td>
-
-
-                                                <!-- DISCOUNT -->
-
-                                                <td>
-
-                                                    <fmt:formatNumber
-                                                        value="${voucher.discountAmount}"
-                                                        type="number"
-                                                        groupingUsed="true"/>
-
-                                                    đ
-
-                                                </td>
-
-
-                                                <!-- MIN ORDER -->
-
-                                                <td>
-
-                                                    <fmt:formatNumber
-                                                        value="${voucher.minOrderValue}"
-                                                        type="number"
-                                                        groupingUsed="true"/>
-
-                                                    đ
-
-                                                </td>
-
-
-                                                <!-- FROM -->
-
-                                                <td>
-
-                                                    <fmt:formatDate
-                                                        value="${voucher.validFrom}"
-                                                        pattern="dd/MM/yyyy HH:mm"/>
-
-                                                </td>
-
-
-                                                <!-- TO -->
-
-                                                <td>
-
-                                                    <fmt:formatDate
-                                                        value="${voucher.validTo}"
-                                                        pattern="dd/MM/yyyy HH:mm"/>
-
-                                                </td>
-
-
-                                                <!-- ACTION -->
-
-                                                <td class="action-buttons">
-
-                                                    <a
-                                                        href="${pageContext.request.contextPath}/admin/voucher?action=edit&id=${voucher.voucherId}"
-                                                        class="btn btn-warning btn-sm">
-
-                                                        Edit
-
-                                                    </a>
-
-
-                                                    <a
-                                                        href="${pageContext.request.contextPath}/admin/voucher?action=delete&id=${voucher.voucherId}"
-                                                        class="btn btn-danger btn-sm"
-                                                        onclick="return confirm('Bạn có chắc muốn xóa Voucher ${voucher.code} không?')">
-
-                                                        Delete
-
-                                                    </a>
-
-                                                </td>
-
-                                            </tr>
-
-                                        </c:forEach>
-
-                                    </tbody>
-
-                                </table>
-
-                            </div>
-
-                        </c:if>
-
-                    </div>
 
                 </div>
+
 
             </div>
+
 
         </div>
 
 
-        <script
-            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-        </script>
+        <!-- LIST -->
 
-    </body>
+        <div class="col-lg-8">
+
+
+            <div class="card">
+
+
+                <div class="card-body">
+
+
+                    <h5>
+                        Danh sách Voucher
+                    </h5>
+
+
+                    <div class="table-responsive">
+
+
+                        <table class="table table-bordered">
+
+
+                            <thead class="table-dark">
+
+                            <tr>
+
+                                <th>Code</th>
+
+                                <th>Loại</th>
+
+                                <th>Giá trị</th>
+
+                                <th>Min</th>
+
+                                <th>Usage</th>
+
+                                <th>User</th>
+
+                                <th>Action</th>
+
+                            </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+
+                            <c:forEach
+                                var="v"
+                                items="${vouchers}">
+
+
+                                <tr>
+
+
+                                    <td>
+                                        ${v.code}
+                                    </td>
+
+
+                                    <td>
+                                        ${v.discountType}
+                                    </td>
+
+
+                                    <td>
+
+                                        <c:choose>
+
+                                            <c:when test="${v.discountType == 'PERCENT'}">
+
+                                                ${v.discountValue}%
+
+                                            </c:when>
+
+                                            <c:otherwise>
+
+                                                <fmt:formatNumber
+                                                    value="${v.discountValue}"
+                                                    type="number"/>
+
+                                                đ
+
+                                            </c:otherwise>
+
+                                        </c:choose>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <fmt:formatNumber
+                                            value="${v.minOrderValue}"
+                                            type="number"/>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <c:choose>
+
+                                            <c:when test="${empty v.usageLimit}">
+                                                ∞
+                                            </c:when>
+
+                                            <c:otherwise>
+                                                ${v.usageLimit}
+                                            </c:otherwise>
+
+                                        </c:choose>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <c:choose>
+
+                                            <c:when test="${empty v.perUserLimit}">
+                                                ∞
+                                            </c:when>
+
+                                            <c:otherwise>
+                                                ${v.perUserLimit}
+                                            </c:otherwise>
+
+                                        </c:choose>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <a
+                                            href="${pageContext.request.contextPath}/admin/voucher?action=edit&id=${v.voucherId}"
+                                            class="btn btn-warning btn-sm">
+
+                                            Edit
+
+                                        </a>
+
+
+                                        <a
+                                            href="${pageContext.request.contextPath}/admin/voucher?action=delete&id=${v.voucherId}"
+                                            class="btn btn-danger btn-sm"
+                                            onclick="return confirm('Xóa voucher này?')">
+
+                                            Delete
+
+                                        </a>
+
+                                    </td>
+
+
+                                </tr>
+
+
+                            </c:forEach>
+
+
+                            </tbody>
+
+
+                        </table>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+    const type =
+        document.getElementById("discountType");
+
+    const value =
+        document.getElementById("discountValue");
+
+    const maxGroup =
+        document.getElementById("maxDiscountGroup");
+
+
+    function updateDiscountForm() {
+
+        if (type.value === "PERCENT") {
+
+            value.max = "100";
+
+            maxGroup.style.display =
+                "block";
+
+        } else {
+
+            value.removeAttribute("max");
+
+            maxGroup.style.display =
+                "none";
+        }
+    }
+
+
+    type.addEventListener(
+        "change",
+        updateDiscountForm
+    );
+
+
+    updateDiscountForm();
+
+</script>
+
+
+</body>
 
 </html>
