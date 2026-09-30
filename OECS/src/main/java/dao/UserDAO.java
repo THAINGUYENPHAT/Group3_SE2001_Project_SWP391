@@ -8,24 +8,20 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class UserDAO extends DBContext {
 
-    /**
-     * Xử lý đăng nhập tài khoản người dùng
-     *
-     * @param username Tên đăng nhập hoặc Email
-     * @param rawPassword Mật khẩu chưa mã hóa
-     * @return Đối tượng User nếu đăng nhập thành công, null nếu thất bại
-     */
     public User login(String username, String rawPassword) {
+        // Dùng LEFT JOIN cho cả USER_ROLES và ROLES
         String sql = "SELECT u.user_id, u.username, u.email, u.password_hash, u.phone, u.created_at, "
-                + "r.role_id, r.role_name "
+                + "ISNULL(ur.role_id, 0) AS role_id, r.role_name "
                 + "FROM [USER] u "
-                + "JOIN USER_ROLES ur ON u.user_id = ur.user_id "
-                + "JOIN ROLES r ON ur.role_id = r.role_id "
+                + "LEFT JOIN USER_ROLES ur ON u.user_id = ur.user_id "
+                + "LEFT JOIN ROLES r ON ur.role_id = r.role_id "
                 + "WHERE (u.username = ?) AND u.password_hash = ?";
 
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
@@ -37,6 +33,12 @@ public class UserDAO extends DBContext {
 
             try (ResultSet rs = statement.executeQuery()) {
                 if (rs.next()) {
+                    int roleId = rs.getInt("role_id"); // Nếu không có dòng trong USER_ROLES, role_id sẽ là 0
+                    String roleName = rs.getString("role_name");
+                    if (roleId == 0) {
+                        roleName = "LOCKED";
+                    }
+
                     return new User(
                             rs.getInt("user_id"),
                             rs.getString("username"),
@@ -44,8 +46,8 @@ public class UserDAO extends DBContext {
                             rs.getString("password_hash"),
                             rs.getString("phone"),
                             rs.getTimestamp("created_at"),
-                            rs.getInt("role_id"),
-                            rs.getString("role_name")
+                            roleId,
+                            roleName
                     );
                 }
             }
@@ -78,7 +80,7 @@ public class UserDAO extends DBContext {
             return "";
         }
     }
-    
+
     public boolean checkUserExist(String username, String email) {
         String sql = "SELECT user_id FROM [USER] WHERE username = ? OR email = ?";
         try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -102,9 +104,9 @@ public class UserDAO extends DBContext {
             ps.setString(2, email);
             ps.setString(3, hashMd5(password));
             ps.setString(4, phone);
-            
+
             int rowsAffected = ps.executeUpdate();
-            
+
             if (rowsAffected > 0) {
                 assignDefaultRole(username);
                 return true;
@@ -114,10 +116,10 @@ public class UserDAO extends DBContext {
         }
         return false;
     }
-    
+
     private void assignDefaultRole(String username) {
         String sql = "INSERT INTO USER_ROLES (user_id, role_id) "
-                   + "SELECT user_id, 3 FROM [USER] WHERE username = ?";
+                + "SELECT user_id, 3 FROM [USER] WHERE username = ?";
         try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
             ps.executeUpdate();
@@ -129,7 +131,6 @@ public class UserDAO extends DBContext {
     // =========================================================================
     // CÁC PHƯƠNG THỨC BỔ SUNG CHO PROFILE & ĐỔI MẬT KHẨU
     // =========================================================================
-
     /**
      * Cập nhật thông tin Hồ sơ cá nhân (Email, Phone)
      */
@@ -139,7 +140,7 @@ public class UserDAO extends DBContext {
             ps.setString(1, email);
             ps.setString(2, phone);
             ps.setInt(3, userId);
-            
+
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -159,7 +160,7 @@ public class UserDAO extends DBContext {
             try (PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
                 checkPs.setInt(1, userId);
                 checkPs.setString(2, hashMd5(rawOldPassword));
-                
+
                 try (ResultSet rs = checkPs.executeQuery()) {
                     if (!rs.next()) {
                         return false; // Mật khẩu cũ không chính xác
@@ -171,11 +172,88 @@ public class UserDAO extends DBContext {
             try (PreparedStatement updatePs = conn.prepareStatement(updateSql)) {
                 updatePs.setString(1, hashMd5(rawNewPassword));
                 updatePs.setInt(2, userId);
-                
+
                 return updatePs.executeUpdate() > 0;
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        return false;
+    }
+
+    // 1. Lấy danh sách tất cả User (kèm tìm kiếm theo username/email/phone)
+    public List<User> getAllUsers(String keyword) {
+        List<User> list = new ArrayList<>();
+        String sql = "SELECT u.user_id, u.username, u.email, u.password_hash, u.phone, u.created_at, "
+                + "r.role_id, r.role_name "
+                + "FROM [USER] u "
+                + "LEFT JOIN USER_ROLES ur ON u.user_id = ur.user_id "
+                + "LEFT JOIN ROLES r ON ur.role_id = r.role_id "
+                + "WHERE u.username LIKE ? OR u.email LIKE ? OR u.phone LIKE ? "
+                + "ORDER BY u.created_at DESC";
+
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            String searchPattern = "%" + (keyword != null ? keyword.trim() : "") + "%";
+            ps.setString(1, searchPattern);
+            ps.setString(2, searchPattern);
+            ps.setString(3, searchPattern);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    User user = new User(
+                            rs.getInt("user_id"),
+                            rs.getString("username"),
+                            rs.getString("email"),
+                            rs.getString("password_hash"),
+                            rs.getString("phone"),
+                            rs.getTimestamp("created_at"),
+                            rs.getInt("role_id"),
+                            rs.getString("role_name")
+                    );
+                    list.add(user);
+                }
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(UserDAO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return list;
+    }
+
+    // 2. Khóa / Mở khóa bằng cách thay đổi role_id trong bảng USER_ROLES
+    /**
+     * Khóa hoặc Mở khóa tài khoản không làm vi phạm Foreign Key của bảng ROLES.
+     * - newRoleId == 0 (Khóa): Xóa phân quyền của User khỏi bảng USER_ROLES. -
+     * newRoleId != 0 (Mở khóa): Gán lại vai trò tương ứng vào bảng USER_ROLES.
+     */
+    public boolean updateUserRole(int userId, int newRoleId) {
+        if (newRoleId == 0) {
+            // KHÓA TÀI KHOẢN: Xóa bản ghi trong USER_ROLES
+            String sql = "DELETE FROM USER_ROLES WHERE user_id = ?";
+            try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, userId);
+                ps.executeUpdate();
+                return true; // Xóa thành công hoặc đã bị xóa
+            } catch (SQLException ex) {
+                Logger.getLogger(UserDAO.class.getName()).log(Level.SEVERE, "Lỗi khóa tài khoản!", ex);
+            }
+        } else {
+            // MỞ KHÓA TÀI KHOẢN: Xóa quyền cũ (nếu có) và Thêm lại quyền mới
+            String deleteSql = "DELETE FROM USER_ROLES WHERE user_id = ?";
+            String insertSql = "INSERT INTO USER_ROLES (user_id, role_id) VALUES (?, ?)";
+
+            try (Connection conn = this.getConnection()) {
+                try (PreparedStatement psDel = conn.prepareStatement(deleteSql)) {
+                    psDel.setInt(1, userId);
+                    psDel.executeUpdate();
+                }
+                try (PreparedStatement psIns = conn.prepareStatement(insertSql)) {
+                    psIns.setInt(1, userId);
+                    psIns.setInt(2, newRoleId);
+                    return psIns.executeUpdate() > 0;
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(UserDAO.class.getName()).log(Level.SEVERE, "Lỗi mở khóa tài khoản!", ex);
+            }
         }
         return false;
     }

@@ -21,6 +21,15 @@ public class LoginServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         if (session != null && session.getAttribute("loggedInUser") != null) {
             User user = (User) session.getAttribute("loggedInUser");
+            
+            // Nếu tài khoản trong session đã bị khóa -> Hủy session và cho ở lại trang Login
+            if (user.getRoleId() == 0) {
+                session.invalidate();
+                request.setAttribute("errorMessage", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin!");
+                request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
+                return;
+            }
+
             redirectByUserRole(request, response, user);
             return;
         }
@@ -42,6 +51,13 @@ public class LoginServlet extends HttpServlet {
             request.setAttribute("errorMessage", "Tên đăng nhập hoặc mật khẩu không chính xác!");
             request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
         } else {
+            // KIỂM TRA TRẠNG THÁI KHÓA TÀI KHOẢN (roleId == 0)
+            if (user.getRoleId() == 0) {
+                request.setAttribute("errorMessage", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin!");
+                request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
+                return;
+            }
+
             HttpSession session = request.getSession();
             
             // 1. Lưu thông tin User (đã kèm roleId và roleName) vào Session
