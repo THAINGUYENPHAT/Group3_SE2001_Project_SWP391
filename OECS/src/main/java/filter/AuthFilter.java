@@ -56,6 +56,28 @@ public class AuthFilter implements Filter {
         User user = (session != null) ? (User) session.getAttribute("loggedInUser") : null;
 
         // ========================================================
+        // 0. BẮT TRƯỜNG HỢP TÀI KHOẢN ĐANG ĐĂNG NHẬP NHƯNG BỊ ADMIN KHÓA
+        // ========================================================
+        if (user != null && user.getRoleId() == 0) {
+            // Cho phép tải tài nguyên tĩnh (CSS, JS, Images) để hiển thị giao diện trang Login đẹp
+            boolean isStaticResource = PUBLIC_PREFIXES.stream().anyMatch(relativePath::startsWith);
+            if (isStaticResource) {
+                chain.doFilter(request, response);
+                return;
+            }
+
+            // Hủy Session ngay lập tức
+            session.invalidate();
+
+            // Nếu không phải đang ở sẵn trang /login thì đẩy về /login kèm thông báo
+            if (!"/login".equals(relativePath)) {
+                httpRequest.setAttribute("errorMessage", "Tài khoản của bạn đã bị khóa bởi Admin!");
+                httpRequest.getRequestDispatcher("/WEB-INF/login.jsp").forward(httpRequest, httpResponse);
+                return;
+            }
+        }
+
+        // ========================================================
         // 1. CHO PHÉP QUA NẾU LÀ PUBLIC URL HOẶC TÀI NGUYÊN TĨNH
         // ========================================================
         boolean isPublicUrl = PUBLIC_URLS.contains(relativePath);
