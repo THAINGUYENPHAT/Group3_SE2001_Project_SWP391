@@ -31,6 +31,21 @@ public class Order {
     public Order() {
     }
 
+    public Order(int orderId, int userId, int addressId,
+            Integer shippingPartnerId,
+            BigDecimal totalAmount,
+            BigDecimal shippingFee,
+            Timestamp createdAt) {
+
+        this.orderId = orderId;
+        this.userId = userId;
+        this.addressId = addressId;
+        this.shippingPartnerId = shippingPartnerId;
+        this.totalAmount = totalAmount;
+        this.shippingFee = shippingFee;
+        this.createdAt = createdAt;
+    }
+
     // ==================== GETTER & SETTER ====================
     public int getOrderId() {
         return orderId;
