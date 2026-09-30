@@ -10,16 +10,37 @@ public class ProductReview {
     private int userId;
     private int orderItemId;
     private int skuId;
-
     private int rating;
     private String comment;
-
     private Timestamp createdAt;
-
     private List<String> images;
 
     public ProductReview() {
-        images = new ArrayList<>();
+        this.images = new ArrayList<>();
+    }
+
+    // Constructor cơ bản (tự động khởi tạo danh sách images rỗng)
+    public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt) {
+        this.reviewId = reviewId;
+        this.userId = userId;
+        this.orderItemId = orderItemId;
+        this.skuId = skuId;
+        this.rating = rating;
+        this.comment = comment;
+        this.createdAt = createdAt;
+        this.images = new ArrayList<>();
+    }
+
+    // All-args constructor đầy đủ bao gồm danh sách images
+    public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt, List<String> images) {
+        this.reviewId = reviewId;
+        this.userId = userId;
+        this.orderItemId = orderItemId;
+        this.skuId = skuId;
+        this.rating = rating;
+        this.comment = comment;
+        this.createdAt = createdAt;
+        this.images = images != null ? images : new ArrayList<>();
     }
 
     public int getReviewId() {
@@ -74,9 +95,7 @@ public class ProductReview {
         return createdAt;
     }
 
-    public void setCreatedAt(
-            Timestamp createdAt) {
-
+    public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -84,9 +103,7 @@ public class ProductReview {
         return images;
     }
 
-    public void setImages(
-            List<String> images) {
-
+    public void setImages(List<String> images) {
         this.images = images;
     }
 }

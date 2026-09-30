@@ -6,21 +6,31 @@ public class Voucher {
 
     private int voucherId;
     private String code;
-
     private double minOrderValue;
-
     private Timestamp validFrom;
     private Timestamp validTo;
-
     private String discountType;
     private double discountValue;
-
     private Double maxDiscount;
-
     private Integer usageLimit;
     private Integer perUserLimit;
 
     public Voucher() {
+    }
+
+    // All-args Constructor đầy đủ tham số
+    public Voucher(int voucherId, String code, double minOrderValue, Timestamp validFrom, Timestamp validTo, 
+                   String discountType, double discountValue, Double maxDiscount, Integer usageLimit, Integer perUserLimit) {
+        this.voucherId = voucherId;
+        this.code = code;
+        this.minOrderValue = minOrderValue;
+        this.validFrom = validFrom;
+        this.validTo = validTo;
+        this.discountType = discountType;
+        this.discountValue = discountValue;
+        this.maxDiscount = maxDiscount;
+        this.usageLimit = usageLimit;
+        this.perUserLimit = perUserLimit;
     }
 
     public int getVoucherId() {
@@ -101,5 +111,21 @@ public class Voucher {
 
     public void setPerUserLimit(Integer perUserLimit) {
         this.perUserLimit = perUserLimit;
+    }
+
+    @Override
+    public String toString() {
+        return "Voucher{" +
+                "voucherId=" + voucherId +
+                ", code='" + code + '\'' +
+                ", minOrderValue=" + minOrderValue +
+                ", validFrom=" + validFrom +
+                ", validTo=" + validTo +
+                ", discountType='" + discountType + '\'' +
+                ", discountValue=" + discountValue +
+                ", maxDiscount=" + maxDiscount +
+                ", usageLimit=" + usageLimit +
+                ", perUserLimit=" + perUserLimit +
+                '}';
     }
 }
