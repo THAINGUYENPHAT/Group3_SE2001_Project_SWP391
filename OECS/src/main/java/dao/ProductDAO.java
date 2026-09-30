@@ -18,37 +18,38 @@ public class ProductDAO extends DBContext {
     // 1. Lấy danh sách sản phẩm kèm theo thông tin Brand & Category (JOIN 3 bảng)
     public List<Product> getList() {
         List<Product> list = new ArrayList<>();
+        // Đã thêm c.display_order vào câu truy vấn
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, "
-                   + "c.category_id, c.category_name, c.parent_id, "
-                   + "b.brand_id, b.brand_name, b.logo_url "
-                   + "FROM PRODUCT p "
-                   + "INNER JOIN CATEGORY c ON p.category_id = c.category_id "
-                   + "INNER JOIN BRAND b ON p.brand_id = b.brand_id";
+                + "c.category_id, c.category_name, c.parent_id, c.display_order, "
+                + "b.brand_id, b.brand_name, b.logo_url "
+                + "FROM PRODUCT p "
+                + "INNER JOIN CATEGORY c ON p.category_id = c.category_id "
+                + "INNER JOIN BRAND b ON p.brand_id = b.brand_id";
 
-        try (Connection conn = this.getConnection();
-             PreparedStatement statement = conn.prepareStatement(sql);
-             ResultSet rs = statement.executeQuery()) {
+        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
 
             while (rs.next()) {
+                // Đã cập nhật constructor 4 tham số cho Category
                 Category category = new Category(
-                    rs.getInt("category_id"),
-                    rs.getString("category_name"),
-                    rs.getObject("parent_id") != null ? rs.getInt("parent_id") : null
+                        rs.getInt("category_id"),
+                        rs.getString("category_name"),
+                        rs.getObject("parent_id") != null ? rs.getInt("parent_id") : null,
+                        rs.getInt("display_order")
                 );
 
                 Brand brand = new Brand(
-                    rs.getInt("brand_id"),
-                    rs.getString("brand_name"),
-                    rs.getString("logo_url")
+                        rs.getInt("brand_id"),
+                        rs.getString("brand_name"),
+                        rs.getString("logo_url")
                 );
 
                 Product product = new Product(
-                    rs.getInt("product_id"),
-                    rs.getString("product_name"),
-                    rs.getString("description"),
-                    category,
-                    brand,
-                    rs.getTimestamp("created_at")
+                        rs.getInt("product_id"),
+                        rs.getString("product_name"),
+                        rs.getString("description"),
+                        category,
+                        brand,
+                        rs.getTimestamp("created_at")
                 );
 
                 list.add(product);
@@ -62,8 +63,7 @@ public class ProductDAO extends DBContext {
     // 2. Thêm sản phẩm mới
     public int insert(Product product) {
         String sql = "INSERT INTO PRODUCT (product_name, description, category_id, brand_id) VALUES (?, ?, ?, ?)";
-        try (Connection conn = this.getConnection();
-             PreparedStatement statement = conn.prepareStatement(sql)) {
+        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
             statement.setString(1, product.getProductName());
             statement.setString(2, product.getDescription());
@@ -80,8 +80,7 @@ public class ProductDAO extends DBContext {
     // 3. Cập nhật thông tin sản phẩm
     public int update(Product product) {
         String sql = "UPDATE PRODUCT SET product_name = ?, description = ?, category_id = ?, brand_id = ? WHERE product_id = ?";
-        try (Connection conn = this.getConnection();
-             PreparedStatement statement = conn.prepareStatement(sql)) {
+        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
             statement.setString(1, product.getProductName());
             statement.setString(2, product.getDescription());
@@ -99,8 +98,7 @@ public class ProductDAO extends DBContext {
     // 4. Xóa sản phẩm theo ID
     public int delete(int productId) {
         String sql = "DELETE FROM PRODUCT WHERE product_id = ?";
-        try (Connection conn = this.getConnection();
-             PreparedStatement statement = conn.prepareStatement(sql)) {
+        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
             statement.setInt(1, productId);
 
@@ -113,39 +111,41 @@ public class ProductDAO extends DBContext {
 
     // 5. Lấy sản phẩm chi tiết theo ID
     public Product getById(int id) {
+        // Đã thêm c.display_order vào câu truy vấn
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, "
-                   + "c.category_id, c.category_name, c.parent_id, "
-                   + "b.brand_id, b.brand_name, b.logo_url "
-                   + "FROM PRODUCT p "
-                   + "INNER JOIN CATEGORY c ON p.category_id = c.category_id "
-                   + "INNER JOIN BRAND b ON p.brand_id = b.brand_id "
-                   + "WHERE p.product_id = ?";
+                + "c.category_id, c.category_name, c.parent_id, c.display_order, "
+                + "b.brand_id, b.brand_name, b.logo_url "
+                + "FROM PRODUCT p "
+                + "INNER JOIN CATEGORY c ON p.category_id = c.category_id "
+                + "INNER JOIN BRAND b ON p.brand_id = b.brand_id "
+                + "WHERE p.product_id = ?";
 
-        try (Connection conn = this.getConnection();
-             PreparedStatement statement = conn.prepareStatement(sql)) {
+        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
             statement.setInt(1, id);
             try (ResultSet rs = statement.executeQuery()) {
                 if (rs.next()) {
+                    // Đã cập nhật constructor 4 tham số cho Category
                     Category category = new Category(
-                        rs.getInt("category_id"),
-                        rs.getString("category_name"),
-                        rs.getObject("parent_id") != null ? rs.getInt("parent_id") : null
+                            rs.getInt("category_id"),
+                            rs.getString("category_name"),
+                            rs.getObject("parent_id") != null ? rs.getInt("parent_id") : null,
+                            rs.getInt("display_order")
                     );
 
                     Brand brand = new Brand(
-                        rs.getInt("brand_id"),
-                        rs.getString("brand_name"),
-                        rs.getString("logo_url")
+                            rs.getInt("brand_id"),
+                            rs.getString("brand_name"),
+                            rs.getString("logo_url")
                     );
 
                     return new Product(
-                        rs.getInt("product_id"),
-                        rs.getString("product_name"),
-                        rs.getString("description"),
-                        category,
-                        brand,
-                        rs.getTimestamp("created_at")
+                            rs.getInt("product_id"),
+                            rs.getString("product_name"),
+                            rs.getString("description"),
+                            category,
+                            brand,
+                            rs.getTimestamp("created_at")
                     );
                 }
             }

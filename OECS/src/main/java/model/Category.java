@@ -5,14 +5,16 @@ public class Category {
     private int categoryId;
     private String categoryName;
     private Integer parentId; // Dùng Integer thay vì int để cho phép giá trị null (danh mục gốc)
+    private int displayOrder; // Thêm trường thứ tự hiển thị
 
     public Category() {
     }
 
-    public Category(int categoryId, String categoryName, Integer parentId) {
+    public Category(int categoryId, String categoryName, Integer parentId, int displayOrder) {
         this.categoryId = categoryId;
         this.categoryName = categoryName;
         this.parentId = parentId;
+        this.displayOrder = displayOrder;
     }
 
     public int getCategoryId() {
@@ -37,5 +39,13 @@ public class Category {
 
     public void setParentId(Integer parentId) {
         this.parentId = parentId;
+    }
+
+    public int getDisplayOrder() {
+        return displayOrder;
+    }
+
+    public void setDisplayOrder(int displayOrder) {
+        this.displayOrder = displayOrder;
     }
 }
