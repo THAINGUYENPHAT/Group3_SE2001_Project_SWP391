@@ -81,8 +81,7 @@ public class UserDAO extends DBContext {
     
     public boolean checkUserExist(String username, String email) {
         String sql = "SELECT user_id FROM [USER] WHERE username = ? OR email = ?";
-        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
-            PreparedStatement ps = conn.prepareStatement(sql);
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
             ps.setString(2, email);
             ResultSet rs = ps.executeQuery();
@@ -98,8 +97,7 @@ public class UserDAO extends DBContext {
     // 2. Thêm người dùng mới vào bảng [USER]
     public boolean register(String username, String email, String password, String phone) {
         String sql = "INSERT INTO [USER] (username, email, password_hash, phone) VALUES (?, ?, ?, ?)";
-         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
-            PreparedStatement ps = conn.prepareStatement(sql);
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
             ps.setString(2, email);
             ps.setString(3, hashMd5(password));
@@ -107,7 +105,6 @@ public class UserDAO extends DBContext {
             
             int rowsAffected = ps.executeUpdate();
             
-            // Tùy chọn: Sau khi đăng ký tài khoản thành công, bạn có thể gán role mặc định "Customer" (role_id = 3)
             if (rowsAffected > 0) {
                 assignDefaultRole(username);
                 return true;
@@ -121,12 +118,65 @@ public class UserDAO extends DBContext {
     private void assignDefaultRole(String username) {
         String sql = "INSERT INTO USER_ROLES (user_id, role_id) "
                    + "SELECT user_id, 3 FROM [USER] WHERE username = ?";
-         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
-            PreparedStatement ps = conn.prepareStatement(sql);
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
             ps.executeUpdate();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    // =========================================================================
+    // CÁC PHƯƠNG THỨC BỔ SUNG CHO PROFILE & ĐỔI MẬT KHẨU
+    // =========================================================================
+
+    /**
+     * Cập nhật thông tin Hồ sơ cá nhân (Email, Phone)
+     */
+    public boolean updateProfile(int userId, String email, String phone) {
+        String sql = "UPDATE [USER] SET email = ?, phone = ? WHERE user_id = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            ps.setString(2, phone);
+            ps.setInt(3, userId);
+            
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Đổi mật khẩu tài khoản (Có kiểm tra mật khẩu cũ)
+     */
+    public boolean changePassword(int userId, String rawOldPassword, String rawNewPassword) {
+        String checkSql = "SELECT user_id FROM [USER] WHERE user_id = ? AND password_hash = ?";
+        String updateSql = "UPDATE [USER] SET password_hash = ? WHERE user_id = ?";
+
+        try (Connection conn = this.getConnection()) {
+            // 1. Kiểm tra mật khẩu cũ có chính xác không
+            try (PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
+                checkPs.setInt(1, userId);
+                checkPs.setString(2, hashMd5(rawOldPassword));
+                
+                try (ResultSet rs = checkPs.executeQuery()) {
+                    if (!rs.next()) {
+                        return false; // Mật khẩu cũ không chính xác
+                    }
+                }
+            }
+
+            // 2. Tiến hành cập nhật mật khẩu mới (mã hóa MD5)
+            try (PreparedStatement updatePs = conn.prepareStatement(updateSql)) {
+                updatePs.setString(1, hashMd5(rawNewPassword));
+                updatePs.setInt(2, userId);
+                
+                return updatePs.executeUpdate() > 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }
