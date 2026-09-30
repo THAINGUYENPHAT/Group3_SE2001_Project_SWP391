@@ -11,13 +11,18 @@ public class Product {
     private Brand brand;
     private Timestamp createdAt;
 
+    private double price;
+    private String imageUrl;
+
     public Product() {
     }
 
-    public Product(int productId, String productName, String description, Category category, Brand brand, Timestamp createdAt) {
+    public Product(int productId, String productName, String description, double price, String imageUrl, Category category, Brand brand, Timestamp createdAt) {
         this.productId = productId;
         this.productName = productName;
         this.description = description;
+        this.price = price;
+        this.imageUrl = imageUrl;
         this.category = category;
         this.brand = brand;
         this.createdAt = createdAt;
@@ -71,4 +76,21 @@ public class Product {
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
     }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
 }

@@ -18,8 +18,8 @@ public class ProductDAO extends DBContext {
     // 1. Lấy danh sách sản phẩm kèm theo thông tin Brand & Category (JOIN 3 bảng)
     public List<Product> getList() {
         List<Product> list = new ArrayList<>();
-        // Đã thêm c.display_order vào câu truy vấn
-        String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, "
+        // Đã thêm p.price, p.image_url vào truy vấn
+        String sql = "SELECT p.product_id, p.product_name, p.description, p.price, p.image_url, p.created_at, "
                 + "c.category_id, c.category_name, c.parent_id, c.display_order, "
                 + "b.brand_id, b.brand_name, b.logo_url "
                 + "FROM PRODUCT p "
@@ -29,7 +29,6 @@ public class ProductDAO extends DBContext {
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
 
             while (rs.next()) {
-                // Đã cập nhật constructor 4 tham số cho Category
                 Category category = new Category(
                         rs.getInt("category_id"),
                         rs.getString("category_name"),
@@ -43,10 +42,13 @@ public class ProductDAO extends DBContext {
                         rs.getString("logo_url")
                 );
 
+                // Cập nhật constructor Product thành 8 tham số
                 Product product = new Product(
                         rs.getInt("product_id"),
                         rs.getString("product_name"),
                         rs.getString("description"),
+                        rs.getDouble("price"), // THÊM MỚI
+                        rs.getString("image_url"), // THÊM MỚI
                         category,
                         brand,
                         rs.getTimestamp("created_at")
@@ -62,13 +64,16 @@ public class ProductDAO extends DBContext {
 
     // 2. Thêm sản phẩm mới
     public int insert(Product product) {
-        String sql = "INSERT INTO PRODUCT (product_name, description, category_id, brand_id) VALUES (?, ?, ?, ?)";
+        // Thêm price và image_url vào câu lệnh INSERT
+        String sql = "INSERT INTO PRODUCT (product_name, description, price, image_url, category_id, brand_id) VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
             statement.setString(1, product.getProductName());
             statement.setString(2, product.getDescription());
-            statement.setInt(3, product.getCategory().getCategoryId());
-            statement.setInt(4, product.getBrand().getBrandId());
+            statement.setDouble(3, product.getPrice());      // THÊM MỚI
+            statement.setString(4, product.getImageUrl());   // THÊM MỚI
+            statement.setInt(5, product.getCategory().getCategoryId());
+            statement.setInt(6, product.getBrand().getBrandId());
 
             return statement.executeUpdate();
         } catch (SQLException ex) {
@@ -79,14 +84,17 @@ public class ProductDAO extends DBContext {
 
     // 3. Cập nhật thông tin sản phẩm
     public int update(Product product) {
-        String sql = "UPDATE PRODUCT SET product_name = ?, description = ?, category_id = ?, brand_id = ? WHERE product_id = ?";
+        // Thêm price và image_url vào câu lệnh UPDATE
+        String sql = "UPDATE PRODUCT SET product_name = ?, description = ?, price = ?, image_url = ?, category_id = ?, brand_id = ? WHERE product_id = ?";
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
             statement.setString(1, product.getProductName());
             statement.setString(2, product.getDescription());
-            statement.setInt(3, product.getCategory().getCategoryId());
-            statement.setInt(4, product.getBrand().getBrandId());
-            statement.setInt(5, product.getProductId());
+            statement.setDouble(3, product.getPrice());      // THÊM MỚI
+            statement.setString(4, product.getImageUrl());   // THÊM MỚI
+            statement.setInt(5, product.getCategory().getCategoryId());
+            statement.setInt(6, product.getBrand().getBrandId());
+            statement.setInt(7, product.getProductId());
 
             return statement.executeUpdate();
         } catch (SQLException ex) {
@@ -111,8 +119,8 @@ public class ProductDAO extends DBContext {
 
     // 5. Lấy sản phẩm chi tiết theo ID
     public Product getById(int id) {
-        // Đã thêm c.display_order vào câu truy vấn
-        String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, "
+        // Đã thêm p.price, p.image_url vào truy vấn
+        String sql = "SELECT p.product_id, p.product_name, p.description, p.price, p.image_url, p.created_at, "
                 + "c.category_id, c.category_name, c.parent_id, c.display_order, "
                 + "b.brand_id, b.brand_name, b.logo_url "
                 + "FROM PRODUCT p "
@@ -125,7 +133,6 @@ public class ProductDAO extends DBContext {
             statement.setInt(1, id);
             try (ResultSet rs = statement.executeQuery()) {
                 if (rs.next()) {
-                    // Đã cập nhật constructor 4 tham số cho Category
                     Category category = new Category(
                             rs.getInt("category_id"),
                             rs.getString("category_name"),
@@ -139,10 +146,13 @@ public class ProductDAO extends DBContext {
                             rs.getString("logo_url")
                     );
 
+                    // Cập nhật constructor Product thành 8 tham số
                     return new Product(
                             rs.getInt("product_id"),
                             rs.getString("product_name"),
                             rs.getString("description"),
+                            rs.getDouble("price"), // THÊM MỚI
+                            rs.getString("image_url"), // THÊM MỚI
                             category,
                             brand,
                             rs.getTimestamp("created_at")
@@ -153,5 +163,52 @@ public class ProductDAO extends DBContext {
             Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy Product theo ID!", ex);
         }
         return null;
+    }
+
+    // 6. Lấy danh sách Biến thể (SKU) của 1 sản phẩm
+    public List<model.ProductSKU> getSkusByProductId(int productId) {
+        List<model.ProductSKU> list = new ArrayList<>();
+        String sql = "SELECT sku_id, product_id, sku_code, price, stock_quantity FROM PRODUCT_SKU WHERE product_id = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new model.ProductSKU(
+                            rs.getInt("sku_id"),
+                            rs.getInt("product_id"),
+                            rs.getString("sku_code"),
+                            rs.getDouble("price"),
+                            rs.getInt("stock_quantity")
+                    ));
+                }
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy SKUs!", ex);
+        }
+        return list;
+    }
+
+    // 7. Lấy danh sách Thông số kỹ thuật của 1 sản phẩm
+    public List<model.ProductSpecification> getSpecsByProductId(int productId) {
+        List<model.ProductSpecification> list = new ArrayList<>();
+        // JOIN 2 bảng PRODUCT_SPECIFICATION và ATTRIBUTE
+        String sql = "SELECT a.attribute_name, s.value "
+                + "FROM PRODUCT_SPECIFICATION s "
+                + "INNER JOIN ATTRIBUTE a ON s.attribute_id = a.attribute_id "
+                + "WHERE s.product_id = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new model.ProductSpecification(
+                            rs.getString("attribute_name"),
+                            rs.getString("value")
+                    ));
+                }
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy Specs!", ex);
+        }
+        return list;
     }
 }

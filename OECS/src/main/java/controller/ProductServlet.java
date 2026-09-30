@@ -29,8 +29,7 @@ public class ProductServlet extends HttpServlet {
             List<Product> productList = productDao.getList();
             request.setAttribute("productList", productList);
             request.getRequestDispatcher("/WEB-INF/product/list.jsp").forward(request, response);
-        } 
-        else if ("create".equals(view)) {
+        } else if ("create".equals(view)) {
             // Lấy danh sách Brand và Category để hiển thị trên Dropdown/Select box
             BrandDAO brandDao = new BrandDAO();
             CategoryDAO categoryDao = new CategoryDAO();
@@ -48,17 +47,18 @@ public class ProductServlet extends HttpServlet {
             if (brandIdRaw != null && !brandIdRaw.trim().isEmpty()) {
                 try {
                     request.setAttribute("preSelectedBrandId", Integer.parseInt(brandIdRaw));
-                } catch (NumberFormatException ignored) {}
+                } catch (NumberFormatException ignored) {
+                }
             }
             if (categoryIdRaw != null && !categoryIdRaw.trim().isEmpty()) {
                 try {
                     request.setAttribute("preSelectedCategoryId", Integer.parseInt(categoryIdRaw));
-                } catch (NumberFormatException ignored) {}
+                } catch (NumberFormatException ignored) {
+                }
             }
 
             request.getRequestDispatcher("/WEB-INF/product/create.jsp").forward(request, response);
-        } 
-        else if ("edit".equals(view)) {
+        } else if ("edit".equals(view)) {
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
                 Product product = productDao.getById(id);
@@ -78,8 +78,7 @@ public class ProductServlet extends HttpServlet {
             } catch (NumberFormatException e) {
                 response.sendRedirect(request.getContextPath() + "/product?view=list");
             }
-        } 
-        else if ("delete".equals(view)) {
+        } else if ("delete".equals(view)) {
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
                 Product product = productDao.getById(id);
@@ -107,6 +106,8 @@ public class ProductServlet extends HttpServlet {
         if ("create".equals(action)) {
             String name = request.getParameter("name");
             String description = request.getParameter("description");
+            double price = request.getParameter("price") != null && !request.getParameter("price").isEmpty() ? Double.parseDouble(request.getParameter("price")) : 0;
+            String imageUrl = request.getParameter("imageUrl");
             int categoryId = Integer.parseInt(request.getParameter("categoryId"));
             int brandId = Integer.parseInt(request.getParameter("brandId"));
 
@@ -116,15 +117,18 @@ public class ProductServlet extends HttpServlet {
             Brand brand = new Brand();
             brand.setBrandId(brandId);
 
-            Product newProduct = new Product(0, name, description, category, brand, null);
+            // Dùng constructor 8 tham số cho Create
+            Product newProduct = new Product(0, name, description, price, imageUrl, category, brand, null);
             productDao.insert(newProduct);
 
             response.sendRedirect(request.getContextPath() + "/product?view=list");
-        } 
-        else if ("update".equals(action) || "edit".equals(action)) {
+
+        } else if ("update".equals(action) || "edit".equals(action)) {
             int id = Integer.parseInt(request.getParameter("id"));
             String name = request.getParameter("name");
             String description = request.getParameter("description");
+            double price = request.getParameter("price") != null && !request.getParameter("price").isEmpty() ? Double.parseDouble(request.getParameter("price")) : 0;
+            String imageUrl = request.getParameter("imageUrl");
             int categoryId = Integer.parseInt(request.getParameter("categoryId"));
             int brandId = Integer.parseInt(request.getParameter("brandId"));
 
@@ -134,12 +138,13 @@ public class ProductServlet extends HttpServlet {
             Brand brand = new Brand();
             brand.setBrandId(brandId);
 
-            Product product = new Product(id, name, description, category, brand, null);
+            // Dùng constructor 8 tham số cho Update
+            Product product = new Product(id, name, description, price, imageUrl, category, brand, null);
             productDao.update(product);
 
             response.sendRedirect(request.getContextPath() + "/product?view=list");
-        } 
-        else if ("delete".equals(action)) {
+
+        } else if ("delete".equals(action)) {
             int id = Integer.parseInt(request.getParameter("id"));
             productDao.delete(id);
 
