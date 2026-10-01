@@ -15,6 +15,17 @@ public class User {
     private String roleName;
     private boolean active;
 
+    private String address; // Lưu địa chỉ mặc định từ ADDRESSBOOK
+
+    // Getter & Setter
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
     public User() {
     }
 

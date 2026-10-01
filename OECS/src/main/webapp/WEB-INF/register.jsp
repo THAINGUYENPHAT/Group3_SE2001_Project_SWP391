@@ -1,6 +1,5 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
-<%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
+
 
 <%-- Nhúng Header chung của dự án (đã bao gồm <head>, CSS Bootstrap và mở <body>) --%>
 <%@include file="/WEB-INF/include/header.jsp" %>

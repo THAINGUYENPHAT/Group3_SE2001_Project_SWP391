@@ -1,5 +1,4 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 
 <%-- Nhúng Header chung của dự án --%>
 <%@include file="/WEB-INF/include/header.jsp" %>
@@ -46,6 +45,11 @@
                         <div class="mb-3">
                             <label for="phone" class="form-label fw-bold">Số điện thoại</label>
                             <input type="tel" class="form-control" id="phone" name="phone" value="<c:out value='${sessionScope.loggedInUser.phone}'/>" pattern="(0[3|5|7|8|9])+([0-9]{8})\b" title="Số điện thoại Việt Nam gồm 10 chữ số">
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="address">Địa chỉ giao hàng mặc định:</label>
+                            <textarea id="address" name="address" class="form-control" rows="3" placeholder="Nhập địa chỉ nhận hàng của bạn...">${sessionScope.loggedInUser.address}</textarea>
                         </div>
 
                         <div class="d-grid mt-4">
