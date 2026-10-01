@@ -20,8 +20,7 @@ public class CartDAO extends DBContext {
     public int getCartIdByUserId(int userId) {
         String sql = "SELECT cart_id FROM CART WHERE user_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
 
@@ -41,8 +40,7 @@ public class CartDAO extends DBContext {
     public int createCart(int userId) {
         String sql = "INSERT INTO CART (user_id, created_at) VALUES (?, GETDATE())";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, userId);
 
@@ -70,37 +68,75 @@ public class CartDAO extends DBContext {
     }
 
     public List<CartItem> getCartItems(int cartId) {
+
         List<CartItem> list = new ArrayList<>();
-        String sql = "SELECT ci.cart_item_id, ci.cart_id, ci.sku_id, ci.quantity, "
-                + "ps.sku_code, ps.price, ps.stock_quantity, p.product_name "
+
+        String sql = "SELECT "
+                + "ci.cart_item_id, "
+                + "ci.cart_id, "
+                + "ci.sku_id, "
+                + "ci.quantity, "
+                + "ps.sku_code, "
+                + "ps.price AS price, "
+                + "ps.stock_quantity, "
+                + "p.product_name "
                 + "FROM CART_ITEMS ci "
-                + "JOIN PRODUCT_SKU ps ON ci.sku_id = ps.sku_id "
-                + "JOIN PRODUCT p ON ps.product_id = p.product_id "
+                + "JOIN PRODUCT_SKU ps "
+                + "ON ci.sku_id = ps.sku_id "
+                + "JOIN PRODUCT p "
+                + "ON ps.product_id = p.product_id "
                 + "WHERE ci.cart_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (
+                Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, cartId);
 
             try (ResultSet rs = ps.executeQuery()) {
+
                 while (rs.next()) {
+
                     CartItem item = new CartItem();
-                    item.setCartItemId(rs.getInt("cart_item_id"));
-                    item.setCartId(rs.getInt("cart_id"));
-                    item.setSkuId(rs.getInt("sku_id"));
-                    item.setQuantity(rs.getInt("quantity"));
-                    item.setSkuCode(rs.getString("sku_code"));
-                    item.setPrice(rs.getDouble("price"));
-                    item.setStockQuantity(rs.getInt("stock_quantity"));
-                    item.setProductName(rs.getString("product_name"));
+
+                    item.setCartItemId(
+                            rs.getInt("cart_item_id")
+                    );
+
+                    item.setCartId(
+                            rs.getInt("cart_id")
+                    );
+
+                    item.setSkuId(
+                            rs.getInt("sku_id")
+                    );
+
+                    item.setQuantity(
+                            rs.getInt("quantity")
+                    );
+
+                    item.setSkuCode(
+                            rs.getString("sku_code")
+                    );
+
+                    // QUAN TRỌNG
+                    item.setPrice(
+                            rs.getDouble("price")
+                    );
+
+                    item.setStockQuantity(
+                            rs.getInt("stock_quantity")
+                    );
+
+                    item.setProductName(
+                            rs.getString("product_name")
+                    );
 
                     list.add(item);
                 }
             }
 
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Lỗi lấy danh sách sản phẩm giỏ hàng!", e);
+            e.printStackTrace();
         }
 
         return list;
@@ -109,8 +145,7 @@ public class CartDAO extends DBContext {
     public int getStockQuantity(int skuId) {
         String sql = "SELECT stock_quantity FROM PRODUCT_SKU WHERE sku_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, skuId);
 
@@ -130,8 +165,7 @@ public class CartDAO extends DBContext {
     public int getCurrentQuantity(int cartId, int skuId) {
         String sql = "SELECT quantity FROM CART_ITEMS WHERE cart_id = ? AND sku_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, cartId);
             ps.setInt(2, skuId);
@@ -152,8 +186,7 @@ public class CartDAO extends DBContext {
     public boolean exists(int cartId, int skuId) {
         String sql = "SELECT 1 FROM CART_ITEMS WHERE cart_id = ? AND sku_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, cartId);
             ps.setInt(2, skuId);
@@ -188,8 +221,7 @@ public class CartDAO extends DBContext {
 
             String sql = "UPDATE CART_ITEMS SET quantity = ? WHERE cart_id = ? AND sku_id = ?";
 
-            try (Connection conn = getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
                 ps.setInt(1, newQuantity);
                 ps.setInt(2, cartId);
@@ -207,8 +239,7 @@ public class CartDAO extends DBContext {
 
             String sql = "INSERT INTO CART_ITEMS (cart_id, sku_id, quantity) VALUES (?, ?, ?)";
 
-            try (Connection conn = getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
                 ps.setInt(1, cartId);
                 ps.setInt(2, skuId);
@@ -234,8 +265,7 @@ public class CartDAO extends DBContext {
                 + "JOIN PRODUCT_SKU ps ON ci.sku_id = ps.sku_id "
                 + "WHERE ci.cart_item_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(checkSql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(checkSql)) {
 
             ps.setInt(1, cartItemId);
 
@@ -257,8 +287,7 @@ public class CartDAO extends DBContext {
 
         String sql = "UPDATE CART_ITEMS SET quantity = ? WHERE cart_item_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, quantity);
             ps.setInt(2, cartItemId);
@@ -275,8 +304,7 @@ public class CartDAO extends DBContext {
     public boolean deleteCartItem(int cartItemId) {
         String sql = "DELETE FROM CART_ITEMS WHERE cart_item_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, cartItemId);
 
@@ -292,8 +320,7 @@ public class CartDAO extends DBContext {
     public boolean clearCart(int cartId) {
         String sql = "DELETE FROM CART_ITEMS WHERE cart_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, cartId);
             ps.executeUpdate();
@@ -313,8 +340,7 @@ public class CartDAO extends DBContext {
                 + "JOIN PRODUCT_SKU ps ON ci.sku_id = ps.sku_id "
                 + "WHERE ci.cart_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, cartId);
 
