@@ -18,7 +18,6 @@ public class Voucher {
     public Voucher() {
     }
 
-    // All-args Constructor đầy đủ tham số
     public Voucher(int voucherId, String code, double minOrderValue, Timestamp validFrom, Timestamp validTo, 
                    String discountType, double discountValue, Double maxDiscount, Integer usageLimit, Integer perUserLimit) {
         this.voucherId = voucherId;

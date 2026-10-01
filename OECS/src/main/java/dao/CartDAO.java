@@ -17,9 +17,6 @@ public class CartDAO extends DBContext {
 
     private static final Logger LOGGER = Logger.getLogger(CartDAO.class.getName());
 
-    // =====================================================
-    // 1. LẤY CART ID THEO USER ID
-    // =====================================================
     public int getCartIdByUserId(int userId) {
         String sql = "SELECT cart_id FROM CART WHERE user_id = ?";
 
@@ -41,9 +38,6 @@ public class CartDAO extends DBContext {
         return -1;
     }
 
-    // =====================================================
-    // 2. TẠO GIỎ HÀNG MỚI
-    // =====================================================
     public int createCart(int userId) {
         String sql = "INSERT INTO CART (user_id, created_at) VALUES (?, GETDATE())";
 
@@ -67,9 +61,6 @@ public class CartDAO extends DBContext {
         return -1;
     }
 
-    // =====================================================
-    // 3. LẤY HOẶC TẠO MỚI GIỎ HÀNG
-    // =====================================================
     public int getOrCreateCart(int userId) {
         int cartId = getCartIdByUserId(userId);
         if (cartId == -1) {
@@ -78,9 +69,6 @@ public class CartDAO extends DBContext {
         return cartId;
     }
 
-    // =====================================================
-    // 4. LẤY DANH SÁCH SẢN PHẨM TRONG GIỎ HÀNG
-    // =====================================================
     public List<CartItem> getCartItems(int cartId) {
         List<CartItem> list = new ArrayList<>();
         String sql = "SELECT ci.cart_item_id, ci.cart_id, ci.sku_id, ci.quantity, "
@@ -118,9 +106,6 @@ public class CartDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // 5. LẤY SỐ LƯỢNG TỒN KHO CỦA SKU
-    // =====================================================
     public int getStockQuantity(int skuId) {
         String sql = "SELECT stock_quantity FROM PRODUCT_SKU WHERE sku_id = ?";
 
@@ -142,9 +127,6 @@ public class CartDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // 6. LẤY SỐ LƯỢNG SẢN PHẨM HIỆN TẠI TRONG GIỎ HÀNG
-    // =====================================================
     public int getCurrentQuantity(int cartId, int skuId) {
         String sql = "SELECT quantity FROM CART_ITEMS WHERE cart_id = ? AND sku_id = ?";
 
@@ -167,9 +149,6 @@ public class CartDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // 7. KIỂM TRA SẢN PHẨM ĐÃ CÓ TRONG GIỎ HÀNG CHƯA
-    // =====================================================
     public boolean exists(int cartId, int skuId) {
         String sql = "SELECT 1 FROM CART_ITEMS WHERE cart_id = ? AND sku_id = ?";
 
@@ -189,10 +168,6 @@ public class CartDAO extends DBContext {
 
         return false;
     }
-
-    // =====================================================
-    // 8. THÊM SẢN PHẨM VÀO GIỎ HÀNG
-    // =====================================================
     public boolean addToCart(int cartId, int skuId, int quantity) {
         if (quantity <= 0) {
             return false;
@@ -249,9 +224,6 @@ public class CartDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // 9. CẬP NHẬT SỐ LƯỢNG SẢN PHẨM TRONG GIỎ
-    // =====================================================
     public boolean updateQuantity(int cartItemId, int quantity) {
         if (quantity <= 0) {
             return false;
@@ -300,9 +272,6 @@ public class CartDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // 10. XÓA MỘT SẢN PHẨM KHỎI GIỎ HÀNG
-    // =====================================================
     public boolean deleteCartItem(int cartItemId) {
         String sql = "DELETE FROM CART_ITEMS WHERE cart_item_id = ?";
 
@@ -320,9 +289,6 @@ public class CartDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // 11. XÓA TOÀN BỘ GIỎ HÀNG
-    // =====================================================
     public boolean clearCart(int cartId) {
         String sql = "DELETE FROM CART_ITEMS WHERE cart_id = ?";
 
@@ -341,9 +307,6 @@ public class CartDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // 12. TÍNH TỔNG TIỀN GIỎ HÀNG
-    // =====================================================
     public double getCartTotal(int cartId) {
         String sql = "SELECT SUM(ci.quantity * ps.price) AS total "
                 + "FROM CART_ITEMS ci "

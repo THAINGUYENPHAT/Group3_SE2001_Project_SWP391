@@ -19,7 +19,6 @@ public class ProductReview {
         this.images = new ArrayList<>();
     }
 
-    // Constructor cơ bản (tự động khởi tạo danh sách images rỗng)
     public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt) {
         this.reviewId = reviewId;
         this.userId = userId;
@@ -31,7 +30,6 @@ public class ProductReview {
         this.images = new ArrayList<>();
     }
 
-    // All-args constructor đầy đủ bao gồm danh sách images
     public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt, List<String> images) {
         this.reviewId = reviewId;
         this.userId = userId;

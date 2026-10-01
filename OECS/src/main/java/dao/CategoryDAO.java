@@ -16,9 +16,6 @@ public class CategoryDAO extends DBContext {
 
     private static final Logger LOGGER = Logger.getLogger(CategoryDAO.class.getName());
 
-    // =====================================================
-    // 1. LẤY DANH SÁCH TẤT CẢ CÁC DANH MỤC
-    // =====================================================
     public List<Category> getList() {
         List<Category> list = new ArrayList<>();
         String sql = "SELECT category_id, category_name, parent_id "
@@ -47,9 +44,6 @@ public class CategoryDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // 2. THÊM DANH MỤC MỚI
-    // =====================================================
     public int insert(Category category) {
         String sql = "INSERT INTO CATEGORY (category_name, parent_id) VALUES (?, ?)";
 
@@ -72,9 +66,6 @@ public class CategoryDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // 3. CẬP NHẬT DANH MỤC
-    // =====================================================
     public int edit(Category category) {
         String sql = "UPDATE CATEGORY "
                 + "SET category_name = ?, parent_id = ? "
@@ -101,9 +92,6 @@ public class CategoryDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // 4. XÓA DANH MỤC
-    // =====================================================
     public int delete(Category category) {
         String sql = "DELETE FROM CATEGORY WHERE category_id = ?";
 
@@ -120,9 +108,6 @@ public class CategoryDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // 5. LẤY DANH MỤC THEO ID
-    // =====================================================
     public Category getById(int id) {
         String sql = "SELECT category_id, category_name, parent_id "
                 + "FROM CATEGORY WHERE category_id = ?";
