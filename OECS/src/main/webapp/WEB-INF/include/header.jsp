@@ -398,10 +398,6 @@
                             <span class="header-icon-badge">3</span>
                         </a>
 
-                        <a href="${pageContext.request.contextPath}/brand?view=create" class="btn btn-primary d-flex align-items-center gap-1.5 px-3 py-2 fw-semibold rounded-2 shadow-sm" title="Tạo mới">
-                            <i class="bi bi-plus-lg fs-6"></i>
-                            <span class="d-none d-xl-inline">Tạo mới</span>
-                        </a>
 
                         <div class="vr bg-secondary opacity-25 mx-1" style="height: 28px;"></div>
 
