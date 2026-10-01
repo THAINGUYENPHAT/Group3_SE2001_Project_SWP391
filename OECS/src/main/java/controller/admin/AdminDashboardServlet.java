@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.util.List;
 
 @WebServlet(name = "DashboardServlet", urlPatterns = "/admin/dashboard")
 public class AdminDashboardServlet extends HttpServlet {
@@ -40,9 +41,29 @@ public class AdminDashboardServlet extends HttpServlet {
                 dashboardDAO.getCompletedOrders()
         );
 
+        request.setAttribute(
+                "topSellingProducts",
+                dashboardDAO.getTopSellingProducts()
+        );
+
+        request.setAttribute(
+                "orderStatusStatistics",
+                dashboardDAO.getOrderStatusStatistics()
+        );
+
+        // Revenue by date
+        List<Object[]> revenueByDate
+                = dashboardDAO.getRevenueByDate();
+
+        request.setAttribute(
+                "revenueByDate",
+                revenueByDate
+        );
+
         // Chuyển sang JSP
         request.getRequestDispatcher(
                 "/WEB-INF/admin/dashboard.jsp"
         ).forward(request, response);
     }
+
 }
