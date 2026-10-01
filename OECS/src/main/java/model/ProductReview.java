@@ -10,17 +10,26 @@ public class ProductReview {
     private int userId;
     private int orderItemId;
     private int skuId;
+
     private int rating;
     private String comment;
+
     private Timestamp createdAt;
-    private List<String> images;
+
+    private List<String> images = new ArrayList<>();
 
     public ProductReview() {
-        this.images = new ArrayList<>();
     }
 
-    // Constructor cơ bản (tự động khởi tạo danh sách images rỗng)
-    public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt) {
+    public ProductReview(
+            int reviewId,
+            int userId,
+            int orderItemId,
+            int skuId,
+            int rating,
+            String comment,
+            Timestamp createdAt) {
+
         this.reviewId = reviewId;
         this.userId = userId;
         this.orderItemId = orderItemId;
@@ -28,19 +37,6 @@ public class ProductReview {
         this.rating = rating;
         this.comment = comment;
         this.createdAt = createdAt;
-        this.images = new ArrayList<>();
-    }
-
-    // All-args constructor đầy đủ bao gồm danh sách images
-    public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt, List<String> images) {
-        this.reviewId = reviewId;
-        this.userId = userId;
-        this.orderItemId = orderItemId;
-        this.skuId = skuId;
-        this.rating = rating;
-        this.comment = comment;
-        this.createdAt = createdAt;
-        this.images = images != null ? images : new ArrayList<>();
     }
 
     public int getReviewId() {
@@ -105,5 +101,19 @@ public class ProductReview {
 
     public void setImages(List<String> images) {
         this.images = images;
+    }
+
+    @Override
+    public String toString() {
+        return "ProductReview{"
+                + "reviewId=" + reviewId
+                + ", userId=" + userId
+                + ", orderItemId=" + orderItemId
+                + ", skuId=" + skuId
+                + ", rating=" + rating
+                + ", comment='" + comment + '\''
+                + ", createdAt=" + createdAt
+                + ", images=" + images
+                + '}';
     }
 }

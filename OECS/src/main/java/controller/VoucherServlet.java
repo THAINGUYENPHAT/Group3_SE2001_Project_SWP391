@@ -1,449 +1,524 @@
 package controller;
 
 import dao.VoucherDAO;
-
-import java.io.IOException;
-import java.sql.Timestamp;
-
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-
-import java.util.List;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
+import jakarta.servlet.http.HttpSession;
+import model.User;
 import model.Voucher;
 
-@WebServlet(
-        name = "VoucherServlet",
-        urlPatterns = {"/admin/voucher"}
-)
-public class VoucherServlet
-        extends HttpServlet {
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+@WebServlet(name = "VoucherServlet", urlPatterns = {"/voucher"})
+public class VoucherServlet extends HttpServlet {
 
     private VoucherDAO voucherDAO;
 
-    @Override
-    public void init()
-            throws ServletException {
+    private final DateTimeFormatter formatter
+            = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
 
-        voucherDAO
-                = new VoucherDAO();
+    // =====================================================
+    // INIT
+    // =====================================================
+    @Override
+    public void init() throws ServletException {
+
+        voucherDAO = new VoucherDAO();
     }
 
+    // =====================================================
+    // GET
+    // =====================================================
     @Override
     protected void doGet(
             HttpServletRequest request,
             HttpServletResponse response)
-            throws ServletException,
-            IOException {
+            throws ServletException, IOException {
 
-        String action
-                = request.getParameter(
-                        "action");
+        request.setCharacterEncoding("UTF-8");
 
-        if (action == null
-                || action.trim().isEmpty()) {
+        // ============================
+        // CHECK LOGIN
+        // ============================
+        User loggedInUser = getLoggedInUser(request);
 
-            action = "list";
+        if (loggedInUser == null) {
+
+            response.sendRedirect(
+                    request.getContextPath() + "/login"
+            );
+
+            return;
         }
 
-        switch (action) {
+        // ============================
+        // GET VIEW
+        // ============================
+        String view = request.getParameter("view");
+
+        if (view == null || view.trim().isEmpty()) {
+            view = "list";
+        }
+
+        switch (view) {
+
+            case "create":
+                showCreate(request, response);
+                break;
 
             case "edit":
-
-                showEdit(
-                        request,
-                        response);
-
+                showEdit(request, response);
                 break;
 
             case "delete":
-
-                deleteVoucher(
-                        request,
-                        response);
-
+                showDelete(request, response);
                 break;
 
             default:
-
-                showList(
-                        request,
-                        response);
-
+                showList(request, response);
                 break;
         }
     }
 
+    // =====================================================
+    // POST
+    // =====================================================
     @Override
     protected void doPost(
             HttpServletRequest request,
             HttpServletResponse response)
-            throws ServletException,
-            IOException {
+            throws ServletException, IOException {
 
-        request.setCharacterEncoding(
-                "UTF-8");
+        request.setCharacterEncoding("UTF-8");
 
-        String action
-                = request.getParameter(
-                        "action");
+        // ============================
+        // CHECK LOGIN
+        // ============================
+        User loggedInUser = getLoggedInUser(request);
 
-        if ("create".equals(action)) {
+        if (loggedInUser == null) {
 
-            saveVoucher(
-                    request,
-                    response,
-                    false);
+            response.sendRedirect(
+                    request.getContextPath() + "/login"
+            );
 
-        } else if ("update".equals(action)) {
+            return;
+        }
 
-            saveVoucher(
-                    request,
-                    response,
-                    true);
+        // ============================
+        // GET ACTION
+        // ============================
+        String action = request.getParameter("action");
 
-        } else {
+        if (action == null || action.trim().isEmpty()) {
 
-            redirect(
-                    request,
-                    response);
+            redirectList(request, response);
+
+            return;
+        }
+
+        switch (action) {
+
+            case "create":
+                createVoucher(request, response);
+                break;
+
+            case "update":
+                updateVoucher(request, response);
+                break;
+
+            case "delete":
+                deleteVoucher(request, response);
+                break;
+
+            default:
+                redirectList(request, response);
+                break;
         }
     }
 
+    // =====================================================
+    // GET LOGGED IN USER
+    // =====================================================
+    private User getLoggedInUser(
+            HttpServletRequest request) {
+
+        HttpSession session
+                = request.getSession(false);
+
+        if (session == null) {
+            return null;
+        }
+
+        return (User) session.getAttribute(
+                "loggedInUser"
+        );
+    }
+
+    // =====================================================
+    // LIST
+    // GET /voucher
+    // =====================================================
     private void showList(
             HttpServletRequest request,
             HttpServletResponse response)
-            throws ServletException,
-            IOException {
-
-        List<Voucher> list
-                = voucherDAO.getAllVouchers();
+            throws ServletException, IOException {
 
         request.setAttribute(
                 "vouchers",
-                list);
+                voucherDAO.getAllVouchers()
+        );
 
         request.getRequestDispatcher(
-                "/WEB-INF/admin/voucher.jsp"
-        ).forward(
-                request,
-                response);
+                "/WEB-INF/voucher/list.jsp"
+        ).forward(request, response);
     }
 
-    private void showEdit(
+    // =====================================================
+    // SHOW CREATE
+    // GET /voucher?view=create
+    // =====================================================
+    private void showCreate(
             HttpServletRequest request,
             HttpServletResponse response)
-            throws ServletException,
-            IOException {
+            throws ServletException, IOException {
 
-        try {
-
-            int id
-                    = Integer.parseInt(
-                            request.getParameter(
-                                    "id"));
-
-            Voucher voucher
-                    = voucherDAO
-                            .getVoucherById(id);
-
-            if (voucher == null) {
-
-                redirect(
-                        request,
-                        response);
-
-                return;
-            }
-
-            request.setAttribute(
-                    "editVoucher",
-                    voucher);
-
-            DateTimeFormatter formatter
-                    = DateTimeFormatter
-                            .ofPattern(
-                                    "yyyy-MM-dd'T'HH:mm");
-
-            request.setAttribute(
-                    "validFromValue",
-                    voucher.getValidFrom()
-                            .toLocalDateTime()
-                            .format(formatter));
-
-            request.setAttribute(
-                    "validToValue",
-                    voucher.getValidTo()
-                            .toLocalDateTime()
-                            .format(formatter));
-
-            showList(
-                    request,
-                    response);
-
-        } catch (NumberFormatException e) {
-
-            redirect(
-                    request,
-                    response);
-        }
+        request.getRequestDispatcher(
+                "/WEB-INF/voucher/create.jsp"
+        ).forward(request, response);
     }
 
-    private void saveVoucher(
+    // =====================================================
+    // CREATE
+    // POST /voucher
+    // action=create
+    // =====================================================
+    private void createVoucher(
             HttpServletRequest request,
-            HttpServletResponse response,
-            boolean update)
+            HttpServletResponse response)
             throws IOException {
 
         try {
 
             Voucher voucher
-                    = new Voucher();
+                    = getVoucherFromRequest(request);
 
-            int voucherId = 0;
+            String error
+                    = validateVoucher(
+                            voucher,
+                            false
+                    );
 
-            if (update) {
+            if (error != null) {
 
-                voucherId
-                        = Integer.parseInt(
-                                request.getParameter(
-                                        "voucherId"));
-
-                voucher.setVoucherId(
-                        voucherId);
-            }
-
-            String code
-                    = request.getParameter(
-                            "code")
-                            .trim()
-                            .toUpperCase();
-
-            String discountType
-                    = request.getParameter(
-                            "discountType");
-
-            double discountValue
-                    = Double.parseDouble(
-                            request.getParameter(
-                                    "discountValue"));
-
-            double minOrderValue
-                    = Double.parseDouble(
-                            request.getParameter(
-                                    "minOrderValue"));
-
-            Timestamp validFrom
-                    = convertTimestamp(
-                            request.getParameter(
-                                    "validFrom"));
-
-            Timestamp validTo
-                    = convertTimestamp(
-                            request.getParameter(
-                                    "validTo"));
-
-            Double maxDiscount
-                    = parseNullableDouble(
-                            request.getParameter(
-                                    "maxDiscount"));
-
-            Integer usageLimit
-                    = parseNullableInteger(
-                            request.getParameter(
-                                    "usageLimit"));
-
-            Integer perUserLimit
-                    = parseNullableInteger(
-                            request.getParameter(
-                                    "perUserLimit"));
-
-            if (code.isEmpty()) {
-
-                fail(
+                setErrorMessage(
                         request,
-                        "Mã Voucher không được để trống.");
+                        error
+                );
 
-                redirect(
-                        request,
-                        response);
+                response.sendRedirect(
+                        request.getContextPath()
+                        + "/voucher?view=create"
+                );
 
                 return;
             }
 
-            boolean duplicate
-                    = update
-                            ? voucherDAO
-                                    .existsCodeExceptId(
-                                            code,
-                                            voucherId)
-                            : voucherDAO
-                                    .existsCode(code);
-
-            if (duplicate) {
-
-                fail(
-                        request,
-                        "Mã Voucher đã tồn tại.");
-
-                redirect(
-                        request,
-                        response);
-
-                return;
-            }
-
-            if (!"AMOUNT".equals(discountType)
-                    && !"PERCENT".equals(discountType)) {
-
-                fail(
-                        request,
-                        "Loại giảm giá không hợp lệ.");
-
-                redirect(
-                        request,
-                        response);
-
-                return;
-            }
-
-            if (discountValue <= 0) {
-
-                fail(
-                        request,
-                        "Giá trị giảm phải lớn hơn 0.");
-
-                redirect(
-                        request,
-                        response);
-
-                return;
-            }
-
-            if ("PERCENT".equals(discountType)
-                    && discountValue > 100) {
-
-                fail(
-                        request,
-                        "Phần trăm không được lớn hơn 100.");
-
-                redirect(
-                        request,
-                        response);
-
-                return;
-            }
-
-            if ("AMOUNT".equals(discountType)) {
-                maxDiscount = null;
-            }
-
-            if (minOrderValue < 0) {
-
-                fail(
-                        request,
-                        "Đơn tối thiểu không hợp lệ.");
-
-                redirect(
-                        request,
-                        response);
-
-                return;
-            }
-
-            if (!validTo.after(validFrom)) {
-
-                fail(
-                        request,
-                        "Ngày kết thúc phải sau ngày bắt đầu.");
-
-                redirect(
-                        request,
-                        response);
-
-                return;
-            }
-
-            voucher.setCode(code);
-
-            voucher.setDiscountType(
-                    discountType);
-
-            voucher.setDiscountValue(
-                    discountValue);
-
-            voucher.setMinOrderValue(
-                    minOrderValue);
-
-            voucher.setValidFrom(
-                    validFrom);
-
-            voucher.setValidTo(
-                    validTo);
-
-            voucher.setMaxDiscount(
-                    maxDiscount);
-
-            voucher.setUsageLimit(
-                    usageLimit);
-
-            voucher.setPerUserLimit(
-                    perUserLimit);
-
-            boolean success;
-
-            if (update) {
-
-                success
-                        = voucherDAO
-                                .updateVoucher(
-                                        voucher);
-
-            } else {
-
-                success
-                        = voucherDAO
-                                .insertVoucher(
-                                        voucher);
-            }
+            boolean success
+                    = voucherDAO.insertVoucher(voucher);
 
             if (success) {
 
-                request.getSession()
-                        .setAttribute(
-                                "successMessage",
-                                update
-                                        ? "Cập nhật Voucher thành công."
-                                        : "Tạo Voucher thành công.");
+                setSuccessMessage(
+                        request,
+                        "Tạo Voucher thành công."
+                );
 
             } else {
 
-                fail(
+                setErrorMessage(
                         request,
-                        "Không thể lưu Voucher.");
+                        "Tạo Voucher thất bại."
+                );
             }
+
+            redirectList(
+                    request,
+                    response
+            );
 
         } catch (Exception e) {
 
             e.printStackTrace();
 
-            fail(
+            setErrorMessage(
                     request,
-                    "Dữ liệu Voucher không hợp lệ.");
-        }
+                    "Dữ liệu Voucher không hợp lệ."
+            );
 
-        redirect(
-                request,
-                response);
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/voucher?view=create"
+            );
+        }
     }
 
+    // =====================================================
+    // SHOW EDIT
+    // GET /voucher?view=edit&id=1
+    // =====================================================
+    private void showEdit(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        try {
+
+            int voucherId
+                    = Integer.parseInt(
+                            request.getParameter("id")
+                    );
+
+            Voucher voucher
+                    = voucherDAO.getVoucherById(
+                            voucherId
+                    );
+
+            if (voucher == null) {
+
+                setErrorMessage(
+                        request,
+                        "Không tìm thấy Voucher."
+                );
+
+                redirectList(
+                        request,
+                        response
+                );
+
+                return;
+            }
+
+            request.setAttribute(
+                    "voucher",
+                    voucher
+            );
+
+            // ============================
+            // FORMAT DATETIME-LOCAL
+            // ============================
+            if (voucher.getValidFrom() != null) {
+
+                request.setAttribute(
+                        "validFromValue",
+                        voucher.getValidFrom()
+                                .toLocalDateTime()
+                                .format(formatter)
+                );
+            }
+
+            if (voucher.getValidTo() != null) {
+
+                request.setAttribute(
+                        "validToValue",
+                        voucher.getValidTo()
+                                .toLocalDateTime()
+                                .format(formatter)
+                );
+            }
+
+            request.getRequestDispatcher(
+                    "/WEB-INF/voucher/edit.jsp"
+            ).forward(request, response);
+
+        } catch (NumberFormatException e) {
+
+            setErrorMessage(
+                    request,
+                    "ID Voucher không hợp lệ."
+            );
+
+            redirectList(
+                    request,
+                    response
+            );
+        }
+    }
+
+    // =====================================================
+    // UPDATE
+    // POST /voucher
+    // action=update
+    // =====================================================
+    private void updateVoucher(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
+
+        int voucherId = -1;
+
+        try {
+
+            voucherId
+                    = Integer.parseInt(
+                            request.getParameter(
+                                    "voucherId"
+                            )
+                    );
+
+            Voucher voucher
+                    = getVoucherFromRequest(
+                            request
+                    );
+
+            voucher.setVoucherId(
+                    voucherId
+            );
+
+            String error
+                    = validateVoucher(
+                            voucher,
+                            true
+                    );
+
+            if (error != null) {
+
+                setErrorMessage(
+                        request,
+                        error
+                );
+
+                response.sendRedirect(
+                        request.getContextPath()
+                        + "/voucher?view=edit&id="
+                        + voucherId
+                );
+
+                return;
+            }
+
+            boolean success
+                    = voucherDAO.updateVoucher(
+                            voucher
+                    );
+
+            if (success) {
+
+                setSuccessMessage(
+                        request,
+                        "Cập nhật Voucher thành công."
+                );
+
+            } else {
+
+                setErrorMessage(
+                        request,
+                        "Cập nhật Voucher thất bại."
+                );
+            }
+
+            redirectList(
+                    request,
+                    response
+            );
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            setErrorMessage(
+                    request,
+                    "Dữ liệu Voucher không hợp lệ."
+            );
+
+            if (voucherId > 0) {
+
+                response.sendRedirect(
+                        request.getContextPath()
+                        + "/voucher?view=edit&id="
+                        + voucherId
+                );
+
+            } else {
+
+                redirectList(
+                        request,
+                        response
+                );
+            }
+        }
+    }
+
+    // =====================================================
+    // SHOW DELETE
+    // GET /voucher?view=delete&id=1
+    // =====================================================
+    private void showDelete(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        try {
+
+            int voucherId
+                    = Integer.parseInt(
+                            request.getParameter("id")
+                    );
+
+            Voucher voucher
+                    = voucherDAO.getVoucherById(
+                            voucherId
+                    );
+
+            if (voucher == null) {
+
+                setErrorMessage(
+                        request,
+                        "Không tìm thấy Voucher."
+                );
+
+                redirectList(
+                        request,
+                        response
+                );
+
+                return;
+            }
+
+            request.setAttribute(
+                    "voucher",
+                    voucher
+            );
+
+            request.getRequestDispatcher(
+                    "/WEB-INF/voucher/delete.jsp"
+            ).forward(request, response);
+
+        } catch (NumberFormatException e) {
+
+            setErrorMessage(
+                    request,
+                    "ID Voucher không hợp lệ."
+            );
+
+            redirectList(
+                    request,
+                    response
+            );
+        }
+    }
+
+    // =====================================================
+    // DELETE
+    // POST /voucher
+    // action=delete
+    // =====================================================
     private void deleteVoucher(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -451,54 +526,366 @@ public class VoucherServlet
 
         try {
 
-            int id
+            int voucherId
                     = Integer.parseInt(
                             request.getParameter(
-                                    "id"));
+                                    "voucherId"
+                            )
+                    );
 
             boolean success
-                    = voucherDAO
-                            .deleteVoucher(id);
+                    = voucherDAO.deleteVoucher(
+                            voucherId
+                    );
 
             if (success) {
 
-                request.getSession()
-                        .setAttribute(
-                                "successMessage",
-                                "Đã xóa Voucher.");
+                setSuccessMessage(
+                        request,
+                        "Xóa Voucher thành công."
+                );
 
             } else {
 
-                fail(
+                setErrorMessage(
                         request,
-                        "Không thể xóa Voucher.");
+                        "Xóa Voucher thất bại."
+                );
             }
 
         } catch (Exception e) {
 
-            fail(
+            e.printStackTrace();
+
+            setErrorMessage(
                     request,
-                    "Voucher không hợp lệ.");
+                    "Không thể xóa Voucher. "
+                    + "Voucher có thể đã được sử dụng."
+            );
         }
 
-        redirect(
+        redirectList(
                 request,
-                response);
+                response
+        );
     }
 
+    // =====================================================
+    // GET FORM DATA
+    // =====================================================
+    private Voucher getVoucherFromRequest(
+            HttpServletRequest request) {
+
+        Voucher voucher
+                = new Voucher();
+
+        // ============================
+        // CODE
+        // ============================
+        String code
+                = request.getParameter("code");
+
+        if (code != null) {
+
+            code = code
+                    .trim()
+                    .toUpperCase();
+        }
+
+        voucher.setCode(
+                code
+        );
+
+        // ============================
+        // DISCOUNT TYPE
+        // ============================
+        String discountType
+                = request.getParameter(
+                        "discountType"
+                );
+
+        voucher.setDiscountType(
+                discountType
+        );
+
+        // ============================
+        // DISCOUNT VALUE
+        // ============================
+        double discountValue
+                = Double.parseDouble(
+                        request.getParameter(
+                                "discountValue"
+                        )
+                );
+
+        voucher.setDiscountValue(
+                discountValue
+        );
+
+        // ============================
+        // MIN ORDER VALUE
+        // ============================
+        double minOrderValue
+                = Double.parseDouble(
+                        request.getParameter(
+                                "minOrderValue"
+                        )
+                );
+
+        voucher.setMinOrderValue(
+                minOrderValue
+        );
+
+        // ============================
+        // VALID FROM
+        // ============================
+        Timestamp validFrom
+                = convertTimestamp(
+                        request.getParameter(
+                                "validFrom"
+                        )
+                );
+
+        voucher.setValidFrom(
+                validFrom
+        );
+
+        // ============================
+        // VALID TO
+        // ============================
+        Timestamp validTo
+                = convertTimestamp(
+                        request.getParameter(
+                                "validTo"
+                        )
+                );
+
+        voucher.setValidTo(
+                validTo
+        );
+
+        // ============================
+        // MAX DISCOUNT
+        // ============================
+        Double maxDiscount
+                = parseNullableDouble(
+                        request.getParameter(
+                                "maxDiscount"
+                        )
+                );
+
+        if ("AMOUNT".equalsIgnoreCase(
+                discountType)) {
+
+            voucher.setMaxDiscount(
+                    null
+            );
+
+        } else {
+
+            voucher.setMaxDiscount(
+                    maxDiscount
+            );
+        }
+
+        // ============================
+        // USAGE LIMIT
+        // ============================
+        Integer usageLimit
+                = parseNullableInteger(
+                        request.getParameter(
+                                "usageLimit"
+                        )
+                );
+
+        voucher.setUsageLimit(
+                usageLimit
+        );
+
+        // ============================
+        // PER USER LIMIT
+        // ============================
+        Integer perUserLimit
+                = parseNullableInteger(
+                        request.getParameter(
+                                "perUserLimit"
+                        )
+                );
+
+        voucher.setPerUserLimit(
+                perUserLimit
+        );
+
+        return voucher;
+    }
+
+    // =====================================================
+    // VALIDATE
+    // =====================================================
+    private String validateVoucher(
+            Voucher voucher,
+            boolean isUpdate) {
+
+        // ============================
+        // CODE
+        // ============================
+        if (voucher.getCode() == null
+                || voucher.getCode()
+                        .trim()
+                        .isEmpty()) {
+
+            return "Mã Voucher không được để trống.";
+        }
+
+        // ============================
+        // DUPLICATE CODE
+        // ============================
+        boolean duplicate;
+
+        if (isUpdate) {
+
+            duplicate
+                    = voucherDAO.existsCodeExceptId(
+                            voucher.getCode(),
+                            voucher.getVoucherId()
+                    );
+
+        } else {
+
+            duplicate
+                    = voucherDAO.existsCode(
+                            voucher.getCode()
+                    );
+        }
+
+        if (duplicate) {
+
+            return "Mã Voucher đã tồn tại.";
+        }
+
+        // ============================
+        // DISCOUNT TYPE
+        // ============================
+        if (!"AMOUNT".equalsIgnoreCase(
+                voucher.getDiscountType())
+                && !"PERCENT".equalsIgnoreCase(
+                        voucher.getDiscountType())) {
+
+            return "Loại giảm giá không hợp lệ.";
+        }
+
+        // ============================
+        // DISCOUNT VALUE
+        // ============================
+        if (voucher.getDiscountValue() <= 0) {
+
+            return "Giá trị giảm phải lớn hơn 0.";
+        }
+
+        // ============================
+        // PERCENT
+        // ============================
+        if ("PERCENT".equalsIgnoreCase(
+                voucher.getDiscountType())
+                && voucher.getDiscountValue() > 100) {
+
+            return "Phần trăm giảm không được vượt quá 100%.";
+        }
+
+        // ============================
+        // MAX DISCOUNT
+        // ============================
+        if ("PERCENT".equalsIgnoreCase(
+                voucher.getDiscountType())
+                && voucher.getMaxDiscount() != null
+                && voucher.getMaxDiscount() < 0) {
+
+            return "Giảm tối đa không hợp lệ.";
+        }
+
+        // ============================
+        // MIN ORDER
+        // ============================
+        if (voucher.getMinOrderValue() < 0) {
+
+            return "Giá trị đơn tối thiểu không hợp lệ.";
+        }
+
+        // ============================
+        // DATE
+        // ============================
+        if (voucher.getValidFrom() == null
+                || voucher.getValidTo() == null) {
+
+            return "Thời gian Voucher không hợp lệ.";
+        }
+
+        if (!voucher.getValidTo()
+                .after(
+                        voucher.getValidFrom()
+                )) {
+
+            return "Thời gian kết thúc phải sau thời gian bắt đầu.";
+        }
+
+        // ============================
+        // USAGE LIMIT
+        // ============================
+        if (voucher.getUsageLimit() != null
+                && voucher.getUsageLimit() <= 0) {
+
+            return "Tổng lượt sử dụng phải lớn hơn 0.";
+        }
+
+        // ============================
+        // PER USER LIMIT
+        // ============================
+        if (voucher.getPerUserLimit() != null
+                && voucher.getPerUserLimit() <= 0) {
+
+            return "Giới hạn mỗi User phải lớn hơn 0.";
+        }
+
+        // ============================
+        // PER USER <= USAGE LIMIT
+        // ============================
+        if (voucher.getUsageLimit() != null
+                && voucher.getPerUserLimit() != null
+                && voucher.getPerUserLimit()
+                > voucher.getUsageLimit()) {
+
+            return "Giới hạn mỗi User không được lớn hơn tổng lượt sử dụng.";
+        }
+
+        return null;
+    }
+
+    // =====================================================
+    // CONVERT DATETIME
+    // =====================================================
     private Timestamp convertTimestamp(
             String value) {
+
+        if (value == null
+                || value.trim().isEmpty()) {
+
+            return null;
+        }
 
         LocalDateTime dateTime
                 = LocalDateTime.parse(
                         value,
-                        DateTimeFormatter.ofPattern(
-                                "yyyy-MM-dd'T'HH:mm"));
+                        formatter
+                );
 
         return Timestamp.valueOf(
-                dateTime);
+                dateTime
+        );
     }
 
+    // =====================================================
+    // NULLABLE DOUBLE
+    // =====================================================
     private Double parseNullableDouble(
             String value) {
 
@@ -509,9 +896,13 @@ public class VoucherServlet
         }
 
         return Double.parseDouble(
-                value);
+                value
+        );
     }
 
+    // =====================================================
+    // NULLABLE INTEGER
+    // =====================================================
     private Integer parseNullableInteger(
             String value) {
 
@@ -522,26 +913,49 @@ public class VoucherServlet
         }
 
         return Integer.parseInt(
-                value);
+                value
+        );
     }
 
-    private void fail(
+    // =====================================================
+    // SUCCESS MESSAGE
+    // =====================================================
+    private void setSuccessMessage(
+            HttpServletRequest request,
+            String message) {
+
+        request.getSession()
+                .setAttribute(
+                        "successMessage",
+                        message
+                );
+    }
+
+    // =====================================================
+    // ERROR MESSAGE
+    // =====================================================
+    private void setErrorMessage(
             HttpServletRequest request,
             String message) {
 
         request.getSession()
                 .setAttribute(
                         "errorMessage",
-                        message);
+                        message
+                );
     }
 
-    private void redirect(
+    // =====================================================
+    // REDIRECT LIST
+    // =====================================================
+    private void redirectList(
             HttpServletRequest request,
             HttpServletResponse response)
             throws IOException {
 
         response.sendRedirect(
                 request.getContextPath()
-                + "/admin/voucher");
+                + "/voucher"
+        );
     }
 }
