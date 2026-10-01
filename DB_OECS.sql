@@ -245,16 +245,17 @@ GO
 
 -- ROLES
 INSERT INTO ROLES (role_name, description) VALUES 
-(N'Admin', N'Quản trị viên hệ thống - Toàn quyền'),
-(N'Staff', N'Nhân viên vận hành và xử lý đơn hàng'),
-(N'Customer', N'Khách hàng mua sắm');
+(N'ADMIN', N'Quản trị viên hệ thống - Toàn quyền'),
+(N'STAFF', N'Nhân viên vận hành và xử lý đơn hàng'),
+(N'CUSTOMER', N'Khách hàng mua sắm'),
+(N'GUEST', N'Khách truy cập chưa đăng nhập');
 
 -- USER
 INSERT INTO [USER] (username, email, password_hash, phone) VALUES 
-('admin_sys', 'admin@oecs.com', 'e10adc3949ba59abbe56e057f20f883e', '0901111111'),
-('staff_khang', 'khang.staff@oecs.com', 'e10adc3949ba59abbe56e057f20f883e', '0902222222'),
-('phat_user', 'phat.user@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', '0903333333'),
-('lan_customer', 'lan.nguyen@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', '0904444444');
+('admin', 'admin@oecs.com', 'e10adc3949ba59abbe56e057f20f883e', '0901111111'),
+('staff', 'khang.staff@oecs.com', 'e10adc3949ba59abbe56e057f20f883e', '0902222222'),
+('user', 'phat.user@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', '0903333333'),
+('customer', 'lan.nguyen@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', '0904444444');
 
 -- USER_ROLES
 INSERT INTO USER_ROLES (user_id, role_id) VALUES 
@@ -275,29 +276,193 @@ INSERT INTO ADDRESSBOOK (user_id, recipient_name, phone_number, address_line, is
 
 -- CATEGORY
 INSERT INTO CATEGORY (category_name, parent_id) VALUES 
+-- Danh mục cha
 (N'Điện thoại & Thiết bị di động', NULL),
-(N'Máy tính & Laptop', NULL),         
-(N'Smartphone', 1),                    
-(N'Laptop Văn Phòng', 2);              
+(N'Máy tính & Laptop', NULL),
+(N'Phụ kiện', NULL),
+
+-- Danh mục con của Điện thoại & Thiết bị di động
+(N'Smartphone', 1),
+(N'Tai nghe', 1),
+(N'Sạc điện thoại', 1),
+(N'Cáp sạc', 1),
+
+-- Danh mục con của Máy tính & Laptop
+(N'Laptop Văn Phòng', 2),
+(N'Laptop Gaming', 2),
+
+-- Danh mục con của Phụ kiện
+(N'Chuột', 3),
+(N'Bàn phím', 3),
+(N'Webcam', 3),
+(N'Balo Laptop', 3);          
 
 -- BRAND
 INSERT INTO BRAND (brand_name, logo_url) VALUES 
 (N'Apple', 'https://cdn.oecs.com/brands/apple.png'),
 (N'Samsung', 'https://cdn.oecs.com/brands/samsung.png'),
-(N'Lenovo', 'https://cdn.oecs.com/brands/lenovo.png');
+(N'Lenovo', 'https://cdn.oecs.com/brands/lenovo.png'),
+(N'Logitech', 'https://cdn.oecs.com/brands/logitech.png'),
+(N'Sony', 'https://cdn.oecs.com/brands/sony.png'),
+(N'JBL', 'https://cdn.oecs.com/brands/jbl.png'),
+(N'ASUS', 'https://cdn.oecs.com/brands/asus.png'),
+(N'HP', 'https://cdn.oecs.com/brands/hp.png'),
+(N'Dell', 'https://cdn.oecs.com/brands/dell.png'),
+(N'Razer', 'https://cdn.oecs.com/brands/razer.png'),
+(N'Anker', 'https://cdn.oecs.com/brands/anker.png');
 
 -- PRODUCT
 INSERT INTO PRODUCT (category_id, brand_id, product_name, description) VALUES 
-(3, 1, N'iPhone 15 Pro', N'Điện thoại flagship cao cấp vỏ Titan từ Apple'),
-(3, 2, N'Samsung Galaxy S24 Ultra', N'Điện thoại cao cấp tích hợp Galaxy AI'),
-(4, 3, N'Lenovo LOQ 15', N'Laptop gaming/đồ họa hiệu năng cao trong tầm giá');
 
--- ATTRIBUTE
+-- ========================================================
+-- SMARTPHONE
+-- category_id = 4
+-- ========================================================
+(4, 1, N'iPhone 15 Pro', 
+ N'Điện thoại flagship cao cấp vỏ Titan từ Apple'),
+
+(4, 1, N'iPhone 15 Pro Max', 
+ N'Điện thoại flagship màn hình lớn, camera chuyên nghiệp'),
+
+(4, 1, N'iPhone 16 Pro', 
+ N'Điện thoại cao cấp với chip Apple A18 Pro'),
+
+(4, 1, N'iPhone 16 Pro Max', 
+ N'Flagship cao cấp nhất của Apple với màn hình lớn'),
+
+(4, 2, N'Samsung Galaxy S24 Ultra', 
+ N'Điện thoại cao cấp tích hợp Galaxy AI'),
+
+(4, 2, N'Samsung Galaxy S24 Plus', 
+ N'Smartphone cao cấp với màn hình Dynamic AMOLED'),
+
+(4, 2, N'Samsung Galaxy A55 5G', 
+ N'Smartphone tầm trung hỗ trợ kết nối 5G'),
+
+(4, 2, N'Samsung Galaxy A35 5G', 
+ N'Smartphone tầm trung thiết kế hiện đại'),
+
+-- ========================================================
+-- TAI NGHE
+-- category_id = 5
+-- ========================================================
+(5, 1, N'AirPods Pro 2', 
+ N'Tai nghe không dây cao cấp với chống ồn chủ động'),
+
+(5, 1, N'AirPods 4', 
+ N'Tai nghe không dây nhỏ gọn dành cho hệ sinh thái Apple'),
+
+(5, 2, N'Samsung Galaxy Buds3 Pro', 
+ N'Tai nghe true wireless cao cấp với chống ồn chủ động'),
+
+(5, 2, N'Samsung Galaxy Buds FE', 
+ N'Tai nghe không dây giá tốt cho người dùng Samsung'),
+
+-- ========================================================
+-- SẠC ĐIỆN THOẠI
+-- category_id = 6
+-- ========================================================
+(6, 1, N'Apple USB-C 20W Power Adapter', 
+ N'Củ sạc nhanh USB-C công suất 20W'),
+
+(6, 2, N'Samsung 25W USB-C Fast Charger', 
+ N'Củ sạc nhanh USB-C 25W của Samsung'),
+
+-- ========================================================
+-- CÁP SẠC
+-- category_id = 7
+-- ========================================================
+(7, 1, N'Apple USB-C Charge Cable 1m', 
+ N'Cáp USB-C chính hãng Apple dài 1 mét'),
+
+(7, 1, N'Apple USB-C to Lightning Cable', 
+ N'Cáp chuyển USB-C sang Lightning'),
+
+(7, 2, N'Samsung USB-C Cable 1m', 
+ N'Cáp sạc và truyền dữ liệu USB-C'),
+
+-- ========================================================
+-- LAPTOP VĂN PHÒNG
+-- category_id = 8
+-- ========================================================
+(8, 3, N'Lenovo IdeaPad Slim 3', 
+ N'Laptop văn phòng mỏng nhẹ dành cho học tập và làm việc'),
+
+(8, 3, N'Lenovo ThinkBook 14', 
+ N'Laptop doanh nghiệp với thiết kế hiện đại'),
+
+(8, 3, N'Lenovo IdeaPad 5', 
+ N'Laptop đa dụng cho học tập và văn phòng'),
+
+-- ========================================================
+-- LAPTOP GAMING
+-- category_id = 9
+-- ========================================================
+(9, 3, N'Lenovo LOQ 15', 
+ N'Laptop gaming hiệu năng cao trong tầm giá'),
+
+(9, 3, N'Lenovo Legion 5', 
+ N'Laptop gaming cao cấp dành cho chơi game và đồ họa'),
+
+(9, 3, N'Lenovo Legion Pro 5', 
+ N'Laptop gaming hiệu năng cao dành cho game thủ'),
+
+-- ========================================================
+-- CHUỘT
+-- category_id = 10
+-- ========================================================
+(10, 3, N'Lenovo Legion M300 RGB', 
+ N'Chuột gaming có đèn RGB và thiết kế công thái học'),
+
+(10, 3, N'Lenovo Legion M600 Wireless', 
+ N'Chuột gaming không dây với độ chính xác cao'),
+
+-- ========================================================
+-- BÀN PHÍM
+-- category_id = 11
+-- ========================================================
+(11, 3, N'Lenovo Legion K300 RGB', 
+ N'Bàn phím gaming có đèn RGB'),
+
+(11, 3, N'Lenovo Go Wireless Split Keyboard', 
+ N'Bàn phím không dây dành cho công việc văn phòng'),
+
+-- ========================================================
+-- WEBCAM
+-- category_id = 12
+-- ========================================================
+(12, 3, N'Lenovo 300 FHD Webcam', 
+ N'Webcam Full HD dành cho học tập và họp trực tuyến'),
+
+(12, 3, N'Lenovo Performance FHD Webcam', 
+ N'Webcam Full HD với chất lượng hình ảnh cao'),
+
+-- ========================================================
+-- BALO LAPTOP
+-- category_id = 13
+-- ========================================================
+(13, 3, N'Lenovo Laptop Backpack 15.6"', 
+ N'Balo laptop chống nước dành cho laptop 15.6 inch'),
+
+(13, 3, N'Lenovo Legion Gaming Backpack', 
+ N'Balo gaming dành cho laptop và phụ kiện');
+
 INSERT INTO ATTRIBUTE (attribute_name) VALUES 
 (N'Màn hình'),
 (N'RAM'),
 (N'Dung lượng lưu trữ'),
-(N'Chip xử lý (CPU)');
+(N'Chip xử lý (CPU)'),
+(N'Card đồ họa (GPU)'),
+(N'Hệ điều hành'),
+(N'Pin'),
+(N'Kết nối'),
+(N'Tính năng'),
+(N'Màu sắc'),
+(N'Kích thước'),
+(N'Trọng lượng'),
+(N'Độ phân giải'),
+(N'DPI'),
+(N'Loại kết nối');
 
 -- PRODUCT_SPECIFICATION
 INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value) VALUES 
