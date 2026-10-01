@@ -29,16 +29,7 @@ public class LoginServlet extends HttpServlet {
             HttpSession session = request.getSession(false);
             if (session != null && session.getAttribute("loggedInUser") != null) {
                 User user = (User) session.getAttribute("loggedInUser");
-
-                // Nếu tài khoản trong session bị khóa (roleId == 0) -> Hủy session
-                if (user.getRoleId() == 0) {
-                    session.invalidate();
-                    request.setAttribute("errorMessage", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin!");
-                    request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
-                    return;
-                }
-
-                redirectByUserRole(request, response, user);
+                response.sendRedirect(request.getContextPath() + "/home");
                 return;
             }
 
@@ -76,16 +67,7 @@ public class LoginServlet extends HttpServlet {
             }
 
             // =====================================================
-            // 2. KIỂM TRA TÀI KHOẢN BỊ KHÓA (roleId == 0)
-            // =====================================================
-            if (user.getRoleId() == 0) {
-                request.setAttribute("errorMessage", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin!");
-                request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
-                return;
-            }
-
-            // =====================================================
-            // 3. THIẾT LẬP SESSION VÀ CHUYỂN HƯỚNG
+            // 2. THIẾT LẬP SESSION VÀ CHUYỂN HƯỚNG
             // =====================================================
             HttpSession session = request.getSession();
             session.setAttribute("loggedInUser", user);
@@ -95,27 +77,13 @@ public class LoginServlet extends HttpServlet {
                 session.removeAttribute("redirectUrl"); // Xóa sau khi dùng xong
                 response.sendRedirect(redirectUrl);
             } else {
-                redirectByUserRole(request, response, user);
+                response.sendRedirect(request.getContextPath() + "/home");
             }
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Lỗi trong quá trình xử lý đăng nhập!", e);
             request.setAttribute("errorMessage", "Hệ thống gặp sự cố trong quá trình đăng nhập!");
             request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
-        }
-    }
-
-    /**
-     * Phương thức phụ trợ giúp chuyển hướng người dùng tới trang phù hợp dựa theo Vai trò
-     */
-    private void redirectByUserRole(HttpServletRequest request, HttpServletResponse response, User user)
-            throws IOException {
-        if (user.isAdminOrStaff()) {
-            // Chuyển hướng đến trang quản trị dành cho Admin/Staff
-            response.sendRedirect(request.getContextPath() + "/admin/voucher");
-        } else {
-            // Chuyển hướng về trang chủ dành cho Customer
-            response.sendRedirect(request.getContextPath() + "/home");
         }
     }
 }
