@@ -50,23 +50,8 @@ public class ProductReviewDAO extends DBContext {
         return -1;
     }
 
-    // =====================================================
-    // CHECK CUSTOMER CAN REVIEW
-    //
-    // Điều kiện:
-    // - order item tồn tại
-    // - order thuộc user
-    // - SKU đúng
-    // - đơn hàng đã Delivered
-    // - order item chưa được review
-    // =====================================================
-    public boolean canReview(
-            int userId,
-            int orderItemId,
-            int skuId) {
-
-        String sql
-                = "SELECT 1 "
+    public boolean canReview(int userId, int orderItemId, int skuId) {
+        String sql = "SELECT oi.order_item_id "
                 + "FROM ORDER_ITEM oi "
                 + "JOIN [ORDER] o "
                 + "ON oi.order_id = o.order_id "
@@ -118,16 +103,8 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // CHECK ALREADY REVIEWED
-    // =====================================================
-    public boolean alreadyReviewed(
-            int orderItemId) {
-
-        String sql
-                = "SELECT 1 "
-                + "FROM PRODUCT_REVIEWS "
-                + "WHERE order_item_id = ?";
+    public boolean alreadyReviewed(int orderItemId) {
+        String sql = "SELECT review_id FROM PRODUCT_REVIEWS WHERE order_item_id = ?";
 
         try (
                 Connection conn = getConnection();
@@ -152,17 +129,8 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // INSERT REVIEW
-    // RETURN REVIEW ID
-    // =====================================================
-    public int insertReview(
-            ProductReview review) {
-
-        String sql
-                = "INSERT INTO PRODUCT_REVIEWS "
-                + "(user_id, order_item_id, sku_id, "
-                + "rating, comment, created_at) "
+    public int insertReview(ProductReview review) {
+        String sql = "INSERT INTO PRODUCT_REVIEWS (user_id, order_item_id, sku_id, rating, comment, created_at) "
                 + "VALUES (?, ?, ?, ?, ?, GETDATE())";
 
         try (
@@ -220,145 +188,8 @@ public class ProductReviewDAO extends DBContext {
         return -1;
     }
 
-    // =====================================================
-    // INSERT REVIEW IMAGE
-    // =====================================================
-    public boolean insertReviewImage(
-            int reviewId,
-            String imageUrl) {
-
-        String sql
-                = "INSERT INTO REVIEW_IMAGES "
-                + "(review_id, image_url) "
-                + "VALUES (?, ?)";
-
-        try (
-                Connection conn = getConnection();
-                PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            ps.setInt(
-                    1,
-                    reviewId
-            );
-
-            ps.setString(
-                    2,
-                    imageUrl
-            );
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return false;
-    }
-
-    // =====================================================
-    // GET REVIEW BY ID + USER
-    //
-    // Chỉ lấy review của chính user
-    // =====================================================
-    public ProductReview getReviewByIdAndUserId(
-            int reviewId,
-            int userId) {
-
-        String sql
-                = "SELECT "
-                + "review_id, "
-                + "user_id, "
-                + "order_item_id, "
-                + "sku_id, "
-                + "rating, "
-                + "comment, "
-                + "created_at "
-                + "FROM PRODUCT_REVIEWS "
-                + "WHERE review_id = ? "
-                + "AND user_id = ?";
-
-        try (
-                Connection conn = getConnection();
-                PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            ps.setInt(
-                    1,
-                    reviewId
-            );
-
-            ps.setInt(
-                    2,
-                    userId
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
-                if (rs.next()) {
-
-                    ProductReview review
-                            = mapReview(rs);
-
-                    review.setImages(
-                            getReviewImages(
-                                    reviewId
-                            )
-                    );
-
-                    return review;
-                }
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    // =====================================================
-    // GET REVIEW BY ORDER ITEM
-    // =====================================================
-    public ProductReview getReviewByOrderItemId(
-            int orderItemId) {
-
-        String sql
-                = "SELECT "
-                + "review_id, "
-                + "user_id, "
-                + "order_item_id, "
-                + "sku_id, "
-                + "rating, "
-                + "comment, "
-                + "created_at "
-                + "FROM PRODUCT_REVIEWS "
-                + "WHERE order_item_id = ?";
-
-        try (
-                Connection conn = getConnection();
-                PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            ps.setInt(
-                    1,
-                    orderItemId
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
-                if (rs.next()) {
-
-                    ProductReview review
-                            = mapReview(rs);
-
-                    review.setImages(
-                            getReviewImages(
-                                    review.getReviewId()
-                            )
-                    );
+    public boolean insertReviewImage(int reviewId, String imageUrl) {
+        String sql = "INSERT INTO REVIEW_IMAGES (review_id, image_url) VALUES (?, ?)";
 
                     return review;
                 }
@@ -423,186 +254,8 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // DELETE REVIEW
-    //
-    // Xóa image trước để tránh FK
-    // =====================================================
-    public boolean deleteReview(
-            int reviewId,
-            int userId) {
-
-        Connection conn = null;
-
-        try {
-
-            conn = getConnection();
-
-            conn.setAutoCommit(false);
-
-            // =========================================
-            // CHECK REVIEW OWNER
-            // =========================================
-            String checkSql
-                    = "SELECT 1 "
-                    + "FROM PRODUCT_REVIEWS "
-                    + "WHERE review_id = ? "
-                    + "AND user_id = ?";
-
-            try (PreparedStatement ps
-                    = conn.prepareStatement(
-                            checkSql
-                    )) {
-
-                ps.setInt(
-                        1,
-                        reviewId
-                );
-
-                ps.setInt(
-                        2,
-                        userId
-                );
-
-                try (ResultSet rs
-                        = ps.executeQuery()) {
-
-                    if (!rs.next()) {
-
-                        conn.rollback();
-                        return false;
-                    }
-                }
-            }
-
-            // =========================================
-            // DELETE IMAGES
-            // =========================================
-            String deleteImageSql
-                    = "DELETE FROM REVIEW_IMAGES "
-                    + "WHERE review_id = ?";
-
-            try (PreparedStatement ps
-                    = conn.prepareStatement(
-                            deleteImageSql
-                    )) {
-
-                ps.setInt(
-                        1,
-                        reviewId
-                );
-
-                ps.executeUpdate();
-            }
-
-            // =========================================
-            // DELETE REVIEW
-            // =========================================
-            String deleteReviewSql
-                    = "DELETE FROM PRODUCT_REVIEWS "
-                    + "WHERE review_id = ? "
-                    + "AND user_id = ?";
-
-            try (PreparedStatement ps
-                    = conn.prepareStatement(
-                            deleteReviewSql
-                    )) {
-
-                ps.setInt(
-                        1,
-                        reviewId
-                );
-
-                ps.setInt(
-                        2,
-                        userId
-                );
-
-                int rows
-                        = ps.executeUpdate();
-
-                if (rows > 0) {
-
-                    conn.commit();
-                    return true;
-                }
-
-                conn.rollback();
-                return false;
-            }
-
-        } catch (SQLException e) {
-
-            e.printStackTrace();
-
-            if (conn != null) {
-
-                try {
-                    conn.rollback();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
-
-        } finally {
-
-            if (conn != null) {
-
-                try {
-
-                    conn.setAutoCommit(true);
-                    conn.close();
-
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return false;
-    }
-
-    // =====================================================
-    // GET REVIEW IMAGES
-    // =====================================================
-    public List<String> getReviewImages(
-            int reviewId) {
-
-        List<String> images
-                = new ArrayList<>();
-
-        String sql
-                = "SELECT image_url "
-                + "FROM REVIEW_IMAGES "
-                + "WHERE review_id = ? "
-                + "ORDER BY image_id ASC";
-
-        try (
-                Connection conn = getConnection();
-                PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            ps.setInt(
-                    1,
-                    reviewId
-            );
-
-            try (ResultSet rs
-                    = ps.executeQuery()) {
-
-                while (rs.next()) {
-
-                    images.add(
-                            rs.getString(
-                                    "image_url"
-                            )
-                    );
-                }
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    public int getSkuIdByOrderItemId(int orderItemId) {
+        String sql = "SELECT sku_id FROM ORDER_ITEM WHERE order_item_id = ?";
 
         return images;
     }

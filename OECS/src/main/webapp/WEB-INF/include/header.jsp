@@ -283,7 +283,7 @@
             <div class="d-flex align-items-center justify-content-between gap-3">
 
                 <div class="d-flex align-items-center gap-3">
-                    <a class="brand-logo-header d-flex align-items-center gap-3 text-decoration-none" href="${pageContext.request.contextPath}/">
+                    <a class="brand-logo-header d-flex align-items-center gap-3 text-decoration-none" href="${pageContext.request.contextPath}/home">
                         <div class="d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" 
                              style="width: 40px; height: 40px; border-radius: 10px; background: rgba(37, 99, 235, 0.18); border: 1px solid rgba(59, 130, 246, 0.35);">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -364,7 +364,7 @@
                                     <i class="bi bi-chevron-down text-secondary fs-8 d-none d-sm-inline ms-1"></i>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow-lg border-secondary mt-2">
-                                    <li><a class="dropdown-item py-2" href="#"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a></li>
+                                    <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/profile"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a></li>
                                     <li><a class="dropdown-item py-2" href="#"><i class="bi bi-gear me-2"></i>Cài đặt hệ thống</a></li>
                                     <li><hr class="dropdown-divider border-secondary"></li>
                                     <li><a class="dropdown-item py-2 text-danger" href="${pageContext.request.contextPath}/logout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>

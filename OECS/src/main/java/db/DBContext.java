@@ -9,10 +9,9 @@ import java.util.logging.Logger;
 public class DBContext {
 
     private Connection conn;
-    // Cập nhật databaseName=OECS
     private final String DB_URL = "jdbc:sqlserver://127.0.0.1:1433;databaseName=OECS;encrypt=false;trustServerCertificate=true;";
-    private final String DB_USER = "sa";     // Thay bằng user SQL của bạn
-    private final String DB_PWD = "123456";  // Thay bằng password SQL của bạn
+    private final String DB_USER = "sa";     
+    private final String DB_PWD = "123456";  
 
     public DBContext() {
         try {
@@ -35,7 +34,6 @@ public class DBContext {
         return conn;
     }
 
-    // Hàm main để test nhanh kết nối thành công chưa
     public static void main(String[] args) {
         DBContext db = new DBContext();
         if (db.getConnection() != null) {

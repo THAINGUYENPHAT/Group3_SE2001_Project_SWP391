@@ -21,15 +21,18 @@ public class ProductReview {
     public ProductReview() {
     }
 
-    public ProductReview(
-            int reviewId,
-            int userId,
-            int orderItemId,
-            int skuId,
-            int rating,
-            String comment,
-            Timestamp createdAt) {
+    public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt) {
+        this.reviewId = reviewId;
+        this.userId = userId;
+        this.orderItemId = orderItemId;
+        this.skuId = skuId;
+        this.rating = rating;
+        this.comment = comment;
+        this.createdAt = createdAt;
+        this.images = new ArrayList<>();
+    }
 
+    public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt, List<String> images) {
         this.reviewId = reviewId;
         this.userId = userId;
         this.orderItemId = orderItemId;

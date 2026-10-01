@@ -11,14 +11,12 @@ public class Product {
     private String description;
     private Timestamp createdAt;
 
-    // Quan hệ đối tượng (OOP Mapping)
     private Category category;
     private Brand brand;
 
     public Product() {
     }
 
-    // Constructor dùng cho thao tác CSDL cơ bản (không có object liên kết)
     public Product(int productId, int categoryId, int brandId, String productName, String description, Timestamp createdAt) {
         this.productId = productId;
         this.categoryId = categoryId;
@@ -28,7 +26,6 @@ public class Product {
         this.createdAt = createdAt;
     }
 
-    // Constructor đầy đủ (bao gồm cả Object Category và Brand)
     public Product(int productId, int categoryId, int brandId, String productName, String description, Timestamp createdAt, Category category, Brand brand) {
         this.productId = productId;
         this.categoryId = categoryId;

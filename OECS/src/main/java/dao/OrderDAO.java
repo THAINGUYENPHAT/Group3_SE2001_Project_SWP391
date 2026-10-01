@@ -13,16 +13,10 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Receives caller's Connection: transaction is owned by OrderService.
- */
 public class OrderDAO {
 
     private static final Logger LOGGER = Logger.getLogger(OrderDAO.class.getName());
 
-    // =====================================================
-    // 1. THÊM ĐƠN HÀNG MỚI
-    // =====================================================
     public int insert(Connection conn, Order order) throws SQLException {
         String sql = "INSERT INTO dbo.[ORDER] (user_id, address_id, total_amount, shipping_fee, "
                 + "order_status, payment_method, payment_status, recipient_name, recipient_phone, "
@@ -56,9 +50,6 @@ public class OrderDAO {
         }
     }
 
-    // =====================================================
-    // 2. THÊM CHI TIẾT ĐƠN HÀNG (ORDER ITEM)
-    // =====================================================
     public void insertItem(Connection conn, int orderId, int skuId, BigDecimal price, int quantity) throws SQLException {
         String sql = "INSERT INTO dbo.ORDER_ITEM (order_id, sku_id, price, quantity) VALUES (?, ?, ?, ?)";
 
@@ -75,9 +66,6 @@ public class OrderDAO {
         }
     }
 
-    // =====================================================
-    // 3. THÊM LỊCH SỬ TRẠNG THÁI ĐƠN HÀNG
-    // =====================================================
     public void addHistory(Connection conn, int orderId, String status) throws SQLException {
         String sql = "INSERT INTO dbo.ORDER_STATUS_HISTORY (order_id, status) VALUES (?, ?)";
 
@@ -92,9 +80,6 @@ public class OrderDAO {
         }
     }
 
-    // =====================================================
-    // 4. LẤY DANH SÁCH ĐƠN HÀNG THEO USER ID
-    // =====================================================
     public List<Order> findByUser(Connection conn, int userId) throws SQLException {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT order_id, user_id, address_id, total_amount, shipping_fee, order_status, "

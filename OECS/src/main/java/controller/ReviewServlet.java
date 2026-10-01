@@ -260,6 +260,8 @@ public class ReviewServlet extends HttpServlet {
     // CREATE REVIEW
     // =====================================================
     private void createReview(
+    @Override
+    protected void doPost(
             HttpServletRequest request,
             HttpServletResponse response,
             User user)
@@ -286,9 +288,6 @@ public class ReviewServlet extends HttpServlet {
                             "comment"
                     );
 
-            // ============================
-            // VALIDATE RATING
-            // ============================
             if (rating < 1 || rating > 5) {
 
                 setError(
@@ -325,13 +324,11 @@ public class ReviewServlet extends HttpServlet {
                 return;
             }
 
-            // ============================
-            // GET SKU FROM DATABASE
-            // ============================
-            int skuId =
-                    reviewDAO.getSkuIdByOrderItemId(
-                            orderItemId
-                    );
+            int skuId
+                    = reviewDAO
+                            .getSkuIdByOrderItemId(
+                                    orderItemId
+                            );
 
             if (skuId <= 0) {
 
@@ -348,13 +345,14 @@ public class ReviewServlet extends HttpServlet {
                 return;
             }
 
-            // ============================
-            // CHECK PERMISSION
-            // ============================
-            if (!reviewDAO.canReview(
-                    user.getUserId(),
-                    orderItemId,
-                    skuId)) {
+            boolean canReview
+                    = reviewDAO.canReview(
+                            loggedInUser.getUserId(),
+                            orderItemId,
+                            skuId
+                    );
+
+            if (!canReview) {
 
                 setError(
                         request,
@@ -370,11 +368,8 @@ public class ReviewServlet extends HttpServlet {
                 return;
             }
 
-            // ============================
-            // CREATE MODEL
-            // ============================
-            ProductReview review =
-                    new ProductReview();
+            ProductReview review
+                    = new ProductReview();
 
             review.setUserId(
                     user.getUserId()
@@ -420,10 +415,7 @@ public class ReviewServlet extends HttpServlet {
                 return;
             }
 
-            // ============================
-            // SAVE IMAGES
-            // ============================
-            saveReviewImages(
+            saveImages(
                     request,
                     reviewId
             );
@@ -649,10 +641,7 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // SHOW DELETE
-    // =====================================================
-    private void showDelete(
+    private void saveImages(
             HttpServletRequest request,
             HttpServletResponse response,
             User user)
@@ -875,10 +864,7 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // FILE EXTENSION
-    // =====================================================
-    private String getFileExtension(
+    private String getExtension(
             String fileName) {
 
         int dot =
@@ -893,9 +879,6 @@ public class ReviewServlet extends HttpServlet {
                 .toLowerCase();
     }
 
-    // =====================================================
-    // ALLOWED IMAGE
-    // =====================================================
     private boolean isAllowedImage(
             String extension) {
 
@@ -933,10 +916,7 @@ public class ReviewServlet extends HttpServlet {
                 );
     }
 
-    // =====================================================
-    // REDIRECT CREATE
-    // =====================================================
-    private void redirectCreate(
+    private void redirectBack(
             HttpServletRequest request,
             HttpServletResponse response,
             int orderItemId)
@@ -949,9 +929,6 @@ public class ReviewServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // REDIRECT ORDER
-    // =====================================================
     private void redirectOrders(
             HttpServletRequest request,
             HttpServletResponse response)
