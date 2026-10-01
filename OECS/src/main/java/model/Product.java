@@ -11,6 +11,8 @@ public class Product {
     private String description;
     private Timestamp createdAt;
 
+    private double minPrice;
+
     private Category category;
     private Brand brand;
 
@@ -83,6 +85,14 @@ public class Product {
 
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public double getMinPrice() {
+        return minPrice;
+    }
+
+    public void setMinPrice(double minPrice) {
+        this.minPrice = minPrice;
     }
 
     public Category getCategory() {

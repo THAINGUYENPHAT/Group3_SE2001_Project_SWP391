@@ -735,6 +735,14 @@
                     <i class="bi bi-arrow-right"></i>
 
                 </a>
+                <a href="${pageContext.request.contextPath}/shop"
+                   class="section-link">
+
+                    Chi tiết sản phẩm
+
+                    <i class="bi bi-arrow-right"></i>
+
+                </a>
 
             </div>
 
