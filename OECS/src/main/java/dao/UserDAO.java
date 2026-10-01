@@ -21,11 +21,11 @@ public class UserDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(UserDAO.class.getName());
 
+
     // =========================================================
     // LOGIN
     // =========================================================
     public User login(String account, String rawPassword) {
-
         String sql
                 = "SELECT u.user_id, u.username, u.email, u.password_hash, u.phone, u.created_at, "
                 + "ISNULL(ur.role_id, 0) AS role_id, r.role_name, a.address_line AS default_address "
@@ -71,9 +71,6 @@ public class UserDAO extends DBContext {
         return null;
     }
 
-    // =========================================================
-    // CHECK USER EXIST
-    // =========================================================
     public boolean checkUserExist(String username, String email) {
 
         String sql
@@ -98,9 +95,6 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    // =========================================================
-    // CHECK USER EXIST WHEN UPDATE
-    // =========================================================
     public boolean checkUserExistForUpdate(
             int userId,
             String username,
@@ -130,9 +124,6 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    // =========================================================
-    // REGISTER
-    // =========================================================
     public boolean register(
             String username,
             String email,
@@ -166,9 +157,6 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    // =========================================================
-    // ASSIGN DEFAULT ROLE
-    // =========================================================
     private void assignDefaultRole(String username) {
 
         String sql
@@ -188,9 +176,6 @@ public class UserDAO extends DBContext {
         }
     }
 
-    // =========================================================
-    // GET ALL USERS
-    // =========================================================
     public List<User> getAllUsers(String keyword) {
 
         List<User> list = new ArrayList<>();
@@ -256,9 +241,6 @@ public class UserDAO extends DBContext {
         return list;
     }
 
-    // =========================================================
-    // GET USER BY ID
-    // =========================================================
     public User getUserById(int userId) {
 
         String sql
@@ -310,9 +292,6 @@ public class UserDAO extends DBContext {
         return null;
     }
 
-    // =========================================================
-    // GET ALL ROLES
-    // =========================================================
     public List<Role> getAllRoles() {
 
         List<Role> list = new ArrayList<>();
@@ -340,9 +319,6 @@ public class UserDAO extends DBContext {
         return list;
     }
 
-    // =========================================================
-    // CREATE USER
-    // =========================================================
     public boolean createUser(User user, String rawPassword) {
 
         String userSql
@@ -427,9 +403,6 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    // =========================================================
-    // UPDATE USER
-    // =========================================================
     public boolean updateUser(User user, String rawPassword) {
 
         String updateWithPassword
@@ -542,9 +515,6 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    // =========================================================
-    // DELETE USER
-    // =========================================================
     public boolean deleteUser(int userId) {
 
         String sql
@@ -566,11 +536,13 @@ public class UserDAO extends DBContext {
         return false;
     }
 
+
     // =========================================================
     // UPDATE PROFILE
     // =========================================================
     public boolean updateProfile(int userId, String email, String phone, String address, String fullName) {
         String updateProfileSql = "UPDATE [USER] SET email = ?, phone = ? WHERE user_id = ?";
+
 
         // Câu lệnh kiểm tra xem người dùng đã có địa chỉ mặc định chưa
         String checkAddrSql = "SELECT address_id FROM ADDRESSBOOK WHERE user_id = ? AND is_default = 1";
@@ -644,9 +616,6 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    // =========================================================
-    // CHANGE PASSWORD
-    // =========================================================
     public boolean changePassword(
             int userId,
             String rawOldPassword,
@@ -701,21 +670,14 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    // =========================================================
-    // LOCK / UNLOCK (Vô hiệu hóa tạm thời do DB không có cột is_active)
-    // =========================================================
     public boolean updateUserStatus(
             int userId,
             boolean active) {
 
-        // CSDL không có cột is_active nên trả về false để tránh lỗi SQL
         LOGGER.log(Level.WARNING, "DB hiện tại không hỗ trợ cột is_active!");
         return false;
     }
 
-    // =========================================================
-    // MD5
-    // =========================================================
     private String hashMd5(String raw) {
 
         if (raw == null) {

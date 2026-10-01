@@ -4,15 +4,11 @@ import dao.VoucherDAO;
 
 import java.io.IOException;
 import java.sql.Timestamp;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-
 import java.util.List;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,11 +27,9 @@ public class VoucherServlet
     @Override
     public void init()
             throws ServletException {
-
         voucherDAO
                 = new VoucherDAO();
     }
-
     @Override
     protected void doGet(
             HttpServletRequest request,

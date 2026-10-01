@@ -283,7 +283,7 @@
             <div class="d-flex align-items-center justify-content-between gap-3">
 
                 <div class="d-flex align-items-center gap-3">
-                    <a class="brand-logo-header d-flex align-items-center gap-3 text-decoration-none" href="${pageContext.request.contextPath}/">
+                    <a class="brand-logo-header d-flex align-items-center gap-3 text-decoration-none" href="${pageContext.request.contextPath}/home">
                         <div class="d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" 
                              style="width: 40px; height: 40px; border-radius: 10px; background: rgba(37, 99, 235, 0.18); border: 1px solid rgba(59, 130, 246, 0.35);">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

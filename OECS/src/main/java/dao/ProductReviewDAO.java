@@ -15,9 +15,6 @@ public class ProductReviewDAO extends DBContext {
 
     private static final Logger LOGGER = Logger.getLogger(ProductReviewDAO.class.getName());
 
-    // =====================================================
-    // KIỂM TRA TÀI KHOẢN CÓ ĐƯỢC PHÉP ĐÁNH GIÁ SẢN PHẨM KHÔNG
-    // =====================================================
     public boolean canReview(int userId, int orderItemId, int skuId) {
         String sql = "SELECT oi.order_item_id "
                 + "FROM ORDER_ITEM oi "
@@ -52,9 +49,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // KIỂM TRA SẢN PHẨM TRONG ĐƠN HÀNG ĐÃ ĐƯỢC ĐÁNH GIÁ CHƯA
-    // =====================================================
     public boolean alreadyReviewed(int orderItemId) {
         String sql = "SELECT review_id FROM PRODUCT_REVIEWS WHERE order_item_id = ?";
 
@@ -74,9 +68,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // THÊM ĐÁNH GIÁ MỚI (TRẢ VỀ REVIEW_ID TỰ SINH)
-    // =====================================================
     public int insertReview(ProductReview review) {
         String sql = "INSERT INTO PRODUCT_REVIEWS (user_id, order_item_id, sku_id, rating, comment, created_at) "
                 + "VALUES (?, ?, ?, ?, ?, GETDATE())";
@@ -107,9 +98,6 @@ public class ProductReviewDAO extends DBContext {
         return -1;
     }
 
-    // =====================================================
-    // THÊM HÌNH ẢNH CHO ĐÁNH GIÁ
-    // =====================================================
     public boolean insertReviewImage(int reviewId, String imageUrl) {
         String sql = "INSERT INTO REVIEW_IMAGES (review_id, image_url) VALUES (?, ?)";
 
@@ -128,9 +116,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // LẤY SKU_ID TỪ ORDER_ITEM_ID
-    // =====================================================
     public int getSkuIdByOrderItemId(int orderItemId) {
         String sql = "SELECT sku_id FROM ORDER_ITEM WHERE order_item_id = ?";
 

@@ -154,9 +154,6 @@ public class VoucherDAO extends DBContext {
         return false;
     }
 
-    // ==================================================
-    // CUSTOMER APPLY VOUCHER
-    // ==================================================
     public Voucher getValidVoucher(String code, double cartTotal, int userId) {
         String sql = "SELECT voucher_id, code, min_order_value, valid_from, valid_to, "
                 + "discount_type, discount_value, max_discount, usage_limit, per_user_limit "
@@ -267,9 +264,6 @@ public class VoucherDAO extends DBContext {
         return discount;
     }
 
-    // ==================================================
-    // LƯU LƯỢT SỬ DỤNG SAU CHECKOUT THÀNH CÔNG
-    // ==================================================
     public boolean saveVoucherUsage(int voucherId, int orderId, int userId) {
         String sql = "INSERT INTO VOUCHER_USAGES (voucher_id, order_id, user_id, used_at) "
                 + "VALUES (?, ?, ?, GETDATE())";

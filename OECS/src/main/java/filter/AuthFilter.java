@@ -18,7 +18,6 @@ import model.User;
 @WebFilter(filterName = "AuthFilter", urlPatterns = {"/*"})
 public class AuthFilter implements Filter {
 
-    // Danh sách các URL công khai không yêu cầu đăng nhập
     private static final List<String> PUBLIC_URLS = Arrays.asList(
             "",
             "/",
@@ -31,7 +30,6 @@ public class AuthFilter implements Filter {
             "/favicon.ico"
     );
 
-    // Danh sách tiền tố tài nguyên tĩnh (Static resources)
     private static final List<String> PUBLIC_PREFIXES = Arrays.asList(
             "/assets/",
             "/css/",
@@ -58,9 +56,7 @@ public class AuthFilter implements Filter {
 
         User user = (session != null) ? (User) session.getAttribute("loggedInUser") : null;
 
-        // ========================================================
-        // 1. KIỂM TRA TÀI NGUYÊN TĨNH & PUBLIC URL
-        // ========================================================
+
         boolean isPublicUrl = PUBLIC_URLS.contains(relativePath);
         boolean isStaticResource = PUBLIC_PREFIXES.stream().anyMatch(relativePath::startsWith);
 
@@ -68,16 +64,11 @@ public class AuthFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
-
-        // ========================================================
-        // 2. YÊU CẦU ĐĂNG NHẬP (AUTHENTICATION)
-        // ========================================================
         if (user == null) {
             if (session == null) {
                 session = httpRequest.getSession(true);
             }
 
-            // Lưu lại URL gốc để tự động quay lại sau khi đăng nhập thành công
             String queryString = httpRequest.getQueryString();
             String fullRedirectUrl = requestURI + (queryString != null ? "?" + queryString : "");
             session.setAttribute("redirectUrl", fullRedirectUrl);
@@ -86,9 +77,6 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // ========================================================
-        // 3. KIỂM TRA PHÂN QUYỀN (AUTHORIZATION ADMIN / STAFF)
-        // ========================================================
         if (relativePath.startsWith("/admin") || relativePath.startsWith("/WEB-INF/admin")) {
             if (!user.isAdminOrStaff()) {
                 session.setAttribute("toastMessage", "Bạn không có quyền truy cập khu vực quản trị!");
@@ -99,7 +87,6 @@ public class AuthFilter implements Filter {
             }
         }
 
-        // Cho phép Request đi tiếp
         chain.doFilter(request, response);
     }
 
