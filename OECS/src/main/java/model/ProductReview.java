@@ -21,7 +21,15 @@ public class ProductReview {
     public ProductReview() {
     }
 
-    public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt) {
+    public ProductReview(
+            int reviewId,
+            int userId,
+            int orderItemId,
+            int skuId,
+            int rating,
+            String comment,
+            Timestamp createdAt) {
+
         this.reviewId = reviewId;
         this.userId = userId;
         this.orderItemId = orderItemId;
@@ -32,7 +40,16 @@ public class ProductReview {
         this.images = new ArrayList<>();
     }
 
-    public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt, List<String> images) {
+    public ProductReview(
+            int reviewId,
+            int userId,
+            int orderItemId,
+            int skuId,
+            int rating,
+            String comment,
+            Timestamp createdAt,
+            List<String> images) {
+
         this.reviewId = reviewId;
         this.userId = userId;
         this.orderItemId = orderItemId;
@@ -40,6 +57,7 @@ public class ProductReview {
         this.rating = rating;
         this.comment = comment;
         this.createdAt = createdAt;
+        this.images = images != null ? images : new ArrayList<>();
     }
 
     public int getReviewId() {
@@ -103,7 +121,7 @@ public class ProductReview {
     }
 
     public void setImages(List<String> images) {
-        this.images = images;
+        this.images = images != null ? images : new ArrayList<>();
     }
 
     @Override
