@@ -1,181 +1,145 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@taglib prefix="c" uri="jakarta.tags.core"%>
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Hồ Sơ Cá Nhân & Đổi Mật Khẩu</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 0;
-                background-color: #f4f6f9;
-            }
-            .profile-container {
-                max-width: 800px;
-                margin: 40px auto;
-                background: #fff;
-                padding: 30px;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            .profile-title {
-                text-align: center;
-                margin-bottom: 25px;
-                color: #333;
-            }
-            .section-box {
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                padding: 20px;
-                margin-bottom: 30px;
-                background-color: #fff;
-            }
-            .section-title {
-                font-size: 18px;
-                font-weight: bold;
-                margin-bottom: 15px;
-                color: #007bff;
-                border-bottom: 2px solid #007bff;
-                padding-bottom: 5px;
-                display: inline-block;
-            }
-            .form-group {
-                margin-bottom: 15px;
-            }
-            .form-group label {
-                display: block;
-                margin-bottom: 5px;
-                font-weight: bold;
-                color: #555;
-            }
-            .form-group input {
-                width: 100%;
-                padding: 10px;
-                box-sizing: border-box;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 14px;
-            }
-            .form-group input[disabled] {
-                background-color: #e9ecef;
-                cursor: not-allowed;
-            }
-            .btn-submit {
-                padding: 10px 20px;
-                background-color: #007bff;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-weight: bold;
-                font-size: 14px;
-            }
-            .btn-submit:hover {
-                background-color: #0056b3;
-            }
-            .btn-danger {
-                background-color: #dc3545;
-            }
-            .btn-danger:hover {
-                background-color: #bd2130;
-            }
-            .alert-success {
-                color: #155724;
-                background-color: #d4edda;
-                border: 1px solid #c3e6cb;
-                padding: 10px 15px;
-                border-radius: 4px;
-                margin-bottom: 15px;
-            }
-            .alert-danger {
-                color: #721c24;
-                background-color: #f8d7da;
-                border: 1px solid #f5c6cb;
-                padding: 10px 15px;
-                border-radius: 4px;
-                margin-bottom: 15px;
-            }
-        </style>
-    </head>
-    <body>
+<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 
-        <!-- NHÚNG HEADER TẠI ĐÂY -->
-        <%@include file="/WEB-INF/include/header.jsp" %>
+<%-- Nhúng Header chung của dự án --%>
+<%@include file="/WEB-INF/include/header.jsp" %>
 
-        <div class="profile-container">
-            <h2 class="profile-title">Quản Lý Tài Khoản</h2>
+<div class="container my-5">
+    <h2 class="text-center fw-bold text-primary mb-4">
+        <i class="bi bi-person-badge me-2"></i>Quản Lý Tài Khoản
+    </h2>
 
-            <!-- KHU VỰC 1: CẬP NHẬT THÔNG TIN CÁ NHÂN -->
-            <div class="section-box">
-                <div class="section-title">Thông Tin Cá Nhân</div>
+    <div class="row g-4">
+        <!-- KHU VỰC 1: CẬP NHẬT THÔNG TIN CÁ NHÂN -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-primary text-white fw-bold py-3">
+                    <i class="bi bi-person-lines-fill me-2"></i>Thông Tin Cá Nhân
+                </div>
+                <div class="card-body p-4">
+                    <c:if test="${not empty profileSuccess}">
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i><c:out value="${profileSuccess}"/>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </c:if>
+                    <c:if test="${not empty profileError}">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i><c:out value="${profileError}"/>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </c:if>
 
-                <c:if test="${not empty profileSuccess}">
-                    <div class="alert-success">${profileSuccess}</div>
-                </c:if>
-                <c:if test="${not empty profileError}">
-                    <div class="alert-danger">${profileError}</div>
-                </c:if>
+                    <form action="${pageContext.request.contextPath}/profile" method="post">
+                        <input type="hidden" name="action" value="updateProfile">
 
-                <form action="${pageContext.request.contextPath}/profile" method="post">
-                    <input type="hidden" name="action" value="updateProfile">
+                        <div class="mb-3">
+                            <label for="username" class="form-label fw-bold">Tên đăng nhập</label>
+                            <input type="text" class="form-control bg-light" id="username" value="<c:out value='${sessionScope.loggedInUser.username}'/>" disabled readonly>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="username">Tên đăng nhập:</label>
-                        <input type="text" id="username" value="${sessionScope.loggedInUser.username}" disabled readonly>
-                    </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" value="<c:out value='${sessionScope.loggedInUser.email}'/>" required>
+                        </div>
 
-                    <div class="form-group">
-                        <label for="email">Email:</label>
-                        <input type="email" id="email" name="email" value="${sessionScope.loggedInUser.email}" required>
-                    </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label fw-bold">Số điện thoại</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" value="<c:out value='${sessionScope.loggedInUser.phone}'/>" pattern="(0[3|5|7|8|9])+([0-9]{8})\b" title="Số điện thoại Việt Nam gồm 10 chữ số">
+                        </div>
 
-                    <div class="form-group">
-                        <label for="phone">Số điện thoại:</label>
-                        <input type="text" id="phone" name="phone" value="${sessionScope.loggedInUser.phone}">
-                    </div>
-
-                    <button type="submit" class="btn-submit">Cập nhật thông tin</button>
-                </form>
-            </div>
-
-            <!-- KHU VỰC 2: ĐỔI MẬT KHẨU -->
-            <div class="section-box">
-                <div class="section-title" style="color: #dc3545; border-bottom-color: #dc3545;">Đổi Mật Khẩu</div>
-
-                <c:if test="${not empty pwdSuccess}">
-                    <div class="alert-success">${pwdSuccess}</div>
-                </c:if>
-                <c:if test="${not empty pwdError}">
-                    <div class="alert-danger">${pwdError}</div>
-                </c:if>
-
-                <form action="${pageContext.request.contextPath}/profile" method="post">
-                    <input type="hidden" name="action" value="changePassword">
-
-                    <div class="form-group">
-                        <label for="oldPassword">Mật khẩu hiện tại:</label>
-                        <input type="password" id="oldPassword" name="oldPassword" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="newPassword">Mật khẩu mới:</label>
-                        <input type="password" id="newPassword" name="newPassword" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="confirmPassword">Xác nhận mật khẩu mới:</label>
-                        <input type="password" id="confirmPassword" name="confirmPassword" required>
-                    </div>
-
-                    <button type="submit" class="btn-submit btn-danger">Đổi mật khẩu</button>
-                </form>
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary fw-bold">
+                                <i class="bi bi-save me-1"></i> Cập nhật thông tin
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
-        <!-- NHÚNG FOOTER TẠI ĐÂY -->
-        <%@include file="/WEB-INF/include/footer.jsp" %>
+        <!-- KHU VỰC 2: ĐỔI MẬT KHẨU -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-danger text-white fw-bold py-3">
+                    <i class="bi bi-shield-lock-fill me-2"></i>Đổi Mật Khẩu
+                </div>
+                <div class="card-body p-4">
+                    <c:if test="${not empty pwdSuccess}">
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i><c:out value="${pwdSuccess}"/>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </c:if>
+                    <c:if test="${not empty pwdError}">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i><c:out value="${pwdError}"/>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </c:if>
 
-    </body>
-</html>
+                    <form action="${pageContext.request.contextPath}/profile" method="post" id="changePasswordForm">
+                        <input type="hidden" name="action" value="changePassword">
+
+                        <div class="mb-3">
+                            <label for="oldPassword" class="form-label fw-bold">Mật khẩu hiện tại <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="oldPassword" name="oldPassword" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label fw-bold">Mật khẩu mới <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="newPassword" name="newPassword" minlength="6" required placeholder="Tối thiểu 6 ký tự">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label fw-bold">Xác nhận mật khẩu mới <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                            <div id="pwdMismatchError" class="text-danger small mt-1 d-none">
+                                Mật khẩu mới không trùng khớp!
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-danger fw-bold">
+                                <i class="bi bi-key-fill me-1"></i> Đổi mật khẩu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const pwdForm = document.getElementById('changePasswordForm');
+        const newPassword = document.getElementById('newPassword');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const pwdMismatchError = document.getElementById('pwdMismatchError');
+
+        function validatePasswordMatch() {
+            if (confirmPassword.value && newPassword.value !== confirmPassword.value) {
+                pwdMismatchError.classList.remove('d-none');
+                confirmPassword.setCustomValidity("Mật khẩu không trùng khớp");
+            } else {
+                pwdMismatchError.classList.add('d-none');
+                confirmPassword.setCustomValidity("");
+            }
+        }
+
+        newPassword.addEventListener('change', validatePasswordMatch);
+        confirmPassword.addEventListener('keyup', validatePasswordMatch);
+
+        pwdForm.addEventListener('submit', function (e) {
+            validatePasswordMatch();
+            if (!pwdForm.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    });
+</script>
+
+<%-- Nhúng Footer chung của dự án --%>
+<%@include file="/WEB-INF/include/footer.jsp" %>

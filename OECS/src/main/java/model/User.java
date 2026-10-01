@@ -11,15 +11,16 @@ public class User {
     private String phone;
     private Timestamp createdAt;
 
-    // Thuộc tính phụ trợ cho Phân quyền & Vận hành
     private int roleId;
     private String roleName;
+    private boolean active;
 
     public User() {
     }
 
-    // Constructor cơ bản lấy thông tin từ bảng Users
-    public User(int userId, String username, String email, String passwordHash, String phone, Timestamp createdAt) {
+    public User(int userId, String username, String email,
+            String passwordHash, String phone, Timestamp createdAt) {
+
         this.userId = userId;
         this.username = username;
         this.email = email;
@@ -28,8 +29,10 @@ public class User {
         this.createdAt = createdAt;
     }
 
-    // Constructor mở rộng bao gồm Role (Dùng cho Authenticate / Session)
-    public User(int userId, String username, String email, String passwordHash, String phone, Timestamp createdAt, int roleId, String roleName) {
+    public User(int userId, String username, String email,
+            String passwordHash, String phone, Timestamp createdAt,
+            int roleId, String roleName, boolean active) {
+
         this.userId = userId;
         this.username = username;
         this.email = email;
@@ -38,6 +41,7 @@ public class User {
         this.createdAt = createdAt;
         this.roleId = roleId;
         this.roleName = roleName;
+        this.active = active;
     }
 
     public int getUserId() {
@@ -104,12 +108,17 @@ public class User {
         this.roleName = roleName;
     }
 
-    // ========================================================
-    // HELPER METHODS DÙNG CHO CHECK PHÂN QUYỀN TRONG AUTH FILTER & JSP
-    // ========================================================
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 
     public boolean hasRole(String role) {
-        return this.roleName != null && this.roleName.equalsIgnoreCase(role);
+        return this.roleName != null
+                && this.roleName.equalsIgnoreCase(role);
     }
 
     public boolean isAdmin() {
@@ -124,14 +133,19 @@ public class User {
         return hasRole("Customer");
     }
 
+    public boolean isLocked() {
+        return !active;
+    }
+
     @Override
     public String toString() {
-        return "User{" +
-                "userId=" + userId +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", phone='" + phone + '\'' +
-                ", roleName='" + roleName + '\'' +
-                '}';
+        return "User{"
+                + "userId=" + userId
+                + ", username='" + username + '\''
+                + ", email='" + email + '\''
+                + ", phone='" + phone + '\''
+                + ", roleName='" + roleName + '\''
+                + ", active=" + active
+                + '}';
     }
 }

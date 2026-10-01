@@ -16,9 +16,6 @@ public class BrandDAO extends DBContext {
 
     private static final Logger LOGGER = Logger.getLogger(BrandDAO.class.getName());
 
-    // =====================================================
-    // 1. LẤY DANH SÁCH TẤT CẢ CÁC THƯƠNG HIỆU
-    // =====================================================
     public List<Brand> getList() {
         List<Brand> list = new ArrayList<>();
         String sql = "SELECT brand_id, brand_name, logo_url FROM BRAND";
@@ -42,9 +39,6 @@ public class BrandDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // 2. THÊM THƯƠNG HIỆU MỚI
-    // =====================================================
     public int insert(Brand brand) {
         String sql = "INSERT INTO BRAND (brand_name, logo_url) VALUES (?, ?)";
 
@@ -62,9 +56,6 @@ public class BrandDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // 3. CẬP NHẬT THÔNG TIN THƯƠNG HIỆU
-    // =====================================================
     public int edit(Brand brand) {
         String sql = "UPDATE BRAND SET brand_name = ?, logo_url = ? WHERE brand_id = ?";
 
@@ -83,9 +74,6 @@ public class BrandDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // 4. XÓA THƯƠNG HIỆU
-    // =====================================================
     public int delete(Brand brand) {
         String sql = "DELETE FROM BRAND WHERE brand_id = ?";
 
@@ -102,9 +90,6 @@ public class BrandDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // 5. LẤY THƯƠNG HIỆU THEO ID
-    // =====================================================
     public Brand getById(int id) {
         String sql = "SELECT brand_id, brand_name, logo_url FROM BRAND WHERE brand_id = ?";
 

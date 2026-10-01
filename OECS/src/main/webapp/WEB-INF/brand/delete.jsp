@@ -6,7 +6,6 @@
 <div class="row justify-content-center">
     <div class="col-md-6 col-lg-5">
         <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
-            <!-- Dải màu đỏ cảnh báo trên cùng của Card -->
             <div class="bg-danger" style="height: 4px;"></div>
             
             <div class="card-body p-4 p-md-5 text-center">
@@ -22,13 +21,13 @@
                             
                             <h4 class="fw-bold text-dark mb-2">Bạn chắc chắn chứ?</h4>
                             <p class="text-muted mb-4">
-                                Bạn đang chuẩn bị xóa thương hiệu <strong class="text-dark fs-5">${brand.brandName}</strong>. Hành động này không thể hoàn tác.
+                                Bạn đang chuẩn bị xóa thương hiệu <strong class="text-dark fs-5"><c:out value="${brand.brandName}"/></strong>. Hành động này không thể hoàn tác.
                             </p>
 
                             <c:if test="${not empty brand.logoUrl}">
                                 <div class="mb-4">
                                     <div class="bg-light border rounded d-inline-flex align-items-center justify-content-center p-2" style="width: 80px; height: 80px;">
-                                        <img src="${brand.logoUrl}" alt="${brand.brandName}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                        <img src="${brand.logoUrl}" alt="<c:out value='${brand.brandName}'/>" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                                     </div>
                                 </div>
                             </c:if>

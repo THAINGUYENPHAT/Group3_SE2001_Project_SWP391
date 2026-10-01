@@ -44,7 +44,7 @@
                                     <label for="brand-name" class="form-label fw-semibold text-dark">Tên Thương Hiệu <span class="text-danger">*</span></label>
                                     <input type="text"
                                            name="name"
-                                           value="${brand.brandName}"
+                                           value="<c:out value='${brand.brandName}'/>"
                                            id="brand-name"
                                            class="form-control form-control-lg fs-6"
                                            required />
@@ -67,7 +67,7 @@
                                 <div class="mb-4 p-3 bg-light rounded-3 d-flex align-items-center">
                                     <span class="me-3 text-muted fw-medium fs-7">Xem trước:</span>
                                     <div class="bg-white border p-1 rounded" style="width: 60px; height: 60px;">
-                                        <img src="${brand.logoUrl}" alt="${brand.brandName}" style="width: 100%; height: 100%; object-fit: contain;">
+                                        <img src="${brand.logoUrl}" alt="<c:out value='${brand.brandName}'/>" style="width: 100%; height: 100%; object-fit: contain;">
                                     </div>
                                 </div>
                             </c:if>
@@ -76,9 +76,9 @@
                                 <button type="submit" class="btn btn-primary btn-lg fs-6 px-4">
                                     Cập nhật
                                 </button>
-                                <button type="reset" class="btn btn-light btn-lg fs-6 px-4 border text-muted">
-                                    Khôi phục
-                                </button>
+                                <a href="${pageContext.request.contextPath}/brand?view=list" class="btn btn-light btn-lg fs-6 px-4 border text-muted">
+                                    Hủy
+                                </a>
                             </div>
                         </form>
                     </c:when>
