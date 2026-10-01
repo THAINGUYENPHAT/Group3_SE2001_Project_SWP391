@@ -422,6 +422,7 @@
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow-lg border-secondary mt-2">
                                         <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/profile"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a></li>
+                                        <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/cart"><i class="bi bi-box-seam"></i>Giỏ hàng</a></li>
                                         <li><a class="dropdown-item py-2" href="#"><i class="bi bi-gear me-2"></i>Cài đặt hệ thống</a></li>
                                         <li><hr class="dropdown-divider border-secondary"></li>
                                         <li><a class="dropdown-item py-2 text-danger" href="${pageContext.request.contextPath}/logout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
