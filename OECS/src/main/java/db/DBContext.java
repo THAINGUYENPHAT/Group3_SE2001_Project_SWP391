@@ -9,10 +9,10 @@ import java.util.logging.Logger;
 public class DBContext {
 
     private Connection conn;
-    // Thêm trustServerCertificate=true để tránh lỗi SSL Certificate trên SQL Server
+    // Cập nhật databaseName=OECS
     private final String DB_URL = "jdbc:sqlserver://127.0.0.1:1433;databaseName=OECS;encrypt=false;trustServerCertificate=true;";
-    private final String DB_USER = "sa";     // Thay bằng username của bạn
-    private final String DB_PWD = "123456";  // Thay bằng password của bạn
+    private final String DB_USER = "sa";     // Thay bằng user SQL của bạn
+    private final String DB_PWD = "123456";  // Thay bằng password SQL của bạn
 
     public DBContext() {
         try {
@@ -25,7 +25,6 @@ public class DBContext {
 
     public Connection getConnection() {
         try {
-            // Tự động khởi tạo lại nếu kết nối bị đóng hoặc chưa mở
             if (conn == null || conn.isClosed()) {
                 Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
                 conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PWD);
@@ -34,5 +33,15 @@ public class DBContext {
             Logger.getLogger(DBContext.class.getName()).log(Level.SEVERE, null, ex);
         }
         return conn;
+    }
+
+    // Hàm main để test nhanh kết nối thành công chưa
+    public static void main(String[] args) {
+        DBContext db = new DBContext();
+        if (db.getConnection() != null) {
+            System.out.println("Kết nối OECS thành công!");
+        } else {
+            System.out.println("Kết nối thất bại!");
+        }
     }
 }
