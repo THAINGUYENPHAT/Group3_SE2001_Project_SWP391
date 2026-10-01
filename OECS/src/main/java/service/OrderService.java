@@ -7,10 +7,7 @@ import java.sql.*;
 import java.util.*;
 import model.Order;
 
-/**
- * First vertical slice: COD only. Online payments require verified gateway
- * integration.
- */
+
 public class OrderService {
 
     private final OrderDAO orderDAO = new OrderDAO();
@@ -28,10 +25,7 @@ public class OrderService {
         }
     }
 
-    /**
-     * shippingFee is resolved by trusted server configuration; never take it
-     * from a browser request.
-     */
+    
     public int placeCodOrder(int userId, int addressId, String name, String phone, String address, BigDecimal shippingFee) throws SQLException {
         if (userId <= 0 || addressId <= 0) {
             throw new IllegalArgumentException("Invalid user/address");
@@ -53,7 +47,6 @@ public class OrderService {
             c.setAutoCommit(false);
             try {
                 int cartId;
-                // Lock the customer's cart while checkout is in progress (includes double-submit protection).
                 try (PreparedStatement p = c.prepareStatement("SELECT cart_id FROM dbo.CART WITH (UPDLOCK,HOLDLOCK) WHERE user_id=?")) {
                     p.setInt(1, userId);
                     try (ResultSet r = p.executeQuery()) {
@@ -63,7 +56,6 @@ public class OrderService {
                         cartId = r.getInt(1);
                     }
                 }
-                // Ensure selected address belongs to this user (snapshot text may be edited at checkout).
                 try (PreparedStatement p = c.prepareStatement("SELECT address_id FROM dbo.ADDRESSBOOK WHERE address_id=? AND user_id=?")) {
                     p.setInt(1, addressId);
                     p.setInt(2, userId);
@@ -93,7 +85,6 @@ public class OrderService {
                 if (lines.isEmpty()) {
                     throw new IllegalArgumentException("Cart is empty");
                 }
-                // Conditional update prevents overselling under concurrent checkouts.
                 for (CartLine line : lines) {
                     try (PreparedStatement p = c.prepareStatement("UPDATE dbo.PRODUCT_SKU SET stock_quantity=stock_quantity-? WHERE sku_id=? AND stock_quantity>=?")) {
                         p.setInt(1, line.quantity);

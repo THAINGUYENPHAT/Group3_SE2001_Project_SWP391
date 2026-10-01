@@ -21,9 +21,6 @@ public class UserServlet extends HttpServlet {
     private static final Logger LOGGER
             = Logger.getLogger(UserServlet.class.getName());
 
-    // =========================================================
-    // CHECK LOGIN + ROLE
-    // =========================================================
     private boolean checkPermission(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -55,9 +52,6 @@ public class UserServlet extends HttpServlet {
         return true;
     }
 
-    // =========================================================
-    // GET
-    // =========================================================
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -75,11 +69,6 @@ public class UserServlet extends HttpServlet {
         UserDAO dao = new UserDAO();
         HttpSession session = request.getSession();
 
-        // =====================================================
-        // LIST
-        // /user
-        // /user?view=list
-        // =====================================================
         if (view == null || view.equals("list")) {
 
             String keyword = request.getParameter("keyword");
@@ -110,10 +99,6 @@ public class UserServlet extends HttpServlet {
                     "/WEB-INF/user/list.jsp")
                     .forward(request, response);
 
-        // =====================================================
-        // CREATE
-        // /user?view=create
-        // =====================================================
         } else if ("create".equals(view)) {
 
             request.setAttribute(
@@ -124,10 +109,6 @@ public class UserServlet extends HttpServlet {
                     "/WEB-INF/user/create.jsp")
                     .forward(request, response);
 
-        // =====================================================
-        // EDIT
-        // /user?view=edit&id=1
-        // =====================================================
         } else if ("edit".equals(view)) {
 
             try {
@@ -175,10 +156,6 @@ public class UserServlet extends HttpServlet {
                         + "/user?view=list");
             }
 
-        // =====================================================
-        // DELETE
-        // /user?view=delete&id=1
-        // =====================================================
         } else if ("delete".equals(view)) {
 
             try {
@@ -230,9 +207,6 @@ public class UserServlet extends HttpServlet {
         }
     }
 
-    // =========================================================
-    // POST
-    // =========================================================
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -250,9 +224,6 @@ public class UserServlet extends HttpServlet {
         UserDAO dao = new UserDAO();
         HttpSession session = request.getSession();
 
-        // =====================================================
-        // CREATE
-        // =====================================================
         if ("create".equals(action)) {
 
             String username
@@ -368,9 +339,6 @@ public class UserServlet extends HttpServlet {
                         + "/user?view=create");
             }
 
-        // =====================================================
-        // EDIT
-        // =====================================================
         } else if ("edit".equals(action)) {
 
             try {
@@ -500,9 +468,6 @@ public class UserServlet extends HttpServlet {
                         + "/user?view=list");
             }
 
-        // =====================================================
-        // DELETE
-        // =====================================================
         } else if ("delete".equals(action)) {
 
             try {
@@ -514,7 +479,6 @@ public class UserServlet extends HttpServlet {
                         = (User) session.getAttribute(
                                 "loggedInUser");
 
-                // Không cho tự xóa tài khoản đang đăng nhập
                 if (loggedInUser != null
                         && loggedInUser.getUserId() == id) {
 

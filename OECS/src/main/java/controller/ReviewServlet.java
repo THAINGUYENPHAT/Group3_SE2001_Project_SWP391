@@ -44,9 +44,6 @@ public class ReviewServlet
                 = new ProductReviewDAO();
     }
 
-    // =====================================================
-    // GET - SHOW FORM
-    // =====================================================
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -156,9 +153,6 @@ public class ReviewServlet
         }
     }
 
-    // =====================================================
-    // POST - CREATE REVIEW
-    // =====================================================
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -209,9 +203,6 @@ public class ReviewServlet
                             "comment"
                     );
 
-            // =================================================
-            // RATING 1 - 5
-            // =================================================
             if (rating < 1 || rating > 5) {
 
                 session.setAttribute(
@@ -251,9 +242,6 @@ public class ReviewServlet
                 return;
             }
 
-            // =================================================
-            // SKU lấy từ DB
-            // =================================================
             int skuId
                     = reviewDAO
                             .getSkuIdByOrderItemId(
@@ -275,9 +263,6 @@ public class ReviewServlet
                 return;
             }
 
-            // =================================================
-            // CHECK QUYỀN REVIEW
-            // =================================================
             boolean canReview
                     = reviewDAO.canReview(
                             loggedInUser.getUserId(),
@@ -300,9 +285,6 @@ public class ReviewServlet
                 return;
             }
 
-            // =================================================
-            // CREATE REVIEW
-            // =================================================
             ProductReview review
                     = new ProductReview();
 
@@ -347,9 +329,6 @@ public class ReviewServlet
                 return;
             }
 
-            // =================================================
-            // SAVE IMAGES
-            // =================================================
             saveImages(
                     request,
                     reviewId
@@ -379,9 +358,6 @@ public class ReviewServlet
         }
     }
 
-    // =====================================================
-    // SAVE IMAGES
-    // =====================================================
     private void saveImages(
             HttpServletRequest request,
             int reviewId)
@@ -411,7 +387,6 @@ public class ReviewServlet
                 continue;
             }
 
-            // chỉ tối đa 3 ảnh
             if (imageCount >= 3) {
                 break;
             }
@@ -433,11 +408,6 @@ public class ReviewServlet
                     + extension;
 
 
-            /*
-             * Lưu trong:
-             *
-             * webapp/uploads/reviews/
-             */
             String uploadDirectory
                     = getServletContext()
                             .getRealPath(
@@ -476,9 +446,6 @@ public class ReviewServlet
         }
     }
 
-    // =====================================================
-    // EXTENSION
-    // =====================================================
     private String getExtension(
             String fileName) {
 
@@ -494,9 +461,6 @@ public class ReviewServlet
                 .toLowerCase();
     }
 
-    // =====================================================
-    // IMAGE FORMAT
-    // =====================================================
     private boolean isAllowedImage(
             String extension) {
 
@@ -506,9 +470,6 @@ public class ReviewServlet
                 || ".webp".equals(extension);
     }
 
-    // =====================================================
-    // REDIRECT BACK
-    // =====================================================
     private void redirectBack(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -522,19 +483,12 @@ public class ReviewServlet
         );
     }
 
-    // =====================================================
-    // REDIRECT ORDERS
-    // =====================================================
     private void redirectOrders(
             HttpServletRequest request,
             HttpServletResponse response)
             throws IOException {
 
 
-        /*
-         * Đổi /orders nếu module Order của nhóm
-         * dùng URL khác.
-         */
         response.sendRedirect(
                 request.getContextPath()
                 + "/orders"
