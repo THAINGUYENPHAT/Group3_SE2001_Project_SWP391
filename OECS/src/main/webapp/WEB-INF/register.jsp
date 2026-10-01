@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 
 <%-- Nhúng Header chung của dự án (đã bao gồm <head>, CSS Bootstrap và mở <body>) --%>
+
 <%@include file="/WEB-INF/include/header.jsp" %>
 
 <div class="container my-5">

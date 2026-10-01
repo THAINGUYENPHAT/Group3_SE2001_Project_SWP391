@@ -10,7 +10,7 @@
                     <!-- TIÊU ĐỀ -->
                     <div class="text-center mb-4">
                         <h3 class="fw-bold text-primary">
-                            <i class="bi bi-box-arrow-in-right me-2"></i>Đăng Nhập
+                            Đăng Nhập
                         </h3>
                         <p class="text-muted small">Chào mừng bạn quay trở lại!</p>
                     </div>
