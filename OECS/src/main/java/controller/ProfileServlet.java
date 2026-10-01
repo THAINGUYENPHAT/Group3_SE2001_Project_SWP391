@@ -64,36 +64,39 @@ public class ProfileServlet extends HttpServlet {
                 // ========================================================
                 // 1. XỬ LÝ CẬP NHẬT HỒ SƠ (PROFILE)
                 // ========================================================
+                // Trong doPost() -> if ("updateProfile".equals(action))
                 String email = request.getParameter("email");
                 String phone = request.getParameter("phone");
+                String address = request.getParameter("address");
 
-                // 1.1 Validation: Kiểm tra định dạng Email
+                // Validation Email...
                 if (email == null || !Pattern.matches(EMAIL_REGEX, email.trim())) {
-                    request.setAttribute("profileError", "Email không đúng định dạng (Ví dụ: user@example.com)!");
+                    request.setAttribute("profileError", "Email không đúng định dạng!");
                     request.getRequestDispatcher("/WEB-INF/profile.jsp").forward(request, response);
                     return;
                 }
 
-                // 1.2 Validation: Nếu người dùng đổi Email mới -> Kiểm tra trùng lặp
+                // Check Email trùng...
                 if (!email.trim().equalsIgnoreCase(user.getEmail())) {
                     if (dao.checkUserExist("", email.trim())) {
-                        request.setAttribute("profileError", "Email này đã được sử dụng bởi một tài khoản khác!");
+                        request.setAttribute("profileError", "Email này đã được sử dụng!");
                         request.getRequestDispatcher("/WEB-INF/profile.jsp").forward(request, response);
                         return;
                     }
                 }
 
-                // 1.3 Cập nhật vào DB
-                boolean isUpdated = dao.updateProfile(user.getUserId(), email.trim(), phone);
+                // Cập nhật Profile vào DB
+                boolean isUpdated = dao.updateProfile(user.getUserId(), email.trim(), phone, address, user.getUsername());
 
                 if (isUpdated) {
                     user.setEmail(email.trim());
                     user.setPhone(phone);
+                    user.setAddress(address != null ? address.trim() : "");
                     session.setAttribute("loggedInUser", user);
 
                     request.setAttribute("profileSuccess", "Cập nhật thông tin cá nhân thành công!");
                 } else {
-                    request.setAttribute("profileError", "Cập nhật thông tin thất bại, vui lòng thử lại!");
+                    request.setAttribute("profileError", "Cập nhật thất bại, vui lòng thử lại!");
                 }
 
             } else if ("changePassword".equals(action)) {

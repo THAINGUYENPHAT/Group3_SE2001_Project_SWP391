@@ -56,19 +56,6 @@ public class AuthFilter implements Filter {
 
         User user = (session != null) ? (User) session.getAttribute("loggedInUser") : null;
 
-        if (user != null && user.getRoleId() == 0) {
-            boolean isStaticResource = PUBLIC_PREFIXES.stream().anyMatch(relativePath::startsWith);
-            if (isStaticResource) {
-                chain.doFilter(request, response);
-                return;
-            }
-
-            session.invalidate();
-
-            httpRequest.setAttribute("errorMessage", "Tài khoản của bạn đã bị khóa bởi quản trị viên!");
-            httpRequest.getRequestDispatcher("/WEB-INF/login.jsp").forward(httpRequest, httpResponse);
-            return;
-        }
 
         boolean isPublicUrl = PUBLIC_URLS.contains(relativePath);
         boolean isStaticResource = PUBLIC_PREFIXES.stream().anyMatch(relativePath::startsWith);

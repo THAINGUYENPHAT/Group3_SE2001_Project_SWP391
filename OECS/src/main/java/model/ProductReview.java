@@ -10,16 +10,26 @@ public class ProductReview {
     private int userId;
     private int orderItemId;
     private int skuId;
+
     private int rating;
     private String comment;
+
     private Timestamp createdAt;
-    private List<String> images;
+
+    private List<String> images = new ArrayList<>();
 
     public ProductReview() {
-        this.images = new ArrayList<>();
     }
 
-    public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt) {
+    public ProductReview(
+            int reviewId,
+            int userId,
+            int orderItemId,
+            int skuId,
+            int rating,
+            String comment,
+            Timestamp createdAt) {
+
         this.reviewId = reviewId;
         this.userId = userId;
         this.orderItemId = orderItemId;
@@ -30,7 +40,16 @@ public class ProductReview {
         this.images = new ArrayList<>();
     }
 
-    public ProductReview(int reviewId, int userId, int orderItemId, int skuId, int rating, String comment, Timestamp createdAt, List<String> images) {
+    public ProductReview(
+            int reviewId,
+            int userId,
+            int orderItemId,
+            int skuId,
+            int rating,
+            String comment,
+            Timestamp createdAt,
+            List<String> images) {
+
         this.reviewId = reviewId;
         this.userId = userId;
         this.orderItemId = orderItemId;
@@ -102,6 +121,20 @@ public class ProductReview {
     }
 
     public void setImages(List<String> images) {
-        this.images = images;
+        this.images = images != null ? images : new ArrayList<>();
+    }
+
+    @Override
+    public String toString() {
+        return "ProductReview{"
+                + "reviewId=" + reviewId
+                + ", userId=" + userId
+                + ", orderItemId=" + orderItemId
+                + ", skuId=" + skuId
+                + ", rating=" + rating
+                + ", comment='" + comment + '\''
+                + ", createdAt=" + createdAt
+                + ", images=" + images
+                + '}';
     }
 }
