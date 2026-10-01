@@ -21,31 +21,28 @@ public class UserDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(UserDAO.class.getName());
 
-    public User login(String username, String rawPassword) {
 
+    // =========================================================
+    // LOGIN
+    // =========================================================
+    public User login(String account, String rawPassword) {
         String sql
-                = "SELECT u.user_id, u.username, u.email, "
-                + "u.password_hash, u.phone, u.created_at, "
-                + "ISNULL(ur.role_id, 0) AS role_id, "
-                + "r.role_name "
+                = "SELECT u.user_id, u.username, u.email, u.password_hash, u.phone, u.created_at, "
+                + "ISNULL(ur.role_id, 0) AS role_id, r.role_name, a.address_line AS default_address "
                 + "FROM [USER] u "
-                + "LEFT JOIN USER_ROLES ur "
-                + "ON u.user_id = ur.user_id "
-                + "LEFT JOIN ROLES r "
-                + "ON ur.role_id = r.role_id "
-                + "WHERE u.username = ? "
-                + "AND u.password_hash = ?";
+                + "LEFT JOIN USER_ROLES ur ON u.user_id = ur.user_id "
+                + "LEFT JOIN ROLES r ON ur.role_id = r.role_id "
+                + "LEFT JOIN ADDRESSBOOK a ON u.user_id = a.user_id AND a.is_default = 1 "
+                + "WHERE (u.username = ? OR u.email = ?) AND u.password_hash = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement statement = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
-            statement.setString(1, username);
-            statement.setString(2, hashMd5(rawPassword));
+            statement.setString(1, account);
+            statement.setString(2, account);
+            statement.setString(3, hashMd5(rawPassword));
 
             try (ResultSet rs = statement.executeQuery()) {
-
                 if (rs.next()) {
-
                     int roleId = rs.getInt("role_id");
                     String roleName = rs.getString("role_name");
 
@@ -53,7 +50,7 @@ public class UserDAO extends DBContext {
                         roleName = "LOCKED";
                     }
 
-                    return new User(
+                    User user = new User(
                             rs.getInt("user_id"),
                             rs.getString("username"),
                             rs.getString("email"),
@@ -64,13 +61,13 @@ public class UserDAO extends DBContext {
                             roleName,
                             true
                     );
+                    user.setAddress(rs.getString("default_address")); // Lấy địa chỉ từ ADDRESSBOOK
+                    return user;
                 }
             }
-
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE, "Lỗi đăng nhập!", ex);
         }
-
         return null;
     }
 
@@ -81,8 +78,7 @@ public class UserDAO extends DBContext {
                 + "FROM [USER] "
                 + "WHERE username = ? OR email = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
             ps.setString(2, email);
@@ -110,8 +106,7 @@ public class UserDAO extends DBContext {
                 + "WHERE (username = ? OR email = ?) "
                 + "AND user_id <> ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
             ps.setString(2, email);
@@ -140,8 +135,7 @@ public class UserDAO extends DBContext {
                 + "(username, email, password_hash, phone) "
                 + "VALUES (?, ?, ?, ?)";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
             ps.setString(2, email);
@@ -171,8 +165,7 @@ public class UserDAO extends DBContext {
                 + "FROM [USER] "
                 + "WHERE username = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, username);
             ps.executeUpdate();
@@ -202,13 +195,12 @@ public class UserDAO extends DBContext {
                 + "OR u.phone LIKE ? "
                 + "ORDER BY u.created_at DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             String searchPattern
                     = "%" + (keyword != null
-                    ? keyword.trim()
-                    : "") + "%";
+                            ? keyword.trim()
+                            : "") + "%";
 
             ps.setString(1, searchPattern);
             ps.setString(2, searchPattern);
@@ -263,8 +255,7 @@ public class UserDAO extends DBContext {
                 + "ON ur.role_id = r.role_id "
                 + "WHERE u.user_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
 
@@ -310,9 +301,7 @@ public class UserDAO extends DBContext {
                 + "FROM ROLES "
                 + "ORDER BY role_id";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
 
@@ -532,8 +521,7 @@ public class UserDAO extends DBContext {
                 = "DELETE FROM [USER] "
                 + "WHERE user_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
 
@@ -548,31 +536,83 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    public boolean updateProfile(
-            int userId,
-            String email,
-            String phone) {
 
-        String sql
-                = "UPDATE [USER] "
-                + "SET email = ?, phone = ? "
-                + "WHERE user_id = ?";
+    // =========================================================
+    // UPDATE PROFILE
+    // =========================================================
+    public boolean updateProfile(int userId, String email, String phone, String address, String fullName) {
+        String updateProfileSql = "UPDATE [USER] SET email = ?, phone = ? WHERE user_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, email);
-            ps.setString(2, phone);
-            ps.setInt(3, userId);
+        // Câu lệnh kiểm tra xem người dùng đã có địa chỉ mặc định chưa
+        String checkAddrSql = "SELECT address_id FROM ADDRESSBOOK WHERE user_id = ? AND is_default = 1";
+        String updateAddrSql = "UPDATE ADDRESSBOOK SET address_line = ?, phone_number = ? WHERE user_id = ? AND is_default = 1";
+        String insertAddrSql = "INSERT INTO ADDRESSBOOK (user_id, recipient_name, phone_number, address_line, is_default) VALUES (?, ?, ?, ?, 1)";
 
-            return ps.executeUpdate() > 0;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // Dùng Transaction để đảm bảo tính toàn vẹn dữ liệu
 
+            // 1. Cập nhật USER
+            try (PreparedStatement psUser = conn.prepareStatement(updateProfileSql)) {
+                psUser.setString(1, email);
+                psUser.setString(2, phone);
+                psUser.setInt(3, userId);
+                psUser.executeUpdate();
+            }
+
+            // 2. Cập nhật hoặc Thêm mới Địa chỉ vào ADDRESSBOOK
+            if (address != null && !address.trim().isEmpty()) {
+                boolean hasDefaultAddr = false;
+                try (PreparedStatement psCheck = conn.prepareStatement(checkAddrSql)) {
+                    psCheck.setInt(1, userId);
+                    try (ResultSet rs = psCheck.executeQuery()) {
+                        if (rs.next()) {
+                            hasDefaultAddr = true;
+                        }
+                    }
+                }
+
+                if (hasDefaultAddr) {
+                    try (PreparedStatement psUpdateAddr = conn.prepareStatement(updateAddrSql)) {
+                        psUpdateAddr.setString(1, address.trim());
+                        psUpdateAddr.setString(2, phone);
+                        psUpdateAddr.setInt(3, userId);
+                        psUpdateAddr.executeUpdate();
+                    }
+                } else {
+                    try (PreparedStatement psInsertAddr = conn.prepareStatement(insertAddrSql)) {
+                        psInsertAddr.setInt(1, userId);
+                        psInsertAddr.setString(2, fullName != null ? fullName : "Khách hàng");
+                        psInsertAddr.setString(3, phone);
+                        psInsertAddr.setString(4, address.trim());
+                        psInsertAddr.executeUpdate();
+                    }
+                }
+            }
+
+            conn.commit(); // Xắc nhận lưu thay đổi
+            return true;
         } catch (SQLException ex) {
-
-            LOGGER.log(Level.SEVERE,
-                    "Lỗi cập nhật thông tin cá nhân!", ex);
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            LOGGER.log(Level.SEVERE, "Lỗi cập nhật profile!", ex);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-
         return false;
     }
 
@@ -633,7 +673,7 @@ public class UserDAO extends DBContext {
     public boolean updateUserStatus(
             int userId,
             boolean active) {
-        
+
         LOGGER.log(Level.WARNING, "DB hiện tại không hỗ trợ cột is_active!");
         return false;
     }
