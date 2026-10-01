@@ -6,7 +6,6 @@
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         
-        <!-- Nút Back tinh tế -->
         <div class="mb-3">
             <a href="${pageContext.request.contextPath}/brand?view=list" class="text-decoration-none text-muted fw-medium">
                 <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
@@ -34,7 +33,7 @@
                                name="name"
                                id="brand-name"
                                class="form-control form-control-lg fs-6"
-                               placeholder="VD: Samsung, Apple, Nike..."
+                               placeholder="VD: Samsung, Apple, Lenovo, Nike..."
                                required />
                     </div>
 
@@ -46,18 +45,18 @@
                                    name="logoUrl"
                                    id="brand-logo"
                                    class="form-control form-control-lg fs-6 border-start-0 ps-0"
-                                   placeholder="https://..." />
+                                   placeholder="https://example.com/logo.png" />
                         </div>
-                        <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i>Copy URL hình ảnh và dán vào đây.</div>
+                        <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i>Dán URL hình ảnh đại diện thương hiệu vào đây.</div>
                     </div>
 
                     <div class="d-flex gap-2 pt-3 mt-4 border-top">
                         <button type="submit" class="btn btn-primary btn-lg fs-6 px-4">
                             Lưu Thương Hiệu
                         </button>
-                        <button type="reset" class="btn btn-light btn-lg fs-6 px-4 border text-muted">
+                        <a href="${pageContext.request.contextPath}/brand?view=list" class="btn btn-light btn-lg fs-6 px-4 border text-muted">
                             Hủy
-                        </button>
+                        </a>
                     </div>
                 </form>
             </div>

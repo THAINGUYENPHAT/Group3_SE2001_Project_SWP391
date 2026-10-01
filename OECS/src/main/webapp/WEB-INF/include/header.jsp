@@ -11,12 +11,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OECS - Brand & Enterprise Management</title>
 
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Bootstrap 5 & Icons -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/bootstrap.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
@@ -260,7 +258,6 @@
 </head>
 <body>
 
-    <!-- 1. SUB-BAR TRÊN CÙNG -->
     <div class="top-subbar d-none d-md-block">
         <div class="container-fluid px-4 px-lg-5">
             <div class="d-flex justify-content-between align-items-center">
@@ -281,14 +278,12 @@
         </div>
     </div>
 
-    <!-- 2. MAIN HEADER -->
     <header class="app-header">
         <div class="container-fluid px-4 px-lg-5">
             <div class="d-flex align-items-center justify-content-between gap-3">
 
                 <div class="d-flex align-items-center gap-3">
                     <a class="brand-logo-header d-flex align-items-center gap-3 text-decoration-none" href="${pageContext.request.contextPath}/">
-                        <!-- SVG Custom Logo -->
                         <div class="d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" 
                              style="width: 40px; height: 40px; border-radius: 10px; background: rgba(37, 99, 235, 0.18); border: 1px solid rgba(59, 130, 246, 0.35);">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -298,7 +293,6 @@
                             </svg>
                         </div>
 
-                        <!-- Brand Name -->
                         <div class="d-flex flex-column justify-content-center">
                             <span class="fw-bold text-white lh-1" style="font-size: 1.25rem; letter-spacing: 0.2px;">OECS</span>
                             <span class="fw-semibold" style="font-size: 0.6rem; letter-spacing: 1.2px; margin-top: 4px; color: #94a3b8;">MANAGEMENT</span>
@@ -316,7 +310,7 @@
                             <li><a class="dropdown-menu-item dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/product"><i class="bi bi-box-seam text-success me-2"></i>Quản lý Sản phẩm</a></li>
                             <li><a class="dropdown-menu-item dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/category"><i class="bi bi-diagram-3 text-warning me-2"></i>Quản lý Danh mục</a></li>
                             <li><hr class="dropdown-divider border-secondary"></li>
-                            <li><a class="dropdown-menu-item dropdown-item rounded-2 py-2" href="#"><i class="bi bi-people text-info me-2"></i>Người dùng & Phân quyền</a></li>
+                            <li><a class="dropdown-menu-item dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/user"><i class="bi bi-people text-info me-2"></i>Người dùng & Phân quyền</a></li>
                         </ul>
                     </div>
                 </div>
@@ -384,5 +378,4 @@
         </div>
     </header>
 
-    <!-- Main Container Start -->
     <main class="container-fluid px-4 px-lg-5 py-4" style="max-width: 1440px;">

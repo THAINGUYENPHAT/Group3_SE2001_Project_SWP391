@@ -22,37 +22,18 @@ public class BrandServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // Kiểm tra trạng thái đăng nhập (Có thể mở comment khi ghép với phân quyền)
-        /*
-        HttpSession session = request.getSession();
-        User loggedInUser = (User) session.getAttribute("loggedInUser");
-        if (loggedInUser == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
-            return;
-        }
-        */
-
         String view = request.getParameter("view");
         BrandDAO dao = new BrandDAO();
 
         if (view == null || view.equals("list")) {
-            // =====================================================
-            // 1. DANH SÁCH BRAND
-            // =====================================================
             List<Brand> brandList = dao.getList();
             request.setAttribute("brandList", brandList);
             request.getRequestDispatcher("/WEB-INF/brand/list.jsp").forward(request, response);
 
         } else if ("create".equals(view)) {
-            // =====================================================
-            // 2. TRANG THÊM BRAND
-            // =====================================================
             request.getRequestDispatcher("/WEB-INF/brand/create.jsp").forward(request, response);
 
         } else if ("edit".equals(view)) {
-            // =====================================================
-            // 3. TRANG SỬA BRAND
-            // =====================================================
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
                 Brand selectedBrand = dao.getById(id);
@@ -65,9 +46,6 @@ public class BrandServlet extends HttpServlet {
             }
 
         } else if ("delete".equals(view)) {
-            // =====================================================
-            // 4. TRANG XÁC NHẬN XÓA BRAND
-            // =====================================================
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
                 Brand selectedBrand = dao.getById(id);
@@ -92,9 +70,7 @@ public class BrandServlet extends HttpServlet {
         BrandDAO dao = new BrandDAO();
 
         if ("create".equals(action)) {
-            // =====================================================
-            // 1. THỰC THI THÊM BRAND
-            // =====================================================
+            
             String name = request.getParameter("name");
             String logoUrl = request.getParameter("logoUrl");
 
@@ -111,9 +87,6 @@ public class BrandServlet extends HttpServlet {
             }
 
         } else if ("edit".equals(action)) {
-            // =====================================================
-            // 2. THỰC THI SỬA BRAND
-            // =====================================================
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
                 String name = request.getParameter("name");
@@ -129,9 +102,6 @@ public class BrandServlet extends HttpServlet {
             }
 
         } else if ("delete".equals(action)) {
-            // =====================================================
-            // 3. THỰC THI XÓA BRAND
-            // =====================================================
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
                 Brand brand = new Brand();
