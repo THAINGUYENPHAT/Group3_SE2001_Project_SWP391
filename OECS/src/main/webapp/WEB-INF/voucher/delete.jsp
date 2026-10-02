@@ -7,7 +7,7 @@
 <style>
     .delete-page {
         max-width: 700px;
-        margin: auto;
+        margin: 0 auto;
         padding-bottom: 30px;
     }
 
@@ -15,6 +15,7 @@
         font-size: 1.55rem;
         font-weight: 700;
         color: #0f172a;
+        margin-bottom: 4px;
     }
 
     .page-description {
@@ -23,28 +24,32 @@
     }
 
     .delete-card {
-        background: white;
+        background: #ffffff;
 
         border: 1px solid #e2e8f0;
         border-radius: 14px;
 
         padding: 30px;
+
+        text-align: center;
+
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
     }
 
     .delete-icon {
-        width: 65px;
-        height: 65px;
-
-        margin: 0 auto 18px;
+        width: 64px;
+        height: 64px;
 
         display: flex;
         align-items: center;
         justify-content: center;
 
-        background: #fef2f2;
-        color: #dc2626;
+        margin: 0 auto 18px;
 
         border-radius: 16px;
+
+        background: #fef2f2;
+        color: #dc2626;
 
         font-size: 1.6rem;
     }
@@ -58,13 +63,16 @@
         padding: 18px;
 
         margin: 25px 0;
+
+        text-align: left;
     }
 
     .info-row {
         display: flex;
         justify-content: space-between;
+        gap: 20px;
 
-        padding: 7px 0;
+        padding: 8px 0;
 
         font-size: 0.9rem;
     }
@@ -76,16 +84,21 @@
     .info-value {
         color: #0f172a;
         font-weight: 600;
+        text-align: right;
     }
 
     .btn-delete {
-        background: #dc2626;
-        color: white;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+
+        padding: 10px 18px;
 
         border: none;
         border-radius: 8px;
 
-        padding: 10px 18px;
+        background: #dc2626;
+        color: #ffffff;
 
         font-weight: 600;
     }
@@ -95,9 +108,13 @@
     }
 
     .btn-cancel {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+
         padding: 9px 18px;
 
-        background: white;
+        background: #ffffff;
         color: #475569;
 
         border: 1px solid #cbd5e1;
@@ -128,7 +145,7 @@
     </div>
 
 
-    <div class="delete-card text-center">
+    <div class="delete-card">
 
         <div class="delete-icon">
 
@@ -144,7 +161,7 @@
 
         <p class="text-muted">
 
-            Bạn đang chuẩn bị xóa
+            Bạn đang chuẩn bị xóa Voucher
 
             <strong class="text-dark">
                 ${voucher.code}
@@ -153,7 +170,8 @@
         </p>
 
 
-        <div class="voucher-info text-start">
+        <div class="voucher-info">
+
 
             <div class="info-row">
 
@@ -184,7 +202,7 @@
             <div class="info-row">
 
                 <span class="info-label">
-                    Loại giảm
+                    Loại giảm giá
                 </span>
 
                 <span class="info-value">
@@ -218,7 +236,12 @@
 
                         <c:when test="${voucher.discountType == 'PERCENT'}">
 
-                            ${voucher.discountValue}%
+                            <fmt:formatNumber
+                                value="${voucher.discountValue}"
+                                type="number"
+                                maxFractionDigits="2"/>
+
+                            %
 
                         </c:when>
 
@@ -240,6 +263,27 @@
 
             </div>
 
+
+            <div class="info-row">
+
+                <span class="info-label">
+                    Đơn tối thiểu
+                </span>
+
+                <span class="info-value">
+
+                    <fmt:formatNumber
+                        value="${voucher.minOrderValue}"
+                        type="number"
+                        groupingUsed="true"
+                        maxFractionDigits="0"/>
+
+                    đ
+
+                </span>
+
+            </div>
+
         </div>
 
 
@@ -247,14 +291,14 @@
 
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
 
-            Voucher đã được sử dụng trong đơn hàng có thể không xóa được
-            do ràng buộc dữ liệu.
+            Voucher đã được sử dụng có thể không xóa được
+            do ràng buộc dữ liệu của đơn hàng.
 
         </div>
 
 
         <form
-            action="${pageContext.request.contextPath}/voucher"
+            action="${pageContext.request.contextPath}/admin/voucher"
             method="post">
 
             <input
@@ -274,7 +318,7 @@
                     type="submit"
                     class="btn-delete">
 
-                    <i class="bi bi-trash3 me-1"></i>
+                    <i class="bi bi-trash3"></i>
 
                     Xóa Voucher
 
@@ -282,8 +326,10 @@
 
 
                 <a
-                    href="${pageContext.request.contextPath}/voucher"
+                    href="${pageContext.request.contextPath}/admin/voucher"
                     class="btn-cancel">
+
+                    <i class="bi bi-x-lg"></i>
 
                     Hủy
 

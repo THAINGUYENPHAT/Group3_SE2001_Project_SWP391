@@ -15,7 +15,10 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-@WebServlet(name = "VoucherServlet", urlPatterns = {"/voucher"})
+@WebServlet(
+        name = "VoucherServlet",
+        urlPatterns = {"/admin/voucher"}
+)
 public class VoucherServlet extends HttpServlet {
 
     private VoucherDAO voucherDAO;
@@ -34,6 +37,11 @@ public class VoucherServlet extends HttpServlet {
 
     // =====================================================
     // GET
+    //
+    // /admin/voucher
+    // /admin/voucher?view=create
+    // /admin/voucher?view=edit&id=1
+    // /admin/voucher?view=delete&id=1
     // =====================================================
     @Override
     protected void doGet(
@@ -43,23 +51,11 @@ public class VoucherServlet extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
-        // ============================
-        // CHECK LOGIN
-        // ============================
-        User loggedInUser = getLoggedInUser(request);
-
-        if (loggedInUser == null) {
-
-            response.sendRedirect(
-                    request.getContextPath() + "/login"
-            );
-
+        // Chỉ Admin được sử dụng Voucher CRUD
+        if (!checkAdmin(request, response)) {
             return;
         }
 
-        // ============================
-        // GET VIEW
-        // ============================
         String view = request.getParameter("view");
 
         if (view == null || view.trim().isEmpty()) {
@@ -80,6 +76,7 @@ public class VoucherServlet extends HttpServlet {
                 showDelete(request, response);
                 break;
 
+            case "list":
             default:
                 showList(request, response);
                 break;
@@ -88,6 +85,10 @@ public class VoucherServlet extends HttpServlet {
 
     // =====================================================
     // POST
+    //
+    // action=create
+    // action=update
+    // action=delete
     // =====================================================
     @Override
     protected void doPost(
@@ -97,29 +98,16 @@ public class VoucherServlet extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
-        // ============================
-        // CHECK LOGIN
-        // ============================
-        User loggedInUser = getLoggedInUser(request);
-
-        if (loggedInUser == null) {
-
-            response.sendRedirect(
-                    request.getContextPath() + "/login"
-            );
-
+        // Chỉ Admin
+        if (!checkAdmin(request, response)) {
             return;
         }
 
-        // ============================
-        // GET ACTION
-        // ============================
         String action = request.getParameter("action");
 
         if (action == null || action.trim().isEmpty()) {
 
             redirectList(request, response);
-
             return;
         }
 
@@ -144,26 +132,69 @@ public class VoucherServlet extends HttpServlet {
     }
 
     // =====================================================
-    // GET LOGGED IN USER
+    // CHECK ADMIN
     // =====================================================
-    private User getLoggedInUser(
-            HttpServletRequest request) {
+    private boolean checkAdmin(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
 
-        HttpSession session
-                = request.getSession(false);
+        HttpSession session = request.getSession(false);
 
+        // Chưa đăng nhập
         if (session == null) {
-            return null;
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/login"
+            );
+
+            return false;
         }
 
-        return (User) session.getAttribute(
-                "loggedInUser"
-        );
+        User loggedInUser
+                = (User) session.getAttribute(
+                        "loggedInUser"
+                );
+
+        // Chưa đăng nhập
+        if (loggedInUser == null) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/login"
+            );
+
+            return false;
+        }
+
+        // Không phải Admin
+        if (!loggedInUser.isAdmin()) {
+
+            session.setAttribute(
+                    "toastMessage",
+                    "Chỉ Admin mới có quyền quản lý Voucher!"
+            );
+
+            session.setAttribute(
+                    "toastType",
+                    "error"
+            );
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/home"
+            );
+
+            return false;
+        }
+
+        return true;
     }
 
     // =====================================================
-    // LIST
-    // GET /voucher
+    // READ
+    // GET /admin/voucher
     // =====================================================
     private void showList(
             HttpServletRequest request,
@@ -177,12 +208,15 @@ public class VoucherServlet extends HttpServlet {
 
         request.getRequestDispatcher(
                 "/WEB-INF/voucher/list.jsp"
-        ).forward(request, response);
+        ).forward(
+                request,
+                response
+        );
     }
 
     // =====================================================
     // SHOW CREATE
-    // GET /voucher?view=create
+    // GET /admin/voucher?view=create
     // =====================================================
     private void showCreate(
             HttpServletRequest request,
@@ -191,12 +225,15 @@ public class VoucherServlet extends HttpServlet {
 
         request.getRequestDispatcher(
                 "/WEB-INF/voucher/create.jsp"
-        ).forward(request, response);
+        ).forward(
+                request,
+                response
+        );
     }
 
     // =====================================================
     // CREATE
-    // POST /voucher
+    // POST /admin/voucher
     // action=create
     // =====================================================
     private void createVoucher(
@@ -222,16 +259,18 @@ public class VoucherServlet extends HttpServlet {
                         error
                 );
 
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/voucher?view=create"
+                redirectCreate(
+                        request,
+                        response
                 );
 
                 return;
             }
 
             boolean success
-                    = voucherDAO.insertVoucher(voucher);
+                    = voucherDAO.insertVoucher(
+                            voucher
+                    );
 
             if (success) {
 
@@ -240,18 +279,23 @@ public class VoucherServlet extends HttpServlet {
                         "Tạo Voucher thành công."
                 );
 
+                redirectList(
+                        request,
+                        response
+                );
+
             } else {
 
                 setErrorMessage(
                         request,
-                        "Tạo Voucher thất bại."
+                        "Không thể tạo Voucher."
+                );
+
+                redirectCreate(
+                        request,
+                        response
                 );
             }
-
-            redirectList(
-                    request,
-                    response
-            );
 
         } catch (Exception e) {
 
@@ -262,16 +306,16 @@ public class VoucherServlet extends HttpServlet {
                     "Dữ liệu Voucher không hợp lệ."
             );
 
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/voucher?view=create"
+            redirectCreate(
+                    request,
+                    response
             );
         }
     }
 
     // =====================================================
     // SHOW EDIT
-    // GET /voucher?view=edit&id=1
+    // GET /admin/voucher?view=edit&id=1
     // =====================================================
     private void showEdit(
             HttpServletRequest request,
@@ -305,14 +349,14 @@ public class VoucherServlet extends HttpServlet {
                 return;
             }
 
+            // Gửi voucher sang edit.jsp
             request.setAttribute(
                     "voucher",
                     voucher
             );
 
-            // ============================
-            // FORMAT DATETIME-LOCAL
-            // ============================
+            // datetime-local cần:
+            // yyyy-MM-dd'T'HH:mm
             if (voucher.getValidFrom() != null) {
 
                 request.setAttribute(
@@ -335,7 +379,10 @@ public class VoucherServlet extends HttpServlet {
 
             request.getRequestDispatcher(
                     "/WEB-INF/voucher/edit.jsp"
-            ).forward(request, response);
+            ).forward(
+                    request,
+                    response
+            );
 
         } catch (NumberFormatException e) {
 
@@ -353,7 +400,7 @@ public class VoucherServlet extends HttpServlet {
 
     // =====================================================
     // UPDATE
-    // POST /voucher
+    // POST /admin/voucher
     // action=update
     // =====================================================
     private void updateVoucher(
@@ -371,6 +418,27 @@ public class VoucherServlet extends HttpServlet {
                                     "voucherId"
                             )
                     );
+
+            // Kiểm tra Voucher tồn tại
+            Voucher oldVoucher
+                    = voucherDAO.getVoucherById(
+                            voucherId
+                    );
+
+            if (oldVoucher == null) {
+
+                setErrorMessage(
+                        request,
+                        "Voucher không tồn tại."
+                );
+
+                redirectList(
+                        request,
+                        response
+                );
+
+                return;
+            }
 
             Voucher voucher
                     = getVoucherFromRequest(
@@ -394,10 +462,10 @@ public class VoucherServlet extends HttpServlet {
                         error
                 );
 
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/voucher?view=edit&id="
-                        + voucherId
+                redirectEdit(
+                        request,
+                        response,
+                        voucherId
                 );
 
                 return;
@@ -415,18 +483,24 @@ public class VoucherServlet extends HttpServlet {
                         "Cập nhật Voucher thành công."
                 );
 
+                redirectList(
+                        request,
+                        response
+                );
+
             } else {
 
                 setErrorMessage(
                         request,
                         "Cập nhật Voucher thất bại."
                 );
-            }
 
-            redirectList(
-                    request,
-                    response
-            );
+                redirectEdit(
+                        request,
+                        response,
+                        voucherId
+                );
+            }
 
         } catch (Exception e) {
 
@@ -439,10 +513,10 @@ public class VoucherServlet extends HttpServlet {
 
             if (voucherId > 0) {
 
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/voucher?view=edit&id="
-                        + voucherId
+                redirectEdit(
+                        request,
+                        response,
+                        voucherId
                 );
 
             } else {
@@ -457,7 +531,7 @@ public class VoucherServlet extends HttpServlet {
 
     // =====================================================
     // SHOW DELETE
-    // GET /voucher?view=delete&id=1
+    // GET /admin/voucher?view=delete&id=1
     // =====================================================
     private void showDelete(
             HttpServletRequest request,
@@ -498,7 +572,10 @@ public class VoucherServlet extends HttpServlet {
 
             request.getRequestDispatcher(
                     "/WEB-INF/voucher/delete.jsp"
-            ).forward(request, response);
+            ).forward(
+                    request,
+                    response
+            );
 
         } catch (NumberFormatException e) {
 
@@ -516,7 +593,7 @@ public class VoucherServlet extends HttpServlet {
 
     // =====================================================
     // DELETE
-    // POST /voucher
+    // POST /admin/voucher
     // action=delete
     // =====================================================
     private void deleteVoucher(
@@ -532,6 +609,26 @@ public class VoucherServlet extends HttpServlet {
                                     "voucherId"
                             )
                     );
+
+            Voucher voucher
+                    = voucherDAO.getVoucherById(
+                            voucherId
+                    );
+
+            if (voucher == null) {
+
+                setErrorMessage(
+                        request,
+                        "Voucher không tồn tại."
+                );
+
+                redirectList(
+                        request,
+                        response
+                );
+
+                return;
+            }
 
             boolean success
                     = voucherDAO.deleteVoucher(
@@ -549,7 +646,7 @@ public class VoucherServlet extends HttpServlet {
 
                 setErrorMessage(
                         request,
-                        "Xóa Voucher thất bại."
+                        "Không thể xóa Voucher."
                 );
             }
 
@@ -560,7 +657,7 @@ public class VoucherServlet extends HttpServlet {
             setErrorMessage(
                     request,
                     "Không thể xóa Voucher. "
-                    + "Voucher có thể đã được sử dụng."
+                    + "Voucher có thể đã được sử dụng trong đơn hàng."
             );
         }
 
@@ -571,7 +668,7 @@ public class VoucherServlet extends HttpServlet {
     }
 
     // =====================================================
-    // GET FORM DATA
+    // GET DATA FROM FORM
     // =====================================================
     private Voucher getVoucherFromRequest(
             HttpServletRequest request) {
@@ -579,11 +676,13 @@ public class VoucherServlet extends HttpServlet {
         Voucher voucher
                 = new Voucher();
 
-        // ============================
+        // ==========================
         // CODE
-        // ============================
+        // ==========================
         String code
-                = request.getParameter("code");
+                = request.getParameter(
+                        "code"
+                );
 
         if (code != null) {
 
@@ -596,9 +695,9 @@ public class VoucherServlet extends HttpServlet {
                 code
         );
 
-        // ============================
+        // ==========================
         // DISCOUNT TYPE
-        // ============================
+        // ==========================
         String discountType
                 = request.getParameter(
                         "discountType"
@@ -608,9 +707,9 @@ public class VoucherServlet extends HttpServlet {
                 discountType
         );
 
-        // ============================
+        // ==========================
         // DISCOUNT VALUE
-        // ============================
+        // ==========================
         double discountValue
                 = Double.parseDouble(
                         request.getParameter(
@@ -622,9 +721,9 @@ public class VoucherServlet extends HttpServlet {
                 discountValue
         );
 
-        // ============================
+        // ==========================
         // MIN ORDER VALUE
-        // ============================
+        // ==========================
         double minOrderValue
                 = Double.parseDouble(
                         request.getParameter(
@@ -636,11 +735,11 @@ public class VoucherServlet extends HttpServlet {
                 minOrderValue
         );
 
-        // ============================
+        // ==========================
         // VALID FROM
-        // ============================
+        // ==========================
         Timestamp validFrom
-                = convertTimestamp(
+                = parseTimestamp(
                         request.getParameter(
                                 "validFrom"
                         )
@@ -650,11 +749,11 @@ public class VoucherServlet extends HttpServlet {
                 validFrom
         );
 
-        // ============================
+        // ==========================
         // VALID TO
-        // ============================
+        // ==========================
         Timestamp validTo
-                = convertTimestamp(
+                = parseTimestamp(
                         request.getParameter(
                                 "validTo"
                         )
@@ -664,9 +763,9 @@ public class VoucherServlet extends HttpServlet {
                 validTo
         );
 
-        // ============================
+        // ==========================
         // MAX DISCOUNT
-        // ============================
+        // ==========================
         Double maxDiscount
                 = parseNullableDouble(
                         request.getParameter(
@@ -674,6 +773,7 @@ public class VoucherServlet extends HttpServlet {
                         )
                 );
 
+        // AMOUNT không cần max_discount
         if ("AMOUNT".equalsIgnoreCase(
                 discountType)) {
 
@@ -688,9 +788,9 @@ public class VoucherServlet extends HttpServlet {
             );
         }
 
-        // ============================
+        // ==========================
         // USAGE LIMIT
-        // ============================
+        // ==========================
         Integer usageLimit
                 = parseNullableInteger(
                         request.getParameter(
@@ -702,9 +802,9 @@ public class VoucherServlet extends HttpServlet {
                 usageLimit
         );
 
-        // ============================
+        // ==========================
         // PER USER LIMIT
-        // ============================
+        // ==========================
         Integer perUserLimit
                 = parseNullableInteger(
                         request.getParameter(
@@ -726,9 +826,7 @@ public class VoucherServlet extends HttpServlet {
             Voucher voucher,
             boolean isUpdate) {
 
-        // ============================
         // CODE
-        // ============================
         if (voucher.getCode() == null
                 || voucher.getCode()
                         .trim()
@@ -737,9 +835,7 @@ public class VoucherServlet extends HttpServlet {
             return "Mã Voucher không được để trống.";
         }
 
-        // ============================
-        // DUPLICATE CODE
-        // ============================
+        // CHECK DUPLICATE
         boolean duplicate;
 
         if (isUpdate) {
@@ -763,9 +859,7 @@ public class VoucherServlet extends HttpServlet {
             return "Mã Voucher đã tồn tại.";
         }
 
-        // ============================
         // DISCOUNT TYPE
-        // ============================
         if (!"AMOUNT".equalsIgnoreCase(
                 voucher.getDiscountType())
                 && !"PERCENT".equalsIgnoreCase(
@@ -774,17 +868,13 @@ public class VoucherServlet extends HttpServlet {
             return "Loại giảm giá không hợp lệ.";
         }
 
-        // ============================
         // DISCOUNT VALUE
-        // ============================
         if (voucher.getDiscountValue() <= 0) {
 
             return "Giá trị giảm phải lớn hơn 0.";
         }
 
-        // ============================
-        // PERCENT
-        // ============================
+        // PERCENT <= 100
         if ("PERCENT".equalsIgnoreCase(
                 voucher.getDiscountType())
                 && voucher.getDiscountValue() > 100) {
@@ -792,9 +882,7 @@ public class VoucherServlet extends HttpServlet {
             return "Phần trăm giảm không được vượt quá 100%.";
         }
 
-        // ============================
         // MAX DISCOUNT
-        // ============================
         if ("PERCENT".equalsIgnoreCase(
                 voucher.getDiscountType())
                 && voucher.getMaxDiscount() != null
@@ -803,17 +891,13 @@ public class VoucherServlet extends HttpServlet {
             return "Giảm tối đa không hợp lệ.";
         }
 
-        // ============================
         // MIN ORDER
-        // ============================
         if (voucher.getMinOrderValue() < 0) {
 
             return "Giá trị đơn tối thiểu không hợp lệ.";
         }
 
-        // ============================
         // DATE
-        // ============================
         if (voucher.getValidFrom() == null
                 || voucher.getValidTo() == null) {
 
@@ -828,42 +912,37 @@ public class VoucherServlet extends HttpServlet {
             return "Thời gian kết thúc phải sau thời gian bắt đầu.";
         }
 
-        // ============================
         // USAGE LIMIT
-        // ============================
         if (voucher.getUsageLimit() != null
                 && voucher.getUsageLimit() <= 0) {
 
             return "Tổng lượt sử dụng phải lớn hơn 0.";
         }
 
-        // ============================
         // PER USER LIMIT
-        // ============================
         if (voucher.getPerUserLimit() != null
                 && voucher.getPerUserLimit() <= 0) {
 
             return "Giới hạn mỗi User phải lớn hơn 0.";
         }
 
-        // ============================
-        // PER USER <= USAGE LIMIT
-        // ============================
+        // PER USER <= TOTAL USAGE LIMIT
         if (voucher.getUsageLimit() != null
                 && voucher.getPerUserLimit() != null
                 && voucher.getPerUserLimit()
                 > voucher.getUsageLimit()) {
 
-            return "Giới hạn mỗi User không được lớn hơn tổng lượt sử dụng.";
+            return "Giới hạn mỗi User không được "
+                    + "lớn hơn tổng lượt sử dụng.";
         }
 
         return null;
     }
 
     // =====================================================
-    // CONVERT DATETIME
+    // PARSE TIMESTAMP
     // =====================================================
-    private Timestamp convertTimestamp(
+    private Timestamp parseTimestamp(
             String value) {
 
         if (value == null
@@ -896,7 +975,7 @@ public class VoucherServlet extends HttpServlet {
         }
 
         return Double.parseDouble(
-                value
+                value.trim()
         );
     }
 
@@ -913,7 +992,7 @@ public class VoucherServlet extends HttpServlet {
         }
 
         return Integer.parseInt(
-                value
+                value.trim()
         );
     }
 
@@ -955,7 +1034,37 @@ public class VoucherServlet extends HttpServlet {
 
         response.sendRedirect(
                 request.getContextPath()
-                + "/voucher"
+                + "/admin/voucher"
+        );
+    }
+
+    // =====================================================
+    // REDIRECT CREATE
+    // =====================================================
+    private void redirectCreate(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
+
+        response.sendRedirect(
+                request.getContextPath()
+                + "/admin/voucher?view=create"
+        );
+    }
+
+    // =====================================================
+    // REDIRECT EDIT
+    // =====================================================
+    private void redirectEdit(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            int voucherId)
+            throws IOException {
+
+        response.sendRedirect(
+                request.getContextPath()
+                + "/admin/voucher?view=edit&id="
+                + voucherId
         );
     }
 }
