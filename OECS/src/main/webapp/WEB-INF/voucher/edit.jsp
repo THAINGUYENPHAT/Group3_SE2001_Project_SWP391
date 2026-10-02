@@ -6,7 +6,7 @@
 <style>
     .form-page {
         max-width: 1050px;
-        margin: auto;
+        margin: 0 auto;
         padding-bottom: 30px;
     }
 
@@ -14,6 +14,7 @@
         font-size: 1.55rem;
         font-weight: 700;
         color: #0f172a;
+        margin-bottom: 4px;
     }
 
     .page-description {
@@ -22,12 +23,11 @@
     }
 
     .voucher-form-card {
-        background: white;
-
+        background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 14px;
-
         padding: 25px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
     }
 
     .section-title {
@@ -41,24 +41,21 @@
         color: #475569;
         font-size: 0.82rem;
         font-weight: 600;
+        margin-bottom: 6px;
     }
 
     .form-control,
     .form-select {
         min-height: 42px;
-
         border: 1px solid #cbd5e1;
         border-radius: 8px;
-
         font-size: 0.88rem;
     }
 
     .form-control:focus,
     .form-select:focus {
         border-color: #2563eb;
-
-        box-shadow:
-            0 0 0 3px rgba(37, 99, 235, 0.1);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
     }
 
     .field-note {
@@ -68,13 +65,17 @@
     }
 
     .btn-save {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+
+        padding: 10px 17px;
+
         background: #2563eb;
         color: white;
 
         border: none;
         border-radius: 8px;
-
-        padding: 10px 17px;
 
         font-weight: 600;
     }
@@ -84,6 +85,10 @@
     }
 
     .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+
         padding: 9px 16px;
 
         background: white;
@@ -114,7 +119,9 @@
 
             Cập nhật thông tin Voucher
 
-            <strong>${voucher.code}</strong>.
+            <strong>
+                ${voucher.code}
+            </strong>.
 
         </div>
 
@@ -123,13 +130,23 @@
 
     <c:if test="${not empty sessionScope.errorMessage}">
 
-        <div class="alert alert-danger">
+        <div class="alert alert-danger alert-dismissible fade show">
+
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
 
             ${sessionScope.errorMessage}
 
+            <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+            </button>
+
         </div>
 
-        <c:remove var="errorMessage" scope="session"/>
+        <c:remove
+            var="errorMessage"
+            scope="session"/>
 
     </c:if>
 
@@ -146,7 +163,7 @@
 
 
         <form
-            action="${pageContext.request.contextPath}/voucher"
+            action="${pageContext.request.contextPath}/admin/voucher"
             method="post">
 
             <input
@@ -161,6 +178,7 @@
 
 
             <div class="row g-3">
+
 
                 <div class="col-md-6">
 
@@ -197,7 +215,6 @@
                             Giảm số tiền
 
                         </option>
-
 
                         <option
                             value="PERCENT"
@@ -248,13 +265,13 @@
                         step="1000">
 
                     <div class="field-note">
-                        Chỉ áp dụng với Voucher phần trăm.
+                        Chỉ áp dụng khi giảm theo phần trăm.
                     </div>
 
                 </div>
 
 
-                
+                <div class="col-md-6">
 
                     <label class="form-label">
                         Giá trị đơn tối thiểu
@@ -269,7 +286,7 @@
                         step="1000"
                         required>
 
-                
+                </div>
 
 
                 <div class="col-md-3">
@@ -305,13 +322,17 @@
                         value="${voucher.perUserLimit}"
                         min="1">
 
+                    <div class="field-note">
+                        Trống = không giới hạn.
+                    </div>
+
                 </div>
 
 
                 <div class="col-md-6">
 
                     <label class="form-label">
-                        Bắt đầu
+                        Thời gian bắt đầu
                     </label>
 
                     <input
@@ -327,7 +348,7 @@
                 <div class="col-md-6">
 
                     <label class="form-label">
-                        Kết thúc
+                        Thời gian kết thúc
                     </label>
 
                     <input
@@ -348,7 +369,7 @@
                     type="submit"
                     class="btn-save">
 
-                    <i class="bi bi-check-lg me-1"></i>
+                    <i class="bi bi-check-lg"></i>
 
                     Lưu thay đổi
 
@@ -356,8 +377,10 @@
 
 
                 <a
-                    href="${pageContext.request.contextPath}/voucher"
+                    href="${pageContext.request.contextPath}/admin/voucher"
                     class="btn-back">
+
+                    <i class="bi bi-x-lg"></i>
 
                     Hủy
 
@@ -374,13 +397,13 @@
 
 <script>
     const discountType =
-        document.getElementById("discountType");
+            document.getElementById("discountType");
 
     const discountValue =
-        document.getElementById("discountValue");
+            document.getElementById("discountValue");
 
     const maxDiscountGroup =
-        document.getElementById("maxDiscountGroup");
+            document.getElementById("maxDiscountGroup");
 
 
     function updateDiscountForm() {

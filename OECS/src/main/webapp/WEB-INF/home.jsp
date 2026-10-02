@@ -509,6 +509,76 @@
         color: rgba(255,255,255,0.78);
         margin-bottom: 20px;
     }
+    /* =========================================================
+   ADMIN SHORTCUT
+   ========================================================= */
+
+    .admin-shortcut {
+        margin-top: 28px;
+    }
+
+    .admin-voucher-card {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+
+        padding: 15px 20px;
+
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+
+        text-decoration: none;
+        color: #142b4a;
+
+        box-shadow: 0 4px 15px rgba(20, 40, 70, 0.06);
+
+        transition: all 0.2s ease;
+    }
+
+    .admin-voucher-card:hover {
+        transform: translateY(-3px);
+        border-color: #bfdbfe;
+
+        box-shadow:
+            0 8px 22px rgba(37, 99, 235, 0.12);
+
+        color: #142b4a;
+    }
+
+    .admin-voucher-icon {
+        width: 46px;
+        height: 46px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 12px;
+
+        background: #dbeafe;
+        color: #2563eb;
+
+        font-size: 21px;
+    }
+
+    .admin-voucher-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #142b4a;
+    }
+
+    .admin-voucher-description {
+        margin-top: 2px;
+
+        font-size: 12px;
+        color: #8997aa;
+    }
+
+    .admin-voucher-arrow {
+        margin-left: 15px;
+        color: #94a3b8;
+    }
 
     /* =========================================================
        RESPONSIVE
@@ -704,6 +774,44 @@
             </div>
 
         </section>
+        <%-- =====================================================
+            ADMIN VOUCHER SHORTCUT
+            CHỈ HIỂN THỊ VỚI ADMIN
+            ===================================================== --%>
+
+        <c:if test="${sessionScope.loggedInUser.admin}">
+
+            <div class="admin-shortcut">
+
+                <a href="${pageContext.request.contextPath}/admin/voucher"
+                   class="admin-voucher-card">
+
+                    <div class="admin-voucher-icon">
+                        <i class="bi bi-ticket-perforated-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="admin-voucher-title">
+                            Quản lý Voucher
+                        </div>
+
+                        <div class="admin-voucher-description">
+                            Tạo và quản lý mã giảm giá
+                        </div>
+
+                    </div>
+
+                    <div class="admin-voucher-arrow">
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+
+                </a>
+
+            </div>
+
+        </c:if>
+
 
 
 
