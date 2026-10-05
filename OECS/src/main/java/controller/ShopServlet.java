@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays; // NAYONAM DAYTOY
 import java.util.List;
 
 @WebServlet(name = "ShopServlet", urlPatterns = {"/shop"})
@@ -24,6 +25,7 @@ public class ShopServlet extends HttpServlet {
         ShopDAO shopDao = new ShopDAO();
 
         if ("detail".equals(action)) {
+            // (Aganay a code para iti panid a Detail - saan a nasukatan)
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
                 Product product = shopDao.getProductDetail(id);
@@ -44,9 +46,28 @@ public class ShopServlet extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/shop");
             }
         } else {
-            // Mặc định hiển thị danh sách (Catalog)
-            List<Product> catalog = shopDao.getCatalogProducts();
+            // ==========================================
+            // XỬ LÝ LỌC & HIỂN THỊ DANH SÁCH (CATALOG)
+            // ==========================================
+            String keyword = request.getParameter("keyword");
+            String[] categoryIds = request.getParameterValues("categoryId");
+            String priceRange = request.getParameter("priceRange");
+            String sort = request.getParameter("sort");
+
+            // Alaen dagiti data babaen ti baro a function iti DAO
+            List<Product> catalog = shopDao.getFilteredCatalog(keyword, categoryIds, priceRange, sort);
+
+            // Ipatulod dagiti data iti JSP
             request.setAttribute("catalog", catalog);
+            request.setAttribute("searchKeyword", keyword);
+
+            // Ipatulod dagiti state ti filter tapno agtalinaed a "checked" iti UI
+            if (categoryIds != null) {
+                request.setAttribute("selectedCats", Arrays.asList(categoryIds));
+            }
+            request.setAttribute("selectedPrice", priceRange);
+            request.setAttribute("selectedSort", sort);
+
             request.getRequestDispatcher("/WEB-INF/shop/catalog.jsp").forward(request, response);
         }
     }
