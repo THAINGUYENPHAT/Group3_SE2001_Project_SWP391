@@ -642,6 +642,23 @@
 <div class="home-page">
 
     <div class="container">
+        <c:if test="${not empty sessionScope.toastMessage}">
+            <div class="container mt-3">
+                <div class="alert alert-danger alert-dismissible fade show"
+                     role="alert">
+
+                    ${sessionScope.toastMessage}
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert">
+                    </button>
+                </div>
+            </div>
+
+            <c:remove var="toastMessage" scope="session"/>
+            <c:remove var="toastType" scope="session"/>
+        </c:if>
 
         <!-- =====================================================
              HERO
