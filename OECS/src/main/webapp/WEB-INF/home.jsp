@@ -858,26 +858,40 @@
                                    end="7">
 
                             <div class="col-12 col-sm-6 col-lg-3">
-                                <!-- ĐỔI div THÀNH thẻ a VÀ THÊM href, text-decoration-none -->
-                                <a href="${pageContext.request.contextPath}/shop?action=detail&id=${product.productId}" class="product-card text-decoration-none">
 
-                                    <div class="product-image text-dark">
-                                        <i class="bi bi-box-seam"></i>
+                                <div class="product-card">
+
+                                    <div class="product-image">
+
+                                        <i class="bi bi-phone"></i>
+
                                     </div>
+
 
                                     <div class="product-info">
+
                                         <div class="product-brand">
+
                                             ${product.brand.brandName}
+
                                         </div>
-                                        <div class="product-name text-dark">
+
+                                        <div class="product-name">
+
                                             ${product.productName}
+
                                         </div>
+
                                         <div class="product-description">
+
                                             ${product.description}
+
                                         </div>
+
                                     </div>
 
-                                </a> <!-- KẾT THÚC THẺ a TẠI ĐÂY -->
+                                </div>
+
                             </div>
 
                         </c:forEach>
@@ -964,94 +978,123 @@
                     </p>
                 </div>
 
-
+                
 
             </div>
 
 
             <div class="row g-3">
 
-                <!-- 1. Điện thoại -->
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?categoryId=1" class="category-card category-phone">
+                    <a href="#" class="category-card category-phone">
+
                         <div class="category-content">
+
                             <div class="category-name">
                                 Điện thoại
                             </div>
+
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
+
                         </div>
+
                     </a>
                 </div>
 
-                <!-- 2. Laptop -->
+
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?categoryId=2" class="category-card category-laptop">
+                    <a href="#" class="category-card category-laptop">
+
                         <div class="category-content">
+
                             <div class="category-name">
                                 Laptop
                             </div>
+
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
+
                         </div>
+
                     </a>
                 </div>
 
-                <!-- 3. Phụ kiện -->
+
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?categoryId=3" class="category-card category-accessory">
+                    <a href="#" class="category-card category-accessory">
+
                         <div class="category-content">
+
                             <div class="category-name">
                                 Phụ kiện
                             </div>
+
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
+
                         </div>
+
                     </a>
                 </div>
 
-                <!-- 4. Đồng hồ thông minh -->
+
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Đồng hồ" class="category-card category-watch">
+                    <a href="#" class="category-card category-watch">
+
                         <div class="category-content">
+
                             <div class="category-name">
                                 Đồng hồ thông minh
                             </div>
+
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
+
                         </div>
+
                     </a>
                 </div>
 
-                <!-- 5. Tai nghe -->
+
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Tai nghe" class="category-card category-headphone">
+                    <a href="#" class="category-card category-headphone">
+
                         <div class="category-content">
+
                             <div class="category-name">
                                 Tai nghe
                             </div>
+
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
+
                         </div>
+
                     </a>
                 </div>
 
-                <!-- 6. Máy ảnh -->
+
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Máy ảnh" class="category-card category-camera">
+                    <a href="#" class="category-card category-camera">
+
                         <div class="category-content">
+
                             <div class="category-name">
                                 Máy ảnh
                             </div>
+
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
+
                         </div>
+
                     </a>
                 </div>
 

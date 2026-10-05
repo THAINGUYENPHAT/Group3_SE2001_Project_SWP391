@@ -1,466 +1,871 @@
-<%@ page pageEncoding="UTF-8" %>
+<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-<%@include file="/WEB-INF/include/header.jsp" %>
+<!DOCTYPE html>
+<html>
+<head>
 
-<style>
-    /* ================= DASHBOARD ================= */
+    <meta charset="UTF-8">
 
-    .dashboard-page {
-        width: 100%;
-        min-height: calc(100vh - 150px);
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        padding-top: 5px;
-    }
+    <title>Admin Dashboard</title>
 
-    /* ================= KPI ================= */
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    .kpi-container {
-        width: 100%;
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 15px;
-        flex-shrink: 0;
-    }
 
-    .kpi-card-dashboard {
-        min-width: 0;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 18px 22px;
-        box-shadow: 0 2px 6px rgba(15, 23, 42, .04);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
+    <style>
 
-    .kpi-title-dashboard {
-        font-size: 14px;
-        color: #64748b;
-        margin-bottom: 10px;
-        font-weight: 500;
-    }
+        /* =========================================
+           RESET
+           ========================================= */
 
-    .kpi-value-dashboard {
-        font-size: 25px;
-        font-weight: 700;
-        color: #0f172a;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+        * {
+            box-sizing: border-box;
+        }
 
-    /* ================= CHART CARD ================= */
 
-    .dashboard-chart-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 15px 20px;
-        box-shadow: 0 2px 6px rgba(15, 23, 42, .04);
-        min-width: 0;
-        min-height: 0;
-        overflow: hidden;
-    }
+        html,
+        body {
+            width: 100%;
+            height: 100%;
 
-    .dashboard-chart-title {
-        margin: 0 0 10px 0;
-        font-size: 17px;
-        font-weight: 600;
-        color: #0f172a;
-    }
+            margin: 0;
+            padding: 0;
+        }
 
-    /* ================= REVENUE ================= */
 
-    .revenue-card-dashboard {
-        width: 100%;
-        height: 390px;
-    }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
 
-    .revenue-chart-wrapper {
-        position: relative;
-        width: 100%;
-        height: 330px;
-    }
+            background-color: #f4f6f8;
 
-    /* ================= BOTTOM ================= */
+            color: #222;
 
-    .bottom-charts-dashboard {
-        width: 100%;
-        height: 300px;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 15px;
-    }
+            overflow: hidden;
+        }
 
-    .small-chart-wrapper {
-        position: relative;
-        width: 100%;
-        height: 245px;
-    }
 
-    /* ================= RESPONSIVE ================= */
+        /* =========================================
+           HEADER
+           ========================================= */
 
-    @media (max-width: 900px) {
+        .header {
+
+            width: 100%;
+            height: 65px;
+
+            background-color: #ffffff;
+
+            border-bottom: 1px solid #e5e5e5;
+
+            display: flex;
+            align-items: center;
+
+            padding: 0 30px;
+
+            flex-shrink: 0;
+        }
+
+
+        .header h1 {
+
+            margin: 0;
+
+            font-size: 24px;
+
+            font-weight: 600;
+
+            color: #222;
+        }
+
+
+        /* =========================================
+           MAIN CONTAINER
+           ========================================= */
+
+        .container {
+
+            width: 100%;
+
+            height: calc(100vh - 65px);
+
+            padding: 18px 25px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 15px;
+
+            overflow: hidden;
+        }
+
+
+        /* =========================================
+           KPI
+           ========================================= */
 
         .kpi-container {
-            grid-template-columns: 1fr;
+
+            width: 100%;
+
+            height: 105px;
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+
+            gap: 15px;
+
+            flex-shrink: 0;
         }
 
-        .revenue-card-dashboard {
-            height: 400px;
+
+        .kpi-card {
+
+            min-width: 0;
+
+            background-color: #ffffff;
+
+            border: 1px solid #e3e6e8;
+
+            border-radius: 10px;
+
+            padding: 18px 22px;
+
+            box-shadow:
+                0 2px 6px rgba(0, 0, 0, 0.04);
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: center;
         }
+
+
+        .kpi-title {
+
+            font-size: 14px;
+
+            color: #777;
+
+            margin-bottom: 10px;
+        }
+
+
+        .kpi-value {
+
+            font-size: 25px;
+
+            font-weight: 700;
+
+            color: #222;
+
+            white-space: nowrap;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+        }
+
+
+        /* =========================================
+           GENERAL CHART CARD
+           ========================================= */
+
+        .chart-container {
+
+            background-color: #ffffff;
+
+            border: 1px solid #e3e6e8;
+
+            border-radius: 10px;
+
+            padding: 15px 20px;
+
+            box-shadow:
+                0 2px 6px rgba(0, 0, 0, 0.04);
+
+            min-width: 0;
+
+            min-height: 0;
+
+            overflow: hidden;
+        }
+
+
+        .chart-title {
+
+            margin: 0 0 10px 0;
+
+            font-size: 17px;
+
+            font-weight: 600;
+
+            color: #222;
+        }
+
+
+        /* =========================================
+           REVENUE CHART
+           ========================================= */
+
+        .revenue-card {
+
+            width: 100%;
+
+            flex: 1;
+
+            min-height: 0;
+        }
+
 
         .revenue-chart-wrapper {
-            height: 330px;
+
+            position: relative;
+
+            width: 100%;
+
+            height: calc(100% - 30px);
+
+            min-height: 0;
         }
 
-        .bottom-charts-dashboard {
-            height: auto;
-            grid-template-columns: 1fr;
+
+        /* =========================================
+           BOTTOM CHARTS
+           ========================================= */
+
+        .bottom-charts {
+
+            width: 100%;
+
+            height: 250px;
+
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, 1fr)
+                minmax(0, 1fr);
+
+            gap: 15px;
+
+            flex-shrink: 0;
+
+            min-height: 0;
         }
+
 
         .small-chart-wrapper {
-            height: 300px;
+
+            position: relative;
+
+            width: 100%;
+
+            height: calc(100% - 30px);
+
+            min-height: 0;
         }
-    }
-</style>
 
 
-<!-- ================= DASHBOARD ================= -->
+        /* =========================================
+           MOBILE / SMALL SCREEN
+           ========================================= */
 
-<div class="dashboard-page">
+        @media (max-width: 900px) {
 
-    <!-- ================= KPI ================= -->
-
-    <div class="kpi-container">
-
-        <div class="kpi-card-dashboard">
-
-            <div class="kpi-title-dashboard">
-                Tổng doanh thu
-            </div>
-
-            <div class="kpi-value-dashboard">
-                ${totalRevenue} VNĐ
-            </div>
-
-        </div>
+            body {
+                overflow: auto;
+            }
 
 
-        <div class="kpi-card-dashboard">
+            .container {
 
-            <div class="kpi-title-dashboard">
-                Tổng số đơn hàng
-            </div>
+                height: auto;
 
-            <div class="kpi-value-dashboard">
-                ${totalOrders}
-            </div>
+                min-height: calc(100vh - 65px);
 
-        </div>
+                overflow: visible;
+            }
 
 
-        <div class="kpi-card-dashboard">
+            .kpi-container {
 
-            <div class="kpi-title-dashboard">
-                Đơn hàng hoàn thành
-            </div>
+                height: auto;
 
-            <div class="kpi-value-dashboard">
-                ${completedOrders}
-            </div>
+                grid-template-columns: 1fr;
+            }
 
-        </div>
+
+            .bottom-charts {
+
+                height: auto;
+
+                grid-template-columns: 1fr;
+            }
+
+
+            .revenue-card {
+
+                height: 400px;
+
+                flex: none;
+            }
+
+
+            .revenue-chart-wrapper {
+
+                height: 340px;
+            }
+
+
+            .small-chart-wrapper {
+
+                height: 300px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================================
+         HEADER
+         ========================================= -->
+
+    <div class="header">
+
+        <h1>
+            Admin Dashboard
+        </h1>
 
     </div>
 
 
-    <!-- ================= REVENUE CHART ================= -->
+    <!-- =========================================
+         MAIN
+         ========================================= -->
 
-    <div class="dashboard-chart-card revenue-card-dashboard">
+    <div class="container">
 
-        <h2 class="dashboard-chart-title">
-            Doanh thu theo thời gian
-        </h2>
 
-        <div class="revenue-chart-wrapper">
+        <!-- =====================================
+             KPI
+             ===================================== -->
 
-            <canvas id="revenueChart"></canvas>
+        <div class="kpi-container">
+
+
+            <!-- TOTAL REVENUE -->
+
+            <div class="kpi-card">
+
+                <div class="kpi-title">
+                    Tổng doanh thu
+                </div>
+
+                <div class="kpi-value">
+                    ${totalRevenue} VNĐ
+                </div>
+
+            </div>
+
+
+            <!-- TOTAL ORDERS -->
+
+            <div class="kpi-card">
+
+                <div class="kpi-title">
+                    Tổng số đơn hàng
+                </div>
+
+                <div class="kpi-value">
+                    ${totalOrders}
+                </div>
+
+            </div>
+
+
+            <!-- COMPLETED ORDERS -->
+
+            <div class="kpi-card">
+
+                <div class="kpi-title">
+                    Đơn hàng hoàn thành
+                </div>
+
+                <div class="kpi-value">
+                    ${completedOrders}
+                </div>
+
+            </div>
+
 
         </div>
 
-    </div>
+
+        <!-- =====================================
+             REVENUE CHART
+             ===================================== -->
+
+        <div class="chart-container revenue-card">
 
 
-    <!-- ================= BOTTOM CHARTS ================= -->
-
-    <div class="bottom-charts-dashboard">
-
-        <!-- TOP PRODUCTS -->
-
-        <div class="dashboard-chart-card">
-
-            <h2 class="dashboard-chart-title">
-                Top sản phẩm bán chạy
+            <h2 class="chart-title">
+                Doanh thu theo thời gian
             </h2>
 
-            <div class="small-chart-wrapper">
 
-                <canvas id="productChart"></canvas>
+            <div class="revenue-chart-wrapper">
+
+                <canvas id="revenueChart"></canvas>
 
             </div>
+
 
         </div>
 
 
-        <!-- ORDER STATUS -->
+        <!-- =====================================
+             BOTTOM CHARTS
+             ===================================== -->
 
-        <div class="dashboard-chart-card">
+        <div class="bottom-charts">
 
-            <h2 class="dashboard-chart-title">
-                Tỉ lệ đơn hàng
-            </h2>
 
-            <div class="small-chart-wrapper">
+            <!-- =================================
+                 TOP PRODUCTS
+                 ================================= -->
 
-                <canvas id="orderStatusChart"></canvas>
+            <div class="chart-container">
+
+
+                <h2 class="chart-title">
+                    Top sản phẩm bán chạy
+                </h2>
+
+
+                <div class="small-chart-wrapper">
+
+                    <canvas id="productChart"></canvas>
+
+                </div>
+
 
             </div>
 
+
+            <!-- =================================
+                 ORDER STATUS
+                 ================================= -->
+
+            <div class="chart-container">
+
+
+                <h2 class="chart-title">
+                    Tỉ lệ đơn hàng
+                </h2>
+
+
+                <div class="small-chart-wrapper">
+
+                    <canvas id="orderStatusChart"></canvas>
+
+                </div>
+
+
+            </div>
+
+
         </div>
+
 
     </div>
 
-</div>
+
+    <!-- =========================================
+         REVENUE CHART SCRIPT
+         ========================================= -->
+
+    <script>
 
 
-<!-- ================= CHART.JS ================= -->
+        const revenueData = [
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <c:forEach
+                var="row"
+                items="${revenueByDate}"
+                varStatus="status">
+
+                {
+                    date: "${row[0]}",
+                    revenue: ${row[1]}
+                }
+
+                <c:if test="${!status.last}">
+                    ,
+                </c:if>
+
+            </c:forEach>
+
+        ];
 
 
-<!-- ================= REVENUE CHART ================= -->
+        const revenueLabels =
+            revenueData.map(
+                item => item.date
+            );
 
-<script>
 
-    const revenueData = [
+        const revenueValues =
+            revenueData.map(
+                item => item.revenue
+            );
 
-    <c:forEach
-        var="row"
-        items="${revenueByDate}"
-        varStatus="status">
 
-    {
-    date: "${row[0]}",
-            revenue: ${row[1]}
-    }
+        new Chart(
 
-        <c:if test="${!status.last}">
-    ,
-        </c:if>
+            document.getElementById(
+                "revenueChart"
+            ),
 
-    </c:forEach>
+            {
 
-    ];
-    const revenueLabels =
-            revenueData.map(item => item.date);
-    const revenueValues =
-            revenueData.map(item => item.revenue);
-    new Chart(
-            document.getElementById("revenueChart"),
-    {
-    type: "line",
-            data: {
-            labels: revenueLabels,
+                type: "line",
+
+
+                data: {
+
+                    labels: revenueLabels,
+
+
                     datasets: [
-                    {
-                    label: "Doanh thu",
-                            data: revenueValues,
-                            borderWidth: 2,
-                            pointRadius: 3,
-                            pointHoverRadius: 5,
-                            tension: 0.3,
-                            fill: false
-                    }
-                    ]
-            },
-            options: {
 
-            responsive: true,
+                        {
+
+                            label: "Doanh thu",
+
+
+                            data: revenueValues,
+
+
+                            borderWidth: 2,
+
+
+                            pointRadius: 3,
+
+
+                            pointHoverRadius: 5,
+
+
+                            tension: 0.3,
+
+
+                            fill: false
+
+                        }
+
+                    ]
+
+                },
+
+
+                options: {
+
+                    responsive: true,
+
+
                     maintainAspectRatio: false,
+
+
                     plugins: {
 
-                    legend: {
-                    display: true,
+                        legend: {
+
+                            display: true,
+
                             position: "top"
-                    }
+
+                        }
 
                     },
+
+
                     scales: {
 
-                    x: {
-                    grid: {
-                    display: false
-                    }
-                    },
-                            y: {
-                            beginAtZero: true
+                        x: {
+
+                            grid: {
+
+                                display: false
+
                             }
 
+                        },
+
+
+                        y: {
+
+                            beginAtZero: true
+
+                        }
+
                     }
+
+                }
 
             }
 
-    }
-
-    );</script>
+        );
 
 
-<!-- ================= PRODUCT CHART ================= -->
+    </script>
 
-<script>
 
-    const productData = [
+    <!-- =========================================
+         PRODUCT CHART SCRIPT
+         ========================================= -->
 
-    <c:forEach
-        var="row"
-        items="${topSellingProducts}"
-        varStatus="status">
+    <script>
 
-    {
-    name: "${row[0]}",
-            quantity: ${row[1]}
-    }
 
-        <c:if test="${!status.last}">
-    ,
-        </c:if>
+        const productData = [
 
-    </c:forEach>
+            <c:forEach
+                var="row"
+                items="${topSellingProducts}"
+                varStatus="status">
 
-    ];
-    const productLabels =
-            productData.map(item => item.name);
-    const productValues =
-            productData.map(item => item.quantity);
-    new Chart(
-            document.getElementById("productChart"),
-    {
-    type: "bar",
-            data: {
+                {
+                    name: "${row[0]}",
+                    quantity: ${row[1]}
+                }
 
-            labels: productLabels,
+                <c:if test="${!status.last}">
+                    ,
+                </c:if>
+
+            </c:forEach>
+
+        ];
+
+
+        const productLabels =
+            productData.map(
+                item => item.name
+            );
+
+
+        const productValues =
+            productData.map(
+                item => item.quantity
+            );
+
+
+        new Chart(
+
+            document.getElementById(
+                "productChart"
+            ),
+
+            {
+
+                type: "bar",
+
+
+                data: {
+
+                    labels: productLabels,
+
+
                     datasets: [
-                    {
-                    label: "Số lượng bán",
+
+                        {
+
+                            label: "Số lượng bán",
+
+
                             data: productValues,
+
+
                             borderWidth: 1
-                    }
+
+                        }
+
                     ]
 
-            },
-            options: {
+                },
 
-            responsive: true,
+
+                options: {
+
+                    responsive: true,
+
+
                     maintainAspectRatio: false,
+
+
                     plugins: {
 
-                    legend: {
-                    display: true,
+                        legend: {
+
+                            display: true,
+
                             position: "top"
-                    }
+
+                        }
 
                     },
+
+
                     scales: {
 
-                    x: {
-                    grid: {
-                    display: false
-                    }
-                    },
-                            y: {
+                        x: {
+
+                            grid: {
+
+                                display: false
+
+                            }
+
+                        },
+
+
+                        y: {
 
                             beginAtZero: true,
-                                    ticks: {
-                                    precision: 0
-                                    }
+
+
+                            ticks: {
+
+                                precision: 0
 
                             }
 
+                        }
+
                     }
+
+                }
 
             }
 
-    }
-
-    );</script>
+        );
 
 
-<!-- ================= ORDER STATUS CHART ================= -->
+    </script>
 
-<script>
 
-    const orderStatusData = [
+    <!-- =========================================
+         ORDER STATUS CHART SCRIPT
+         ========================================= -->
 
-    <c:forEach
-        var="row"
-        items="${orderStatusStatistics}"
-        varStatus="status">
+    <script>
 
-    {
-    status: "${row[0]}",
-            total: ${row[1]}
-    }
 
-        <c:if test="${!status.last}">
-    ,
-        </c:if>
+        const orderStatusData = [
 
-    </c:forEach>
+            <c:forEach
+                var="row"
+                items="${orderStatusStatistics}"
+                varStatus="status">
 
-    ];
-    const orderStatusLabels =
-            orderStatusData.map(item => item.status);
-    const orderStatusValues =
-            orderStatusData.map(item => item.total);
-    new Chart(
-            document.getElementById("orderStatusChart"),
-    {
-    type: "pie",
-            data: {
+                {
+                    status: "${row[0]}",
+                    total: ${row[1]}
+                }
 
-            labels: orderStatusLabels,
+                <c:if test="${!status.last}">
+                    ,
+                </c:if>
+
+            </c:forEach>
+
+        ];
+
+
+        const orderStatusLabels =
+            orderStatusData.map(
+                item => item.status
+            );
+
+
+        const orderStatusValues =
+            orderStatusData.map(
+                item => item.total
+            );
+
+
+        new Chart(
+
+            document.getElementById(
+                "orderStatusChart"
+            ),
+
+            {
+
+                type: "pie",
+
+
+                data: {
+
+                    labels: orderStatusLabels,
+
+
                     datasets: [
-                    {
-                    label: "Số đơn hàng",
+
+                        {
+
+                            label: "Số đơn hàng",
+
+
                             data: orderStatusValues,
+
+
                             borderWidth: 1
-                    }
+
+                        }
+
                     ]
 
-            },
-            options: {
+                },
 
-            responsive: true,
+
+                options: {
+
+                    responsive: true,
+
+
                     maintainAspectRatio: false,
+
+
                     plugins: {
 
-                    legend: {
-                    position: "bottom"
-                    }
+                        legend: {
+
+                            position: "bottom"
+
+                        }
 
                     }
+
+                }
 
             }
 
-    }
-
-    );
-
-</script>
+        );
 
 
-<%@include file="/WEB-INF/include/footer.jsp" %>
+    </script>
+
+
+</body>
+
+</html>
