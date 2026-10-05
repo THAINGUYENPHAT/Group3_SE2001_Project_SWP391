@@ -671,7 +671,6 @@
                    class="home-hero-button">
 
                     Xem sản phẩm
-                    <i class="bi bi-arrow-right"></i>
 
                 </a>
 
@@ -987,14 +986,7 @@
                     </p>
                 </div>
 
-                <a href="${pageContext.request.contextPath}/product"
-                   class="section-link">
-
-                    Xem tất cả
-
-                    <i class="bi bi-arrow-right"></i>
-
-                </a>
+                
 
             </div>
 
