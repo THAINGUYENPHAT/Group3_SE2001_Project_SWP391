@@ -834,18 +834,10 @@
                     </p>
                 </div>
 
-                <a href="${pageContext.request.contextPath}/product"
-                   class="section-link">
-
-                    Xem tất cả
-
-                    <i class="bi bi-arrow-right"></i>
-
-                </a>
                 <a href="${pageContext.request.contextPath}/shop"
                    class="section-link">
 
-                    Chi tiết sản phẩm
+                    Xem tất cả
 
                     <i class="bi bi-arrow-right"></i>
 
