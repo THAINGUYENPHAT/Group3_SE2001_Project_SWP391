@@ -362,28 +362,96 @@
                         <div class="dropdown d-none d-lg-block ms-2">
                             <button class="btn btn-menu-category d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-grid-3x3-gap-fill text-primary"></i>
-                                <span>Phân hệ</span>
+                                <span>Phân hệ Quản trị</span>
                                 <i class="bi bi-chevron-down fs-8 text-secondary"></i>
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-dark shadow-lg border-secondary mt-2 p-2" style="min-width: 220px;">
-                                <li><a class="dropdown-menu-item dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/brand"><i class="bi bi-tags text-primary me-2"></i>Quản lý Thương hiệu</a></li>
-                                <li><a class="dropdown-menu-item dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/product"><i class="bi bi-box-seam text-success me-2"></i>Quản lý Sản phẩm</a></li>
-                                <li><a class="dropdown-menu-item dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/category"><i class="bi bi-diagram-3 text-warning me-2"></i>Quản lý Danh mục</a></li>
-                                <li><hr class="dropdown-divider border-secondary"></li>
-                                <li><a class="dropdown-menu-item dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/user"><i class="bi bi-people text-info me-2"></i>Người dùng & Phân quyền</a></li>
+                            <ul class="dropdown-menu dropdown-menu-dark shadow-lg border-secondary mt-2 p-2" style="min-width: 270px;">
+                                <!-- Nhóm Tổng quan & Báo cáo -->
+                                <li><h6 class="dropdown-header text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Tổng quan</h6></li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/admin/dashboard">
+                                        <i class="bi bi-speedometer2 text-primary me-2"></i>Dashboard Báo cáo
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/admin/report">
+                                        <i class="bi bi-file-earmark-bar-graph text-info me-2"></i>Thống kê & Báo cáo
+                                    </a>
+                                </li>
+
+                                <li><hr class="dropdown-divider border-secondary my-1"></li>
+
+                                <!-- Nhóm Bán hàng & Khuyến mãi -->
+                                <li><h6 class="dropdown-header text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Kinh doanh</h6></li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/admin/orders">
+                                        <i class="bi bi-receipt text-danger me-2"></i>Quản lý Đơn hàng
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/admin/voucher">
+                                        <i class="bi bi-ticket-perforated text-warning me-2"></i>Quản lý Voucher / Mã giảm giá
+                                    </a>
+                                </li>
+
+                                <li><hr class="dropdown-divider border-secondary my-1"></li>
+
+                                <!-- Nhóm Catalog & Người dùng -->
+                                <li><h6 class="dropdown-header text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Sản phẩm & Khách hàng</h6></li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/product">
+                                        <i class="bi bi-box-seam text-success me-2"></i>Quản lý Sản phẩm
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/category">
+                                        <i class="bi bi-diagram-3 text-warning me-2"></i>Quản lý Danh mục
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/brand">
+                                        <i class="bi bi-tags text-primary me-2"></i>Quản lý Thương hiệu
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/review">
+                                        <i class="bi bi-star text-warning me-2"></i>Quản lý Đánh giá
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/user">
+                                        <i class="bi bi-people text-info me-2"></i>Quản lý Người dùng
+                                    </a>
+                                </li>
+
+                                <li><hr class="dropdown-divider border-secondary my-1"></li>
+
+                                <!-- Nhóm Lối tắt Cửa hàng Client -->
+                                <li><h6 class="dropdown-header text-uppercase text-muted fw-bold" style="font-size: 0.7rem;">Xem giao diện Web</h6></li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/shop">
+                                        <i class="bi bi-shop text-light me-2"></i>Cửa hàng (Shop)
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/cart">
+                                        <i class="bi bi-cart3 text-light me-2"></i>Giỏ hàng (Cart)
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="header-search-wrapper d-none d-md-block flex-grow-1 px-3">
-                        <div class="position-relative">
+                        <form action="${pageContext.request.contextPath}/shop" method="GET" class="position-relative mb-0">
                             <i class="bi bi-search position-absolute text-secondary" style="left: 14px; top: 50%; transform: translateY(-50%);"></i>
-                            <input type="text" id="headerSearchInput" class="form-control header-search-input" placeholder="Tìm kiếm nhanh sản phẩm..." autocomplete="off">
-                            <span class="search-shortcut-badge">Ctrl K</span>
+                            <!-- Đổi placeholder và thêm thuộc tính name="keyword" -->
+                            <input type="text" name="keyword" id="headerSearchInput" class="form-control header-search-input" placeholder="Tìm kiếm tên, danh mục..." autocomplete="off">
+                            <span class="search-shortcut-badge">Enter ↵</span>
 
                             <!-- Khu vực hiển thị kết quả AJAX -->
                             <div id="searchSuggestions" class="search-suggestions d-none"></div>
-                        </div>
+                        </form>
                         <div class="search-quick-tags">
                             <span class="text-secondary me-1"><i class="bi bi-lightning-charge-fill text-warning"></i> Nhanh:</span>
                             <a href="#">Apple</a>
@@ -422,6 +490,7 @@
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow-lg border-secondary mt-2">
                                         <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/profile"><i class="bi bi-person me-2"></i>Hồ sơ cá nhân</a></li>
+                                        <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/cart"><i class="bi bi-box-seam"></i>Giỏ hàng</a></li>
                                         <li><a class="dropdown-item py-2" href="#"><i class="bi bi-gear me-2"></i>Cài đặt hệ thống</a></li>
                                         <li><hr class="dropdown-divider border-secondary"></li>
                                         <li><a class="dropdown-item py-2 text-danger" href="${pageContext.request.contextPath}/logout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>

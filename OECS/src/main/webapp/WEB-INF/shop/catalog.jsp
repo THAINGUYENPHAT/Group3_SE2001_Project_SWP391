@@ -76,32 +76,66 @@
             </ol>
         </nav>
 
-        <div class="row">
-            <!-- Sidebar Lọc (UI tham khảo) -->
+        <!-- ĐÃ ĐỔI div THÀNH form Ở ĐÂY ĐỂ TRUYỀN DỮ LIỆU LỌC -->
+        <form action="${pageContext.request.contextPath}/shop" method="GET" class="row">
+
+            <!-- Giữ lại từ khóa tìm kiếm nếu có -->
+            <c:if test="${not empty searchKeyword}">
+                <input type="hidden" name="keyword" value="<c:out value='${searchKeyword}'/>">
+            </c:if>
+
+            <!-- Sidebar Lọc -->
             <div class="col-lg-3 d-none d-lg-block">
                 <div class="card border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 20px;">
                     <h5 class="fw-bold mb-3">Danh mục</h5>
-                    <div class="form-check mb-2"><input class="form-check-input" type="checkbox"><label class="form-check-label">Điện thoại</label></div>
-                    <div class="form-check mb-2"><input class="form-check-input" type="checkbox"><label class="form-check-label">Laptop</label></div>
-                    <div class="form-check mb-4"><input class="form-check-input" type="checkbox"><label class="form-check-label">Phụ kiện</label></div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="categoryId" value="1" id="cat1" ${not empty selectedCats and selectedCats.contains("1") ? 'checked' : ''}>
+                        <label class="form-check-label" for="cat1">Điện thoại</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="categoryId" value="2" id="cat2" ${not empty selectedCats and selectedCats.contains("2") ? 'checked' : ''}>
+                        <label class="form-check-label" for="cat2">Laptop</label>
+                    </div>
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" name="categoryId" value="3" id="cat3" ${not empty selectedCats and selectedCats.contains("3") ? 'checked' : ''}>
+                        <label class="form-check-label" for="cat3">Phụ kiện</label>
+                    </div>
 
                     <h5 class="fw-bold mb-3">Mức giá</h5>
-                    <div class="form-check mb-2"><input class="form-check-input" type="radio" name="price"><label class="form-check-label">Dưới 5 triệu</label></div>
-                    <div class="form-check mb-2"><input class="form-check-input" type="radio" name="price"><label class="form-check-label">5 - 15 triệu</label></div>
-                    <div class="form-check mb-2"><input class="form-check-input" type="radio" name="price"><label class="form-check-label">Trên 15 triệu</label></div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="priceRange" value="under5" id="price1" ${selectedPrice == 'under5' ? 'checked' : ''}>
+                        <label class="form-check-label" for="price1">Dưới 5 triệu</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="priceRange" value="5to15" id="price2" ${selectedPrice == '5to15' ? 'checked' : ''}>
+                        <label class="form-check-label" for="price2">5 - 15 triệu</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="priceRange" value="over15" id="price3" ${selectedPrice == 'over15' ? 'checked' : ''}>
+                        <label class="form-check-label" for="price3">Trên 15 triệu</label>
+                    </div>
 
-                    <button class="btn btn-primary w-100 mt-3">Lọc sản phẩm</button>
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Lọc sản phẩm</button>
                 </div>
             </div>
 
             <!-- Main Product Grid -->
             <div class="col-lg-9">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold m-0">Sản Phẩm Công Nghệ</h4>
-                    <select class="form-select w-auto border-0 shadow-sm">
-                        <option>Mới nhất</option>
-                        <option>Giá thấp đến cao</option>
-                        <option>Giá cao xuống thấp</option>
+                    <div>
+                        <h4 class="fw-bold m-0">Sản Phẩm Công Nghệ</h4>
+                        <c:if test="${not empty searchKeyword}">
+                            <div class="text-muted mt-1 fs-6">
+                                Kết quả tìm kiếm cho: <strong class="text-dark">"${searchKeyword}"</strong>
+                            </div>
+                        </c:if>
+                    </div>
+
+                    <!-- Đã thêm name="sort" và onchange để tự động submit khi chọn -->
+                    <select name="sort" class="form-select w-auto border-0 shadow-sm" onchange="this.form.submit()">
+                        <option value="newest" ${selectedSort == 'newest' ? 'selected' : ''}>Mới nhất</option>
+                        <option value="priceAsc" ${selectedSort == 'priceAsc' ? 'selected' : ''}>Giá thấp đến cao</option>
+                        <option value="priceDesc" ${selectedSort == 'priceDesc' ? 'selected' : ''}>Giá cao xuống thấp</option>
                     </select>
                 </div>
 
@@ -112,7 +146,7 @@
                                 <div class="col-6 col-md-4">
                                     <a href="${pageContext.request.contextPath}/shop?action=detail&id=${item.productId}" class="product-card">
                                         <div class="product-image">
-                                            <i class="bi bi-laptop"></i> <!-- Placeholder hình ảnh -->
+                                            <i class="bi bi-laptop"></i>
                                         </div>
                                         <div class="product-info">
                                             <div class="product-brand">${item.brand.brandName}</div>
@@ -135,13 +169,13 @@
                         <c:otherwise>
                             <div class="col-12 text-center py-5">
                                 <i class="bi bi-box-seam fs-1 text-muted"></i>
-                                <h5 class="mt-3 text-muted">Chưa có sản phẩm nào</h5>
+                                <h5 class="mt-3 text-muted">Không tìm thấy sản phẩm phù hợp</h5>
                             </div>
                         </c:otherwise>
                     </c:choose>
                 </div>
             </div>
-        </div>
+        </form> <!-- ĐÃ ĐÓNG form Ở ĐÂY THAY VÌ div -->
     </div>
 </div>
 

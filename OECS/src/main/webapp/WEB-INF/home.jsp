@@ -509,6 +509,76 @@
         color: rgba(255,255,255,0.78);
         margin-bottom: 20px;
     }
+    /* =========================================================
+   ADMIN SHORTCUT
+   ========================================================= */
+
+    .admin-shortcut {
+        margin-top: 28px;
+    }
+
+    .admin-voucher-card {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+
+        padding: 15px 20px;
+
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+
+        text-decoration: none;
+        color: #142b4a;
+
+        box-shadow: 0 4px 15px rgba(20, 40, 70, 0.06);
+
+        transition: all 0.2s ease;
+    }
+
+    .admin-voucher-card:hover {
+        transform: translateY(-3px);
+        border-color: #bfdbfe;
+
+        box-shadow:
+            0 8px 22px rgba(37, 99, 235, 0.12);
+
+        color: #142b4a;
+    }
+
+    .admin-voucher-icon {
+        width: 46px;
+        height: 46px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 12px;
+
+        background: #dbeafe;
+        color: #2563eb;
+
+        font-size: 21px;
+    }
+
+    .admin-voucher-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #142b4a;
+    }
+
+    .admin-voucher-description {
+        margin-top: 2px;
+
+        font-size: 12px;
+        color: #8997aa;
+    }
+
+    .admin-voucher-arrow {
+        margin-left: 15px;
+        color: #94a3b8;
+    }
 
     /* =========================================================
        RESPONSIVE
@@ -601,7 +671,6 @@
                    class="home-hero-button">
 
                     Xem sản phẩm
-                    <i class="bi bi-arrow-right"></i>
 
                 </a>
 
@@ -704,6 +773,44 @@
             </div>
 
         </section>
+        <%-- =====================================================
+            ADMIN VOUCHER SHORTCUT
+            CHỈ HIỂN THỊ VỚI ADMIN
+            ===================================================== --%>
+
+        <c:if test="${sessionScope.loggedInUser.admin}">
+
+            <div class="admin-shortcut">
+
+                <a href="${pageContext.request.contextPath}/admin/voucher"
+                   class="admin-voucher-card">
+
+                    <div class="admin-voucher-icon">
+                        <i class="bi bi-ticket-perforated-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="admin-voucher-title">
+                            Quản lý Voucher
+                        </div>
+
+                        <div class="admin-voucher-description">
+                            Tạo và quản lý mã giảm giá
+                        </div>
+
+                    </div>
+
+                    <div class="admin-voucher-arrow">
+                        <i class="bi bi-chevron-right"></i>
+                    </div>
+
+                </a>
+
+            </div>
+
+        </c:if>
+
 
 
 
@@ -727,18 +834,10 @@
                     </p>
                 </div>
 
-                <a href="${pageContext.request.contextPath}/product"
-                   class="section-link">
-
-                    Xem tất cả
-
-                    <i class="bi bi-arrow-right"></i>
-
-                </a>
                 <a href="${pageContext.request.contextPath}/shop"
                    class="section-link">
 
-                    Chi tiết sản phẩm
+                    Xem tất cả
 
                     <i class="bi bi-arrow-right"></i>
 
@@ -759,40 +858,26 @@
                                    end="7">
 
                             <div class="col-12 col-sm-6 col-lg-3">
+                                <!-- ĐỔI div THÀNH thẻ a VÀ THÊM href, text-decoration-none -->
+                                <a href="${pageContext.request.contextPath}/shop?action=detail&id=${product.productId}" class="product-card text-decoration-none">
 
-                                <div class="product-card">
-
-                                    <div class="product-image">
-
-                                        <i class="bi bi-phone"></i>
-
+                                    <div class="product-image text-dark">
+                                        <i class="bi bi-box-seam"></i>
                                     </div>
-
 
                                     <div class="product-info">
-
                                         <div class="product-brand">
-
                                             ${product.brand.brandName}
-
                                         </div>
-
-                                        <div class="product-name">
-
+                                        <div class="product-name text-dark">
                                             ${product.productName}
-
                                         </div>
-
                                         <div class="product-description">
-
                                             ${product.description}
-
                                         </div>
-
                                     </div>
 
-                                </div>
-
+                                </a> <!-- KẾT THÚC THẺ a TẠI ĐÂY -->
                             </div>
 
                         </c:forEach>
@@ -879,130 +964,94 @@
                     </p>
                 </div>
 
-                <a href="${pageContext.request.contextPath}/product"
-                   class="section-link">
 
-                    Xem tất cả
-
-                    <i class="bi bi-arrow-right"></i>
-
-                </a>
 
             </div>
 
 
             <div class="row g-3">
 
+                <!-- 1. Điện thoại -->
                 <div class="col-6 col-lg-2">
-                    <a href="#" class="category-card category-phone">
-
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=1" class="category-card category-phone">
                         <div class="category-content">
-
                             <div class="category-name">
                                 Điện thoại
                             </div>
-
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
-
                         </div>
-
                     </a>
                 </div>
 
-
+                <!-- 2. Laptop -->
                 <div class="col-6 col-lg-2">
-                    <a href="#" class="category-card category-laptop">
-
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=2" class="category-card category-laptop">
                         <div class="category-content">
-
                             <div class="category-name">
                                 Laptop
                             </div>
-
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
-
                         </div>
-
                     </a>
                 </div>
 
-
+                <!-- 3. Phụ kiện -->
                 <div class="col-6 col-lg-2">
-                    <a href="#" class="category-card category-accessory">
-
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=3" class="category-card category-accessory">
                         <div class="category-content">
-
                             <div class="category-name">
                                 Phụ kiện
                             </div>
-
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
-
                         </div>
-
                     </a>
                 </div>
 
-
+                <!-- 4. Đồng hồ thông minh -->
                 <div class="col-6 col-lg-2">
-                    <a href="#" class="category-card category-watch">
-
+                    <a href="${pageContext.request.contextPath}/shop?keyword=Đồng hồ" class="category-card category-watch">
                         <div class="category-content">
-
                             <div class="category-name">
                                 Đồng hồ thông minh
                             </div>
-
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
-
                         </div>
-
                     </a>
                 </div>
 
-
+                <!-- 5. Tai nghe -->
                 <div class="col-6 col-lg-2">
-                    <a href="#" class="category-card category-headphone">
-
+                    <a href="${pageContext.request.contextPath}/shop?keyword=Tai nghe" class="category-card category-headphone">
                         <div class="category-content">
-
                             <div class="category-name">
                                 Tai nghe
                             </div>
-
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
-
                         </div>
-
                     </a>
                 </div>
 
-
+                <!-- 6. Máy ảnh -->
                 <div class="col-6 col-lg-2">
-                    <a href="#" class="category-card category-camera">
-
+                    <a href="${pageContext.request.contextPath}/shop?keyword=Máy ảnh" class="category-card category-camera">
                         <div class="category-content">
-
                             <div class="category-name">
                                 Máy ảnh
                             </div>
-
                             <div class="category-arrow">
                                 <i class="bi bi-arrow-right"></i>
                             </div>
-
                         </div>
-
                     </a>
                 </div>
 
