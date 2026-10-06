@@ -828,9 +828,118 @@
 
         </c:if>
 
+         <!-- =====================================================
+             CATEGORY
+             ===================================================== -->
+
+        <section class="home-section">
+
+            <div class="section-header">
+
+                <div>
+                    <h2 class="section-title">
+                        Danh mục nổi bật
+                    </h2>
+
+                    <p class="section-description">
+                        Khám phá các danh mục sản phẩm phổ biến nhất tại OECS
+                    </p>
+                </div>
 
 
 
+            </div>
+
+
+            <div class="row g-3">
+
+                <!-- 1. Điện thoại -->
+                <div class="col-6 col-lg-2">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=1" class="category-card category-phone">
+                        <div class="category-content">
+                            <div class="category-name">
+                                Điện thoại
+                            </div>
+                            <div class="category-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 2. Laptop -->
+                <div class="col-6 col-lg-2">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=2" class="category-card category-laptop">
+                        <div class="category-content">
+                            <div class="category-name">
+                                Laptop
+                            </div>
+                            <div class="category-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 3. Phụ kiện -->
+                <div class="col-6 col-lg-2">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=3" class="category-card category-accessory">
+                        <div class="category-content">
+                            <div class="category-name">
+                                Phụ kiện
+                            </div>
+                            <div class="category-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 4. Đồng hồ thông minh -->
+                <div class="col-6 col-lg-2">
+                    <a href="${pageContext.request.contextPath}/shop?keyword=Đồng hồ" class="category-card category-watch">
+                        <div class="category-content">
+                            <div class="category-name">
+                                Đồng hồ thông minh
+                            </div>
+                            <div class="category-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 5. Tai nghe -->
+                <div class="col-6 col-lg-2">
+                    <a href="${pageContext.request.contextPath}/shop?keyword=Tai nghe" class="category-card category-headphone">
+                        <div class="category-content">
+                            <div class="category-name">
+                                Tai nghe
+                            </div>
+                            <div class="category-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 6. Máy ảnh -->
+                <div class="col-6 col-lg-2">
+                    <a href="${pageContext.request.contextPath}/shop?keyword=Máy ảnh" class="category-card category-camera">
+                        <div class="category-content">
+                            <div class="category-name">
+                                Máy ảnh
+                            </div>
+                            <div class="category-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+            </div>
+
+        </section>
 
         <!-- =====================================================
  PRODUCT
@@ -962,120 +1071,6 @@
             </div>
 
         </section>
-
-        <!-- =====================================================
-             CATEGORY
-             ===================================================== -->
-
-        <section class="home-section">
-
-            <div class="section-header">
-
-                <div>
-                    <h2 class="section-title">
-                        Danh mục nổi bật
-                    </h2>
-
-                    <p class="section-description">
-                        Khám phá các danh mục sản phẩm phổ biến nhất tại OECS
-                    </p>
-                </div>
-
-
-
-            </div>
-
-
-            <div class="row g-3">
-
-                <!-- 1. Điện thoại -->
-                <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?categoryId=1" class="category-card category-phone">
-                        <div class="category-content">
-                            <div class="category-name">
-                                Điện thoại
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- 2. Laptop -->
-                <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?categoryId=2" class="category-card category-laptop">
-                        <div class="category-content">
-                            <div class="category-name">
-                                Laptop
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- 3. Phụ kiện -->
-                <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?categoryId=3" class="category-card category-accessory">
-                        <div class="category-content">
-                            <div class="category-name">
-                                Phụ kiện
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- 4. Đồng hồ thông minh -->
-                <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Đồng hồ" class="category-card category-watch">
-                        <div class="category-content">
-                            <div class="category-name">
-                                Đồng hồ thông minh
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- 5. Tai nghe -->
-                <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Tai nghe" class="category-card category-headphone">
-                        <div class="category-content">
-                            <div class="category-name">
-                                Tai nghe
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- 6. Máy ảnh -->
-                <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Máy ảnh" class="category-card category-camera">
-                        <div class="category-content">
-                            <div class="category-name">
-                                Máy ảnh
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-
-            </div>
-
-        </section>
-
 
     </div>
 
