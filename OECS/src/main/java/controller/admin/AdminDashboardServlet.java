@@ -21,49 +21,21 @@ public class AdminDashboardServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest request,
-            HttpServletResponse response)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         // KPI
-        request.setAttribute(
-                "totalRevenue",
-                dashboardDAO.getTotalRevenue()
-        );
-
-        request.setAttribute(
-                "totalOrders",
-                dashboardDAO.getTotalOrders()
-        );
-
-        request.setAttribute(
-                "completedOrders",
-                dashboardDAO.getCompletedOrders()
-        );
-
-        request.setAttribute(
-                "topSellingProducts",
-                dashboardDAO.getTopSellingProducts()
-        );
-
-        request.setAttribute(
-                "orderStatusStatistics",
-                dashboardDAO.getOrderStatusStatistics()
-        );
+        request.setAttribute("totalRevenue", dashboardDAO.getTotalRevenue());
+        request.setAttribute("totalOrders", dashboardDAO.getTotalOrders());
+        request.setAttribute("completedOrders", dashboardDAO.getCompletedOrders());
+        request.setAttribute("topSellingProducts", dashboardDAO.getTopSellingProducts());
+        request.setAttribute("orderStatusStatistics", dashboardDAO.getOrderStatusStatistics());
 
         // Revenue by date
-        List<Object[]> revenueByDate
-                = dashboardDAO.getRevenueByDate();
-
-        request.setAttribute(
-                "revenueByDate",
-                revenueByDate
-        );
+        List<Object[]> revenueByDate = dashboardDAO.getRevenueByDate();
+        request.setAttribute("revenueByDate", revenueByDate);
 
         // Chuyển sang JSP
-        request.getRequestDispatcher(
-                "/WEB-INF/admin/dashboard.jsp"
-        ).forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/admin/dashboard.jsp").forward(request, response);
     }
-
 }

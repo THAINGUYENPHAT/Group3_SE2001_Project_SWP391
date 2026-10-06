@@ -657,32 +657,23 @@
 
         const confirmAddressButton =
                 document.getElementById("confirmAddressButton");
-
         const placeOrderButton =
                 document.getElementById("placeOrderButton");
-
         const modalMessage =
                 document.getElementById("addressModalMessage");
-
         const addressModal =
                 document.getElementById("addressModal");
-
         // ID DIA CHI DA XAC NHAN TREN SERVER
         let committedAddressId = addressInput.value;
-
         // CHAN GUI NHIEU REQUEST DONG THOI
         let addressRequestBusy = false;
-
         // HIEN THI THONG BAO TRONG POPUP
         function showModalMessage(message, success) {
-
             modalMessage.textContent = message;
-
             modalMessage.className = success
                     ? "alert alert-success mx-3 mt-3 mb-0"
                     : "alert alert-danger mx-3 mt-3 mb-0";
         }
-
         // GUI AJAX VE SERVLET
         async function postAddressAction(data) {
 
@@ -696,7 +687,6 @@
                 },
                 body: new URLSearchParams(data).toString()
             });
-
             // DAM BAO SERVER TRA VE JSON
             const contentType =
                     response.headers.get("content-type") || "";
@@ -706,7 +696,6 @@
                         "Server không trả JSON. Vui lòng tải lại trang."
                         );
             }
-
             const result = await response.json();
 
             if (!response.ok || !result.success) {
@@ -724,10 +713,8 @@
             if (!address) {
                 addressInput.value = "";
                 committedAddressId = "";
-
                 selectedName.textContent = "";
                 selectedLine.textContent = "";
-
                 selectedCard.style.display = "none";
                 noAddressMessage.style.display = "";
                 needAddressMessage.style.display = "";
@@ -736,25 +723,18 @@
                 placeOrderButton.disabled = true;
                 return;
             }
-
             const id = String(address.addressId);
-
             committedAddressId = id;
             addressInput.value = id;
-
             selectedName.textContent =
                     address.recipientName + " | " + address.phoneNumber;
-
             selectedLine.textContent =
                     address.addressLine;
-
             selectedDefaultBadge.style.display =
                     isDefault ? "" : "none";
-
             selectedCard.style.display = "";
             noAddressMessage.style.display = "none";
             needAddressMessage.style.display = "none";
-
             placeOrderButton.disabled = false;
         }
 
@@ -853,9 +833,7 @@
                                 );
                         return;
                     }
-
                     const id = selectedRadio.value;
-
                     // KHONG DOI DIA CHI -> CHI DONG POPUP
                     if (id === committedAddressId) {
                         bootstrap.Modal.getOrCreateInstance(
@@ -863,18 +841,14 @@
                                 ).hide();
                         return;
                     }
-
                     addressRequestBusy = true;
                     updateDeleteButtons();
-
                     try {
-
                         const result = await postAddressAction({
                             action: "selectAddress",
                             addressId: id,
                             addressActionToken: addressActionToken
                         });
-
                         // SERVER DA LUU ID MOI VAO SESSION
                         const option = selectedRadio.closest(
                                 ".address-option"

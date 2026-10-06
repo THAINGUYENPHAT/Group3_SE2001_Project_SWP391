@@ -103,15 +103,15 @@
 
                     <h5 class="fw-bold mb-3">Mức giá</h5>
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="radio" name="priceRange" value="under5" id="price1" ${selectedPrice == 'under5' ? 'checked' : ''}>
+                        <input class="form-check-input" type="checkbox" name="priceRange" value="under5" id="price1" ${selectedPrice == 'under5' ? 'checked' : ''}>
                         <label class="form-check-label" for="price1">Dưới 5 triệu</label>
                     </div>
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="radio" name="priceRange" value="5to15" id="price2" ${selectedPrice == '5to15' ? 'checked' : ''}>
+                        <input class="form-check-input" type="checkbox" name="priceRange" value="5to15" id="price2" ${selectedPrice == '5to15' ? 'checked' : ''}>
                         <label class="form-check-label" for="price2">5 - 15 triệu</label>
                     </div>
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="radio" name="priceRange" value="over15" id="price3" ${selectedPrice == 'over15' ? 'checked' : ''}>
+                        <input class="form-check-input" type="checkbox" name="priceRange" value="over15" id="price3" ${selectedPrice == 'over15' ? 'checked' : ''}>
                         <label class="form-check-label" for="price3">Trên 15 triệu</label>
                     </div>
 

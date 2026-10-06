@@ -1,5 +1,4 @@
 <%@ page pageEncoding="UTF-8" %>
-
 <%@include file="/WEB-INF/include/header.jsp" %>
 
 <style>
@@ -104,7 +103,6 @@
     /* ================= RESPONSIVE ================= */
 
     @media (max-width: 900px) {
-
         .kpi-container {
             grid-template-columns: 1fr;
         }
@@ -128,7 +126,6 @@
     }
 </style>
 
-
 <!-- ================= DASHBOARD ================= -->
 
 <div class="dashboard-page">
@@ -138,62 +135,44 @@
     <div class="kpi-container">
 
         <div class="kpi-card-dashboard">
-
             <div class="kpi-title-dashboard">
                 Tổng doanh thu
             </div>
-
             <div class="kpi-value-dashboard">
                 ${totalRevenue} VNĐ
             </div>
-
         </div>
 
-
         <div class="kpi-card-dashboard">
-
             <div class="kpi-title-dashboard">
                 Tổng số đơn hàng
             </div>
-
             <div class="kpi-value-dashboard">
                 ${totalOrders}
             </div>
-
         </div>
 
-
         <div class="kpi-card-dashboard">
-
             <div class="kpi-title-dashboard">
                 Đơn hàng hoàn thành
             </div>
-
             <div class="kpi-value-dashboard">
                 ${completedOrders}
             </div>
-
         </div>
 
     </div>
-
 
     <!-- ================= REVENUE CHART ================= -->
 
     <div class="dashboard-chart-card revenue-card-dashboard">
-
         <h2 class="dashboard-chart-title">
             Doanh thu theo thời gian
         </h2>
-
         <div class="revenue-chart-wrapper">
-
             <canvas id="revenueChart"></canvas>
-
         </div>
-
     </div>
-
 
     <!-- ================= BOTTOM CHARTS ================= -->
 
@@ -202,265 +181,186 @@
         <!-- TOP PRODUCTS -->
 
         <div class="dashboard-chart-card">
-
             <h2 class="dashboard-chart-title">
                 Top sản phẩm bán chạy
             </h2>
-
             <div class="small-chart-wrapper">
-
                 <canvas id="productChart"></canvas>
-
             </div>
-
         </div>
-
 
         <!-- ORDER STATUS -->
 
         <div class="dashboard-chart-card">
-
             <h2 class="dashboard-chart-title">
                 Tỉ lệ đơn hàng
             </h2>
-
             <div class="small-chart-wrapper">
-
                 <canvas id="orderStatusChart"></canvas>
-
             </div>
-
         </div>
 
     </div>
 
 </div>
 
-
 <!-- ================= CHART.JS ================= -->
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-
 <!-- ================= REVENUE CHART ================= -->
 
 <script>
-
     const revenueData = [
-
-    <c:forEach
-        var="row"
-        items="${revenueByDate}"
-        varStatus="status">
-
-    {
-    date: "${row[0]}",
+        <c:forEach var="row" items="${revenueByDate}" varStatus="status">
+        {
+            date: "${row[0]}",
             revenue: ${row[1]}
-    }
-
-        <c:if test="${!status.last}">
-    ,
-        </c:if>
-
-    </c:forEach>
-
+        }<c:if test="${!status.last}">,</c:if>
+        </c:forEach>
     ];
-    const revenueLabels =
-            revenueData.map(item => item.date);
-    const revenueValues =
-            revenueData.map(item => item.revenue);
+
+    const revenueLabels = revenueData.map(item => item.date);
+    const revenueValues = revenueData.map(item => item.revenue);
+
     new Chart(
-            document.getElementById("revenueChart"),
-    {
-    type: "line",
+        document.getElementById("revenueChart"),
+        {
+            type: "line",
             data: {
-            labels: revenueLabels,
-                    datasets: [
+                labels: revenueLabels,
+                datasets: [
                     {
-                    label: "Doanh thu",
-                            data: revenueValues,
-                            borderWidth: 2,
-                            pointRadius: 3,
-                            pointHoverRadius: 5,
-                            tension: 0.3,
-                            fill: false
+                        label: "Doanh thu",
+                        data: revenueValues,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        tension: 0.3,
+                        fill: false
                     }
-                    ]
+                ]
             },
             options: {
-
-            responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
                     legend: {
-                    display: true,
-                            position: "top"
+                        display: true,
+                        position: "top"
                     }
-
-                    },
-                    scales: {
-
+                },
+                scales: {
                     x: {
-                    grid: {
-                    display: false
-                    }
+                        grid: {
+                            display: false
+                        }
                     },
-                            y: {
-                            beginAtZero: true
-                            }
-
+                    y: {
+                        beginAtZero: true
                     }
-
+                }
             }
-
-    }
-
-    );</script>
-
+        }
+    );
+</script>
 
 <!-- ================= PRODUCT CHART ================= -->
 
 <script>
-
     const productData = [
-
-    <c:forEach
-        var="row"
-        items="${topSellingProducts}"
-        varStatus="status">
-
-    {
-    name: "${row[0]}",
+        <c:forEach var="row" items="${topSellingProducts}" varStatus="status">
+        {
+            name: "${row[0]}",
             quantity: ${row[1]}
-    }
-
-        <c:if test="${!status.last}">
-    ,
-        </c:if>
-
-    </c:forEach>
-
+        }<c:if test="${!status.last}">,</c:if>
+        </c:forEach>
     ];
-    const productLabels =
-            productData.map(item => item.name);
-    const productValues =
-            productData.map(item => item.quantity);
+
+    const productLabels = productData.map(item => item.name);
+    const productValues = productData.map(item => item.quantity);
+
     new Chart(
-            document.getElementById("productChart"),
-    {
-    type: "bar",
+        document.getElementById("productChart"),
+        {
+            type: "bar",
             data: {
-
-            labels: productLabels,
-                    datasets: [
+                labels: productLabels,
+                datasets: [
                     {
-                    label: "Số lượng bán",
-                            data: productValues,
-                            borderWidth: 1
+                        label: "Số lượng bán",
+                        data: productValues,
+                        borderWidth: 1
                     }
-                    ]
-
+                ]
             },
             options: {
-
-            responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
                     legend: {
-                    display: true,
-                            position: "top"
+                        display: true,
+                        position: "top"
                     }
-
-                    },
-                    scales: {
-
+                },
+                scales: {
                     x: {
-                    grid: {
-                    display: false
-                    }
+                        grid: {
+                            display: false
+                        }
                     },
-                            y: {
-
-                            beginAtZero: true,
-                                    ticks: {
-                                    precision: 0
-                                    }
-
-                            }
-
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
                     }
-
+                }
             }
-
-    }
-
-    );</script>
-
+        }
+    );
+</script>
 
 <!-- ================= ORDER STATUS CHART ================= -->
 
 <script>
-
     const orderStatusData = [
-
-    <c:forEach
-        var="row"
-        items="${orderStatusStatistics}"
-        varStatus="status">
-
-    {
-    status: "${row[0]}",
+        <c:forEach var="row" items="${orderStatusStatistics}" varStatus="status">
+        {
+            status: "${row[0]}",
             total: ${row[1]}
-    }
-
-        <c:if test="${!status.last}">
-    ,
-        </c:if>
-
-    </c:forEach>
-
+        }<c:if test="${!status.last}">,</c:if>
+        </c:forEach>
     ];
-    const orderStatusLabels =
-            orderStatusData.map(item => item.status);
-    const orderStatusValues =
-            orderStatusData.map(item => item.total);
+
+    const orderStatusLabels = orderStatusData.map(item => item.status);
+    const orderStatusValues = orderStatusData.map(item => item.total);
+
     new Chart(
-            document.getElementById("orderStatusChart"),
-    {
-    type: "pie",
+        document.getElementById("orderStatusChart"),
+        {
+            type: "pie",
             data: {
-
-            labels: orderStatusLabels,
-                    datasets: [
+                labels: orderStatusLabels,
+                datasets: [
                     {
-                    label: "Số đơn hàng",
-                            data: orderStatusValues,
-                            borderWidth: 1
+                        label: "Số đơn hàng",
+                        data: orderStatusValues,
+                        borderWidth: 1
                     }
-                    ]
-
+                ]
             },
             options: {
-
-            responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
                     legend: {
-                    position: "bottom"
+                        position: "bottom"
                     }
-
-                    }
-
+                }
             }
-
-    }
-
+        }
     );
-
 </script>
-
 
 <%@include file="/WEB-INF/include/footer.jsp" %>

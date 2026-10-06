@@ -22,8 +22,7 @@ public class ProductReviewDAO extends DBContext {
                 + "FROM ORDER_ITEM "
                 + "WHERE order_item_id = ?";
 
-        try (
-                Connection conn = getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderItemId);
@@ -48,8 +47,7 @@ public class ProductReviewDAO extends DBContext {
 
         String sql = "SELECT oi.order_item_id "
                 + "FROM ORDER_ITEM oi "
-                + "JOIN [ORDER] o "
-                + "ON oi.order_id = o.order_id "
+                + "JOIN [ORDER] o ON oi.order_id = o.order_id "
                 + "WHERE oi.order_item_id = ? "
                 + "AND oi.sku_id = ? "
                 + "AND o.user_id = ? "
@@ -65,8 +63,7 @@ public class ProductReviewDAO extends DBContext {
                 + "    WHERE pr.order_item_id = oi.order_item_id "
                 + ")";
 
-        try (
-                Connection conn = getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderItemId);
@@ -93,8 +90,7 @@ public class ProductReviewDAO extends DBContext {
                 + "FROM PRODUCT_REVIEWS "
                 + "WHERE order_item_id = ?";
 
-        try (
-                Connection conn = getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderItemId);
@@ -119,11 +115,8 @@ public class ProductReviewDAO extends DBContext {
                 + "(user_id, order_item_id, sku_id, rating, comment, created_at) "
                 + "VALUES (?, ?, ?, ?, ?, GETDATE())";
 
-        try (
-                Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(
-                        sql,
-                        Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, review.getUserId());
             ps.setInt(2, review.getOrderItemId());
@@ -153,12 +146,9 @@ public class ProductReviewDAO extends DBContext {
     // =====================================================
     public boolean insertReviewImage(int reviewId, String imageUrl) {
 
-        String sql = "INSERT INTO REVIEW_IMAGES "
-                + "(review_id, image_url) "
-                + "VALUES (?, ?)";
+        String sql = "INSERT INTO REVIEW_IMAGES (review_id, image_url) VALUES (?, ?)";
 
-        try (
-                Connection conn = getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, reviewId);
@@ -176,9 +166,7 @@ public class ProductReviewDAO extends DBContext {
     // =====================================================
     // GET REVIEW BY ID + USER
     // =====================================================
-    public ProductReview getReviewByIdAndUserId(
-            int reviewId,
-            int userId) {
+    public ProductReview getReviewByIdAndUserId(int reviewId, int userId) {
 
         String sql = "SELECT review_id, user_id, order_item_id, sku_id, "
                 + "rating, comment, created_at "
@@ -186,23 +174,16 @@ public class ProductReviewDAO extends DBContext {
                 + "WHERE review_id = ? "
                 + "AND user_id = ?";
 
-        try (
-                Connection conn = getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, reviewId);
             ps.setInt(2, userId);
 
             try (ResultSet rs = ps.executeQuery()) {
-
                 if (rs.next()) {
-
                     ProductReview review = mapReview(rs);
-
-                    review.setImages(
-                            getReviewImages(reviewId)
-                    );
-
+                    review.setImages(getReviewImages(reviewId));
                     return review;
                 }
             }
@@ -226,14 +207,12 @@ public class ProductReviewDAO extends DBContext {
                 + "WHERE review_id = ? "
                 + "ORDER BY image_id ASC";
 
-        try (
-                Connection conn = getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, reviewId);
 
             try (ResultSet rs = ps.executeQuery()) {
-
                 while (rs.next()) {
                     images.add(rs.getString("image_url"));
                 }
@@ -256,8 +235,7 @@ public class ProductReviewDAO extends DBContext {
                 + "WHERE review_id = ? "
                 + "AND user_id = ?";
 
-        try (
-                Connection conn = getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, review.getRating());
@@ -279,32 +257,22 @@ public class ProductReviewDAO extends DBContext {
     // =====================================================
     public boolean deleteReview(int reviewId, int userId) {
 
-        String deleteImagesSql =
-                "DELETE FROM REVIEW_IMAGES WHERE review_id = ?";
-
-        String deleteReviewSql =
-                "DELETE FROM PRODUCT_REVIEWS "
-                + "WHERE review_id = ? AND user_id = ?";
+        String deleteImagesSql = "DELETE FROM REVIEW_IMAGES WHERE review_id = ?";
+        String deleteReviewSql = "DELETE FROM PRODUCT_REVIEWS WHERE review_id = ? AND user_id = ?";
 
         Connection conn = null;
 
         try {
-
             conn = getConnection();
             conn.setAutoCommit(false);
 
-            try (PreparedStatement psImages =
-                    conn.prepareStatement(deleteImagesSql)) {
-
+            try (PreparedStatement psImages = conn.prepareStatement(deleteImagesSql)) {
                 psImages.setInt(1, reviewId);
                 psImages.executeUpdate();
             }
 
             int rows;
-
-            try (PreparedStatement psReview =
-                    conn.prepareStatement(deleteReviewSql)) {
-
+            try (PreparedStatement psReview = conn.prepareStatement(deleteReviewSql)) {
                 psReview.setInt(1, reviewId);
                 psReview.setInt(2, userId);
 
@@ -319,7 +287,6 @@ public class ProductReviewDAO extends DBContext {
             conn.rollback();
 
         } catch (SQLException e) {
-
             if (conn != null) {
                 try {
                     conn.rollback();
@@ -327,11 +294,9 @@ public class ProductReviewDAO extends DBContext {
                     rollbackException.printStackTrace();
                 }
             }
-
             e.printStackTrace();
 
         } finally {
-
             if (conn != null) {
                 try {
                     conn.setAutoCommit(true);
@@ -358,22 +323,15 @@ public class ProductReviewDAO extends DBContext {
                 + "WHERE sku_id = ? "
                 + "ORDER BY created_at DESC";
 
-        try (
-                Connection conn = getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, skuId);
 
             try (ResultSet rs = ps.executeQuery()) {
-
                 while (rs.next()) {
-
                     ProductReview review = mapReview(rs);
-
-                    review.setImages(
-                            getReviewImages(review.getReviewId())
-                    );
-
+                    review.setImages(getReviewImages(review.getReviewId()));
                     reviews.add(review);
                 }
             }
@@ -390,19 +348,16 @@ public class ProductReviewDAO extends DBContext {
     // =====================================================
     public double getAverageRating(int skuId) {
 
-        String sql = "SELECT AVG(CAST(rating AS FLOAT)) "
-                + "AS average_rating "
+        String sql = "SELECT AVG(CAST(rating AS FLOAT)) AS average_rating "
                 + "FROM PRODUCT_REVIEWS "
                 + "WHERE sku_id = ?";
 
-        try (
-                Connection conn = getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, skuId);
 
             try (ResultSet rs = ps.executeQuery()) {
-
                 if (rs.next()) {
                     return rs.getDouble("average_rating");
                 }
@@ -424,14 +379,12 @@ public class ProductReviewDAO extends DBContext {
                 + "FROM PRODUCT_REVIEWS "
                 + "WHERE sku_id = ?";
 
-        try (
-                Connection conn = getConnection();
+        try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, skuId);
 
             try (ResultSet rs = ps.executeQuery()) {
-
                 if (rs.next()) {
                     return rs.getInt("total");
                 }
@@ -447,38 +400,17 @@ public class ProductReviewDAO extends DBContext {
     // =====================================================
     // MAP RESULTSET -> PRODUCT REVIEW
     // =====================================================
-    private ProductReview mapReview(ResultSet rs)
-            throws SQLException {
+    private ProductReview mapReview(ResultSet rs) throws SQLException {
 
         ProductReview review = new ProductReview();
 
-        review.setReviewId(
-                rs.getInt("review_id")
-        );
-
-        review.setUserId(
-                rs.getInt("user_id")
-        );
-
-        review.setOrderItemId(
-                rs.getInt("order_item_id")
-        );
-
-        review.setSkuId(
-                rs.getInt("sku_id")
-        );
-
-        review.setRating(
-                rs.getInt("rating")
-        );
-
-        review.setComment(
-                rs.getString("comment")
-        );
-
-        review.setCreatedAt(
-                rs.getTimestamp("created_at")
-        );
+        review.setReviewId(rs.getInt("review_id"));
+        review.setUserId(rs.getInt("user_id"));
+        review.setOrderItemId(rs.getInt("order_item_id"));
+        review.setSkuId(rs.getInt("sku_id"));
+        review.setRating(rs.getInt("rating"));
+        review.setComment(rs.getString("comment"));
+        review.setCreatedAt(rs.getTimestamp("created_at"));
 
         return review;
     }

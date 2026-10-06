@@ -43,9 +43,7 @@ public class ReviewServlet extends HttpServlet {
         User loggedInUser = getLoggedInUser(request);
 
         if (loggedInUser == null) {
-            response.sendRedirect(
-                    request.getContextPath() + "/login"
-            );
+            response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
 
@@ -57,13 +55,10 @@ public class ReviewServlet extends HttpServlet {
 
         if ("create".equals(view)) {
             showCreate(request, response, loggedInUser);
-
         } else if ("edit".equals(view)) {
             showEdit(request, response, loggedInUser);
-
         } else if ("delete".equals(view)) {
             showDelete(request, response, loggedInUser);
-
         } else {
             redirectOrders(request, response);
         }
@@ -83,9 +78,7 @@ public class ReviewServlet extends HttpServlet {
         User loggedInUser = getLoggedInUser(request);
 
         if (loggedInUser == null) {
-            response.sendRedirect(
-                    request.getContextPath() + "/login"
-            );
+            response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
 
@@ -93,13 +86,10 @@ public class ReviewServlet extends HttpServlet {
 
         if ("create".equals(action)) {
             createReview(request, response, loggedInUser);
-
         } else if ("update".equals(action)) {
             updateReview(request, response, loggedInUser);
-
         } else if ("delete".equals(action)) {
             deleteReview(request, response, loggedInUser);
-
         } else {
             redirectOrders(request, response);
         }
@@ -108,19 +98,14 @@ public class ReviewServlet extends HttpServlet {
     // =====================================================
     // SESSION USER
     // =====================================================
-    private User getLoggedInUser(
-            HttpServletRequest request) {
-
-        HttpSession session =
-                request.getSession(false);
+    private User getLoggedInUser(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
 
         if (session == null) {
             return null;
         }
 
-        return (User) session.getAttribute(
-                "loggedInUser"
-        );
+        return (User) session.getAttribute("loggedInUser");
     }
 
     // =====================================================
@@ -134,83 +119,38 @@ public class ReviewServlet extends HttpServlet {
             throws ServletException, IOException {
 
         try {
+            String orderItemIdParam = request.getParameter("orderItemId");
 
-            String orderItemIdParam =
-                    request.getParameter("orderItemId");
-
-            if (orderItemIdParam == null
-                    || orderItemIdParam.trim().isEmpty()) {
-
-                setError(
-                        request,
-                        "Thiếu Order Item."
-                );
-
+            if (orderItemIdParam == null || orderItemIdParam.trim().isEmpty()) {
+                setError(request, "Thiếu Order Item.");
                 redirectOrders(request, response);
                 return;
             }
 
-            int orderItemId =
-                    Integer.parseInt(orderItemIdParam);
-
-            int skuId =
-                    reviewDAO.getSkuIdByOrderItemId(
-                            orderItemId
-                    );
+            int orderItemId = Integer.parseInt(orderItemIdParam);
+            int skuId = reviewDAO.getSkuIdByOrderItemId(orderItemId);
 
             if (skuId <= 0) {
-
-                setError(
-                        request,
-                        "Không tìm thấy sản phẩm."
-                );
-
+                setError(request, "Không tìm thấy sản phẩm.");
                 redirectOrders(request, response);
                 return;
             }
 
-            boolean canReview =
-                    reviewDAO.canReview(
-                            user.getUserId(),
-                            orderItemId,
-                            skuId
-                    );
+            boolean canReview = reviewDAO.canReview(user.getUserId(), orderItemId, skuId);
 
             if (!canReview) {
-
-                setError(
-                        request,
-                        "Bạn không thể đánh giá sản phẩm này."
-                );
-
+                setError(request, "Bạn không thể đánh giá sản phẩm này.");
                 redirectOrders(request, response);
                 return;
             }
 
-            request.setAttribute(
-                    "orderItemId",
-                    orderItemId
-            );
+            request.setAttribute("orderItemId", orderItemId);
+            request.setAttribute("skuId", skuId);
 
-            request.setAttribute(
-                    "skuId",
-                    skuId
-            );
-
-            request.getRequestDispatcher(
-                    "/WEB-INF/review/create.jsp"
-            ).forward(
-                    request,
-                    response
-            );
+            request.getRequestDispatcher("/WEB-INF/review/create.jsp").forward(request, response);
 
         } catch (NumberFormatException e) {
-
-            setError(
-                    request,
-                    "Order Item không hợp lệ."
-            );
-
+            setError(request, "Order Item không hợp lệ.");
             redirectOrders(request, response);
         }
     }
@@ -225,176 +165,73 @@ public class ReviewServlet extends HttpServlet {
             throws IOException, ServletException {
 
         try {
+            String orderItemIdParam = request.getParameter("orderItemId");
+            String ratingParam = request.getParameter("rating");
 
-            String orderItemIdParam =
-                    request.getParameter("orderItemId");
-
-            String ratingParam =
-                    request.getParameter("rating");
-
-            if (orderItemIdParam == null
-                    || ratingParam == null) {
-
-                setError(
-                        request,
-                        "Thiếu thông tin đánh giá."
-                );
-
+            if (orderItemIdParam == null || ratingParam == null) {
+                setError(request, "Thiếu thông tin đánh giá.");
                 redirectOrders(request, response);
                 return;
             }
 
-            int orderItemId =
-                    Integer.parseInt(orderItemIdParam);
-
-            int rating =
-                    Integer.parseInt(ratingParam);
-
-            String comment =
-                    request.getParameter("comment");
+            int orderItemId = Integer.parseInt(orderItemIdParam);
+            int rating = Integer.parseInt(ratingParam);
+            String comment = request.getParameter("comment");
 
             if (rating < 1 || rating > 5) {
-
-                setError(
-                        request,
-                        "Số sao phải từ 1 đến 5."
-                );
-
-                redirectCreate(
-                        request,
-                        response,
-                        orderItemId
-                );
-
+                setError(request, "Số sao phải từ 1 đến 5.");
+                redirectCreate(request, response, orderItemId);
                 return;
             }
 
-            if (comment != null
-                    && comment.length() > 2000) {
-
-                setError(
-                        request,
-                        "Nội dung đánh giá tối đa 2000 ký tự."
-                );
-
-                redirectCreate(
-                        request,
-                        response,
-                        orderItemId
-                );
-
+            if (comment != null && comment.length() > 2000) {
+                setError(request, "Nội dung đánh giá tối đa 2000 ký tự.");
+                redirectCreate(request, response, orderItemId);
                 return;
             }
 
-            int skuId =
-                    reviewDAO.getSkuIdByOrderItemId(
-                            orderItemId
-                    );
+            int skuId = reviewDAO.getSkuIdByOrderItemId(orderItemId);
 
             if (skuId <= 0) {
-
-                setError(
-                        request,
-                        "Không tìm thấy sản phẩm."
-                );
-
+                setError(request, "Không tìm thấy sản phẩm.");
                 redirectOrders(request, response);
                 return;
             }
 
-            boolean canReview =
-                    reviewDAO.canReview(
-                            user.getUserId(),
-                            orderItemId,
-                            skuId
-                    );
+            boolean canReview = reviewDAO.canReview(user.getUserId(), orderItemId, skuId);
 
             if (!canReview) {
-
-                setError(
-                        request,
-                        "Bạn không có quyền đánh giá sản phẩm này "
-                        + "hoặc sản phẩm đã được đánh giá."
-                );
-
+                setError(request, "Bạn không có quyền đánh giá sản phẩm này hoặc sản phẩm đã được đánh giá.");
                 redirectOrders(request, response);
                 return;
             }
 
-            ProductReview review =
-                    new ProductReview();
+            ProductReview review = new ProductReview();
+            review.setUserId(user.getUserId());
+            review.setOrderItemId(orderItemId);
+            review.setSkuId(skuId);
+            review.setRating(rating);
+            review.setComment(comment);
 
-            review.setUserId(
-                    user.getUserId()
-            );
-
-            review.setOrderItemId(
-                    orderItemId
-            );
-
-            review.setSkuId(
-                    skuId
-            );
-
-            review.setRating(
-                    rating
-            );
-
-            review.setComment(
-                    comment
-            );
-
-            int reviewId =
-                    reviewDAO.insertReview(
-                            review
-                    );
+            int reviewId = reviewDAO.insertReview(review);
 
             if (reviewId <= 0) {
-
-                setError(
-                        request,
-                        "Không thể tạo đánh giá."
-                );
-
-                redirectCreate(
-                        request,
-                        response,
-                        orderItemId
-                );
-
+                setError(request, "Không thể tạo đánh giá.");
+                redirectCreate(request, response, orderItemId);
                 return;
             }
 
-            saveReviewImages(
-                    request,
-                    reviewId
-            );
-
-            setSuccess(
-                    request,
-                    "Đánh giá sản phẩm thành công."
-            );
-
+            saveReviewImages(request, reviewId);
+            setSuccess(request, "Đánh giá sản phẩm thành công.");
             redirectOrders(request, response);
 
         } catch (NumberFormatException e) {
-
-            setError(
-                    request,
-                    "Dữ liệu đánh giá không hợp lệ."
-            );
-
+            setError(request, "Dữ liệu đánh giá không hợp lệ.");
             redirectOrders(request, response);
 
         } catch (Exception e) {
-
             e.printStackTrace();
-
-            setError(
-                    request,
-                    "Có lỗi xảy ra khi tạo đánh giá."
-            );
-
+            setError(request, "Có lỗi xảy ra khi tạo đánh giá.");
             redirectOrders(request, response);
         }
     }
@@ -410,49 +247,20 @@ public class ReviewServlet extends HttpServlet {
             throws ServletException, IOException {
 
         try {
-
-            int reviewId =
-                    Integer.parseInt(
-                            request.getParameter("id")
-                    );
-
-            ProductReview review =
-                    reviewDAO.getReviewByIdAndUserId(
-                            reviewId,
-                            user.getUserId()
-                    );
+            int reviewId = Integer.parseInt(request.getParameter("id"));
+            ProductReview review = reviewDAO.getReviewByIdAndUserId(reviewId, user.getUserId());
 
             if (review == null) {
-
-                setError(
-                        request,
-                        "Không tìm thấy đánh giá "
-                        + "hoặc bạn không có quyền chỉnh sửa."
-                );
-
+                setError(request, "Không tìm thấy đánh giá hoặc bạn không có quyền chỉnh sửa.");
                 redirectOrders(request, response);
                 return;
             }
 
-            request.setAttribute(
-                    "review",
-                    review
-            );
-
-            request.getRequestDispatcher(
-                    "/WEB-INF/review/edit.jsp"
-            ).forward(
-                    request,
-                    response
-            );
+            request.setAttribute("review", review);
+            request.getRequestDispatcher("/WEB-INF/review/edit.jsp").forward(request, response);
 
         } catch (NumberFormatException e) {
-
-            setError(
-                    request,
-                    "Review ID không hợp lệ."
-            );
-
+            setError(request, "Review ID không hợp lệ.");
             redirectOrders(request, response);
         }
     }
@@ -467,72 +275,26 @@ public class ReviewServlet extends HttpServlet {
             throws IOException {
 
         try {
-
-            int reviewId =
-                    Integer.parseInt(
-                            request.getParameter(
-                                    "reviewId"
-                            )
-                    );
-
-            int rating =
-                    Integer.parseInt(
-                            request.getParameter(
-                                    "rating"
-                            )
-                    );
-
-            String comment =
-                    request.getParameter(
-                            "comment"
-                    );
+            int reviewId = Integer.parseInt(request.getParameter("reviewId"));
+            int rating = Integer.parseInt(request.getParameter("rating"));
+            String comment = request.getParameter("comment");
 
             if (rating < 1 || rating > 5) {
-
-                setError(
-                        request,
-                        "Số sao phải từ 1 đến 5."
-                );
-
-                redirectEdit(
-                        request,
-                        response,
-                        reviewId
-                );
-
+                setError(request, "Số sao phải từ 1 đến 5.");
+                redirectEdit(request, response, reviewId);
                 return;
             }
 
-            if (comment != null
-                    && comment.length() > 2000) {
-
-                setError(
-                        request,
-                        "Nội dung đánh giá tối đa 2000 ký tự."
-                );
-
-                redirectEdit(
-                        request,
-                        response,
-                        reviewId
-                );
-
+            if (comment != null && comment.length() > 2000) {
+                setError(request, "Nội dung đánh giá tối đa 2000 ký tự.");
+                redirectEdit(request, response, reviewId);
                 return;
             }
 
-            ProductReview oldReview =
-                    reviewDAO.getReviewByIdAndUserId(
-                            reviewId,
-                            user.getUserId()
-                    );
+            ProductReview oldReview = reviewDAO.getReviewByIdAndUserId(reviewId, user.getUserId());
 
             if (oldReview == null) {
-
-                setError(
-                        request,
-                        "Bạn không có quyền sửa đánh giá này."
-                );
-
+                setError(request, "Bạn không có quyền sửa đánh giá này.");
                 redirectOrders(request, response);
                 return;
             }
@@ -540,37 +302,19 @@ public class ReviewServlet extends HttpServlet {
             oldReview.setRating(rating);
             oldReview.setComment(comment);
 
-            boolean success =
-                    reviewDAO.updateReview(
-                            oldReview
-                    );
+            boolean success = reviewDAO.updateReview(oldReview);
 
             if (success) {
-
-                setSuccess(
-                        request,
-                        "Cập nhật đánh giá thành công."
-                );
-
+                setSuccess(request, "Cập nhật đánh giá thành công.");
             } else {
-
-                setError(
-                        request,
-                        "Cập nhật đánh giá thất bại."
-                );
+                setError(request, "Cập nhật đánh giá thất bại.");
             }
 
             redirectOrders(request, response);
 
         } catch (Exception e) {
-
             e.printStackTrace();
-
-            setError(
-                    request,
-                    "Có lỗi xảy ra khi cập nhật đánh giá."
-            );
-
+            setError(request, "Có lỗi xảy ra khi cập nhật đánh giá.");
             redirectOrders(request, response);
         }
     }
@@ -586,49 +330,20 @@ public class ReviewServlet extends HttpServlet {
             throws ServletException, IOException {
 
         try {
-
-            int reviewId =
-                    Integer.parseInt(
-                            request.getParameter("id")
-                    );
-
-            ProductReview review =
-                    reviewDAO.getReviewByIdAndUserId(
-                            reviewId,
-                            user.getUserId()
-                    );
+            int reviewId = Integer.parseInt(request.getParameter("id"));
+            ProductReview review = reviewDAO.getReviewByIdAndUserId(reviewId, user.getUserId());
 
             if (review == null) {
-
-                setError(
-                        request,
-                        "Không tìm thấy đánh giá "
-                        + "hoặc bạn không có quyền xóa."
-                );
-
+                setError(request, "Không tìm thấy đánh giá hoặc bạn không có quyền xóa.");
                 redirectOrders(request, response);
                 return;
             }
 
-            request.setAttribute(
-                    "review",
-                    review
-            );
-
-            request.getRequestDispatcher(
-                    "/WEB-INF/review/delete.jsp"
-            ).forward(
-                    request,
-                    response
-            );
+            request.setAttribute("review", review);
+            request.getRequestDispatcher("/WEB-INF/review/delete.jsp").forward(request, response);
 
         } catch (NumberFormatException e) {
-
-            setError(
-                    request,
-                    "Review ID không hợp lệ."
-            );
-
+            setError(request, "Review ID không hợp lệ.");
             redirectOrders(request, response);
         }
     }
@@ -643,63 +358,28 @@ public class ReviewServlet extends HttpServlet {
             throws IOException {
 
         try {
-
-            int reviewId =
-                    Integer.parseInt(
-                            request.getParameter(
-                                    "reviewId"
-                            )
-                    );
-
-            ProductReview review =
-                    reviewDAO.getReviewByIdAndUserId(
-                            reviewId,
-                            user.getUserId()
-                    );
+            int reviewId = Integer.parseInt(request.getParameter("reviewId"));
+            ProductReview review = reviewDAO.getReviewByIdAndUserId(reviewId, user.getUserId());
 
             if (review == null) {
-
-                setError(
-                        request,
-                        "Bạn không có quyền xóa đánh giá này."
-                );
-
+                setError(request, "Bạn không có quyền xóa đánh giá này.");
                 redirectOrders(request, response);
                 return;
             }
 
-            boolean success =
-                    reviewDAO.deleteReview(
-                            reviewId,
-                            user.getUserId()
-                    );
+            boolean success = reviewDAO.deleteReview(reviewId, user.getUserId());
 
             if (success) {
-
-                setSuccess(
-                        request,
-                        "Xóa đánh giá thành công."
-                );
-
+                setSuccess(request, "Xóa đánh giá thành công.");
             } else {
-
-                setError(
-                        request,
-                        "Không thể xóa đánh giá."
-                );
+                setError(request, "Không thể xóa đánh giá.");
             }
 
             redirectOrders(request, response);
 
         } catch (Exception e) {
-
             e.printStackTrace();
-
-            setError(
-                    request,
-                    "Có lỗi xảy ra khi xóa đánh giá."
-            );
-
+            setError(request, "Có lỗi xảy ra khi xóa đánh giá.");
             redirectOrders(request, response);
         }
     }
@@ -728,65 +408,36 @@ public class ReviewServlet extends HttpServlet {
                 break;
             }
 
-            String originalName =
-                    part.getSubmittedFileName();
+            String originalName = part.getSubmittedFileName();
 
-            if (originalName == null
-                    || originalName.trim().isEmpty()) {
+            if (originalName == null || originalName.trim().isEmpty()) {
                 continue;
             }
 
-            String extension =
-                    getFileExtension(originalName);
+            String extension = getFileExtension(originalName);
 
             if (!isAllowedImage(extension)) {
                 continue;
             }
 
-            String fileName =
-                    UUID.randomUUID().toString()
-                    + extension;
-
-            String uploadPath =
-                    getServletContext().getRealPath(
-                            "/uploads/reviews"
-                    );
+            String fileName = UUID.randomUUID().toString() + extension;
+            String uploadPath = getServletContext().getRealPath("/uploads/reviews");
 
             if (uploadPath == null) {
-                throw new IOException(
-                        "Không xác định được thư mục upload."
-                );
+                throw new IOException("Không xác định được thư mục upload.");
             }
 
-            File uploadFolder =
-                    new File(uploadPath);
+            File uploadFolder = new File(uploadPath);
 
-            if (!uploadFolder.exists()
-                    && !uploadFolder.mkdirs()) {
-
-                throw new IOException(
-                        "Không thể tạo thư mục upload."
-                );
+            if (!uploadFolder.exists() && !uploadFolder.mkdirs()) {
+                throw new IOException("Không thể tạo thư mục upload.");
             }
 
-            File savedFile =
-                    new File(
-                            uploadFolder,
-                            fileName
-                    );
+            File savedFile = new File(uploadFolder, fileName);
+            part.write(savedFile.getAbsolutePath());
 
-            part.write(
-                    savedFile.getAbsolutePath()
-            );
-
-            String imageUrl =
-                    "/uploads/reviews/"
-                    + fileName;
-
-            reviewDAO.insertReviewImage(
-                    reviewId,
-                    imageUrl
-            );
+            String imageUrl = "/uploads/reviews/" + fileName;
+            reviewDAO.insertReviewImage(reviewId, imageUrl);
 
             imageCount++;
         }
@@ -795,27 +446,20 @@ public class ReviewServlet extends HttpServlet {
     // =====================================================
     // FILE EXTENSION
     // =====================================================
-    private String getFileExtension(
-            String fileName) {
-
-        int dot =
-                fileName.lastIndexOf('.');
+    private String getFileExtension(String fileName) {
+        int dot = fileName.lastIndexOf('.');
 
         if (dot < 0) {
             return "";
         }
 
-        return fileName
-                .substring(dot)
-                .toLowerCase();
+        return fileName.substring(dot).toLowerCase();
     }
 
     // =====================================================
     // ALLOWED IMAGE
     // =====================================================
-    private boolean isAllowedImage(
-            String extension) {
-
+    private boolean isAllowedImage(String extension) {
         return ".jpg".equals(extension)
                 || ".jpeg".equals(extension)
                 || ".png".equals(extension)
@@ -825,29 +469,15 @@ public class ReviewServlet extends HttpServlet {
     // =====================================================
     // SUCCESS MESSAGE
     // =====================================================
-    private void setSuccess(
-            HttpServletRequest request,
-            String message) {
-
-        request.getSession()
-                .setAttribute(
-                        "successMessage",
-                        message
-                );
+    private void setSuccess(HttpServletRequest request, String message) {
+        request.getSession().setAttribute("successMessage", message);
     }
 
     // =====================================================
     // ERROR MESSAGE
     // =====================================================
-    private void setError(
-            HttpServletRequest request,
-            String message) {
-
-        request.getSession()
-                .setAttribute(
-                        "errorMessage",
-                        message
-                );
+    private void setError(HttpServletRequest request, String message) {
+        request.getSession().setAttribute("errorMessage", message);
     }
 
     // =====================================================
@@ -890,9 +520,6 @@ public class ReviewServlet extends HttpServlet {
             HttpServletResponse response)
             throws IOException {
 
-        response.sendRedirect(
-                request.getContextPath()
-                + "/orders"
-        );
+        response.sendRedirect(request.getContextPath() + "/orders");
     }
 }

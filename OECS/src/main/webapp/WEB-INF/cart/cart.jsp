@@ -403,730 +403,303 @@
     }
 </style>
 
-
 <div class="cart-page">
 
     <div class="d-flex align-items-center justify-content-between mb-4">
-
         <div>
-            <h1 class="page-title">
-                Giỏ hàng
-            </h1>
-
+            <h1 class="page-title">Giỏ hàng</h1>
             <div class="page-description">
                 Quản lý sản phẩm, số lượng và mã giảm giá trong giỏ hàng.
             </div>
         </div>
-
     </div>
 
-
+    <!-- Thông báo thành công -->
     <c:if test="${not empty sessionScope.successMessage}">
-
         <div class="alert alert-success alert-dismissible fade show">
-
             <i class="bi bi-check-circle-fill me-2"></i>
-
             ${sessionScope.successMessage}
-
-            <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert">
-            </button>
-
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-
         <c:remove var="successMessage" scope="session"/>
-
     </c:if>
 
-
+    <!-- Thông báo lỗi -->
     <c:if test="${not empty sessionScope.errorMessage}">
-
         <div class="alert alert-danger alert-dismissible fade show">
-
             <i class="bi bi-exclamation-circle-fill me-2"></i>
-
             ${sessionScope.errorMessage}
-
-            <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert">
-            </button>
-
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-
         <c:remove var="errorMessage" scope="session"/>
-
     </c:if>
 
-
+    <!-- Khối hiển thị khi có sản phẩm -->
     <c:if test="${not empty cartItems}">
 
+        <!-- Các thẻ thống kê -->
         <div class="row g-3 mb-4">
-
-
             <div class="col-lg-4">
-
                 <div class="stat-card-cart">
-
                     <div class="d-flex justify-content-between align-items-start">
-
                         <div>
-
-                            <div class="stat-label">
-                                Sản phẩm trong giỏ
-                            </div>
-
-                            <div class="stat-value">
-                                ${cartItems.size()}
-                            </div>
-
+                            <div class="stat-label">Sản phẩm trong giỏ</div>
+                            <div class="stat-value">${cartItems.size()}</div>
                         </div>
-
                         <div class="stat-icon">
                             <i class="bi bi-cart3"></i>
                         </div>
-
                     </div>
-
                 </div>
-
             </div>
 
-
             <div class="col-lg-4">
-
                 <div class="stat-card-cart">
-
                     <div class="d-flex justify-content-between align-items-start">
-
                         <div>
-
-                            <div class="stat-label">
-                                Tạm tính
-                            </div>
-
+                            <div class="stat-label">Tạm tính</div>
                             <div class="stat-value">
-
-                                <fmt:formatNumber
-                                    value="${total}"
-                                    type="number"
-                                    groupingUsed="true"
-                                    maxFractionDigits="0"/>
-
-                                đ
-
+                                <fmt:formatNumber value="${total}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
                             </div>
-
                         </div>
-
                         <div class="stat-icon stat-icon-green">
                             <i class="bi bi-cash-stack"></i>
                         </div>
-
                     </div>
-
                 </div>
-
             </div>
 
-
             <div class="col-lg-4">
-
                 <div class="stat-card-cart">
-
                     <div class="d-flex justify-content-between align-items-start">
-
                         <div>
-
-                            <div class="stat-label">
-                                Tổng thanh toán
-                            </div>
-
+                            <div class="stat-label">Tổng thanh toán</div>
                             <div class="stat-value">
-
-                                <fmt:formatNumber
-                                    value="${finalTotal}"
-                                    type="number"
-                                    groupingUsed="true"
-                                    maxFractionDigits="0"/>
-
-                                đ
-
+                                <fmt:formatNumber value="${finalTotal}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
                             </div>
-
                         </div>
-
                         <div class="stat-icon stat-icon-cyan">
                             <i class="bi bi-credit-card"></i>
                         </div>
-
                     </div>
-
                 </div>
-
             </div>
-
         </div>
 
-    </c:if>
-
-
-    <c:if test="${empty cartItems}">
-
-        <div class="empty-box">
-
-            <div class="empty-icon">
-                <i class="bi bi-cart-x"></i>
-            </div>
-
-            <h4 class="fw-bold">
-                Giỏ hàng đang trống
-            </h4>
-
-            <p class="text-muted mb-0">
-                Chưa có sản phẩm nào được thêm vào giỏ hàng.
-            </p>
-
-        </div>
-
-    </c:if>
-
-
-    <c:if test="${not empty cartItems}">
-
-
+        <!-- Bảng danh sách sản phẩm -->
         <div class="content-card mb-4">
-
-
             <div class="content-card-header">
-
                 <h5 class="content-card-title">
-
                     <i class="bi bi-bag me-2 text-primary"></i>
-
                     Danh sách sản phẩm
-
                 </h5>
-
-
-                <a
-                    href="${pageContext.request.contextPath}/cart?action=clear"
-                    class="btn-clear"
-                    onclick="return confirm('Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng?')">
-
-                    <i class="bi bi-trash3"></i>
-
-                    Xóa tất cả
-
+                <a href="${pageContext.request.contextPath}/cart?action=clear"
+                   class="btn-clear"
+                   onclick="return confirm('Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng?')">
+                    <i class="bi bi-trash3"></i> Xóa tất cả
                 </a>
-
             </div>
-
 
             <div class="table-responsive">
-
                 <table class="table cart-table">
-
                     <thead>
-
                         <tr>
-
                             <th>STT</th>
-
                             <th>Sản phẩm</th>
-
                             <th>SKU</th>
-
                             <th>Giá</th>
-
                             <th>Số lượng</th>
-
                             <th>Tồn kho</th>
-
                             <th>Thành tiền</th>
-
-                            <th class="text-center">
-                                Thao tác
-                            </th>
-
+                            <th class="text-center">Thao tác</th>
                         </tr>
-
                     </thead>
-
-
                     <tbody>
-
-
-                        <c:forEach
-                            var="item"
-                            items="${cartItems}"
-                            varStatus="status">
-
-
+                        <c:forEach var="item" items="${cartItems}" varStatus="status">
                             <tr>
-
-
                                 <td>
-
                                     <span class="badge bg-light text-secondary border">
                                         #${status.index + 1}
                                     </span>
-
                                 </td>
-
-
                                 <td>
-
                                     <div class="product-box">
-
                                         <div class="product-icon">
                                             <i class="bi bi-phone"></i>
                                         </div>
-
                                         <div>
-
-                                            <div class="product-name">
-                                                ${item.productName}
-                                            </div>
-
-                                            <small class="text-muted">
-                                                Sản phẩm trong giỏ hàng
-                                            </small>
-
+                                            <div class="product-name">${item.productName}</div>
+                                            <small class="text-muted">Sản phẩm trong giỏ hàng</small>
                                         </div>
-
                                     </div>
-
                                 </td>
-
-
                                 <td>
-
-                                    <span class="sku-text">
-                                        ${item.skuCode}
-                                    </span>
-
+                                    <span class="sku-text">${item.skuCode}</span>
                                 </td>
-
-
                                 <td>
-
                                     <span class="price-text">
-
-                                        <fmt:formatNumber
-                                            value="${item.price}"
-                                            type="number"
-                                            groupingUsed="true"
-                                            maxFractionDigits="0"/>
-
-                                        đ
-
+                                        <fmt:formatNumber value="${item.price}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
                                     </span>
-
                                 </td>
-
-
                                 <td>
-
                                     <c:choose>
-
                                         <c:when test="${item.stockQuantity > 0}">
-
-                                            <form
-                                                action="${pageContext.request.contextPath}/cart"
-                                                method="post">
-
-                                                <input
-                                                    type="hidden"
-                                                    name="action"
-                                                    value="update">
-
-                                                <input
-                                                    type="hidden"
-                                                    name="cartItemId"
-                                                    value="${item.cartItemId}">
-
-                                                <input
-                                                    type="number"
-                                                    name="quantity"
-                                                    value="${item.quantity}"
-                                                    min="1"
-                                                    max="${item.stockQuantity}"
-                                                    class="quantity-input"
-                                                    onchange="this.form.submit()">
-
+                                            <form action="${pageContext.request.contextPath}/cart" method="post">
+                                                <input type="hidden" name="action" value="update">
+                                                <input type="hidden" name="cartItemId" value="${item.cartItemId}">
+                                                <input type="number"
+                                                       name="quantity"
+                                                       value="${item.quantity}"
+                                                       min="1"
+                                                       max="${item.stockQuantity}"
+                                                       class="quantity-input"
+                                                       onchange="this.form.submit()">
                                             </form>
-
                                         </c:when>
-
-
                                         <c:otherwise>
-
-                                            <span class="badge bg-danger">
-                                                Hết hàng
-                                            </span>
-
+                                            <span class="badge bg-danger">Hết hàng</span>
                                         </c:otherwise>
-
                                     </c:choose>
-
                                 </td>
-
-
                                 <td>
-
                                     <c:choose>
-
                                         <c:when test="${item.stockQuantity > 0}">
-
-                                            <span class="stock-badge">
-                                                ${item.stockQuantity}
-                                            </span>
-
+                                            <span class="stock-badge">${item.stockQuantity}</span>
                                         </c:when>
-
                                         <c:otherwise>
-
-                                            <span class="badge bg-danger">
-                                                0
-                                            </span>
-
+                                            <span class="badge bg-danger">0</span>
                                         </c:otherwise>
-
                                     </c:choose>
-
                                 </td>
-
-
                                 <td>
-
                                     <span class="subtotal-text">
-
-                                        <fmt:formatNumber
-                                            value="${item.subtotal}"
-                                            type="number"
-                                            groupingUsed="true"
-                                            maxFractionDigits="0"/>
-
-                                        đ
-
+                                        <fmt:formatNumber value="${item.subtotal}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
                                     </span>
-
                                 </td>
-
-
                                 <td class="text-center">
-
-                                    <a
-                                        href="${pageContext.request.contextPath}/cart?action=remove&cartItemId=${item.cartItemId}"
-                                        class="action-btn delete-btn"
-                                        title="Xóa sản phẩm"
-                                        onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này?')">
-
+                                    <a href="${pageContext.request.contextPath}/cart?action=remove&cartItemId=${item.cartItemId}"
+                                       class="action-btn delete-btn"
+                                       title="Xóa sản phẩm"
+                                       onclick="return confirm('Bạn có chắc muốn xóa sản phẩm này?')">
                                         <i class="bi bi-trash3"></i>
-
                                     </a>
-
                                 </td>
-
-
                             </tr>
-
-
                         </c:forEach>
-
-
                     </tbody>
-
                 </table>
-
             </div>
-
         </div>
 
-
+        <!-- Khối Voucher & Tóm tắt thanh toán -->
         <div class="row g-4">
-
-
+            <!-- Cột trái: Nhập Voucher -->
             <div class="col-lg-6">
-
                 <div class="bottom-card">
-
-
                     <div class="bottom-title">
-
-                        <i class="bi bi-ticket-perforated text-primary"></i>
-
-                        Voucher
-
+                        <i class="bi bi-ticket-perforated text-primary"></i> Voucher
                     </div>
 
-
                     <c:choose>
-
-
                         <c:when test="${empty voucher}">
-
                             <p class="text-muted small mb-3">
                                 Nhập mã giảm giá để áp dụng cho đơn hàng.
                             </p>
-
-
-                            <form
-                                action="${pageContext.request.contextPath}/cart"
-                                method="post">
-
-
-                                <input
-                                    type="hidden"
-                                    name="action"
-                                    value="applyVoucher">
-
-
+                            <form action="${pageContext.request.contextPath}/cart" method="post">
+                                <input type="hidden" name="action" value="applyVoucher">
                                 <div class="input-group">
-
-
-                                    <input
-                                        type="text"
-                                        name="voucherCode"
-                                        class="form-control voucher-input"
-                                        placeholder="Nhập mã Voucher..."
-                                        required>
-
-
-                                    <button
-                                        type="submit"
-                                        class="btn-voucher">
-
-                                        Áp dụng
-
-                                    </button>
-
-
+                                    <input type="text"
+                                           name="voucherCode"
+                                           class="form-control voucher-input"
+                                           placeholder="Nhập mã Voucher..."
+                                           required>
+                                    <button type="submit" class="btn-voucher">Áp dụng</button>
                                 </div>
-
-
                             </form>
-
                         </c:when>
-
-
                         <c:otherwise>
-
-
                             <div class="voucher-applied">
-
-
                                 <div>
-
                                     <i class="bi bi-check-circle-fill text-primary me-1"></i>
-
                                     Đang sử dụng:
-
-                                    <span class="voucher-code">
-                                        ${voucher.code}
-                                    </span>
-
+                                    <span class="voucher-code">${voucher.code}</span>
                                 </div>
-
-
                                 <div class="voucher-info">
-
-
                                     <c:choose>
-
-
                                         <c:when test="${voucher.discountType == 'PERCENT'}">
-
-                                            Giảm
-
-                                            <strong>
-                                                ${voucher.discountValue}%
-                                            </strong>
-
+                                            Giảm <strong>${voucher.discountValue}%</strong>
                                             <c:if test="${not empty voucher.maxDiscount}">
-
-                                                , tối đa
-
-                                                <strong>
-
-                                                    <fmt:formatNumber
-                                                        value="${voucher.maxDiscount}"
-                                                        type="number"
-                                                        groupingUsed="true"
-                                                        maxFractionDigits="0"/>
-
-                                                    đ
-
-                                                </strong>
-
+                                                , tối đa <strong><fmt:formatNumber value="${voucher.maxDiscount}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ</strong>
                                             </c:if>
-
                                         </c:when>
-
-
                                         <c:otherwise>
-
-                                            Giảm trực tiếp
-
-                                            <strong>
-
-                                                <fmt:formatNumber
-                                                    value="${voucher.discountValue}"
-                                                    type="number"
-                                                    groupingUsed="true"
-                                                    maxFractionDigits="0"/>
-
-                                                đ
-
-                                            </strong>
-
+                                            Giảm trực tiếp <strong><fmt:formatNumber value="${voucher.discountValue}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ</strong>
                                         </c:otherwise>
-
-
                                     </c:choose>
-
-
                                 </div>
-
-
-                                <a
-                                    href="${pageContext.request.contextPath}/cart?action=removeVoucher"
-                                    class="remove-voucher">
-
-                                    <i class="bi bi-x-circle"></i>
-
-                                    Gỡ Voucher
-
+                                <a href="${pageContext.request.contextPath}/cart?action=removeVoucher" class="remove-voucher">
+                                    <i class="bi bi-x-circle"></i> Bỏ áp dụng
                                 </a>
-
-
                             </div>
-
-
                         </c:otherwise>
-
-
                     </c:choose>
-
-
                 </div>
-
             </div>
 
-
+            <!-- Cột phải: Tóm tắt đơn hàng & Nút Thanh toán -->
             <div class="col-lg-6">
-
                 <div class="bottom-card">
-
-
                     <div class="bottom-title">
-
-                        <i class="bi bi-receipt text-primary"></i>
-
-                        Tổng đơn hàng
-
+                        <i class="bi bi-receipt text-primary"></i> Tổng quan đơn hàng
                     </div>
-
 
                     <div class="summary-row">
-
-                        <span>
-                            Tạm tính
-                        </span>
-
+                        <span>Tạm tính:</span>
                         <strong>
-
-                            <fmt:formatNumber
-                                value="${total}"
-                                type="number"
-                                groupingUsed="true"
-                                maxFractionDigits="0"/>
-
-                            đ
-
+                            <fmt:formatNumber value="${total}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
                         </strong>
-
                     </div>
 
-
-                    <c:if test="${discount > 0}">
-
+                    <c:if test="${not empty discountAmount && discountAmount > 0}">
                         <div class="summary-row discount-row">
-
-                            <span>
-                                Giảm giá
-                            </span>
-
+                            <span>Giảm giá Voucher:</span>
                             <strong>
-
-                                -
-
-                                <fmt:formatNumber
-                                    value="${discount}"
-                                    type="number"
-                                    groupingUsed="true"
-                                    maxFractionDigits="0"/>
-
-                                đ
-
+                                -<fmt:formatNumber value="${discountAmount}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
                             </strong>
-
                         </div>
-
                     </c:if>
-
 
                     <div class="summary-divider"></div>
 
-
-                    <div class="d-flex justify-content-between align-items-end">
-
-                        <div class="final-text">
-                            Tổng thanh toán
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <div class="fw-bold text-dark">Tổng tiền thanh toán</div>
+                            <div class="final-text">(Đã bao gồm thuế giá trị gia tăng)</div>
                         </div>
-
-
                         <div class="final-price">
-
-                            <fmt:formatNumber
-                                value="${finalTotal}"
-                                type="number"
-                                groupingUsed="true"
-                                maxFractionDigits="0"/>
-
-                            đ
-
+                            <fmt:formatNumber value="${finalTotal}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
                         </div>
-
                     </div>
 
-
-                    <a
-                        href="${pageContext.request.contextPath}/checkout"
-                        class="checkout-btn">
-
-                        <i class="bi bi-credit-card"></i>
-
-                        Tiến hành thanh toán
-
+                    <a href="${pageContext.request.contextPath}/checkout" class="checkout-btn">
+                        <i class="bi bi-credit-card-fill"></i> Tiến hành thanh toán
                     </a>
-
-
                 </div>
-
             </div>
-
-
         </div>
-
 
     </c:if>
 
+    <!-- Khối hiển thị khi giỏ hàng trống -->
+    <c:if test="${empty cartItems}">
+        <div class="empty-box">
+            <div class="empty-icon">
+                <i class="bi bi-cart-x"></i>
+            </div>
+            <h4 class="fw-bold">Giỏ hàng đang trống</h4>
+            <p class="text-muted mb-0">Chưa có sản phẩm nào được thêm vào giỏ hàng.</p>
+        </div>
+    </c:if>
 
 </div>
 
