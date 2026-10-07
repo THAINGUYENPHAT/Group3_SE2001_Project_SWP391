@@ -19,7 +19,7 @@ import model.User;
 public class AuthFilter implements Filter {
 
     // =====================================================
-    // PUBLIC - Guest cũng có thể truy cập
+    // PUBLIC - Guest và tất cả role đều có thể truy cập
     // =====================================================
     private static final List<String> PUBLIC_URLS = Arrays.asList(
             "",
@@ -43,24 +43,24 @@ public class AuthFilter implements Filter {
     );
 
     // =====================================================
-    // STAFF + ADMIN
+    // STAFF - Chỉ Staff
     // =====================================================
-    private static final List<String> STAFF_ADMIN_URLS = Arrays.asList(
+    private static final List<String> STAFF_URLS = Arrays.asList(
             "/brand",
             "/category",
             "/product",
-            "/admin/orders"
+            "/admin/orders",
+            "/admin/voucher"
     );
 
     // =====================================================
-    // ADMIN - Chỉ Admin được truy cập
+    // ADMIN - Chỉ Admin
     // =====================================================
     private static final List<String> ADMIN_URLS = Arrays.asList(
             "/admin/dashboard",
             "/admin/report",
             "/admin/report/export",
-            "/user",
-            "/admin/voucher"
+            "/user"
     );
 
     // =====================================================
@@ -167,7 +167,7 @@ public class AuthFilter implements Filter {
 
             session.setAttribute(
                     "toastMessage",
-                    "Bạn không có quyền truy cập chức năng này!"
+                    "Bạn không có quyền truy cập chức năng dành cho khách hàng!"
             );
 
             session.setAttribute(
@@ -183,16 +183,17 @@ public class AuthFilter implements Filter {
         }
 
         // =====================================================
-        // 4. KIỂM TRA STAFF + ADMIN
+        // 4. KIỂM TRA STAFF
         // =====================================================
-        boolean isStaffAdminUrl
-                = STAFF_ADMIN_URLS.contains(relativePath);
+        boolean isStaffUrl
+                = STAFF_URLS.contains(relativePath)
+                || relativePath.startsWith("/admin/orders/");
 
-        if (isStaffAdminUrl && !user.isAdminOrStaff()) {
+        if (isStaffUrl && !user.isStaff()) {
 
             session.setAttribute(
                     "toastMessage",
-                    "Bạn không có quyền truy cập khu vực quản lý!"
+                    "Bạn không có quyền truy cập khu vực dành cho nhân viên!"
             );
 
             session.setAttribute(
@@ -231,6 +232,10 @@ public class AuthFilter implements Filter {
 
             return;
         }
+
+        // =====================================================
+        // 6. CHO REQUEST ĐI TIẾP
+        // =====================================================
         chain.doFilter(request, response);
     }
 

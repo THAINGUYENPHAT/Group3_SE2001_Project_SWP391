@@ -140,6 +140,10 @@ public class User {
         return hasRole("Admin") || hasRole("Staff");
     }
 
+     public boolean isStaff() {
+        return hasRole("Staff");
+    }
+    
     public boolean isCustomer() {
         return hasRole("Customer");
     }
