@@ -48,17 +48,11 @@
                             <div class="input-group">
                                 <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
                                 <input type="password" class="form-control" id="password" name="password" placeholder="Nhập mật khẩu" required>
-                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                    <i class="bi bi-eye" id="toggleIcon"></i>
-                                </button>
                             </div>
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="rememberMe" name="rememberMe" value="true">
-                                <label class="form-check-label small" for="rememberMe">Ghi nhớ đăng nhập</label>
-                            </div>
+ 
                             <a href="${pageContext.request.contextPath}/forgot-password" class="text-decoration-none small text-primary">Quên mật khẩu?</a>
                         </div>
 
