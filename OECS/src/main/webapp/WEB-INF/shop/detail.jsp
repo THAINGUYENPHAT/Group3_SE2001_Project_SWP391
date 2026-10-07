@@ -130,9 +130,6 @@
                         <button type="submit" class="btn btn-primary btn-lg flex-grow-1 fw-bold" id="btnAddToCart" ${empty skus ? 'disabled' : ''}>
                             <i class="bi bi-cart-plus me-2"></i>THÊM VÀO GIỎ
                         </button>
-                        <button type="button" class="btn btn-outline-danger btn-lg px-4" title="Thêm vào yêu thích">
-                            <i class="bi bi-heart"></i>
-                        </button>
                     </div>
                 </form>
             </div>

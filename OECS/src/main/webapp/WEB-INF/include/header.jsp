@@ -414,11 +414,6 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/review">
-                                        <i class="bi bi-star text-warning me-2"></i>Quản lý Đánh giá
-                                    </a>
-                                </li>
-                                <li>
                                     <a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/user">
                                         <i class="bi bi-people text-info me-2"></i>Quản lý Người dùng
                                     </a>

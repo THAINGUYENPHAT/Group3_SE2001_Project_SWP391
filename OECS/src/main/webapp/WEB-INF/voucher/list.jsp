@@ -281,7 +281,7 @@
          ===================================================== --%>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="page-title"></h1>
+            <h1 class="page-title">Quản lý Voucher</h1>
             <div class="page-description">
                 Quản lý mã giảm giá và chương trình khuyến mãi trong hệ thống.
             </div>
