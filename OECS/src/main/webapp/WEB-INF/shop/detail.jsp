@@ -67,7 +67,11 @@
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="${pageContext.request.contextPath}/shop" class="text-decoration-none">Sản phẩm</a></li>
-                <li class="breadcrumb-item"><a href="#" class="text-decoration-none">${product.category.categoryName}</a></li>
+                <li class="breadcrumb-item">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=${product.category.categoryId}" class="text-decoration-none">
+                        ${product.category.categoryName}
+                    </a>
+                </li>
                 <li class="breadcrumb-item active" aria-current="page">${product.productName}</li>
             </ol>
         </nav>
@@ -100,11 +104,11 @@
                     </div>
                     <div class="text-success fw-medium mt-1" id="displayStock">
                         <c:if test="${not empty skus}"><i class="bi bi-box-seam me-1"></i>Còn ${skus[0].stockQuantity} sản phẩm</c:if>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Lựa chọn phiên bản (SKU) -->
-                <form action="${pageContext.request.contextPath}/cart" method="POST">
+                    <!-- Lựa chọn phiên bản (SKU) -->
+                    <form action="${pageContext.request.contextPath}/cart" method="POST">
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="productId" value="${product.productId}">
 
@@ -143,12 +147,12 @@
                     <c:when test="${not empty specs}">
                         <table class="table table-bordered specs-table align-middle">
                             <tbody>
-                            <c:forEach items="${specs}" var="spec">
-                                <tr>
-                                    <th>${spec.attributeName}</th>
-                                    <td>${spec.value}</td>
-                                </tr>
-                            </c:forEach>
+                                <c:forEach items="${specs}" var="spec">
+                                    <tr>
+                                        <th>${spec.attributeName}</th>
+                                        <td>${spec.value}</td>
+                                    </tr>
+                                </c:forEach>
                             </tbody>
                         </table>
                     </c:when>
