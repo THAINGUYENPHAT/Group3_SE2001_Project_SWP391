@@ -687,7 +687,7 @@
                 <a href="#recommended-products"
                    class="home-hero-button">
 
-                    Xem sản phẩm
+                    Xem sản phẩm nổi bật
 
                 </a>
 
@@ -829,140 +829,6 @@
         </c:if>
 
 
-
-
-
-        <!-- =====================================================
- PRODUCT
- ===================================================== -->
-
-        <section class="home-section"
-                 id="recommended-products">
-
-            <div class="section-header">
-
-                <div>
-                    <h2 class="section-title">
-                        Sản phẩm nổi bật
-                    </h2>
-
-                    <p class="section-description">
-                        Những sản phẩm công nghệ đáng chú ý tại OECS
-                    </p>
-                </div>
-
-                <a href="${pageContext.request.contextPath}/shop"
-                   class="section-link">
-
-                    Xem tất cả
-
-                    <i class="bi bi-arrow-right"></i>
-
-                </a>
-
-            </div>
-
-
-            <div class="row g-4">
-
-                <c:choose>
-
-                    <c:when test="${not empty productList}">
-
-                        <c:forEach var="product"
-                                   items="${productList}"
-                                   begin="0"
-                                   end="7">
-
-                            <div class="col-12 col-sm-6 col-lg-3">
-                                <!-- ĐỔI div THÀNH thẻ a VÀ THÊM href, text-decoration-none -->
-                                <a href="${pageContext.request.contextPath}/shop?action=detail&id=${product.productId}" class="product-card text-decoration-none">
-
-                                    <div class="product-image text-dark">
-                                        <i class="bi bi-box-seam"></i>
-                                    </div>
-
-                                    <div class="product-info">
-                                        <div class="product-brand">
-                                            ${product.brand.brandName}
-                                        </div>
-                                        <div class="product-name text-dark">
-                                            ${product.productName}
-                                        </div>
-                                        <div class="product-description">
-                                            ${product.description}
-                                        </div>
-                                    </div>
-
-                                </a> <!-- KẾT THÚC THẺ a TẠI ĐÂY -->
-                            </div>
-
-                        </c:forEach>
-
-                    </c:when>
-
-
-                    <c:otherwise>
-
-                        <div class="col-12">
-
-                            <div class="alert alert-light text-center py-5">
-
-                                <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
-
-                                <h5>
-                                    Chưa có sản phẩm
-                                </h5>
-
-                                <p class="text-muted mb-0">
-                                    Hiện tại OECS chưa có sản phẩm để hiển thị.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </c:otherwise>
-
-                </c:choose>
-
-            </div>
-
-        </section>
-        <!-- =====================================================
-             PROMOTION
-             ===================================================== -->
-
-        <section class="home-section">
-
-            <div class="promo-banner">
-
-                <div class="promo-content">
-
-                    <h3>
-                        Nâng cấp công nghệ của bạn
-                    </h3>
-
-                    <p>
-                        Khám phá những thiết bị mới và lựa chọn
-                        sản phẩm phù hợp với nhu cầu của bạn.
-                    </p>
-
-                    <a href="#recommended-products"
-                       class="btn btn-primary px-4 py-2">
-
-                        Khám phá sản phẩm
-
-                        <i class="bi bi-arrow-right ms-2"></i>
-
-                    </a>
-
-                </div>
-
-            </div>
-
-        </section>
-
         <!-- =====================================================
              CATEGORY
              ===================================================== -->
@@ -1075,8 +941,137 @@
             </div>
 
         </section>
+        <!-- =====================================================
+PROMOTION
+===================================================== -->
+
+        <section class="home-section">
+
+            <div class="promo-banner">
+
+                <div class="promo-content">
+
+                    <h3>
+                        Nâng cấp công nghệ của bạn
+                    </h3>
+
+                    <p>
+                        Khám phá những thiết bị mới và lựa chọn
+                        sản phẩm phù hợp với nhu cầu của bạn.
+                    </p>
+
+                    <a href="#recommended-products"
+                       class="btn btn-primary px-4 py-2">
+
+                        Khám phá sản phẩm
+
+                        <i class="bi bi-arrow-right ms-2"></i>
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- =====================================================
+         PRODUCT
+         ===================================================== -->
+
+        <section class="home-section"
+                 id="recommended-products">
+
+            <div class="section-header">
+
+                <div>
+                    <h2 class="section-title">
+                        Sản phẩm nổi bật
+                    </h2>
+
+                    <p class="section-description">
+                        Những sản phẩm công nghệ đáng chú ý tại OECS
+                    </p>
+                </div>
+
+                <a href="${pageContext.request.contextPath}/shop"
+                   class="section-link">
+
+                    Xem tất cả
+
+                    <i class="bi bi-arrow-right"></i>
+
+                </a>
+
+            </div>
 
 
+            <div class="row g-4">
+
+                <c:choose>
+
+                    <c:when test="${not empty productList}">
+
+                        <c:forEach var="product"
+                                   items="${productList}"
+                                   begin="0"
+                                   end="7">
+
+                            <div class="col-12 col-sm-6 col-lg-3">
+                                <!-- ĐỔI div THÀNH thẻ a VÀ THÊM href, text-decoration-none -->
+                                <a href="${pageContext.request.contextPath}/shop?action=detail&id=${product.productId}" class="product-card text-decoration-none">
+
+                                    <div class="product-image text-dark">
+                                        <i class="bi bi-box-seam"></i>
+                                    </div>
+
+                                    <div class="product-info">
+                                        <div class="product-brand">
+                                            ${product.brand.brandName}
+                                        </div>
+                                        <div class="product-name text-dark">
+                                            ${product.productName}
+                                        </div>
+                                        <div class="product-description">
+                                            ${product.description}
+                                        </div>
+                                    </div>
+
+                                </a> <!-- KẾT THÚC THẺ a TẠI ĐÂY -->
+                            </div>
+
+                        </c:forEach>
+
+                    </c:when>
+
+
+                    <c:otherwise>
+
+                        <div class="col-12">
+
+                            <div class="alert alert-light text-center py-5">
+
+                                <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
+
+                                <h5>
+                                    Chưa có sản phẩm
+                                </h5>
+
+                                <p class="text-muted mb-0">
+                                    Hiện tại OECS chưa có sản phẩm để hiển thị.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </c:otherwise>
+
+                </c:choose>
+
+            </div>
+
+        </section>
     </div>
 
 </div>

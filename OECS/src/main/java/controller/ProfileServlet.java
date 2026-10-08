@@ -22,6 +22,8 @@ public class ProfileServlet extends HttpServlet {
     // Regex kiểm tra định dạng email
     private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
 
+    private static final String PHONE_REGEX = "^0\\d{8,9}$";
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -76,6 +78,16 @@ public class ProfileServlet extends HttpServlet {
                     return;
                 }
 
+                if (phone == null || !Pattern.matches(PHONE_REGEX, phone.trim())) {
+                    request.setAttribute(
+                            "profileError",
+                            "Số điện thoại phải gồm 9-10 chữ số và bắt đầu bằng 0!"
+                    );
+                    request.getRequestDispatcher("/WEB-INF/profile.jsp")
+                            .forward(request, response);
+                    return;
+                }
+
                 // Check Email trùng...
                 if (!email.trim().equalsIgnoreCase(user.getEmail())) {
                     if (dao.checkUserExist("", email.trim())) {
@@ -90,7 +102,7 @@ public class ProfileServlet extends HttpServlet {
 
                 if (isUpdated) {
                     user.setEmail(email.trim());
-                    user.setPhone(phone);
+                    user.setPhone(phone.trim());
                     user.setAddress(address != null ? address.trim() : "");
                     session.setAttribute("loggedInUser", user);
 

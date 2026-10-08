@@ -1,7 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="c" uri="jakarta.tags.core"%>
 
-<%@include file="/WEB-INF/include/header.jsp" %>
+<%@include file="/WEB-INF/include/header.jsp"%>
 
 <style>
     .review-page {
@@ -138,18 +138,13 @@
         align-items: center;
         justify-content: center;
         gap: 7px;
-
         padding: 10px 18px;
-
         border: none;
         border-radius: 8px;
-
         background: #2563eb;
         color: #ffffff;
-
         font-size: 0.88rem;
         font-weight: 600;
-
         transition: 0.2s;
     }
 
@@ -161,15 +156,11 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-
         padding: 9px 16px;
-
         border: 1px solid #cbd5e1;
         border-radius: 8px;
-
         background: #ffffff;
         color: #475569;
-
         text-decoration: none;
     }
 
@@ -179,248 +170,116 @@
     }
 </style>
 
-
 <div class="review-page">
 
     <div class="mb-4">
-
         <h1 class="page-title">
             Đánh giá sản phẩm
         </h1>
-
         <div class="page-description">
             Chia sẻ trải nghiệm của bạn về sản phẩm đã mua.
         </div>
-
     </div>
 
-
     <c:if test="${not empty sessionScope.errorMessage}">
-
         <div class="alert alert-danger alert-dismissible fade show">
-
             <i class="bi bi-exclamation-circle-fill me-2"></i>
-
             ${sessionScope.errorMessage}
-
-            <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert">
-            </button>
-
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-
-        <c:remove
-            var="errorMessage"
-            scope="session"/>
-
+        <c:remove var="errorMessage" scope="session"/>
     </c:if>
-
 
     <div class="review-card">
 
         <div class="review-card-header">
-
             <h5 class="review-card-title">
-
                 <i class="bi bi-star me-2 text-primary"></i>
-
                 Viết đánh giá
-
             </h5>
-
         </div>
-
 
         <div class="review-card-body">
 
-            <form
-                action="${pageContext.request.contextPath}/review"
-                method="post"
-                enctype="multipart/form-data">
+            <form action="${pageContext.request.contextPath}/review" method="post" enctype="multipart/form-data">
 
-                <input
-                    type="hidden"
-                    name="action"
-                    value="create">
+                <input type="hidden" name="action" value="create">
+                <input type="hidden" name="orderItemId" value="${orderItemId}">
 
-                <input
-                    type="hidden"
-                    name="orderItemId"
-                    value="${orderItemId}">
-
-
+                <!-- RATING -->
                 <div class="mb-4">
-
                     <label class="form-label">
                         Đánh giá của bạn
                     </label>
 
-
                     <div class="rating-box">
+                        <input type="radio" id="star5" name="rating" value="5" required>
+                        <label for="star5" title="5 sao">★</label>
 
-                        <input
-                            type="radio"
-                            id="star5"
-                            name="rating"
-                            value="5"
-                            required>
+                        <input type="radio" id="star4" name="rating" value="4">
+                        <label for="star4" title="4 sao">★</label>
 
-                        <label
-                            for="star5"
-                            title="5 sao">
-                            ★
-                        </label>
+                        <input type="radio" id="star3" name="rating" value="3">
+                        <label for="star3" title="3 sao">★</label>
 
+                        <input type="radio" id="star2" name="rating" value="2">
+                        <label for="star2" title="2 sao">★</label>
 
-                        <input
-                            type="radio"
-                            id="star4"
-                            name="rating"
-                            value="4">
-
-                        <label
-                            for="star4"
-                            title="4 sao">
-                            ★
-                        </label>
-
-
-                        <input
-                            type="radio"
-                            id="star3"
-                            name="rating"
-                            value="3">
-
-                        <label
-                            for="star3"
-                            title="3 sao">
-                            ★
-                        </label>
-
-
-                        <input
-                            type="radio"
-                            id="star2"
-                            name="rating"
-                            value="2">
-
-                        <label
-                            for="star2"
-                            title="2 sao">
-                            ★
-                        </label>
-
-
-                        <input
-                            type="radio"
-                            id="star1"
-                            name="rating"
-                            value="1">
-
-                        <label
-                            for="star1"
-                            title="1 sao">
-                            ★
-                        </label>
-
+                        <input type="radio" id="star1" name="rating" value="1">
+                        <label for="star1" title="1 sao">★</label>
                     </div>
 
                     <div class="rating-text">
                         Chọn từ 1 đến 5 sao.
                     </div>
-
                 </div>
 
-
+                <!-- COMMENT -->
                 <div class="mb-4">
-
                     <label class="form-label">
                         Nội dung đánh giá
                     </label>
-
-                    <textarea
-                        name="comment"
-                        class="form-control"
-                        rows="6"
-                        maxlength="2000"
-                        placeholder="Hãy chia sẻ cảm nhận của bạn về sản phẩm..."></textarea>
-
+                    <textarea name="comment" class="form-control" rows="6" maxlength="2000" placeholder="Hãy chia sẻ cảm nhận của bạn về sản phẩm..."></textarea>
                     <div class="text-muted small mt-1">
                         Tối đa 2000 ký tự.
                     </div>
-
                 </div>
 
-
+                <!-- IMAGES UPLOAD -->
                 <div class="mb-4">
-
                     <label class="form-label">
                         Hình ảnh sản phẩm
                     </label>
 
-
                     <div class="upload-box">
-
                         <div class="d-flex align-items-center gap-3">
-
                             <div class="upload-icon">
                                 <i class="bi bi-images"></i>
                             </div>
 
                             <div class="flex-grow-1">
-
-                                <input
-                                    type="file"
-                                    name="images"
-                                    id="reviewImages"
-                                    class="form-control"
-                                    accept=".jpg,.jpeg,.png,.webp"
-                                    multiple>
-
+                                <input type="file" name="images" id="reviewImages" class="form-control" accept=".jpg,.jpeg,.png,.webp" multiple>
                                 <div class="text-muted small mt-2">
                                     Tối đa 3 ảnh, mỗi ảnh tối đa 5MB.
                                 </div>
-
                             </div>
-
                         </div>
 
-
-                        <div
-                            id="imagePreview"
-                            class="image-preview">
-                        </div>
-
+                        <div id="imagePreview" class="image-preview"></div>
                     </div>
-
                 </div>
 
-
+                <!-- BUTTONS -->
                 <div class="d-flex gap-2">
-
-                    <button
-                        type="submit"
-                        class="btn-submit-review">
-
+                    <button type="submit" class="btn-submit-review">
                         <i class="bi bi-send"></i>
-
                         Gửi đánh giá
-
                     </button>
 
-
-                    <a
-                        href="${pageContext.request.contextPath}/orders"
-                        class="btn-back">
-
+                    <a href="${pageContext.request.contextPath}/orders" class="btn-back">
                         <i class="bi bi-arrow-left"></i>
-
                         Quay lại
-
                     </a>
-
                 </div>
 
             </form>
@@ -431,64 +290,36 @@
 
 </div>
 
-
 <script>
-    const reviewImages =
-            document.getElementById("reviewImages");
+    const reviewImages = document.getElementById("reviewImages");
+    const imagePreview = document.getElementById("imagePreview");
 
-    const imagePreview =
-            document.getElementById("imagePreview");
+    reviewImages.addEventListener("change", function () {
+        imagePreview.innerHTML = "";
+        const files = Array.from(this.files);
 
+        if (files.length > 3) {
+            alert("Bạn chỉ được chọn tối đa 3 ảnh.");
+            this.value = "";
+            return;
+        }
 
-    reviewImages.addEventListener(
-        "change",
-        function () {
-
-            imagePreview.innerHTML = "";
-
-            const files =
-                    Array.from(this.files);
-
-            if (files.length > 3) {
-
-                alert("Bạn chỉ được chọn tối đa 3 ảnh.");
-
-                this.value = "";
-
+        files.forEach(function (file) {
+            if (!file.type.startsWith("image/")) {
                 return;
             }
 
+            const reader = new FileReader();
 
-            files.forEach(function (file) {
+            reader.onload = function (e) {
+                const img = document.createElement("img");
+                img.src = e.target.result;
+                imagePreview.appendChild(img);
+            };
 
-                if (!file.type.startsWith("image/")) {
-                    return;
-                }
-
-                const reader =
-                        new FileReader();
-
-                reader.onload =
-                    function (e) {
-
-                        const img =
-                                document.createElement("img");
-
-                        img.src =
-                                e.target.result;
-
-                        imagePreview.appendChild(
-                                img
-                        );
-                    };
-
-                reader.readAsDataURL(
-                        file
-                );
-            });
-        }
-    );
+            reader.readAsDataURL(file);
+        });
+    });
 </script>
 
-
-<%@include file="/WEB-INF/include/footer.jsp" %>
+<%@include file="/WEB-INF/include/footer.jsp"%>

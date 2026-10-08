@@ -68,15 +68,11 @@
         display: inline-flex;
         align-items: center;
         gap: 7px;
-
         padding: 10px 17px;
-
         background: #2563eb;
         color: #ffffff;
-
         border: none;
         border-radius: 8px;
-
         font-size: 0.88rem;
         font-weight: 600;
     }
@@ -89,15 +85,11 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-
         padding: 9px 16px;
-
         background: #ffffff;
         color: #475569;
-
         border: 1px solid #cbd5e1;
         border-radius: 8px;
-
         text-decoration: none;
     }
 
@@ -107,263 +99,174 @@
     }
 </style>
 
-
 <div class="form-page">
 
     <div class="mb-4">
-
         <h1 class="page-title">
             Tạo Voucher
         </h1>
-
         <div class="page-description">
             Tạo mã giảm giá mới cho hệ thống.
         </div>
-
     </div>
 
-
     <c:if test="${not empty sessionScope.errorMessage}">
-
         <div class="alert alert-danger alert-dismissible fade show">
-
             <i class="bi bi-exclamation-circle-fill me-2"></i>
-
             ${sessionScope.errorMessage}
-
-            <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert">
-            </button>
-
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-
-        <c:remove
-            var="errorMessage"
-            scope="session"/>
-
+        <c:remove var="errorMessage" scope="session"/>
     </c:if>
-
 
     <div class="voucher-form-card">
 
         <div class="section-title">
-
             <i class="bi bi-plus-circle text-primary me-2"></i>
-
             Thông tin Voucher
-
         </div>
 
+        <form action="${pageContext.request.contextPath}/admin/voucher" method="post">
 
-        <form
-            action="${pageContext.request.contextPath}/admin/voucher"
-            method="post">
-
-            <input
-                type="hidden"
-                name="action"
-                value="create">
-
+            <input type="hidden" name="action" value="create">
 
             <div class="row g-3">
 
-
+                <%-- CODE --%>
                 <div class="col-md-6">
-
                     <label class="form-label">
                         Mã Voucher
                     </label>
-
-                    <input
-                        type="text"
-                        name="code"
-                        class="form-control"
-                        placeholder="VD: SALE20"
-                        required>
-
+                    <input type="text"
+                           name="code"
+                           class="form-control"
+                           placeholder="VD: SALE20"
+                           required>
                 </div>
 
-
+                <%-- DISCOUNT TYPE --%>
                 <div class="col-md-6">
-
                     <label class="form-label">
                         Loại giảm giá
                     </label>
-
-                    <select
-                        name="discountType"
-                        id="discountType"
-                        class="form-select"
-                        required>
-
+                    <select name="discountType"
+                            id="discountType"
+                            class="form-select"
+                            required>
                         <option value="AMOUNT">
                             Giảm số tiền
                         </option>
-
                         <option value="PERCENT">
                             Giảm phần trăm
                         </option>
-
                     </select>
-
                 </div>
 
-
+                <%-- DISCOUNT VALUE --%>
                 <div class="col-md-6">
-
                     <label class="form-label">
                         Giá trị giảm
                     </label>
-
-                    <input
-                        type="number"
-                        id="discountValue"
-                        name="discountValue"
-                        class="form-control"
-                        min="1"
-                        step="0.01"
-                        placeholder="VD: 100000"
-                        required>
-
+                    <input type="number"
+                           id="discountValue"
+                           name="discountValue"
+                           class="form-control"
+                           min="1"
+                           step="0.01"
+                           placeholder="VD: 100000"
+                           required>
                 </div>
 
-
-                <div
-                    class="col-md-6"
-                    id="maxDiscountGroup">
-
+                <%-- MAX DISCOUNT --%>
+                <div class="col-md-6" id="maxDiscountGroup">
                     <label class="form-label">
                         Giảm tối đa
                     </label>
-
-                    <input
-                        type="number"
-                        name="maxDiscount"
-                        class="form-control"
-                        min="0"
-                        step="1000"
-                        placeholder="VD: 500000">
-
+                    <input type="number"
+                           name="maxDiscount"
+                           class="form-control"
+                           min="0"
+                           step="1000"
+                           placeholder="VD: 500000">
                     <div class="field-note">
                         Chỉ áp dụng khi giảm theo phần trăm.
                     </div>
-
                 </div>
 
-
+                <%-- MIN ORDER VALUE --%>
                 <div class="col-md-6">
-
                     <label class="form-label">
                         Giá trị đơn tối thiểu
                     </label>
-
-                    <input
-                        type="number"
-                        name="minOrderValue"
-                        class="form-control"
-                        min="0"
-                        step="1000"
-                        value="0"
-                        required>
-
+                    <input type="number"
+                           name="minOrderValue"
+                           class="form-control"
+                           min="0"
+                           step="1000"
+                           value="0"
+                           required>
                 </div>
 
-
+                <%-- USAGE LIMIT --%>
                 <div class="col-md-3">
-
                     <label class="form-label">
                         Tổng lượt sử dụng
                     </label>
-
-                    <input
-                        type="number"
-                        name="usageLimit"
-                        class="form-control"
-                        min="1">
-
+                    <input type="number"
+                           name="usageLimit"
+                           class="form-control"
+                           min="1">
                     <div class="field-note">
                         Để trống nếu không giới hạn.
                     </div>
-
                 </div>
 
-
+                <%-- PER USER LIMIT --%>
                 <div class="col-md-3">
-
                     <label class="form-label">
                         Giới hạn mỗi User
                     </label>
-
-                    <input
-                        type="number"
-                        name="perUserLimit"
-                        class="form-control"
-                        min="1">
-
+                    <input type="number"
+                           name="perUserLimit"
+                           class="form-control"
+                           min="1">
                     <div class="field-note">
                         Để trống nếu không giới hạn.
                     </div>
-
                 </div>
 
-
+                <%-- VALID FROM --%>
                 <div class="col-md-6">
-
                     <label class="form-label">
                         Thời gian bắt đầu
                     </label>
-
-                    <input
-                        type="datetime-local"
-                        name="validFrom"
-                        class="form-control"
-                        required>
-
+                    <input type="datetime-local"
+                           name="validFrom"
+                           class="form-control"
+                           required>
                 </div>
 
-
+                <%-- VALID TO --%>
                 <div class="col-md-6">
-
                     <label class="form-label">
                         Thời gian kết thúc
                     </label>
-
-                    <input
-                        type="datetime-local"
-                        name="validTo"
-                        class="form-control"
-                        required>
-
+                    <input type="datetime-local"
+                           name="validTo"
+                           class="form-control"
+                           required>
                 </div>
 
             </div>
 
-
             <div class="d-flex gap-2 mt-4">
-
-                <button
-                    type="submit"
-                    class="btn-save">
-
-                    <i class="bi bi-plus-lg"></i>
-
-                    Tạo Voucher
-
+                <button type="submit" class="btn-save">
+                    <i class="bi bi-plus-lg"></i> Tạo Voucher
                 </button>
 
-
-                <a
-                    href="${pageContext.request.contextPath}/admin/voucher"
-                    class="btn-back">
-
-                    <i class="bi bi-arrow-left"></i>
-
-                    Quay lại
-
+                <a href="${pageContext.request.contextPath}/admin/voucher" class="btn-back">
+                    <i class="bi bi-arrow-left"></i> Quay lại
                 </a>
-
             </div>
 
         </form>
@@ -372,44 +275,24 @@
 
 </div>
 
-
 <script>
-    const discountType =
-            document.getElementById("discountType");
-
-    const discountValue =
-            document.getElementById("discountValue");
-
-    const maxDiscountGroup =
-            document.getElementById("maxDiscountGroup");
-
+    const discountType = document.getElementById("discountType");
+    const discountValue = document.getElementById("discountValue");
+    const maxDiscountGroup = document.getElementById("maxDiscountGroup");
 
     function updateDiscountForm() {
-
         if (discountType.value === "PERCENT") {
-
             maxDiscountGroup.style.display = "block";
-
             discountValue.max = "100";
-
             discountValue.placeholder = "VD: 20";
-
         } else {
-
             maxDiscountGroup.style.display = "none";
-
             discountValue.removeAttribute("max");
-
             discountValue.placeholder = "VD: 100000";
         }
     }
 
-
-    discountType.addEventListener(
-        "change",
-        updateDiscountForm
-    );
-
+    discountType.addEventListener("change", updateDiscountForm);
     updateDiscountForm();
 </script>
 

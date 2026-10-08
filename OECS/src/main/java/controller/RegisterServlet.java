@@ -21,6 +21,7 @@ public class RegisterServlet extends HttpServlet {
 
     // Regex kiểm tra định dạng email
     private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+    private static final String PHONE_REGEX = "^0\\d{8,9}$";
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -79,6 +80,16 @@ public class RegisterServlet extends HttpServlet {
                 return;
             }
 
+            if (phone == null || !Pattern.matches(PHONE_REGEX, phone.trim())) {
+                request.setAttribute(
+                        "errorMessage",
+                        "Số điện thoại phải gồm 9-10 chữ số và bắt đầu bằng 0!"
+                );
+                request.getRequestDispatcher("/WEB-INF/register.jsp")
+                        .forward(request, response);
+                return;
+            }
+
             if (password == null || confirmPassword == null || !password.equals(confirmPassword)) {
                 request.setAttribute("errorMessage", "Mật khẩu xác nhận không khớp!");
                 request.getRequestDispatcher("/WEB-INF/register.jsp").forward(request, response);
@@ -104,7 +115,7 @@ public class RegisterServlet extends HttpServlet {
             // =====================================================
             // 3. THỰC THI ĐĂNG KÝ VÀO DB
             // =====================================================
-            boolean isSuccess = dao.register(username, email.trim(), password, phone);
+            boolean isSuccess = dao.register(username, email.trim(), password, phone.trim());
 
             if (isSuccess) {
                 HttpSession session = request.getSession();
