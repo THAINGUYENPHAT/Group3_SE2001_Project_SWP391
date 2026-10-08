@@ -40,113 +40,111 @@ public class ReportServlet extends HttpServlet {
         try {
 
             // =====================================================
-            // 1. LẤY FILTER
+            // 1. Láº¤Y NGÃ€Y Báº®T Äáº¦U VÃ€ NGÃ€Y Káº¾T THÃšC
             // =====================================================
-            String type = request.getParameter("type");
-            String dateParam = request.getParameter("date");
+            String startDateParam
+                    = request.getParameter("startDate");
 
-            // Mặc định
-            if (type == null || type.trim().isEmpty()) {
-                type = "day";
+            String endDateParam
+                    = request.getParameter("endDate");
+
+            // =====================================================
+            // 2. GIÃ TRá»Š Máº¶C Äá»ŠNH
+            // =====================================================
+            if (startDateParam == null
+                    || startDateParam.trim().isEmpty()) {
+
+                startDateParam
+                        = LocalDate.now().toString();
             }
 
-            if (dateParam == null || dateParam.trim().isEmpty()) {
-                dateParam = LocalDate.now().toString();
+            if (endDateParam == null
+                    || endDateParam.trim().isEmpty()) {
+
+                endDateParam
+                        = LocalDate.now().toString();
             }
 
-            LocalDate selectedDate;
+            // =====================================================
+            // 3. PARSE DATE
+            // =====================================================
+            LocalDate startDate;
+            LocalDate endDate;
 
             try {
-                selectedDate = LocalDate.parse(dateParam);
+
+                startDate
+                        = LocalDate.parse(startDateParam);
+
+                endDate
+                        = LocalDate.parse(endDateParam);
+
             } catch (Exception e) {
-                selectedDate = LocalDate.now();
-                dateParam = selectedDate.toString();
+
+                startDate
+                        = LocalDate.now();
+
+                endDate
+                        = LocalDate.now();
+
+                startDateParam
+                        = startDate.toString();
+
+                endDateParam
+                        = endDate.toString();
             }
 
             // =====================================================
-            // 2. BIẾN KẾT QUẢ
+            // 4. KIá»‚M TRA KHOáº¢NG NGÃ€Y
             // =====================================================
-            BigDecimal totalRevenue;
-            int completedOrders;
-            int totalProductsSold;
-            List<Object[]> revenueByDate;
+            if (endDate.isBefore(startDate)) {
 
-            // =====================================================
-            // 3. FILTER THEO TYPE
-            // =====================================================
-            switch (type) {
+                LocalDate temp
+                        = startDate;
 
-                case "week":
+                startDate
+                        = endDate;
 
-                    totalRevenue
-                            = reportDAO.getTotalRevenueByWeek(selectedDate);
+                endDate
+                        = temp;
 
-                    completedOrders
-                            = reportDAO.getCompletedOrdersByWeek(selectedDate);
+                // Äá»•i láº¡i giÃ¡ trá»‹ hiá»ƒn thá»‹
+                startDateParam
+                        = startDate.toString();
 
-                    totalProductsSold
-                            = reportDAO.getTotalProductsSoldByWeek(selectedDate);
-
-                    revenueByDate
-                            = reportDAO.getRevenueByWeek(selectedDate);
-
-                    break;
-
-                case "month":
-
-                    totalRevenue
-                            = reportDAO.getTotalRevenueByMonth(selectedDate);
-
-                    completedOrders
-                            = reportDAO.getCompletedOrdersByMonth(selectedDate);
-
-                    totalProductsSold
-                            = reportDAO.getTotalProductsSoldByMonth(selectedDate);
-
-                    revenueByDate
-                            = reportDAO.getRevenueByMonth(selectedDate);
-
-                    break;
-
-                case "year":
-
-                    totalRevenue
-                            = reportDAO.getTotalRevenueByYear(selectedDate);
-
-                    completedOrders
-                            = reportDAO.getCompletedOrdersByYear(selectedDate);
-
-                    totalProductsSold
-                            = reportDAO.getTotalProductsSoldByYear(selectedDate);
-
-                    revenueByDate
-                            = reportDAO.getRevenueByYear(selectedDate);
-
-                    break;
-
-                case "day":
-
-                default:
-
-                    type = "day";
-
-                    totalRevenue
-                            = reportDAO.getTotalRevenueByDay(selectedDate);
-
-                    completedOrders
-                            = reportDAO.getCompletedOrdersByDay(selectedDate);
-
-                    totalProductsSold
-                            = reportDAO.getTotalProductsSoldByDay(selectedDate);
-
-                    revenueByDate
-                            = reportDAO.getRevenueByDay(selectedDate);
-
-                    break;
+                endDateParam
+                        = endDate.toString();
             }
 
             // =====================================================
-            // 4. GỬI DỮ LIỆU SANG JSP
+            // 5. Láº¤Y Dá»® LIá»†U REPORT
+            // =====================================================
+            BigDecimal totalRevenue
+                    = reportDAO.getTotalRevenueByRange(
+                            startDate,
+                            endDate
+                    );
+
+            int completedOrders
+                    = reportDAO.getCompletedOrdersByRange(
+                            startDate,
+                            endDate
+                    );
+
+            int totalProductsSold
+                    = reportDAO.getTotalProductsSoldByRange(
+                            startDate,
+                            endDate
+                    );
+
+            List<Object[]> revenueByDate
+                    = reportDAO.getRevenueByDateRange(
+                            startDate,
+                            endDate
+                    );
+
+            // =====================================================
+            // 6. Gá»¬I Dá»® LIá»†U SANG JSP
             // =====================================================
             request.setAttribute(
                     "totalRevenue",
@@ -168,29 +166,33 @@ public class ReportServlet extends HttpServlet {
                     revenueByDate
             );
 
-            // Filter hiện tại
+            // NgÃ y báº¯t Ä‘áº§u
             request.setAttribute(
-                    "selectedType",
-                    type
+                    "startDate",
+                    startDateParam
             );
 
+            // NgÃ y káº¿t thÃºc
             request.setAttribute(
-                    "selectedDate",
-                    dateParam
+                    "endDate",
+                    endDateParam
             );
 
             // =====================================================
-            // 5. FORWARD SANG JSP
+            // 7. FORWARD SANG JSP
             // =====================================================
             request.getRequestDispatcher(
                     "/WEB-INF/admin/report.jsp"
-            ).forward(request, response);
+            ).forward(
+                    request,
+                    response
+            );
 
         } catch (Exception e) {
 
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi khi tải Reporting System!",
+                    "Lá»—i khi táº£i Reporting System!",
                     e
             );
 
