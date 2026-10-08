@@ -42,123 +42,118 @@ public class ReportExportServlet extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        String type = request.getParameter("type");
-        String dateParam = request.getParameter("date");
-        String format = request.getParameter("format");
+        // =====================================================
+        // 1. GET PARAMETERS
+        // =====================================================
+        String startDateParam
+                = request.getParameter("startDate");
 
-        // ==============================
-        // DEFAULT
-        // ==============================
-        if (type == null || type.trim().isEmpty()) {
-            type = "day";
-        }
+        String endDateParam
+                = request.getParameter("endDate");
 
-        if (format == null || format.trim().isEmpty()) {
+        String format
+                = request.getParameter("format");
+
+        // =====================================================
+        // 2. DEFAULT FORMAT
+        // =====================================================
+        if (format == null
+                || format.trim().isEmpty()) {
+
             format = "excel";
         }
 
-        // ==============================
-        // PARSE DATE
-        // ==============================
-        LocalDate selectedDate;
+        // =====================================================
+        // 3. DEFAULT DATE
+        // =====================================================
+        if (startDateParam == null
+                || startDateParam.trim().isEmpty()) {
+
+            startDateParam
+                    = LocalDate.now().toString();
+        }
+
+        if (endDateParam == null
+                || endDateParam.trim().isEmpty()) {
+
+            endDateParam
+                    = LocalDate.now().toString();
+        }
+
+        // =====================================================
+        // 4. PARSE DATE
+        // =====================================================
+        LocalDate startDate;
+        LocalDate endDate;
 
         try {
-            selectedDate = LocalDate.parse(dateParam);
+
+            startDate
+                    = LocalDate.parse(startDateParam);
+
+            endDate
+                    = LocalDate.parse(endDateParam);
+
         } catch (Exception e) {
-            selectedDate = LocalDate.now();
+
+            startDate
+                    = LocalDate.now();
+
+            endDate
+                    = LocalDate.now();
         }
 
-        // ==============================
-        // VARIABLES
-        // ==============================
-        BigDecimal totalRevenue;
-        int completedOrders;
-        int totalProductsSold;
-        List<Object[]> revenueByDate;
+        // =====================================================
+        // 5. FIX INVALID RANGE
+        // =====================================================
+        if (endDate.isBefore(startDate)) {
 
-        // ==============================
-        // GET REPORT DATA
-        // ==============================
-        switch (type) {
+            LocalDate temp
+                    = startDate;
 
-            case "week":
+            startDate
+                    = endDate;
 
-                totalRevenue
-                        = reportDAO.getTotalRevenueByWeek(selectedDate);
-
-                completedOrders
-                        = reportDAO.getCompletedOrdersByWeek(selectedDate);
-
-                totalProductsSold
-                        = reportDAO.getTotalProductsSoldByWeek(selectedDate);
-
-                revenueByDate
-                        = reportDAO.getRevenueByWeek(selectedDate);
-
-                break;
-
-            case "month":
-
-                totalRevenue
-                        = reportDAO.getTotalRevenueByMonth(selectedDate);
-
-                completedOrders
-                        = reportDAO.getCompletedOrdersByMonth(selectedDate);
-
-                totalProductsSold
-                        = reportDAO.getTotalProductsSoldByMonth(selectedDate);
-
-                revenueByDate
-                        = reportDAO.getRevenueByMonth(selectedDate);
-
-                break;
-
-            case "year":
-
-                totalRevenue
-                        = reportDAO.getTotalRevenueByYear(selectedDate);
-
-                completedOrders
-                        = reportDAO.getCompletedOrdersByYear(selectedDate);
-
-                totalProductsSold
-                        = reportDAO.getTotalProductsSoldByYear(selectedDate);
-
-                revenueByDate
-                        = reportDAO.getRevenueByYear(selectedDate);
-
-                break;
-
-            case "day":
-
-            default:
-
-                type = "day";
-
-                totalRevenue
-                        = reportDAO.getTotalRevenueByDay(selectedDate);
-
-                completedOrders
-                        = reportDAO.getCompletedOrdersByDay(selectedDate);
-
-                totalProductsSold
-                        = reportDAO.getTotalProductsSoldByDay(selectedDate);
-
-                revenueByDate
-                        = reportDAO.getRevenueByDay(selectedDate);
-
-                break;
+            endDate
+                    = temp;
         }
 
-        // ==============================
-        // EXPORT
-        // ==============================
+        // =====================================================
+        // 6. GET REPORT DATA
+        // =====================================================
+        BigDecimal totalRevenue
+                = reportDAO.getTotalRevenueByRange(
+                        startDate,
+                        endDate
+                );
+
+        int completedOrders
+                = reportDAO.getCompletedOrdersByRange(
+                        startDate,
+                        endDate
+                );
+
+        int totalProductsSold
+                = reportDAO.getTotalProductsSoldByRange(
+                        startDate,
+                        endDate
+                );
+
+        List<Object[]> revenueByDate
+                = reportDAO.getRevenueByDateRange(
+                        startDate,
+                        endDate
+                );
+
+        // =====================================================
+        // 7. EXPORT
+        // =====================================================
         if ("pdf".equalsIgnoreCase(format)) {
 
             exportPdf(
                     response,
-                    type,
-                    selectedDate,
+                    startDate,
+                    endDate,
                     totalRevenue,
                     completedOrders,
                     totalProductsSold,
@@ -169,8 +164,8 @@ public class ReportExportServlet extends HttpServlet {
 
             exportExcel(
                     response,
-                    type,
-                    selectedDate,
+                    startDate,
+                    endDate,
                     totalRevenue,
                     completedOrders,
                     totalProductsSold,
@@ -184,14 +179,17 @@ public class ReportExportServlet extends HttpServlet {
     // ============================================================
     private void exportExcel(
             HttpServletResponse response,
-            String type,
-            LocalDate selectedDate,
+            LocalDate startDate,
+            LocalDate endDate,
             BigDecimal totalRevenue,
             int completedOrders,
             int totalProductsSold,
             List<Object[]> revenueByDate)
             throws IOException {
 
+        // =====================================================
+        // RESPONSE
+        // =====================================================
         response.setContentType(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         );
@@ -201,32 +199,44 @@ public class ReportExportServlet extends HttpServlet {
                 "attachment; filename=\"OECS_Report.xlsx\""
         );
 
-        try (Workbook workbook = new XSSFWorkbook()) {
+        // =====================================================
+        // CREATE WORKBOOK
+        // =====================================================
+        try (Workbook workbook
+                = new XSSFWorkbook()) {
 
             Sheet sheet
-                    = workbook.createSheet("Revenue Report");
+                    = workbook.createSheet(
+                            "Revenue Report"
+                    );
 
-            // ==============================
+            // =================================================
             // TITLE STYLE
-            // ==============================
+            // =================================================
             Font titleFont
                     = workbook.createFont();
 
             titleFont.setBold(true);
-            titleFont.setFontHeightInPoints((short) 16);
+
+            titleFont.setFontHeightInPoints(
+                    (short) 16
+            );
 
             CellStyle titleStyle
                     = workbook.createCellStyle();
 
-            titleStyle.setFont(titleFont);
+            titleStyle.setFont(
+                    titleFont
+            );
 
-            // ==============================
+            // =================================================
             // HEADER STYLE
-            // ==============================
+            // =================================================
             Font headerFont
                     = workbook.createFont();
 
             headerFont.setBold(true);
+
             headerFont.setColor(
                     IndexedColors.WHITE.getIndex()
             );
@@ -234,7 +244,9 @@ public class ReportExportServlet extends HttpServlet {
             CellStyle headerStyle
                     = workbook.createCellStyle();
 
-            headerStyle.setFont(headerFont);
+            headerStyle.setFont(
+                    headerFont
+            );
 
             headerStyle.setFillForegroundColor(
                     IndexedColors.DARK_BLUE.getIndex()
@@ -244,9 +256,9 @@ public class ReportExportServlet extends HttpServlet {
                     FillPatternType.SOLID_FOREGROUND
             );
 
-            // ==============================
+            // =================================================
             // TITLE
-            // ==============================
+            // =================================================
             Row titleRow
                     = sheet.createRow(0);
 
@@ -257,41 +269,49 @@ public class ReportExportServlet extends HttpServlet {
                     "OECS - REVENUE REPORT"
             );
 
-            titleCell.setCellStyle(titleStyle);
+            titleCell.setCellStyle(
+                    titleStyle
+            );
 
-            // ==============================
-            // REPORT INFORMATION
-            // ==============================
-            Row typeRow
+            // =================================================
+            // DATE RANGE
+            // =================================================
+            Row startRow
                     = sheet.createRow(2);
 
-            typeRow.createCell(0)
-                    .setCellValue("Report Type");
-
-            typeRow.createCell(1)
+            startRow.createCell(0)
                     .setCellValue(
-                            getReportTypeName(type)
+                            "Start Date"
                     );
 
-            Row dateRow
+            startRow.createCell(1)
+                    .setCellValue(
+                            startDate.toString()
+                    );
+
+            Row endRow
                     = sheet.createRow(3);
 
-            dateRow.createCell(0)
-                    .setCellValue("Reference Date");
-
-            dateRow.createCell(1)
+            endRow.createCell(0)
                     .setCellValue(
-                            selectedDate.toString()
+                            "End Date"
                     );
 
-            // ==============================
+            endRow.createCell(1)
+                    .setCellValue(
+                            endDate.toString()
+                    );
+
+            // =================================================
             // KPI
-            // ==============================
+            // =================================================
             Row revenueRow
                     = sheet.createRow(5);
 
             revenueRow.createCell(0)
-                    .setCellValue("Total Revenue");
+                    .setCellValue(
+                            "Total Revenue"
+                    );
 
             revenueRow.createCell(1)
                     .setCellValue(
@@ -302,7 +322,9 @@ public class ReportExportServlet extends HttpServlet {
                     = sheet.createRow(6);
 
             orderRow.createCell(0)
-                    .setCellValue("Completed Orders");
+                    .setCellValue(
+                            "Completed Orders"
+                    );
 
             orderRow.createCell(1)
                     .setCellValue(
@@ -313,16 +335,18 @@ public class ReportExportServlet extends HttpServlet {
                     = sheet.createRow(7);
 
             productRow.createCell(0)
-                    .setCellValue("Products Sold");
+                    .setCellValue(
+                            "Products Sold"
+                    );
 
             productRow.createCell(1)
                     .setCellValue(
                             totalProductsSold
                     );
 
-            // ==============================
+            // =================================================
             // TABLE HEADER
-            // ==============================
+            // =================================================
             Row headerRow
                     = sheet.createRow(9);
 
@@ -348,15 +372,18 @@ public class ReportExportServlet extends HttpServlet {
                 );
             }
 
-            // ==============================
+            // =================================================
             // TABLE DATA
-            // ==============================
+            // =================================================
             int rowIndex = 10;
 
-            for (Object[] row : revenueByDate) {
+            for (Object[] row
+                    : revenueByDate) {
 
                 Row excelRow
-                        = sheet.createRow(rowIndex++);
+                        = sheet.createRow(
+                                rowIndex++
+                        );
 
                 // Date
                 excelRow.createCell(0)
@@ -390,16 +417,16 @@ public class ReportExportServlet extends HttpServlet {
                         );
             }
 
-            // ==============================
+            // =================================================
             // AUTO SIZE
-            // ==============================
+            // =================================================
             sheet.autoSizeColumn(0);
             sheet.autoSizeColumn(1);
             sheet.autoSizeColumn(2);
 
-            // ==============================
-            // WRITE FILE
-            // ==============================
+            // =================================================
+            // WRITE
+            // =================================================
             workbook.write(
                     response.getOutputStream()
             );
@@ -411,14 +438,17 @@ public class ReportExportServlet extends HttpServlet {
     // ============================================================
     private void exportPdf(
             HttpServletResponse response,
-            String type,
-            LocalDate selectedDate,
+            LocalDate startDate,
+            LocalDate endDate,
             BigDecimal totalRevenue,
             int completedOrders,
             int totalProductsSold,
             List<Object[]> revenueByDate)
             throws IOException {
 
+        // =====================================================
+        // RESPONSE
+        // =====================================================
         response.setContentType(
                 "application/pdf"
         );
@@ -428,12 +458,12 @@ public class ReportExportServlet extends HttpServlet {
                 "attachment; filename=\"OECS_Report.pdf\""
         );
 
+        // =====================================================
+        // CREATE PDF
+        // =====================================================
         try (PDDocument document
                 = new PDDocument()) {
 
-            // ==============================
-            // FONT
-            // ==============================
             PDType1Font boldFont
                     = new PDType1Font(
                             Standard14Fonts.FontName.HELVETICA_BOLD
@@ -444,16 +474,13 @@ public class ReportExportServlet extends HttpServlet {
                             Standard14Fonts.FontName.HELVETICA
                     );
 
-            // ==============================
-            // DATA INDEX
-            // ==============================
             int rowIndex = 0;
 
             boolean firstPage = true;
 
-            // ==============================
-            // CREATE PAGES
-            // ==============================
+            // =================================================
+            // CREATE PAGE
+            // =================================================
             do {
 
                 PDPage page
@@ -461,9 +488,12 @@ public class ReportExportServlet extends HttpServlet {
                                 PDRectangle.A4
                         );
 
-                document.addPage(page);
+                document.addPage(
+                        page
+                );
 
-                try (PDPageContentStream content
+                try (
+                        PDPageContentStream content
                         = new PDPageContentStream(
                                 document,
                                 page
@@ -471,12 +501,12 @@ public class ReportExportServlet extends HttpServlet {
 
                     float y = 770;
 
-                    // ==========================================
-                    // FIRST PAGE INFORMATION
-                    // ==========================================
+                    // =========================================
+                    // FIRST PAGE
+                    // =========================================
                     if (firstPage) {
 
-                        // ---------- TITLE ----------
+                        // TITLE
                         content.beginText();
 
                         content.setFont(
@@ -497,7 +527,7 @@ public class ReportExportServlet extends HttpServlet {
 
                         y -= 35;
 
-                        // ---------- REPORT TYPE ----------
+                        // DATE RANGE
                         content.beginText();
 
                         content.setFont(
@@ -511,8 +541,8 @@ public class ReportExportServlet extends HttpServlet {
                         );
 
                         content.showText(
-                                "Report Type: "
-                                + getReportTypeName(type)
+                                "Start Date: "
+                                + startDate.toString()
                         );
 
                         content.newLineAtOffset(
@@ -521,15 +551,15 @@ public class ReportExportServlet extends HttpServlet {
                         );
 
                         content.showText(
-                                "Reference Date: "
-                                + selectedDate.toString()
+                                "End Date: "
+                                + endDate.toString()
                         );
 
                         content.endText();
 
                         y -= 55;
 
-                        // ---------- SUMMARY ----------
+                        // SUMMARY
                         content.beginText();
 
                         content.setFont(
@@ -550,7 +580,7 @@ public class ReportExportServlet extends HttpServlet {
 
                         y -= 22;
 
-                        // ---------- KPI ----------
+                        // KPI
                         content.beginText();
 
                         content.setFont(
@@ -597,13 +627,12 @@ public class ReportExportServlet extends HttpServlet {
 
                     } else {
 
-                        // Trang tiếp theo
                         y = 770;
                     }
 
-                    // ==========================================
+                    // =========================================
                     // TABLE HEADER
-                    // ==========================================
+                    // =========================================
                     content.beginText();
 
                     content.setFont(
@@ -642,9 +671,9 @@ public class ReportExportServlet extends HttpServlet {
 
                     y -= 20;
 
-                    // ==========================================
+                    // =========================================
                     // TABLE DATA
-                    // ==========================================
+                    // =========================================
                     while (rowIndex < revenueByDate.size()
                             && y > 50) {
 
@@ -715,34 +744,12 @@ public class ReportExportServlet extends HttpServlet {
 
             } while (rowIndex < revenueByDate.size());
 
-            // ==============================
+            // =================================================
             // SAVE PDF
-            // ==============================
+            // =================================================
             document.save(
                     response.getOutputStream()
             );
-        }
-    }
-
-    // ============================================================
-    // REPORT TYPE NAME
-    // ============================================================
-    private String getReportTypeName(
-            String type) {
-
-        switch (type) {
-
-            case "week":
-                return "By Week";
-
-            case "month":
-                return "By Month";
-
-            case "year":
-                return "By Year";
-
-            default:
-                return "By Day";
         }
     }
 }

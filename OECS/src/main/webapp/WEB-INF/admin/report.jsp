@@ -2,9 +2,12 @@
 <%@include file="/WEB-INF/include/header.jsp" %>
 
 <style>
+
     .report-page {
         padding: 28px 0 40px;
     }
+
+    /* ================= PAGE TITLE ================= */
 
     .page-title {
         display: flex;
@@ -35,38 +38,29 @@
         font-weight: 700;
     }
 
+
+    /* ================= COMMON CARD ================= */
+
     .report-card {
         background: white;
         border: 1px solid #e3e8ef;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(15, 23, 42, .035);
-        overflow: hidden;
     }
+
 
     /* ================= FILTER ================= */
 
     .filter-card {
         padding: 20px 22px;
         margin-bottom: 20px;
+        position: relative;
+        z-index: 20;
+        overflow: visible;
     }
 
     .section-heading {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 16px;
-    }
-
-    .section-icon {
-        width: 34px;
-        height: 34px;
-        border-radius: 8px;
-        background: #edf4ff;
-        color: #1677ff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
+        margin-bottom: 18px;
     }
 
     .section-heading h2 {
@@ -76,6 +70,8 @@
     }
 
     .section-heading span {
+        display: block;
+        margin-top: 4px;
         color: #8490a3;
         font-size: 12px;
     }
@@ -93,10 +89,7 @@
         gap: 6px;
     }
 
-    .filter-group.type-group {
-        width: 220px;
-    }
-
+    .filter-group.type-group,
     .filter-group.date-group {
         width: 220px;
     }
@@ -117,6 +110,7 @@
         color: #263449;
         padding: 0 11px;
         font-size: 13px;
+        box-sizing: border-box;
     }
 
     select:focus,
@@ -126,9 +120,19 @@
         box-shadow: 0 0 0 2px rgba(22,119,255,.08);
     }
 
+
+    /* ================= ACTIONS ================= */
+
+    .filter-actions {
+        display: flex;
+        align-items: flex-end;
+        gap: 14px;
+        margin-left: 4px;
+    }
+
     .btn-filter {
         height: 40px;
-        padding: 0 19px;
+        padding: 0 20px;
         border: 0;
         border-radius: 7px;
         background: #1677ff;
@@ -136,53 +140,110 @@
         font-size: 13px;
         font-weight: 600;
         cursor: pointer;
+        white-space: nowrap;
+        transition: .2s ease;
     }
 
     .btn-filter:hover {
         background: #0969e8;
     }
 
+
     /* ================= EXPORT ================= */
 
-    .export-buttons {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+    .export-group {
+        position: relative;
     }
 
-    .btn-excel,
-    .btn-pdf {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+    .btn-export-main {
         height: 40px;
-        padding: 0 16px;
+        min-width: 150px;
+        padding: 0 18px;
+        border: 1px solid #d8dee8;
         border-radius: 7px;
-        color: white;
-        text-decoration: none;
+        background: #ffffff;
+        color: #334155;
         font-size: 13px;
         font-weight: 600;
+        cursor: pointer;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+
         transition: .2s ease;
-        white-space: nowrap;
     }
 
-    .btn-excel {
-        background: #198754;
+    .btn-export-main:hover {
+        background: #f8fafc;
+        border-color: #bfc9d8;
     }
 
-    .btn-excel:hover {
-        background: #157347;
-        color: white;
+    .btn-export-main .arrow {
+        font-size: 12px;
+        transition: transform .2s ease;
     }
 
-    .btn-pdf {
-        background: #dc3545;
+    .btn-export-main.active .arrow {
+        transform: rotate(180deg);
     }
 
-    .btn-pdf:hover {
-        background: #bb2d3b;
-        color: white;
+
+    /* ================= EXPORT MENU ================= */
+
+    .export-menu {
+        display: none;
+
+        position: absolute;
+        top: calc(100% + 7px);
+        right: 0;
+
+        width: 180px;
+
+        background: #ffffff;
+        border: 1px solid #e1e6ed;
+        border-radius: 8px;
+
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .12);
+
+        padding: 5px;
+
+        z-index: 9999;
     }
+
+    .export-menu.show {
+        display: block;
+    }
+
+    .export-menu a {
+        display: block;
+
+        padding: 10px 12px;
+
+        border-radius: 6px;
+
+        color: #334155;
+        text-decoration: none;
+
+        font-size: 13px;
+        font-weight: 500;
+
+        transition: .15s ease;
+    }
+
+    .export-menu a:hover {
+        background: #f5f7fa;
+    }
+
+    .export-menu .excel-option:hover {
+        color: #198754;
+    }
+
+    .export-menu .pdf-option:hover {
+        color: #dc3545;
+    }
+
 
     /* ================= KPI ================= */
 
@@ -196,6 +257,7 @@
     .kpi-card {
         min-height: 108px;
         padding: 20px;
+
         display: flex;
         align-items: center;
         gap: 15px;
@@ -205,12 +267,16 @@
         width: 48px;
         height: 48px;
         flex-shrink: 0;
+
         border-radius: 10px;
+
         background: #edf4ff;
         color: #1677ff;
+
         display: flex;
         align-items: center;
         justify-content: center;
+
         font-size: 20px;
         font-weight: bold;
     }
@@ -233,11 +299,14 @@
         margin-left: 3px;
     }
 
-    /* ================= REPORT ================= */
+
+    /* ================= REPORT HEADER ================= */
 
     .report-header {
         padding: 19px 22px;
+
         border-bottom: 1px solid #e7ebf1;
+
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -252,12 +321,16 @@
     .report-icon {
         width: 36px;
         height: 36px;
+
         border-radius: 8px;
+
         background: #edf4ff;
         color: #1677ff;
+
         display: flex;
         align-items: center;
         justify-content: center;
+
         font-size: 17px;
     }
 
@@ -275,10 +348,14 @@
     .report-period {
         background: #f5f7fa;
         color: #66748a;
+
         padding: 7px 11px;
+
         border-radius: 7px;
+
         font-size: 12px;
     }
+
 
     /* ================= TABLE ================= */
 
@@ -294,18 +371,26 @@
     th {
         background: #f8fafc;
         color: #68768b;
+
         font-size: 11px;
         font-weight: 700;
+
         text-align: left;
+
         padding: 13px 22px;
+
         border-bottom: 1px solid #e4e9f0;
+
         text-transform: uppercase;
     }
 
     td {
         padding: 14px 22px;
+
         border-bottom: 1px solid #edf0f4;
+
         font-size: 13px;
+
         color: #334155;
     }
 
@@ -329,15 +414,24 @@
 
     .order-badge {
         display: inline-flex;
+
         min-width: 30px;
+
         justify-content: center;
+
         padding: 4px 8px;
+
         border-radius: 6px;
+
         background: #f1f5f9;
+
         color: #475569;
+
         font-weight: 600;
+
         font-size: 12px;
     }
+
 
     /* ================= TOTAL ================= */
 
@@ -345,9 +439,13 @@
         display: flex;
         align-items: center;
         justify-content: flex-end;
+
         gap: 8px;
+
         padding: 17px 22px;
+
         background: #fafbfd;
+
         border-top: 1px solid #e9edf2;
     }
 
@@ -362,6 +460,7 @@
         font-weight: 700;
     }
 
+
     /* ================= EMPTY ================= */
 
     .empty {
@@ -374,6 +473,7 @@
         font-size: 25px;
         margin-bottom: 8px;
     }
+
 
     /* ================= RESPONSIVE ================= */
 
@@ -396,22 +496,34 @@
             align-items: stretch;
         }
 
-        .filter-group.type-group,
         .filter-group.date-group {
+            width: 220px;
+        }
+
+        .filter-actions {
             width: 100%;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            margin-left: 0;
         }
 
         .btn-filter {
             width: 100%;
         }
 
-        .export-buttons {
+        .export-group {
             width: 100%;
         }
 
-        .btn-excel,
-        .btn-pdf {
-            flex: 1;
+        .btn-export-main {
+            width: 100%;
+        }
+
+        .export-menu {
+            width: 100%;
+            left: 0;
+            right: auto;
         }
 
         .report-header {
@@ -428,25 +540,29 @@
             min-width: 650px;
         }
     }
+
 </style>
 
 
 <div class="container-fluid report-page">
+
 
     <!-- ================= PAGE TITLE ================= -->
 
     <div class="page-title">
 
         <div>
+
             <h1>Reporting System</h1>
 
             <p>
                 Theo dõi doanh thu và hiệu quả hoạt động bán hàng
             </p>
+
         </div>
 
         <div class="page-badge">
-            📊 Báo cáo
+            Báo cáo
         </div>
 
     </div>
@@ -458,14 +574,11 @@
 
         <div class="section-heading">
 
-            <div class="section-icon">
-                ⚙
-            </div>
+            <h2>Bộ lọc báo cáo</h2>
 
-            <div>
-                <h2>Bộ lọc báo cáo</h2>
-                <span>Chọn khoảng thời gian cần xem</span>
-            </div>
+            <span>
+                Chọn khoảng thời gian cần xem
+            </span>
 
         </div>
 
@@ -475,90 +588,96 @@
             method="get"
             action="${pageContext.request.contextPath}/admin/report">
 
-            <!-- REPORT TYPE -->
-
-            <div class="filter-group type-group">
-
-                <label for="type">
-                    Loại báo cáo
-                </label>
-
-                <select id="type" name="type">
-
-                    <option value="day"
-                            ${selectedType == 'day' ? 'selected' : ''}>
-                        Theo ngày
-                    </option>
-
-                    <option value="week"
-                            ${selectedType == 'week' ? 'selected' : ''}>
-                        Theo tuần
-                    </option>
-
-                    <option value="month"
-                            ${selectedType == 'month' ? 'selected' : ''}>
-                        Theo tháng
-                    </option>
-
-                    <option value="year"
-                            ${selectedType == 'year' ? 'selected' : ''}>
-                        Theo năm
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            <!-- DATE -->
-
+            <!-- NGÀY BẮT ĐẦU -->
             <div class="filter-group date-group">
 
-                <label for="date">
-                    Ngày tham chiếu
+                <label for="startDate">
+                    Ngày bắt đầu
                 </label>
 
                 <input
-                    id="date"
                     type="date"
-                    name="date"
-                    value="${selectedDate}"
+                    id="startDate"
+                    name="startDate"
+                    value="${startDate}"
                     required>
 
             </div>
 
 
-            <!-- FILTER -->
+            <!-- NGÀY KẾT THÚC -->
+            <div class="filter-group date-group">
 
-            <button
-                type="submit"
-                class="btn-filter">
+                <label for="endDate">
+                    Ngày kết thúc
+                </label>
 
-                🔍 Lọc báo cáo
+                <input
+                    type="date"
+                    id="endDate"
+                    name="endDate"
+                    value="${endDate}"
+                    required>
 
-            </button>
-
-
-            <!-- EXPORT -->
-
-            <div class="export-buttons">
-
-                <a
-                    href="${pageContext.request.contextPath}/admin/report/export?type=${selectedType}&date=${selectedDate}"
-                    class="btn-excel">
-
-                    📥 Xuất Excel
-
-                </a>
+            </div>
 
 
-                <a
-                    href="${pageContext.request.contextPath}/admin/report/export?type=${selectedType}&date=${selectedDate}&format=pdf"
-                    class="btn-pdf">
+            <!-- BUTTONS -->
+            <div class="filter-actions">
 
-                    📄 Xuất PDF
+                <!-- LỌC -->
+                <button
+                    type="submit"
+                    class="btn-filter">
 
-                </a>
+                    Lọc báo cáo
+
+                </button>
+
+
+                <!-- EXPORT -->
+                <div class="export-group">
+
+                    <button
+                        type="button"
+                        class="btn-export-main"
+                        id="exportButton">
+
+                        Xuất báo cáo
+
+                        <span class="arrow">
+                            ▼
+                        </span>
+
+                    </button>
+
+
+                    <div
+                        class="export-menu"
+                        id="exportMenu">
+
+                        <!-- EXCEL -->
+                        <a
+                            class="excel-option"
+                            href="${pageContext.request.contextPath}/admin/report/export?startDate=${startDate}&endDate=${endDate}">
+
+                            Excel (.xlsx)
+
+                        </a>
+
+
+                        <!-- PDF -->
+                        <a
+                            class="pdf-option"
+                            href="${pageContext.request.contextPath}/admin/report/export?startDate=${startDate}&endDate=${endDate}&format=pdf">
+
+                            PDF (.pdf)
+
+                        </a>
+
+                    </div>
+
+                </div>
 
             </div>
 
@@ -570,6 +689,7 @@
     <!-- ================= KPI ================= -->
 
     <section class="kpi-grid">
+
 
         <!-- TOTAL REVENUE -->
 
@@ -586,8 +706,13 @@
                 </div>
 
                 <div class="kpi-value">
+
                     ${totalRevenue}
-                    <span class="kpi-unit">VNĐ</span>
+
+                    <span class="kpi-unit">
+                        VNĐ
+                    </span>
+
                 </div>
 
             </div>
@@ -610,8 +735,13 @@
                 </div>
 
                 <div class="kpi-value">
+
                     ${completedOrders}
-                    <span class="kpi-unit">đơn</span>
+
+                    <span class="kpi-unit">
+                        đơn
+                    </span>
+
                 </div>
 
             </div>
@@ -634,13 +764,19 @@
                 </div>
 
                 <div class="kpi-value">
+
                     ${totalProductsSold}
-                    <span class="kpi-unit">sản phẩm</span>
+
+                    <span class="kpi-unit">
+                        sản phẩm
+                    </span>
+
                 </div>
 
             </div>
 
         </div>
+
 
     </section>
 
@@ -649,7 +785,9 @@
 
     <section class="report-card">
 
+
         <div class="report-header">
+
 
             <div class="report-title">
 
@@ -659,7 +797,9 @@
 
                 <div>
 
-                    <h2>Báo cáo doanh thu</h2>
+                    <h2>
+                        Báo cáo doanh thu
+                    </h2>
 
                     <p>
                         Dữ liệu được tính từ các đơn hàng đã hoàn thành
@@ -671,39 +811,15 @@
 
 
             <div class="report-period">
-
-                <c:choose>
-
-                    <c:when test="${selectedType == 'day'}">
-                        Theo ngày
-                    </c:when>
-
-                    <c:when test="${selectedType == 'week'}">
-                        Theo tuần
-                    </c:when>
-
-                    <c:when test="${selectedType == 'month'}">
-                        Theo tháng
-                    </c:when>
-
-                    <c:when test="${selectedType == 'year'}">
-                        Theo năm
-                    </c:when>
-
-                    <c:otherwise>
-                        Theo ngày
-                    </c:otherwise>
-
-                </c:choose>
-
-                &nbsp;•&nbsp; ${selectedDate}
-
+                ${startDate}
+                &nbsp;•&nbsp;
+                ${endDate}
             </div>
 
         </div>
 
 
-        <!-- TABLE -->
+        <!-- ================= TABLE ================= -->
 
         <div class="table-wrapper">
 
@@ -734,21 +850,27 @@
 
                     <c:choose>
 
+
                         <c:when test="${not empty revenueByDate}">
+
 
                             <c:forEach
                                 var="row"
                                 items="${revenueByDate}">
 
+
                                 <tr>
+
 
                                     <td class="date">
                                         ${row[0]}
                                     </td>
 
+
                                     <td class="revenue">
                                         ${row[1]} VNĐ
                                     </td>
+
 
                                     <td class="order-count">
 
@@ -758,14 +880,18 @@
 
                                     </td>
 
+
                                 </tr>
 
+
                             </c:forEach>
+
 
                         </c:when>
 
 
                         <c:otherwise>
+
 
                             <tr>
 
@@ -783,7 +909,9 @@
 
                             </tr>
 
+
                         </c:otherwise>
+
 
                     </c:choose>
 
@@ -794,7 +922,7 @@
         </div>
 
 
-        <!-- TOTAL -->
+        <!-- ================= TOTAL ================= -->
 
         <div class="report-footer">
 
@@ -808,8 +936,71 @@
 
         </div>
 
+
     </section>
+
 
 </div>
 
+
 <%@include file="/WEB-INF/include/footer.jsp" %>
+
+
+<!-- ================= JAVASCRIPT ================= -->
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const exportButton =
+                document.getElementById("exportButton");
+
+        const exportMenu =
+                document.getElementById("exportMenu");
+
+        if (!exportButton || !exportMenu) {
+            return;
+        }
+
+
+        /* =========================
+         CLICK EXPORT BUTTON
+         ========================= */
+
+        exportButton.addEventListener("click", function (event) {
+
+            event.stopPropagation();
+
+            exportMenu.classList.toggle("show");
+
+            exportButton.classList.toggle("active");
+
+        });
+
+
+        /* =========================
+         CLICK INSIDE MENU
+         ========================= */
+
+        exportMenu.addEventListener("click", function (event) {
+
+            event.stopPropagation();
+
+        });
+
+
+        /* =========================
+         CLICK OUTSIDE
+         ========================= */
+
+        document.addEventListener("click", function () {
+
+            exportMenu.classList.remove("show");
+
+            exportButton.classList.remove("active");
+
+        });
+
+    });
+
+</script>
