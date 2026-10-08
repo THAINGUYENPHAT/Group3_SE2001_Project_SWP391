@@ -1,6 +1,7 @@
 package dao;
 
 import db.DBContext;
+
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,21 +14,17 @@ import java.util.logging.Logger;
 
 public class DashboardDAO extends DBContext {
 
+    private static final Logger LOGGER
+            = Logger.getLogger(DashboardDAO.class.getName());
+
     // =========================
     // 1. TOTAL REVENUE
     // =========================
     public BigDecimal getTotalRevenue() {
 
         String sql = "SELECT ISNULL(SUM(o.total_amount), 0) "
-                + "FROM [ORDER] o "
-                + "JOIN ORDER_STATUS_HISTORY h "
-                + "ON o.order_id = h.order_id "
-                + "WHERE h.status = 'Completed' "
-                + "AND h.status_id = ( "
-                + "SELECT MAX(h2.status_id) "
-                + "FROM ORDER_STATUS_HISTORY h2 "
-                + "WHERE h2.order_id = o.order_id"
-                + ")";
+                + "FROM dbo.[ORDER] o "
+                + "WHERE o.order_status = 'COMPLETED'";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
@@ -36,8 +33,11 @@ public class DashboardDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
-            Logger.getLogger(DashboardDAO.class.getName())
-                    .log(Level.SEVERE, "Error getting total revenue", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Error getting total revenue",
+                    ex
+            );
         }
 
         return BigDecimal.ZERO;
@@ -48,7 +48,8 @@ public class DashboardDAO extends DBContext {
     // =========================
     public int getTotalOrders() {
 
-        String sql = "SELECT COUNT(*) FROM [ORDER]";
+        String sql = "SELECT COUNT(*) "
+                + "FROM dbo.[ORDER]";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
@@ -57,8 +58,11 @@ public class DashboardDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
-            Logger.getLogger(DashboardDAO.class.getName())
-                    .log(Level.SEVERE, "Error getting total orders", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Error getting total orders",
+                    ex
+            );
         }
 
         return 0;
@@ -70,15 +74,8 @@ public class DashboardDAO extends DBContext {
     public int getCompletedOrders() {
 
         String sql = "SELECT COUNT(*) "
-                + "FROM [ORDER] o "
-                + "JOIN ORDER_STATUS_HISTORY h "
-                + "ON o.order_id = h.order_id "
-                + "WHERE h.status = 'Completed' "
-                + "AND h.status_id = ( "
-                + "SELECT MAX(h2.status_id) "
-                + "FROM ORDER_STATUS_HISTORY h2 "
-                + "WHERE h2.order_id = o.order_id"
-                + ")";
+                + "FROM dbo.[ORDER] o "
+                + "WHERE o.order_status = 'COMPLETED'";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
@@ -87,8 +84,11 @@ public class DashboardDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
-            Logger.getLogger(DashboardDAO.class.getName())
-                    .log(Level.SEVERE, "Error getting completed orders", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Error getting completed orders",
+                    ex
+            );
         }
 
         return 0;
@@ -101,7 +101,8 @@ public class DashboardDAO extends DBContext {
 
         String sql = "SELECT ISNULL(SUM(oi.quantity), 0) "
                 + "FROM ORDER_ITEM oi "
-                + "INNER JOIN [ORDER] o ON oi.order_id = o.order_id "
+                + "INNER JOIN dbo.[ORDER] o "
+                + "ON oi.order_id = o.order_id "
                 + "WHERE o.order_status = 'COMPLETED'";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
@@ -111,8 +112,11 @@ public class DashboardDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
-            Logger.getLogger(DashboardDAO.class.getName())
-                    .log(Level.SEVERE, "Error getting total products sold", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Error getting total products sold",
+                    ex
+            );
         }
 
         return 0;
@@ -125,17 +129,11 @@ public class DashboardDAO extends DBContext {
 
         List<Object[]> list = new ArrayList<>();
 
-        String sql = "SELECT CAST(o.created_at AS DATE) AS order_date, "
+        String sql = "SELECT "
+                + "CAST(o.created_at AS DATE) AS order_date, "
                 + "SUM(o.total_amount) AS revenue "
-                + "FROM [ORDER] o "
-                + "JOIN ORDER_STATUS_HISTORY h "
-                + "ON o.order_id = h.order_id "
-                + "WHERE h.status = 'Completed' "
-                + "AND h.status_id = ( "
-                + "SELECT MAX(h2.status_id) "
-                + "FROM ORDER_STATUS_HISTORY h2 "
-                + "WHERE h2.order_id = o.order_id"
-                + ") "
+                + "FROM dbo.[ORDER] o "
+                + "WHERE o.order_status = 'COMPLETED' "
                 + "GROUP BY CAST(o.created_at AS DATE) "
                 + "ORDER BY order_date";
 
@@ -152,8 +150,11 @@ public class DashboardDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
-            Logger.getLogger(DashboardDAO.class.getName())
-                    .log(Level.SEVERE, "Error getting revenue by date", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Error getting revenue by date",
+                    ex
+            );
         }
 
         return list;
@@ -170,25 +171,17 @@ public class DashboardDAO extends DBContext {
                 + "p.product_name, "
                 + "SUM(oi.quantity) AS total_sold "
                 + "FROM ORDER_ITEM oi "
-                + "INNER JOIN [ORDER] o "
+                + "INNER JOIN dbo.[ORDER] o "
                 + "ON oi.order_id = o.order_id "
                 + "INNER JOIN PRODUCT_SKU sku "
                 + "ON oi.sku_id = sku.sku_id "
                 + "INNER JOIN PRODUCT p "
                 + "ON sku.product_id = p.product_id "
-                + "INNER JOIN ORDER_STATUS_HISTORY h "
-                + "ON o.order_id = h.order_id "
-                + "WHERE h.status = 'Completed' "
-                + "AND h.status_id = ( "
-                + "    SELECT MAX(h2.status_id) "
-                + "    FROM ORDER_STATUS_HISTORY h2 "
-                + "    WHERE h2.order_id = o.order_id "
-                + ") "
+                + "WHERE o.order_status = 'COMPLETED' "
                 + "GROUP BY p.product_id, p.product_name "
                 + "ORDER BY total_sold DESC";
 
-        try (
-                Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
 
@@ -201,11 +194,11 @@ public class DashboardDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
-
-            Logger.getLogger(DashboardDAO.class.getName())
-                    .log(Level.SEVERE,
-                            "Error getting top selling products",
-                            ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Error getting top selling products",
+                    ex
+            );
         }
 
         return list;
@@ -218,37 +211,31 @@ public class DashboardDAO extends DBContext {
 
         List<Object[]> list = new ArrayList<>();
 
-        String sql = "SELECT h.status, COUNT(*) AS total "
-                + "FROM ORDER_STATUS_HISTORY h "
-                + "INNER JOIN ( "
-                + "    SELECT order_id, MAX(status_id) AS max_status_id "
-                + "    FROM ORDER_STATUS_HISTORY "
-                + "    GROUP BY order_id "
-                + ") latest "
-                + "ON h.order_id = latest.order_id "
-                + "AND h.status_id = latest.max_status_id "
-                + "GROUP BY h.status "
+        String sql = "SELECT "
+                + "o.order_status, "
+                + "COUNT(*) AS total "
+                + "FROM dbo.[ORDER] o "
+                + "GROUP BY o.order_status "
                 + "ORDER BY total DESC";
 
-        try (
-                Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
 
                 Object[] row = new Object[2];
 
-                row[0] = rs.getString("status");
+                row[0] = rs.getString("order_status");
                 row[1] = rs.getInt("total");
 
                 list.add(row);
             }
 
         } catch (SQLException ex) {
-
-            Logger.getLogger(DashboardDAO.class.getName())
-                    .log(Level.SEVERE,
-                            "Error getting order status statistics",
-                            ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Error getting order status statistics",
+                    ex
+            );
         }
 
         return list;
