@@ -21,7 +21,6 @@ public class UserDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(UserDAO.class.getName());
 
-
     // =========================================================
     // LOGIN
     // =========================================================
@@ -536,13 +535,11 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-
     // =========================================================
     // UPDATE PROFILE
     // =========================================================
     public boolean updateProfile(int userId, String email, String phone, String address, String fullName) {
         String updateProfileSql = "UPDATE [USER] SET email = ?, phone = ? WHERE user_id = ?";
-
 
         // Câu lệnh kiểm tra xem người dùng đã có địa chỉ mặc định chưa
         String checkAddrSql = "SELECT address_id FROM ADDRESSBOOK WHERE user_id = ? AND is_default = 1";
@@ -705,6 +702,59 @@ public class UserDAO extends DBContext {
                     "Lỗi thuật toán MD5!", ex);
 
             return "";
+        }
+    }
+
+    public User findByEmail(String email) throws SQLException {
+
+        String sql = "SELECT u.user_id, u.username, u.email, "
+                + "u.password_hash, u.phone, u.created_at, "
+                + "r.role_id, r.role_name "
+                + "FROM [USER] u "
+                + "LEFT JOIN USER_ROLES ur ON u.user_id = ur.user_id "
+                + "LEFT JOIN ROLES r ON ur.role_id = r.role_id "
+                + "WHERE u.email = ?";
+
+        try (Connection connection = new DBContext().getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, email);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                if (rs.next()) {
+
+                    User user = new User();
+
+                    user.setUserId(rs.getInt("user_id"));
+                    user.setUsername(rs.getString("username"));
+                    user.setEmail(rs.getString("email"));
+                    user.setPasswordHash(rs.getString("password_hash"));
+                    user.setPhone(rs.getString("phone"));
+                    user.setCreatedAt(rs.getTimestamp("created_at"));
+                    user.setRoleId(rs.getInt("role_id"));
+                    user.setRoleName(rs.getString("role_name"));
+
+                    return user;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public boolean resetPassword(int userId, String rawNewPassword)
+            throws SQLException {
+
+        String sql = "UPDATE [USER] "
+                + "SET password_hash = ? "
+                + "WHERE user_id = ?";
+
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+
+            ps.setString(1, hashMd5(rawNewPassword));
+            ps.setInt(2, userId);
+
+            return ps.executeUpdate() > 0;
         }
     }
 }
