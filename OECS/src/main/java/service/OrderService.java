@@ -1,4 +1,3 @@
-
 package service;
 
 import dao.OrderDAO;
@@ -6,6 +5,7 @@ import db.DBContext;
 import model.Order;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,23 +17,35 @@ public class OrderService {
 
     private final OrderDAO orderDAO = new OrderDAO();
 
-    // LUU THONG TIN SAN PHAM TRONG GIO HANG
+    // DU LIEU SAN PHAM TRONG GIO HANG
     private static final class CartLine {
 
-        final int id;
         final int skuId;
         final int quantity;
         final BigDecimal price;
 
-        CartLine(int id, int skuId, int quantity, BigDecimal price) {
-            this.id = id;
+        CartLine(int skuId, int quantity, BigDecimal price) {
             this.skuId = skuId;
             this.quantity = quantity;
             this.price = price;
         }
     }
 
-    // GIU LAI HAM CU DE KHONG ANH HUONG CODE KHAC
+    // KET QUA KIEM TRA VOUCHER
+    private static final class VoucherResult {
+
+        final Integer id;
+        final BigDecimal discount;
+
+        VoucherResult(Integer id, BigDecimal discount) {
+            this.id = id;
+            this.discount = discount;
+        }
+    }
+
+    // GIU CHU KY HAM CU TRONG LUC CAP NHAT TUNG FILE
+    // SERVLET SE DUOC DOI SANG HAM CO TOKEN O BUOC TIEP THEO
+    @Deprecated
     public int placeCodOrder(
             int userId,
             int addressId,
@@ -43,18 +55,12 @@ public class OrderService {
             BigDecimal shippingFee
     ) throws SQLException {
 
-        return placeCodOrder(
-                userId,
-                addressId,
-                name,
-                phone,
-                address,
-                shippingFee,
-                BigDecimal.ZERO
+        throw new IllegalArgumentException(
+                "Cần cập nhật CheckoutServlet sang luồng đặt hàng mới."
         );
     }
 
-    // DAT HANG COD CO HO TRO GIAM GIA
+    @Deprecated
     public int placeCodOrder(
             int userId,
             int addressId,
@@ -65,65 +71,52 @@ public class OrderService {
             BigDecimal discountAmount
     ) throws SQLException {
 
-        // KIEM TRA THONG TIN DAU VAO
-        if (userId <= 0 || addressId <= 0) {
+        throw new IllegalArgumentException(
+                "Cần cập nhật CheckoutServlet sang luồng đặt hàng mới."
+        );
+    }
+
+    // DAT HANG COD CO TOKEN VA VOUCHER
+    public int placeCodOrder(
+            int userId,
+            int addressId,
+            String checkoutToken,
+            String voucherCode
+    ) throws SQLException {
+
+        if (userId <= 0
+                || addressId <= 0
+                || checkoutToken == null
+                || !checkoutToken.matches("[0-9a-fA-F-]{36}")) {
+
             throw new IllegalArgumentException(
-                    "Thông tin tài khoản hoặc địa chỉ không hợp lệ."
+                    "Yêu cầu đặt hàng không hợp lệ. "
+                    + "Vui lòng tải lại Checkout."
             );
         }
 
-        if (isBlank(name) || isBlank(phone) || isBlank(address)) {
-            throw new IllegalArgumentException(
-                    "Vui lòng nhập đầy đủ thông tin người nhận."
-            );
-        }
+        try (Connection conn = new DBContext().getConnection()) {
 
-        if (name.trim().length() > 100
-                || !phone.trim().matches("[0-9]{9,11}")) {
-            throw new IllegalArgumentException(
-                    "Tên hoặc số điện thoại không hợp lệ."
-            );
-        }
-
-        if (shippingFee == null || shippingFee.signum() < 0) {
-            throw new IllegalArgumentException(
-                    "Phí vận chuyển không hợp lệ."
-            );
-        }
-
-        if (discountAmount == null || discountAmount.signum() < 0) {
-            throw new IllegalArgumentException(
-                    "Số tiền giảm giá không hợp lệ."
-            );
-        }
-
-        Connection conn = new DBContext().getConnection();
-
-        if (conn == null) {
-            throw new SQLException("Không thể kết nối database.");
-        }
-
-        try (Connection closeMe = conn) {
+            if (conn == null) {
+                throw new SQLException(
+                        "Khong ket noi duoc database."
+                );
+            }
 
             conn.setAutoCommit(false);
 
             try {
-
-                // 1. KHOA GIO HANG DE TRANH XU LY DONG THOI
+                // 1. KHOA GIO HANG CUA USER
                 int cartId;
 
-                String cartSql =
-                        "SELECT cart_id "
+                String sql = "SELECT cart_id "
                         + "FROM dbo.CART WITH (UPDLOCK, HOLDLOCK) "
                         + "WHERE user_id = ?";
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(cartSql)) {
-
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setInt(1, userId);
 
                     try (ResultSet rs = ps.executeQuery()) {
-
                         if (!rs.next()) {
                             throw new IllegalArgumentException(
                                     "Giỏ hàng không tồn tại."
@@ -134,64 +127,70 @@ public class OrderService {
                     }
                 }
 
-                // 2. KIEM TRA DIA CHI THUOC USER VA CHUA BI XOA
-                // QUAN TRONG: THEM is_deleted = 0
-                String addressSql =
-                        "SELECT recipient_name, phone_number, address_line "
-                        + "FROM dbo.ADDRESSBOOK "
+                // 2. TOKEN DA TAO DON THI TRA VE DON CU
+                Integer existingOrderId = orderDAO.findIdByToken(
+                        conn,
+                        userId,
+                        checkoutToken
+                );
+
+                if (existingOrderId != null) {
+                    conn.commit();
+                    return existingOrderId;
+                }
+
+                // 3. KIEM TRA DIA CHI VA LUU THONG TIN NGUOI NHAN
+                Order order = new Order();
+                order.setUserId(userId);
+                order.setAddressId(addressId);
+
+                sql = "SELECT recipient_name, phone_number, address_line "
+                        + "FROM dbo.ADDRESSBOOK WITH (HOLDLOCK) "
                         + "WHERE address_id = ? "
                         + "AND user_id = ? "
                         + "AND is_deleted = 0";
 
-                String recipientName;
-                String recipientPhone;
-                String shippingAddress;
-
-                try (PreparedStatement ps =
-                        conn.prepareStatement(addressSql)) {
-
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setInt(1, addressId);
                     ps.setInt(2, userId);
 
                     try (ResultSet rs = ps.executeQuery()) {
-
                         if (!rs.next()) {
                             throw new IllegalArgumentException(
                                     "Địa chỉ không tồn tại hoặc đã bị xóa."
                             );
                         }
 
-                        recipientName = rs.getString("recipient_name");
-                        recipientPhone = rs.getString("phone_number");
-                        shippingAddress = rs.getString("address_line");
+                        order.setRecipientName(
+                                rs.getString("recipient_name")
+                        );
+
+                        order.setRecipientPhone(
+                                rs.getString("phone_number")
+                        );
+
+                        order.setShippingAddress(
+                                rs.getString("address_line")
+                        );
                     }
                 }
 
-                // 3. LAY SAN PHAM VA GIA HIEN TAI
+                // 4. DOC SAN PHAM VA GIA TU DATABASE
                 List<CartLine> lines = new ArrayList<>();
                 BigDecimal subtotal = BigDecimal.ZERO;
 
-                String itemsSql =
-                        "SELECT ci.cart_item_id, "
-                        + "ci.sku_id, "
-                        + "ci.quantity, "
-                        + "s.price "
+                sql = "SELECT ci.sku_id, ci.quantity, s.price "
                         + "FROM dbo.CART_ITEMS ci WITH (UPDLOCK, HOLDLOCK) "
-                        + "JOIN dbo.PRODUCT_SKU s "
+                        + "JOIN dbo.PRODUCT_SKU s WITH (UPDLOCK, HOLDLOCK) "
                         + "ON s.sku_id = ci.sku_id "
                         + "WHERE ci.cart_id = ? "
-                        + "ORDER BY ci.cart_item_id";
+                        + "ORDER BY ci.sku_id, ci.cart_item_id";
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(itemsSql)) {
-
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setInt(1, cartId);
 
                     try (ResultSet rs = ps.executeQuery()) {
-
                         while (rs.next()) {
-
-                            int itemId = rs.getInt("cart_item_id");
                             int skuId = rs.getInt("sku_id");
                             int quantity = rs.getInt("quantity");
                             BigDecimal price = rs.getBigDecimal("price");
@@ -206,12 +205,7 @@ public class OrderService {
                             }
 
                             lines.add(
-                                    new CartLine(
-                                            itemId,
-                                            skuId,
-                                            quantity,
-                                            price
-                                    )
+                                    new CartLine(skuId, quantity, price)
                             );
 
                             BigDecimal lineTotal = price.multiply(
@@ -229,41 +223,34 @@ public class OrderService {
                     );
                 }
 
-                // 4. KIEM TRA SO TIEN GIAM GIA
-                if (discountAmount.compareTo(subtotal) > 0) {
-                    throw new IllegalArgumentException(
-                            "Số tiền giảm giá vượt quá giá trị đơn hàng."
-                    );
-                }
+                // 5. KIEM TRA VOUCHER TRONG CUNG TRANSACTION
+                VoucherResult voucher = lockAndCalculateVoucher(
+                        conn,
+                        userId,
+                        voucherCode,
+                        subtotal
+                );
 
-                // 5. TINH TONG TIEN DON HANG
+                // PHI SHIP TAM GIU 0 THEO CHECKOUT HIEN TAI
+                BigDecimal shippingFee = BigDecimal.ZERO;
+
                 BigDecimal totalAmount = subtotal
                         .add(shippingFee)
-                        .subtract(discountAmount);
-
-                if (totalAmount.signum() < 0) {
-                    totalAmount = BigDecimal.ZERO;
-                }
+                        .subtract(voucher.discount);
 
                 // 6. TRU TON KHO AN TOAN
-                for (CartLine line : lines) {
+                sql = "UPDATE dbo.PRODUCT_SKU "
+                        + "SET stock_quantity = stock_quantity - ? "
+                        + "WHERE sku_id = ? "
+                        + "AND stock_quantity >= ?";
 
-                    String stockSql =
-                            "UPDATE dbo.PRODUCT_SKU "
-                            + "SET stock_quantity = stock_quantity - ? "
-                            + "WHERE sku_id = ? "
-                            + "AND stock_quantity >= ?";
-
-                    try (PreparedStatement ps =
-                            conn.prepareStatement(stockSql)) {
-
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    for (CartLine line : lines) {
                         ps.setInt(1, line.quantity);
                         ps.setInt(2, line.skuId);
                         ps.setInt(3, line.quantity);
 
-                        int updatedRows = ps.executeUpdate();
-
-                        if (updatedRows != 1) {
+                        if (ps.executeUpdate() != 1) {
                             throw new IllegalArgumentException(
                                     "Sản phẩm SKU " + line.skuId
                                     + " không đủ số lượng tồn kho."
@@ -272,42 +259,28 @@ public class OrderService {
                     }
                 }
 
-                // 7. TAO DON HANG COD
-                Order order = new Order();
-
-                order.setUserId(userId);
-                order.setAddressId(addressId);
-
-                // LAY THONG TIN TRUC TIEP TU DATABASE
-                // TRANH SU DUNG DIA CHI KHONG HOP LE
-                order.setRecipientName(recipientName);
-                order.setRecipientPhone(recipientPhone);
-                order.setShippingAddress(shippingAddress);
-
+                // 7. TAO DON HANG
                 order.setShippingFee(shippingFee);
-                order.setDiscountAmount(discountAmount);
+                order.setDiscountAmount(voucher.discount);
                 order.setTotalAmount(totalAmount);
 
                 order.setOrderStatus("PENDING_CONFIRMATION");
                 order.setPaymentMethod("COD");
 
-                if (totalAmount.signum() == 0) {
-                    order.setPaymentStatus("PAID");
-                } else {
-                    order.setPaymentStatus("UNPAID");
-                }
+                order.setPaymentStatus(
+                        totalAmount.signum() == 0
+                        ? "PAID"
+                        : "UNPAID"
+                );
 
-                int orderId = orderDAO.insert(conn, order);
-
-                if (orderId <= 0) {
-                    throw new SQLException(
-                            "Không thể tạo đơn hàng."
-                    );
-                }
+                int orderId = orderDAO.insert(
+                        conn,
+                        order,
+                        checkoutToken
+                );
 
                 // 8. LUU CHI TIET DON HANG
                 for (CartLine line : lines) {
-
                     orderDAO.insertItem(
                             conn,
                             orderId,
@@ -324,37 +297,164 @@ public class OrderService {
                         "PENDING_CONFIRMATION"
                 );
 
-                // 10. XOA SAN PHAM KHOI GIO HANG
-                String deleteCartSql =
-                        "DELETE FROM dbo.CART_ITEMS "
-                        + "WHERE cart_id = ?";
+                // 10. GHI NHAN LUOT SU DUNG VOUCHER
+                if (voucher.id != null) {
+                    sql = "INSERT INTO dbo.VOUCHER_USAGES "
+                            + "(voucher_id, order_id, user_id) "
+                            + "VALUES (?, ?, ?)";
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(deleteCartSql)) {
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, voucher.id);
+                        ps.setInt(2, orderId);
+                        ps.setInt(3, userId);
 
+                        if (ps.executeUpdate() != 1) {
+                            throw new SQLException(
+                                    "Khong luu duoc luot su dung voucher."
+                            );
+                        }
+                    }
+                }
+
+                // 11. XOA SAN PHAM DA DAT KHOI GIO HANG
+                sql = "DELETE FROM dbo.CART_ITEMS WHERE cart_id = ?";
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setInt(1, cartId);
                     ps.executeUpdate();
                 }
 
-                // 11. COMMIT KHI TAT CA THANH CONG
+                // 12. TAT CA THANH CONG MOI COMMIT
                 conn.commit();
 
                 return orderId;
 
             } catch (SQLException | RuntimeException e) {
 
-                // CO LOI THI HOAN TAC TOAN BO
-                conn.rollback();
-                throw e;
+                // LOI O BAT KY BUOC NAO THI HOAN TAC
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackError) {
+                    e.addSuppressed(rollbackError);
+                }
 
-            } finally {
-                conn.setAutoCommit(true);
+                throw e;
             }
         }
     }
 
-    // KIEM TRA CHUOI RONG
-    private static boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
+    // KHOA VOUCHER, KIEM TRA DIEU KIEN VA TINH GIAM GIA
+    private VoucherResult lockAndCalculateVoucher(
+            Connection conn,
+            int userId,
+            String voucherCode,
+            BigDecimal subtotal
+    ) throws SQLException {
+
+        // KHONG SU DUNG VOUCHER
+        if (voucherCode == null || voucherCode.trim().isEmpty()) {
+            return new VoucherResult(null, BigDecimal.ZERO);
+        }
+
+        String sql = "SELECT voucher_id, discount_type, discount_value, "
+                + "max_discount, usage_limit, per_user_limit "
+                + "FROM dbo.VOUCHER WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE code = ? "
+                + "AND GETDATE() BETWEEN valid_from AND valid_to "
+                + "AND min_order_value <= ?";
+
+        int voucherId;
+        String discountType;
+        BigDecimal discountValue;
+        BigDecimal maxDiscount;
+        Integer usageLimit;
+        Integer perUserLimit;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, voucherCode.trim());
+            ps.setBigDecimal(2, subtotal);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new IllegalArgumentException(
+                            "Voucher hết hạn hoặc đơn hàng "
+                            + "chưa đủ điều kiện áp dụng."
+                    );
+                }
+
+                voucherId = rs.getInt("voucher_id");
+                discountType = rs.getString("discount_type");
+                discountValue = rs.getBigDecimal("discount_value");
+                maxDiscount = rs.getBigDecimal("max_discount");
+
+                usageLimit
+                        = (Integer) rs.getObject("usage_limit");
+
+                perUserLimit
+                        = (Integer) rs.getObject("per_user_limit");
+            }
+        }
+
+        // DEM LUOT SU DUNG SAU KHI DA KHOA VOUCHER
+        sql = "SELECT COUNT_BIG(*) AS total_used, "
+                + "COALESCE(SUM(CASE WHEN user_id = ? "
+                + "THEN CAST(1 AS bigint) ELSE 0 END), 0) AS user_used "
+                + "FROM dbo.VOUCHER_USAGES "
+                + "WHERE voucher_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, voucherId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+
+                long totalUsed = rs.getLong("total_used");
+                long userUsed = rs.getLong("user_used");
+
+                if (usageLimit != null && totalUsed >= usageLimit) {
+                    throw new IllegalArgumentException(
+                            "Voucher đã hết lượt sử dụng."
+                    );
+                }
+
+                if (perUserLimit != null && userUsed >= perUserLimit) {
+                    throw new IllegalArgumentException(
+                            "Bạn đã dùng hết lượt của voucher này."
+                    );
+                }
+            }
+        }
+
+        // TINH SO TIEN GIAM
+        BigDecimal discount;
+
+        if ("AMOUNT".equalsIgnoreCase(discountType)) {
+            discount = discountValue;
+
+        } else if ("PERCENT".equalsIgnoreCase(discountType)) {
+            discount = subtotal.multiply(discountValue).divide(
+                    BigDecimal.valueOf(100),
+                    2,
+                    RoundingMode.HALF_UP
+            );
+
+            if (maxDiscount != null) {
+                discount = discount.min(maxDiscount);
+            }
+
+        } else {
+            throw new IllegalArgumentException(
+                    "Loại voucher không được hỗ trợ."
+            );
+        }
+
+        // GIAM GIA KHONG AM VA KHONG VUOT TIEN HANG
+        discount = discount
+                .max(BigDecimal.ZERO)
+                .min(subtotal)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        return new VoucherResult(voucherId, discount);
     }
 }

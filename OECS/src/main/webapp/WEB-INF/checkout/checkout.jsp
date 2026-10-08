@@ -1,4 +1,3 @@
-
 <%@ page pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
@@ -52,7 +51,6 @@
                     </h5>
 
                     <div class="d-flex gap-2">
-
                         <button type="button"
                                 id="openAddressModalButton"
                                 class="btn btn-outline-primary btn-sm"
@@ -69,7 +67,6 @@
                             <i class="bi bi-plus-lg"></i>
                             Thêm địa chỉ
                         </button>
-
                     </div>
                 </div>
 
@@ -81,7 +78,7 @@
                     Hãy thêm địa chỉ để tiếp tục.
                 </div>
 
-                <!-- DIA CHI DANG DUOC SU DUNG -->
+                <!-- DIA CHI DANG SU DUNG -->
                 <div id="selectedAddressCard"
                      class="border rounded-3 p-3 bg-light"
                      style="${empty selectedAddress ? 'display:none;' : ''}">
@@ -92,8 +89,7 @@
                         <c:out value="${selectedAddress.phoneNumber}" />
                     </div>
 
-                    <div class="text-muted mt-1"
-                         id="selectedAddressLine">
+                    <div class="text-muted mt-1" id="selectedAddressLine">
                         <c:out value="${selectedAddress.addressLine}" />
                     </div>
 
@@ -227,7 +223,7 @@
                     </div>
                 </form>
 
-                <!-- VOUCHER CO THE SU DUNG -->
+                <!-- VOUCHER KHA DUNG -->
                 <c:if test="${not empty availableVouchers}">
                     <div class="fw-semibold mb-2">
                         Voucher khả dụng
@@ -306,7 +302,7 @@
         </div>
     </div>
 
-    <!-- COT PHAI: TONG KET THANH TOAN -->
+    <!-- COT PHAI: TONG KET -->
     <div class="col-lg-4">
         <div class="card shadow-sm border-0 rounded-4">
             <div class="card-body p-4">
@@ -317,7 +313,6 @@
 
                 <div class="d-flex justify-content-between mb-3">
                     <span>Tiền hàng</span>
-
                     <strong>
                         <fmt:formatNumber
                             value="${subtotal}"
@@ -333,7 +328,6 @@
 
                 <div class="d-flex justify-content-between mb-3">
                     <span>Giảm giá</span>
-
                     <span class="text-success">
                         -<fmt:formatNumber
                             value="${discount}"
@@ -346,7 +340,6 @@
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <strong>Tổng thanh toán</strong>
-
                     <h4 class="text-danger fw-bold mb-0">
                         <fmt:formatNumber
                             value="${totalAmount}"
@@ -355,7 +348,7 @@
                     </h4>
                 </div>
 
-                <!-- FORM DAT HANG COD -->
+                <!-- FORM DAT HANG -->
                 <form id="orderForm"
                       action="${pageContext.request.contextPath}/checkout"
                       method="post">
@@ -363,6 +356,9 @@
                     <input type="hidden"
                            name="action"
                            value="placeOrder">
+                    <input type="hidden"
+                           name="checkoutToken"
+                           value="<c:out value='${sessionScope.checkoutToken}' />">
 
                     <input type="hidden"
                            name="addressId"
@@ -376,7 +372,6 @@
                         <i class="bi bi-bag-check me-1"></i>
                         Đặt hàng COD
                     </button>
-
                 </form>
 
                 <p id="needAddressMessage"
@@ -392,10 +387,9 @@
             </div>
         </div>
     </div>
-
 </div>
 
-<!-- MODAL CHON DIA CHI -->
+<!-- MODAL CHON VA SUA DIA CHI -->
 <div class="modal fade"
      id="addressModal"
      tabindex="-1"
@@ -420,72 +414,73 @@
                  class="alert mx-3 mt-3 mb-0 d-none"
                  role="alert"></div>
 
-            <!-- DANH SACH DIA CHI CO THANH CUON -->
+            <!-- DANH SACH DIA CHI -->
             <div id="addressList"
                  class="modal-body"
                  style="max-height: 400px; overflow-y: auto;">
 
                 <c:forEach var="address" items="${addresses}">
-
                     <div class="border rounded-3 p-3 mb-2 address-option"
-                         data-address-id="${address.addressId}">
+                         data-address-id="${address.addressId}"
+                         data-default="${address.defaultAddress}">
 
-                        <div class="d-flex gap-3 align-items-start">
+                        <div class="d-flex flex-wrap gap-3 align-items-start">
 
-                            <!-- RADIO CHON DIA CHI -->
                             <input type="radio"
                                    class="form-check-input mt-1 address-radio"
                                    name="modalAddressId"
                                    value="${address.addressId}"
-                                   ${selectedAddress.addressId == address.addressId
-                                     ? 'checked' : ''}>
+                                   ${selectedAddress.addressId == address.addressId ? 'checked' : ''}>
 
                             <!-- THONG TIN DIA CHI -->
                             <div class="flex-grow-1">
                                 <label class="fw-semibold d-block address-name">
-                                    <c:out value="${address.recipientName}" />
+                                    <span class="address-recipient"><c:out value="${address.recipientName}" /></span>
                                     |
-                                    <c:out value="${address.phoneNumber}" />
+                                    <span class="address-phone"><c:out value="${address.phoneNumber}" /></span>
                                 </label>
 
                                 <div class="text-muted small address-line">
                                     <c:out value="${address.addressLine}" />
                                 </div>
 
-                                <c:if test="${address.defaultAddress}">
-                                    <span class="badge bg-primary mt-2">
-                                        Mặc định
-                                    </span>
-                                </c:if>
+                                <span class="badge bg-primary mt-2 default-address-badge"
+                                      style="${address.defaultAddress ? '' : 'display:none;'}">
+                                    Mặc định
+                                </span>
                             </div>
 
-                            <!-- NUT XOA DIA CHI -->
-                            <form action="${pageContext.request.contextPath}/checkout"
-                                  method="post"
-                                  class="delete-address-form">
-
-                                <input type="hidden"
-                                       name="action"
-                                       value="deleteAddress">
-
-                                <input type="hidden"
-                                       name="addressId"
-                                       value="${address.addressId}">
-
-                                <input type="hidden"
-                                       name="addressActionToken"
-                                       value="<c:out value='${sessionScope.addressActionToken}' />">
-
-                                <button type="submit"
-                                        class="btn btn-outline-danger btn-sm delete-address-button">
-                                    <i class="bi bi-trash me-1"></i>
-                                    Xóa
+                            <div class="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
+                                <button type="button"
+                                        class="btn btn-link btn-sm px-1 py-0 text-decoration-none text-secondary edit-address-button">
+                                    Sửa
                                 </button>
-                            </form>
+
+                                <form action="${pageContext.request.contextPath}/checkout"
+                                      method="post"
+                                      class="delete-address-form mb-0">
+
+                                    <input type="hidden"
+                                           name="action"
+                                           value="deleteAddress">
+
+                                    <input type="hidden"
+                                           name="addressId"
+                                           value="${address.addressId}">
+
+                                    <input type="hidden"
+                                           name="addressActionToken"
+                                           value="<c:out value='${sessionScope.addressActionToken}' />">
+
+                                    <button type="submit"
+                                            class="btn btn-link btn-sm px-1 py-0 text-decoration-none text-danger delete-address-button">
+                                        Xóa
+                                    </button>
+                                </form>
+                            </div>
 
                         </div>
                     </div>
-
                 </c:forEach>
 
                 <p id="addressListEmpty"
@@ -493,11 +488,86 @@
                    style="${empty addresses ? '' : 'display:none;'}">
                     Chưa có địa chỉ giao hàng.
                 </p>
-
             </div>
 
-            <div class="modal-footer">
+            <!-- FORM SUA NGAY TRONG POPUP -->
+            <form id="editAddressForm"
+                  class="d-none"
+                  method="post"
+                  action="${pageContext.request.contextPath}/checkout">
 
+                <div class="modal-body">
+                    <h6 class="fw-bold">Chỉnh sửa địa chỉ</h6>
+
+                    <input type="hidden"
+                           id="editAddressId"
+                           name="addressId">
+
+                    <input type="hidden"
+                           name="action"
+                           value="editAddress">
+
+                    <input type="hidden"
+                           name="addressActionToken"
+                           value="<c:out value='${sessionScope.addressActionToken}' />">
+
+                    <div class="mb-3">
+                        <label for="editRecipientName" class="form-label">
+                            Tên người nhận
+                        </label>
+
+                        <input id="editRecipientName"
+                               name="recipientName"
+                               class="form-control"
+                               type="text"
+                               maxlength="100"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editPhoneNumber" class="form-label">
+                            Số điện thoại
+                        </label>
+
+                        <input id="editPhoneNumber"
+                               name="phoneNumber"
+                               class="form-control"
+                               type="tel"
+                               pattern="[0-9]{9,11}"
+                               maxlength="11"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editAddressLine" class="form-label">
+                            Địa chỉ chi tiết
+                        </label>
+
+                        <textarea id="editAddressLine"
+                                  name="addressLine"
+                                  class="form-control"
+                                  rows="3"
+                                  required></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="cancelEditAddressButton"
+                            type="button"
+                            class="btn btn-outline-secondary">
+                        Hủy chỉnh sửa
+                    </button>
+
+                    <button id="saveEditAddressButton"
+                            type="submit"
+                            class="btn btn-primary">
+                        Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+
+            <!-- NUT CUA DANH SACH DIA CHI -->
+            <div class="modal-footer" id="addressListFooter">
                 <button type="button"
                         class="btn btn-outline-secondary"
                         data-bs-dismiss="modal">
@@ -510,7 +580,6 @@
                         ${empty addresses ? 'disabled' : ''}>
                     Xác nhận địa chỉ
                 </button>
-
             </div>
 
         </div>
@@ -537,7 +606,6 @@
                         aria-label="Đóng"></button>
             </div>
 
-            <!-- FORM THEM DIA CHI, CO TOKEN CHONG GUI LAP -->
             <form id="addAddressForm"
                   action="${pageContext.request.contextPath}/checkout"
                   method="post">
@@ -551,7 +619,6 @@
                        value="<c:out value='${sessionScope.addressAddToken}' />">
 
                 <div class="modal-body">
-
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
                             Tên người nhận
@@ -588,11 +655,9 @@
                                   placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"
                                   required></textarea>
                     </div>
-
                 </div>
 
                 <div class="modal-footer">
-
                     <button type="button"
                             class="btn btn-light border"
                             data-bs-dismiss="modal">
@@ -604,7 +669,6 @@
                             class="btn btn-primary">
                         Lưu địa chỉ
                     </button>
-
                 </div>
             </form>
 
@@ -612,49 +676,36 @@
     </div>
 </div>
 
-<!-- XU LY DIA CHI BANG JAVASCRIPT -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
 
-        // URL CUA CHECKOUT
         const checkoutUrl =
                 "${pageContext.request.contextPath}/checkout";
 
-        // TOKEN SU DUNG CHO THAO TAC CHON VA XOA
         const addressActionToken =
                 "${sessionScope.addressActionToken}";
 
-        // CAC THANH PHAN GIAO DIEN
+        // CAC THANH PHAN CHECKOUT
         const addressInput =
                 document.getElementById("orderAddressId");
-
         const selectedCard =
                 document.getElementById("selectedAddressCard");
-
         const selectedName =
                 document.getElementById("selectedAddressName");
-
         const selectedLine =
                 document.getElementById("selectedAddressLine");
-
         const selectedDefaultBadge =
                 document.getElementById("selectedDefaultBadge");
-
         const noAddressMessage =
                 document.getElementById("noAddressMessage");
-
         const needAddressMessage =
                 document.getElementById("needAddressMessage");
-
         const addressList =
                 document.getElementById("addressList");
-
         const addressListEmpty =
                 document.getElementById("addressListEmpty");
-
         const openAddressModalButton =
                 document.getElementById("openAddressModalButton");
-
         const confirmAddressButton =
                 document.getElementById("confirmAddressButton");
         const placeOrderButton =
@@ -663,20 +714,39 @@
                 document.getElementById("addressModalMessage");
         const addressModal =
                 document.getElementById("addressModal");
-        // ID DIA CHI DA XAC NHAN TREN SERVER
+
+        // CAC THANH PHAN FORM SUA
+        const editAddressForm =
+                document.getElementById("editAddressForm");
+        const editAddressId =
+                document.getElementById("editAddressId");
+        const editRecipientName =
+                document.getElementById("editRecipientName");
+        const editPhoneNumber =
+                document.getElementById("editPhoneNumber");
+        const editAddressLine =
+                document.getElementById("editAddressLine");
+        const saveEditAddressButton =
+                document.getElementById("saveEditAddressButton");
+        const cancelEditAddressButton =
+                document.getElementById("cancelEditAddressButton");
+        const addressListFooter =
+                document.getElementById("addressListFooter");
+
         let committedAddressId = addressInput.value;
-        // CHAN GUI NHIEU REQUEST DONG THOI
         let addressRequestBusy = false;
-        // HIEN THI THONG BAO TRONG POPUP
+        let editingOption = null;
+
+        // HIEN THONG BAO TRONG POPUP
         function showModalMessage(message, success) {
             modalMessage.textContent = message;
             modalMessage.className = success
                     ? "alert alert-success mx-3 mt-3 mb-0"
                     : "alert alert-danger mx-3 mt-3 mb-0";
         }
-        // GUI AJAX VE SERVLET
-        async function postAddressAction(data) {
 
+        // GUI AJAX
+        async function postAddressAction(data) {
             const response = await fetch(checkoutUrl, {
                 method: "POST",
                 credentials: "same-origin",
@@ -687,7 +757,7 @@
                 },
                 body: new URLSearchParams(data).toString()
             });
-            // DAM BAO SERVER TRA VE JSON
+
             const contentType =
                     response.headers.get("content-type") || "";
 
@@ -696,6 +766,7 @@
                         "Server không trả JSON. Vui lòng tải lại trang."
                         );
             }
+
             const result = await response.json();
 
             if (!response.ok || !result.success) {
@@ -707,9 +778,8 @@
             return result;
         }
 
-        // CAP NHAT DIA CHI DANG SU DUNG TREN CHECKOUT
+        // CAP NHAT DIA CHI DANG SU DUNG
         function updateSelectedAddress(address, isDefault) {
-
             if (!address) {
                 addressInput.value = "";
                 committedAddressId = "";
@@ -719,36 +789,42 @@
                 noAddressMessage.style.display = "";
                 needAddressMessage.style.display = "";
                 selectedDefaultBadge.style.display = "none";
-
                 placeOrderButton.disabled = true;
                 return;
             }
+
             const id = String(address.addressId);
+
             committedAddressId = id;
             addressInput.value = id;
+
             selectedName.textContent =
                     address.recipientName + " | " + address.phoneNumber;
-            selectedLine.textContent =
-                    address.addressLine;
+
+            selectedLine.textContent = address.addressLine;
+
             selectedDefaultBadge.style.display =
                     isDefault ? "" : "none";
+
             selectedCard.style.display = "";
             noAddressMessage.style.display = "none";
             needAddressMessage.style.display = "none";
             placeOrderButton.disabled = false;
         }
 
-        // CAP NHAT NUT XOA
-        // CHI KHOA DIA CHI DA XAC NHAN TREN CHECKOUT
+        // CAP NHAT CAC NUT SUA, XOA VA CHON
         function updateDeleteButtons() {
+            addressList.querySelectorAll(
+                    ".edit-address-button, .address-radio"
+                    ).forEach(function (control) {
+                control.disabled = addressRequestBusy;
+            });
 
             addressList.querySelectorAll(
                     ".address-option"
                     ).forEach(function (option) {
-
-                const button = option.querySelector(
-                        ".delete-address-button"
-                        );
+                const button =
+                        option.querySelector(".delete-address-button");
 
                 if (!button) {
                     return;
@@ -757,34 +833,26 @@
                 const isSelected =
                         option.dataset.addressId === committedAddressId;
 
-                button.disabled =
-                        isSelected || addressRequestBusy;
-
-                button.title = isSelected
-                        ? "Không thể xóa địa chỉ đang sử dụng"
-                        : "Xóa địa chỉ";
-
-                button.innerHTML = isSelected
-                        ? '<i class="bi bi-check-circle me-1"></i>Mặc định'
-                        : '<i class="bi bi-trash me-1"></i>Xóa';
+                button.disabled = isSelected || addressRequestBusy;
+                button.closest(".delete-address-form").style.display =
+                        isSelected ? "none" : "";
             });
 
             confirmAddressButton.disabled =
                     addressRequestBusy
-                    || !addressList.querySelector(".address-option");
+                    || !addressList.querySelector(
+                            'input[name="modalAddressId"]:checked'
+                            );
         }
 
         // CAP NHAT DANH SACH SAU KHI XOA
         function updateAddressListState() {
-
             const options =
                     addressList.querySelectorAll(".address-option");
 
             const hasAddress = options.length > 0;
 
-            addressListEmpty.style.display =
-                    hasAddress ? "none" : "";
-
+            addressListEmpty.style.display = hasAddress ? "none" : "";
             openAddressModalButton.disabled = !hasAddress;
 
             if (!hasAddress) {
@@ -794,225 +862,338 @@
             updateDeleteButtons();
         }
 
-        // KHI MO POPUP, CHON LAI DIA CHI DA XAC NHAN
+        // DONG FORM SUA VA QUAY LAI DANH SACH
+        function closeAddressEditor() {
+            editingOption = null;
+            editAddressForm.reset();
+            editAddressForm.classList.add("d-none");
+            addressList.classList.remove("d-none");
+            addressListFooter.classList.remove("d-none");
+        }
+
+        // MO FORM SUA VA DIEN SAN DU LIEU
+        addressList.addEventListener("click", function (event) {
+            const button =
+                    event.target.closest(".edit-address-button");
+
+            if (!button || addressRequestBusy) {
+                return;
+            }
+
+            editingOption = button.closest(".address-option");
+
+            editAddressId.value = editingOption.dataset.addressId;
+
+            editRecipientName.value = editingOption
+                    .querySelector(".address-recipient")
+                    .textContent.trim();
+
+            editPhoneNumber.value = editingOption
+                    .querySelector(".address-phone")
+                    .textContent.trim();
+
+            editAddressLine.value = editingOption
+                    .querySelector(".address-line")
+                    .textContent.trim();
+
+            modalMessage.className =
+                    "alert mx-3 mt-3 mb-0 d-none";
+
+            addressList.classList.add("d-none");
+            addressListFooter.classList.add("d-none");
+            editAddressForm.classList.remove("d-none");
+
+            editRecipientName.focus();
+        });
+
+        // HUY CHINH SUA
+        cancelEditAddressButton.addEventListener("click", function () {
+            if (!addressRequestBusy) {
+                closeAddressEditor();
+
+                modalMessage.className =
+                        "alert mx-3 mt-3 mb-0 d-none";
+            }
+        });
+
+        // KHONG DONG POPUP KHI DANG LUU DIA CHI
+        addressModal.addEventListener("hide.bs.modal", function (event) {
+            if (addressRequestBusy && editingOption) {
+                event.preventDefault();
+            }
+        });
+
         addressModal.addEventListener(
-                "show.bs.modal",
-                function () {
+                "hidden.bs.modal",
+                closeAddressEditor
+                );
 
-                    addressList.querySelectorAll(
-                            'input[name="modalAddressId"]'
-                            ).forEach(function (radio) {
-                        radio.checked =
-                                radio.value === committedAddressId;
-                    });
+        // LUU CHINH SUA DIA CHI
+        editAddressForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
 
-                    modalMessage.className =
-                            "alert mx-3 mt-3 mb-0 d-none";
+            if (addressRequestBusy || !editingOption) {
+                return;
+            }
 
-                    updateDeleteButtons();
-                }
-        );
+            editRecipientName.value = editRecipientName.value.trim();
+            editPhoneNumber.value = editPhoneNumber.value.trim();
+            editAddressLine.value = editAddressLine.value.trim();
 
-        // 1. XAC NHAN DOI DIA CHI
-        confirmAddressButton.addEventListener(
-                "click",
-                async function () {
+            if (!editAddressForm.reportValidity()) {
+                return;
+            }
 
-                    if (addressRequestBusy) {
-                        return;
-                    }
+            addressRequestBusy = true;
+            saveEditAddressButton.disabled = true;
+            cancelEditAddressButton.disabled = true;
+            saveEditAddressButton.textContent = "Đang lưu...";
 
-                    const selectedRadio = addressList.querySelector(
-                            'input[name="modalAddressId"]:checked'
+            updateDeleteButtons();
+
+            try {
+                const result = await postAddressAction({
+                    action: "editAddress",
+                    addressId: editAddressId.value,
+                    recipientName: editRecipientName.value,
+                    phoneNumber: editPhoneNumber.value,
+                    addressLine: editAddressLine.value,
+                    addressActionToken: addressActionToken
+                });
+
+                const address = result.address;
+
+                editingOption.querySelector(
+                        ".address-recipient"
+                        ).textContent = address.recipientName;
+
+                editingOption.querySelector(
+                        ".address-phone"
+                        ).textContent = address.phoneNumber;
+
+                editingOption.querySelector(
+                        ".address-line"
+                        ).textContent = address.addressLine;
+
+                // NEU SUA DIA CHI DANG CHON THI CAP NHAT CHECKOUT
+                if (String(address.addressId) === committedAddressId) {
+                    updateSelectedAddress(
+                            address,
+                            editingOption.dataset.default === "true"
                             );
+                }
 
-                    if (!selectedRadio) {
-                        showModalMessage(
-                                "Vui lòng chọn địa chỉ giao hàng.",
-                                false
-                                );
-                        return;
-                    }
-                    const id = selectedRadio.value;
-                    // KHONG DOI DIA CHI -> CHI DONG POPUP
-                    if (id === committedAddressId) {
-                        bootstrap.Modal.getOrCreateInstance(
-                                addressModal
-                                ).hide();
-                        return;
-                    }
-                    addressRequestBusy = true;
-                    updateDeleteButtons();
-                    try {
-                        const result = await postAddressAction({
-                            action: "selectAddress",
-                            addressId: id,
-                            addressActionToken: addressActionToken
+                closeAddressEditor();
+
+                showModalMessage(
+                        "Đã cập nhật địa chỉ thành công.",
+                        true
+                        );
+
+            } catch (error) {
+                // GIU NOI DUNG FORM KHI LUU THAT BAI
+                showModalMessage(error.message, false);
+
+            } finally {
+                addressRequestBusy = false;
+                saveEditAddressButton.disabled = false;
+                cancelEditAddressButton.disabled = false;
+                saveEditAddressButton.textContent = "Lưu thay đổi";
+
+                updateDeleteButtons();
+            }
+        });
+
+        // TICH DUNG DIA CHI DANG DUNG KHI MO POPUP
+        addressModal.addEventListener("show.bs.modal", function () {
+            addressList.querySelectorAll(
+                    'input[name="modalAddressId"]'
+                    ).forEach(function (radio) {
+                radio.checked = radio.value === committedAddressId;
+            });
+
+            const currentOption = Array.from(
+                    addressList.querySelectorAll(".address-option")
+                    ).find(function (option) {
+                return option.dataset.addressId === committedAddressId;
+            });
+            if (currentOption) {
+                addressList.prepend(currentOption);
+            }
+
+            modalMessage.className =
+                    "alert mx-3 mt-3 mb-0 d-none";
+
+            updateDeleteButtons();
+        });
+
+        addressList.addEventListener("change", function (event) {
+            if (event.target.matches('input[name="modalAddressId"]')) {
+                updateDeleteButtons();
+            }
+        });
+
+        // XAC NHAN DOI DIA CHI
+        confirmAddressButton.addEventListener("click", async function () {
+            if (addressRequestBusy) {
+                return;
+            }
+
+            const selectedRadio = addressList.querySelector(
+                    'input[name="modalAddressId"]:checked'
+                    );
+
+            if (!selectedRadio) {
+                showModalMessage(
+                        "Vui lòng chọn địa chỉ giao hàng.",
+                        false
+                        );
+                return;
+            }
+
+            const id = selectedRadio.value;
+
+            addressRequestBusy = true;
+            updateDeleteButtons();
+
+            try {
+                const result = await postAddressAction({
+                    action: "selectAddress",
+                    addressId: id,
+                    addressActionToken: addressActionToken
+                });
+
+                const option =
+                        selectedRadio.closest(".address-option");
+
+                addressList.querySelectorAll(".address-option").forEach(
+                        function (item) {
+                            const isDefault = item === option;
+                            item.dataset.default = String(isDefault);
+                            item.querySelector(".default-address-badge").style.display =
+                                    isDefault ? "" : "none";
                         });
-                        // SERVER DA LUU ID MOI VAO SESSION
-                        const option = selectedRadio.closest(
-                                ".address-option"
-                                );
 
-                        const isDefault =
-                                !!option.querySelector(".badge");
+                updateSelectedAddress(
+                        result.selectedAddress,
+                        true
+                        );
 
-                        updateSelectedAddress(
-                                result.selectedAddress,
-                                isDefault
-                                );
+                addressList.prepend(option);
 
-                        // CAP NHAT NUT XOA THEO ID MOI
-                        updateDeleteButtons();
+                updateDeleteButtons();
 
-                        // DONG POPUP KHI THANH CONG
-                        bootstrap.Modal.getOrCreateInstance(
-                                addressModal
-                                ).hide();
+                bootstrap.Modal.getOrCreateInstance(addressModal).hide();
 
-                    } catch (error) {
+            } catch (error) {
+                showModalMessage(error.message, false);
 
-                        showModalMessage(
-                                error.message,
-                                false
-                                );
+            } finally {
+                addressRequestBusy = false;
+                updateDeleteButtons();
+            }
+        });
 
-                    } finally {
+        // XOA DIA CHI BANG AJAX
+        addressList.addEventListener("submit", async function (event) {
+            const form =
+                    event.target.closest(".delete-address-form");
 
-                        addressRequestBusy = false;
-                        updateDeleteButtons();
-                    }
-                }
-        );
+            if (!form) {
+                return;
+            }
 
-        // 2. XOA DIA CHI KHAC BANG AJAX
-        addressList.addEventListener(
-                "submit",
-                async function (event) {
+            event.preventDefault();
 
-                    const form = event.target.closest(
-                            ".delete-address-form"
-                            );
+            if (addressRequestBusy) {
+                return;
+            }
 
-                    if (!form) {
-                        return;
-                    }
+            const option = form.closest(".address-option");
+            const id = option.dataset.addressId;
 
-                    event.preventDefault();
+            if (id === committedAddressId) {
+                showModalMessage(
+                        "Không thể xóa địa chỉ đang sử dụng. "
+                        + "Vui lòng xác nhận địa chỉ khác trước.",
+                        false
+                        );
+                return;
+            }
 
-                    if (addressRequestBusy) {
-                        return;
-                    }
+            if (!window.confirm("Bạn chắc chắn muốn xóa địa chỉ này?")) {
+                return;
+            }
 
-                    const option = form.closest(
-                            ".address-option"
-                            );
+            addressRequestBusy = true;
+            updateDeleteButtons();
 
-                    const id = option.dataset.addressId;
+            try {
+                await postAddressAction({
+                    action: "deleteAddress",
+                    addressId: id,
+                    addressActionToken: addressActionToken
+                });
 
-                    // CHI CHAN XOA DIA CHI DA XAC NHAN
-                    if (id === committedAddressId) {
-                        showModalMessage(
-                                "Không thể xóa địa chỉ đang sử dụng. "
-                                + "Vui lòng xác nhận địa chỉ khác trước.",
-                                false
-                                );
-                        return;
-                    }
+                // XOA O DIA CHI, GIU NGUYEN POPUP
+                option.remove();
+                updateAddressListState();
 
-                    if (!window.confirm(
-                            "Bạn chắc chắn muốn xóa địa chỉ này?"
-                            )) {
-                        return;
-                    }
+                showModalMessage(
+                        "Đã xóa địa chỉ thành công.",
+                        true
+                        );
 
-                    addressRequestBusy = true;
-                    updateDeleteButtons();
+            } catch (error) {
+                showModalMessage(error.message, false);
 
-                    try {
+            } finally {
+                addressRequestBusy = false;
+                updateDeleteButtons();
+            }
+        });
 
-                        await postAddressAction({
-                            action: "deleteAddress",
-                            addressId: id,
-                            addressActionToken: addressActionToken
-                        });
-
-                        // XOA O DIA CHI, GIU NGUYEN POPUP
-                        option.remove();
-
-                        updateAddressListState();
-
-                        showModalMessage(
-                                "Đã xóa địa chỉ thành công.",
-                                true
-                                );
-
-                    } catch (error) {
-
-                        showModalMessage(
-                                error.message,
-                                false
-                                );
-
-                    } finally {
-
-                        addressRequestBusy = false;
-                        updateDeleteButtons();
-                    }
-                }
-        );
-
-        // 3. CHAN BAM LUU DIA CHI NHIEU LAN
+        // CHAN BAM LUU DIA CHI MOI NHIEU LAN
         const addAddressForm =
                 document.getElementById("addAddressForm");
 
         const saveAddressButton =
                 document.getElementById("saveAddressButton");
 
-        addAddressForm.addEventListener(
-                "submit",
-                function (event) {
+        addAddressForm.addEventListener("submit", function (event) {
+            if (addAddressForm.dataset.submitting === "true") {
+                event.preventDefault();
+                return;
+            }
 
-                    if (addAddressForm.dataset.submitting === "true") {
-                        event.preventDefault();
-                        return;
-                    }
+            if (!addAddressForm.checkValidity()) {
+                return;
+            }
 
-                    if (!addAddressForm.checkValidity()) {
-                        return;
-                    }
+            addAddressForm.dataset.submitting = "true";
+            saveAddressButton.disabled = true;
+            saveAddressButton.textContent = "Đang lưu...";
+        });
 
-                    addAddressForm.dataset.submitting = "true";
-                    saveAddressButton.disabled = true;
-                    saveAddressButton.textContent = "Đang lưu...";
-                }
-        );
-
-        // 4. HAN CHE BAM DAT HANG NHIEU LAN
+        // CHAN BAM DAT HANG NHIEU LAN TREN GIAO DIEN
         const orderForm =
                 document.getElementById("orderForm");
 
-        orderForm.addEventListener(
-                "submit",
-                function (event) {
+        orderForm.addEventListener("submit", function (event) {
+            if (orderForm.dataset.submitting === "true") {
+                event.preventDefault();
+                return;
+            }
 
-                    if (orderForm.dataset.submitting === "true") {
-                        event.preventDefault();
-                        return;
-                    }
+            if (!orderForm.checkValidity()) {
+                return;
+            }
 
-                    if (!orderForm.checkValidity()) {
-                        return;
-                    }
+            orderForm.dataset.submitting = "true";
+            placeOrderButton.disabled = true;
+            placeOrderButton.textContent = "Đang xử lý đơn hàng...";
+        });
 
-                    orderForm.dataset.submitting = "true";
-                    placeOrderButton.disabled = true;
-                    placeOrderButton.textContent =
-                            "Đang xử lý đơn hàng...";
-                }
-        );
-
-        // KHOI TAO NUT XOA
         updateAddressListState();
     });
 </script>
