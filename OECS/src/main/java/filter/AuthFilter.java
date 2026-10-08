@@ -30,6 +30,8 @@ public class AuthFilter implements Filter {
             "/home",
             "/shop",
             "/api/search",
+            "/forgot-password",
+            "/reset-password",
             "/favicon.ico"
     );
 
