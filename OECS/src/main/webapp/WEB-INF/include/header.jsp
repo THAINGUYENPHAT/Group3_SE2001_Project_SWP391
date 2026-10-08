@@ -551,9 +551,9 @@
                         </form>
                         <div class="search-quick-tags">
                             <span class="text-secondary me-1"><i class="bi bi-lightning-charge-fill text-warning"></i> Nhanh:</span>
-                            <a href="#">Apple</a>
-                            <a href="#">Samsung</a>
-                            <a href="#">Lenovo</a>
+                            <a href="${pageContext.request.contextPath}/shop?keyword=Apple">Apple</a>
+                            <a href="${pageContext.request.contextPath}/shop?keyword=Samsung">Samsung</a>
+                            <a href="${pageContext.request.contextPath}/shop?keyword=Lenovo">Lenovo</a>
                         </div>
                     </div>
 
