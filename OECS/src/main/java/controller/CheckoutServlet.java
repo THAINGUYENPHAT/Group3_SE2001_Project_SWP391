@@ -2,11 +2,14 @@ package controller;
 
 import dao.AddressDAO;
 import dao.CartDAO;
+import dao.OrderDAO;
 import dao.VoucherDAO;
+
 import model.Address;
 import model.CartItem;
 import model.User;
 import model.Voucher;
+
 import service.OrderService;
 
 import jakarta.servlet.ServletException;
@@ -17,9 +20,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,16 +30,20 @@ import java.util.logging.Logger;
 @WebServlet(name = "CheckoutServlet", urlPatterns = {"/checkout"})
 public class CheckoutServlet extends HttpServlet {
 
-    private static final Logger LOGGER = Logger.getLogger(CheckoutServlet.class.getName());
+    private static final Logger LOGGER =
+            Logger.getLogger(CheckoutServlet.class.getName());
 
     private final CartDAO cartDAO = new CartDAO();
     private final AddressDAO addressDAO = new AddressDAO();
+    private final OrderDAO orderDAO = new OrderDAO();
     private final VoucherDAO voucherDAO = new VoucherDAO();
     private final OrderService orderService = new OrderService();
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws ServletException, IOException {
 
         User user = getLoggedInUser(request);
 
@@ -52,8 +56,10 @@ public class CheckoutServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws ServletException, IOException {
 
         request.setCharacterEncoding("UTF-8");
 
@@ -61,11 +67,19 @@ public class CheckoutServlet extends HttpServlet {
         User user = getLoggedInUser(request);
 
         if (user == null) {
-            if ("deleteAddress".equals(action) || "selectAddress".equals(action)) {
-                sendJsonError(response, 401, "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+            if ("selectAddress".equals(action)
+                    || "editAddress".equals(action)
+                    || "deleteAddress".equals(action)) {
+
+                sendJsonError(
+                        response,
+                        401,
+                        "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+                );
             } else {
                 redirectToLogin(request, response);
             }
+
             return;
         }
 
@@ -74,6 +88,9 @@ public class CheckoutServlet extends HttpServlet {
 
         } else if ("selectAddress".equals(action)) {
             selectAddress(request, response, user);
+
+        } else if ("editAddress".equals(action)) {
+            editAddress(request, response, user);
 
         } else if ("deleteAddress".equals(action)) {
             deleteAddress(request, response, user);
@@ -92,9 +109,12 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
-    // HIEN THI TRANG CHECKOUT
-    private void showCheckout(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
+    // HIEN THI CHECKOUT
+    private void showCheckout(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User user
+    ) throws ServletException, IOException {
 
         int userId = user.getUserId();
         int cartId = cartDAO.getCartIdByUserId(userId);
@@ -113,33 +133,54 @@ public class CheckoutServlet extends HttpServlet {
 
         HttpSession session = request.getSession();
 
+        // TAO TOKEN CHO DIA CHI VA DAT HANG
         synchronized (session) {
             if (session.getAttribute("addressAddToken") == null) {
-                session.setAttribute("addressAddToken", UUID.randomUUID().toString());
+                session.setAttribute(
+                        "addressAddToken",
+                        UUID.randomUUID().toString()
+                );
             }
 
             if (session.getAttribute("addressActionToken") == null) {
-                session.setAttribute("addressActionToken", UUID.randomUUID().toString());
+                session.setAttribute(
+                        "addressActionToken",
+                        UUID.randomUUID().toString()
+                );
+            }
+
+            if (session.getAttribute("checkoutToken") == null) {
+                session.setAttribute(
+                        "checkoutToken",
+                        UUID.randomUUID().toString()
+                );
             }
         }
 
-        List<Address> addresses = addressDAO.getAddressesByUser(userId);
+        List<Address> addresses =
+                addressDAO.getAddressesByUser(userId);
 
-        // LAY DIA CHI DANG CHON TU SESSION
         Address selectedAddress = null;
         Object savedId = session.getAttribute("selectedAddressId");
 
+        // LAY DIA CHI DA CHON TRONG SESSION
         if (savedId instanceof Integer) {
-            selectedAddress = addressDAO.getAddressById((Integer) savedId, userId);
+            selectedAddress = addressDAO.getAddressById(
+                    (Integer) savedId,
+                    userId
+            );
         }
 
-        // NEU CHUA CHON THI TU DONG CHON DIA CHI DAU TIEN
+        // CHUA CHON THI LAY DIA CHI DAU TIEN
         if (selectedAddress == null && !addresses.isEmpty()) {
             selectedAddress = addresses.get(0);
         }
 
         if (selectedAddress != null) {
-            session.setAttribute("selectedAddressId", selectedAddress.getAddressId());
+            session.setAttribute(
+                    "selectedAddressId",
+                    selectedAddress.getAddressId()
+            );
         } else {
             session.removeAttribute("selectedAddressId");
         }
@@ -148,8 +189,10 @@ public class CheckoutServlet extends HttpServlet {
         double shippingFee = 0;
         double discount = 0;
 
-        Voucher appliedVoucher = (Voucher) session.getAttribute("appliedVoucher");
+        Voucher appliedVoucher =
+                (Voucher) session.getAttribute("appliedVoucher");
 
+        // KIEM TRA VOUCHER DE HIEN THI TREN GIAO DIEN
         if (appliedVoucher != null) {
             Voucher valid = voucherDAO.getValidVoucher(
                     appliedVoucher.getCode(),
@@ -165,14 +208,21 @@ public class CheckoutServlet extends HttpServlet {
             } else {
                 appliedVoucher = null;
                 session.removeAttribute("appliedVoucher");
-                session.setAttribute("checkoutError", "Voucher đã chọn không còn hợp lệ.");
+                session.setAttribute(
+                        "checkoutError",
+                        "Voucher đã chọn không còn hợp lệ."
+                );
             }
         }
 
         List<Voucher> availableVouchers = new ArrayList<>();
 
         for (Voucher voucher : voucherDAO.getAllVouchers()) {
-            Voucher valid = voucherDAO.getValidVoucher(voucher.getCode(), subtotal, userId);
+            Voucher valid = voucherDAO.getValidVoucher(
+                    voucher.getCode(),
+                    subtotal,
+                    userId
+            );
 
             if (valid != null) {
                 availableVouchers.add(valid);
@@ -187,20 +237,32 @@ public class CheckoutServlet extends HttpServlet {
         request.setAttribute("subtotal", subtotal);
         request.setAttribute("shippingFee", shippingFee);
         request.setAttribute("discount", discount);
-        request.setAttribute("totalAmount", Math.max(0, subtotal + shippingFee - discount));
 
-        request.getRequestDispatcher("/WEB-INF/checkout/checkout.jsp").forward(request, response);
+        request.setAttribute(
+                "totalAmount",
+                Math.max(0, subtotal + shippingFee - discount)
+        );
+
+        request.getRequestDispatcher(
+                "/WEB-INF/checkout/checkout.jsp"
+        ).forward(request, response);
     }
 
-    // THEM DIA CHI - CHAN REQUEST LAP BANG TOKEN
-    private void addAddress(HttpServletRequest request, HttpServletResponse response, User user)
-            throws IOException {
+    // THEM DIA CHI VA CHAN REQUEST LAP
+    private void addAddress(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User user
+    ) throws IOException {
 
         HttpSession session = request.getSession();
-        String submittedToken = request.getParameter("addressAddToken");
+
+        String submittedToken =
+                request.getParameter("addressAddToken");
 
         synchronized (session) {
-            String expectedToken = (String) session.getAttribute("addressAddToken");
+            String expectedToken =
+                    (String) session.getAttribute("addressAddToken");
 
             if (expectedToken == null
                     || submittedToken == null
@@ -215,7 +277,6 @@ public class CheckoutServlet extends HttpServlet {
                 return;
             }
 
-            // TOKEN CHI SU DUNG DUOC MOT LAN
             session.removeAttribute("addressAddToken");
         }
 
@@ -223,15 +284,11 @@ public class CheckoutServlet extends HttpServlet {
         String phone = request.getParameter("phoneNumber");
         String line = request.getParameter("addressLine");
 
-        if (name == null
-                || name.trim().isEmpty()
-                || name.trim().length() > 100
-                || phone == null
-                || !phone.trim().matches("[0-9]{9,11}")
-                || line == null
-                || line.trim().isEmpty()) {
-
-            session.setAttribute("checkoutError", "Thông tin địa chỉ không hợp lệ.");
+        if (!validAddressInput(name, phone, line)) {
+            session.setAttribute(
+                    "checkoutError",
+                    "Thông tin địa chỉ không hợp lệ."
+            );
 
             redirectToCheckout(request, response);
             return;
@@ -246,26 +303,41 @@ public class CheckoutServlet extends HttpServlet {
 
         if (newId > 0) {
             session.setAttribute("selectedAddressId", newId);
-            session.setAttribute("checkoutMessage", "Đã thêm địa chỉ thành công.");
+            session.setAttribute(
+                    "checkoutMessage",
+                    "Đã thêm địa chỉ thành công."
+            );
         } else {
-            session.setAttribute("checkoutError", "Không thể thêm địa chỉ.");
+            session.setAttribute(
+                    "checkoutError",
+                    "Không thể thêm địa chỉ."
+            );
         }
 
         redirectToCheckout(request, response);
     }
 
-    // CHON DIA CHI MOI VA LUU VAO SESSION
-    private void selectAddress(HttpServletRequest request, HttpServletResponse response, User user)
-            throws IOException {
+    // CHON DIA CHI GIAO HANG
+    private void selectAddress(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User user
+    ) throws IOException {
 
         HttpSession session = request.getSession();
 
         if (!validAddressActionToken(request, session)) {
-            sendJsonError(response, 403, "Yêu cầu chọn địa chỉ không hợp lệ.");
+            sendJsonError(
+                    response,
+                    403,
+                    "Yêu cầu chọn địa chỉ không hợp lệ."
+            );
             return;
         }
 
-        int addressId = parsePositiveInt(request.getParameter("addressId"));
+        int addressId = parsePositiveInt(
+                request.getParameter("addressId")
+        );
 
         if (addressId <= 0) {
             sendJsonError(response, 400, "ID địa chỉ không hợp lệ.");
@@ -273,10 +345,17 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         synchronized (session) {
-            Address address = addressDAO.getAddressById(addressId, user.getUserId());
+            Address address = addressDAO.getAddressById(
+                    addressId,
+                    user.getUserId()
+            );
 
             if (address == null) {
-                sendJsonError(response, 404, "Địa chỉ không tồn tại hoặc đã bị xóa.");
+                sendJsonError(
+                        response,
+                        404,
+                        "Địa chỉ không tồn tại hoặc đã bị xóa."
+                );
                 return;
             }
 
@@ -286,18 +365,107 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
-    // XOA DIA CHI KHAC, KHONG CHO XOA DIA CHI DANG CHON
-    private void deleteAddress(HttpServletRequest request, HttpServletResponse response, User user)
-            throws IOException {
+    // CHINH SUA DIA CHI
+    private void editAddress(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User user
+    ) throws IOException {
 
         HttpSession session = request.getSession();
 
         if (!validAddressActionToken(request, session)) {
-            sendJsonError(response, 403, "Yêu cầu xóa địa chỉ không hợp lệ.");
+            sendJsonError(
+                    response,
+                    403,
+                    "Yêu cầu sửa địa chỉ không hợp lệ. Vui lòng tải lại trang."
+            );
             return;
         }
 
-        int addressId = parsePositiveInt(request.getParameter("addressId"));
+        int addressId = parsePositiveInt(
+                request.getParameter("addressId")
+        );
+
+        String name = request.getParameter("recipientName");
+        String phone = request.getParameter("phoneNumber");
+        String line = request.getParameter("addressLine");
+
+        if (addressId <= 0 || !validAddressInput(name, phone, line)) {
+            sendJsonError(
+                    response,
+                    400,
+                    "Nhập đủ tên (tối đa 100 ký tự), "
+                            + "số điện thoại 9–11 chữ số và địa chỉ."
+            );
+            return;
+        }
+
+        synchronized (session) {
+            try {
+                boolean updated = addressDAO.updateAddress(
+                        addressId,
+                        user.getUserId(),
+                        name,
+                        phone,
+                        line
+                );
+
+                if (!updated) {
+                    sendJsonError(
+                            response,
+                            404,
+                            "Địa chỉ không tồn tại hoặc đã bị xóa."
+                    );
+                    return;
+                }
+
+                response.setContentType("application/json;charset=UTF-8");
+
+                String json = "{\"success\":true,\"address\":{"
+                        + "\"addressId\":" + addressId + ","
+                        + "\"recipientName\":\""
+                        + jsonEscape(name.trim()) + "\","
+                        + "\"phoneNumber\":\""
+                        + jsonEscape(phone.trim()) + "\","
+                        + "\"addressLine\":\""
+                        + jsonEscape(line.trim()) + "\"}}";
+
+                response.getWriter().write(json);
+
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "Loi sua dia chi!", e);
+
+                sendJsonError(
+                        response,
+                        500,
+                        "Không thể lưu địa chỉ. Vui lòng thử lại."
+                );
+            }
+        }
+    }
+
+    // XOA MEM DIA CHI, KHONG XOA DIA CHI DANG CHON
+    private void deleteAddress(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User user
+    ) throws IOException {
+
+        HttpSession session = request.getSession();
+
+        if (!validAddressActionToken(request, session)) {
+            sendJsonError(
+                    response,
+                    403,
+                    "Yêu cầu xóa địa chỉ không hợp lệ."
+            );
+            return;
+        }
+
+        int addressId = parsePositiveInt(
+                request.getParameter("addressId")
+        );
 
         if (addressId <= 0) {
             sendJsonError(response, 400, "ID địa chỉ không hợp lệ.");
@@ -305,79 +473,113 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         synchronized (session) {
-            Object selected = session.getAttribute("selectedAddressId");
+            Object selected =
+                    session.getAttribute("selectedAddressId");
 
-            // CHAN XOA DIA CHI DANG DUOC SU DUNG
-            if (selected instanceof Integer && ((Integer) selected) == addressId) {
+            if (selected instanceof Integer
+                    && ((Integer) selected) == addressId) {
+
                 sendJsonError(
                         response,
                         409,
-                        "Không thể xóa địa chỉ đang chọn. Vui lòng chọn và xác nhận địa chỉ khác trước."
+                        "Không thể xóa địa chỉ đang chọn. "
+                                + "Vui lòng chọn và xác nhận địa chỉ khác trước."
                 );
                 return;
             }
 
-            // KIEM TRA DIA CHI SO HUU VA XOA MEM
-            boolean deleted = addressDAO.deleteAddress(addressId, user.getUserId());
+            boolean deleted = addressDAO.deleteAddress(
+                    addressId,
+                    user.getUserId()
+            );
 
             if (!deleted) {
-                sendJsonError(response, 400, "Không thể xóa địa chỉ này.");
+                sendJsonError(
+                        response,
+                        400,
+                        "Không thể xóa địa chỉ này."
+                );
                 return;
             }
 
-            // DIA CHI DANG CHON DUOC GIU NGUYEN
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"success\":true,\"deletedId\":" + addressId + "}");
+
+            response.getWriter().write(
+                    "{\"success\":true,\"deletedId\":" + addressId + "}"
+            );
         }
     }
 
-    // KIEM TRA TOKEN CHO AJAX
-    private boolean validAddressActionToken(HttpServletRequest request, HttpSession session) {
-        String submitted = request.getParameter("addressActionToken");
-        Object expected = session.getAttribute("addressActionToken");
+    // KIEM TRA NOI DUNG DIA CHI
+    private boolean validAddressInput(
+            String name,
+            String phone,
+            String line
+    ) {
+        return name != null
+                && !name.trim().isEmpty()
+                && name.trim().length() <= 100
+                && phone != null
+                && phone.trim().matches("[0-9]{9,11}")
+                && line != null
+                && !line.trim().isEmpty();
+    }
+
+    // KIEM TRA TOKEN THAO TAC DIA CHI
+    private boolean validAddressActionToken(
+            HttpServletRequest request,
+            HttpSession session
+    ) {
+        String submitted =
+                request.getParameter("addressActionToken");
+
+        Object expected =
+                session.getAttribute("addressActionToken");
 
         return submitted != null
                 && expected instanceof String
                 && submitted.equals(expected);
     }
 
-    // PARSE ID AN TOAN
-    private int parsePositiveInt(String value) {
-        try {
-            int id = Integer.parseInt(value);
-            return id > 0 ? id : -1;
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
-
-    // GUI THONG TIN DIA CHI VUA CHON
-    private void sendSelectedAddressJson(HttpServletResponse response, int addressId, Address address)
-            throws IOException {
+    // GUI DIA CHI VUA CHON VE GIAO DIEN
+    private void sendSelectedAddressJson(
+            HttpServletResponse response,
+            int addressId,
+            Address address
+    ) throws IOException {
 
         response.setContentType("application/json;charset=UTF-8");
 
-        String json = "{\"success\":true,"
-                + "\"selectedAddress\":{"
+        String json = "{\"success\":true,\"selectedAddress\":{"
                 + "\"addressId\":" + addressId + ","
-                + "\"recipientName\":\"" + jsonEscape(address.getRecipientName()) + "\","
-                + "\"phoneNumber\":\"" + jsonEscape(address.getPhoneNumber()) + "\","
-                + "\"addressLine\":\"" + jsonEscape(address.getAddressLine()) + "\","
+                + "\"recipientName\":\""
+                + jsonEscape(address.getRecipientName()) + "\","
+                + "\"phoneNumber\":\""
+                + jsonEscape(address.getPhoneNumber()) + "\","
+                + "\"addressLine\":\""
+                + jsonEscape(address.getAddressLine()) + "\","
                 + "\"defaultAddress\":" + address.isDefaultAddress()
                 + "}}";
 
         response.getWriter().write(json);
     }
 
-    // AP DUNG VOUCHER
-    private void applyVoucher(HttpServletRequest request, HttpServletResponse response, User user)
-            throws IOException {
+    // CHON VOUCHER DE HIEN THI TREN CHECKOUT
+    private void applyVoucher(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User user
+    ) throws IOException {
 
         HttpSession session = request.getSession();
         String code = request.getParameter("voucherCode");
 
         if (code == null || code.trim().isEmpty()) {
-            session.setAttribute("checkoutError", "Vui lòng nhập mã voucher.");
+            session.setAttribute(
+                    "checkoutError",
+                    "Vui lòng nhập mã voucher."
+            );
+
             redirectToCheckout(request, response);
             return;
         }
@@ -400,21 +602,33 @@ public class CheckoutServlet extends HttpServlet {
 
         double subtotal = cartDAO.getCartTotal(cartId);
 
-        Voucher voucher = voucherDAO.getValidVoucher(code.trim(), subtotal, user.getUserId());
+        Voucher voucher = voucherDAO.getValidVoucher(
+                code.trim(),
+                subtotal,
+                user.getUserId()
+        );
 
         if (voucher == null) {
-            session.setAttribute("checkoutError", "Voucher không hợp lệ hoặc đã hết lượt.");
+            session.setAttribute(
+                    "checkoutError",
+                    "Voucher không hợp lệ hoặc đã hết lượt."
+            );
         } else {
             session.setAttribute("appliedVoucher", voucher);
-            session.setAttribute("checkoutMessage", "Áp dụng voucher thành công.");
+            session.setAttribute(
+                    "checkoutMessage",
+                    "Áp dụng voucher thành công."
+            );
         }
 
         redirectToCheckout(request, response);
     }
 
-    // BO VOUCHER
-    private void removeVoucher(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+    // BO VOUCHER DANG CHON
+    private void removeVoucher(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
 
         HttpSession session = request.getSession();
 
@@ -424,104 +638,109 @@ public class CheckoutServlet extends HttpServlet {
         redirectToCheckout(request, response);
     }
 
-    // DAT HANG COD - GIU LUONG ORDER HIEN TAI
-    private void placeOrder(HttpServletRequest request, HttpServletResponse response, User user)
-            throws ServletException, IOException {
+    // DAT HANG COD BANG SERVICE MOI
+    private void placeOrder(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User user
+    ) throws IOException {
 
         HttpSession session = request.getSession();
+        String checkoutToken = request.getParameter("checkoutToken");
 
         try {
-            if (!"COD".equalsIgnoreCase(request.getParameter("paymentMethod"))) {
-                throw new IllegalArgumentException("Hiện tại chỉ hỗ trợ thanh toán COD.");
-            }
+            if (checkoutToken == null
+                    || !checkoutToken.matches("[0-9a-fA-F-]{36}")) {
 
-            int addressId = parsePositiveInt(request.getParameter("addressId"));
-
-            if (addressId <= 0) {
-                throw new IllegalArgumentException("Vui lòng chọn địa chỉ giao hàng.");
-            }
-
-            // DIA CHI GUI LEN PHAI KHOP VOI SESSION
-            Object selectedId = session.getAttribute("selectedAddressId");
-
-            if (!(selectedId instanceof Integer) || ((Integer) selectedId) != addressId) {
                 throw new IllegalArgumentException(
-                        "Địa chỉ chưa được xác nhận. Vui lòng chọn lại địa chỉ giao hàng."
+                        "Phiên đặt hàng không hợp lệ. "
+                                + "Vui lòng tải lại Checkout."
                 );
             }
 
-            Address address = addressDAO.getAddressById(addressId, user.getUserId());
+            int orderId;
 
-            if (address == null) {
-                throw new IllegalArgumentException("Địa chỉ không hợp lệ hoặc đã bị xóa.");
-            }
-
-            int cartId = cartDAO.getCartIdByUserId(user.getUserId());
-
-            if (cartId <= 0) {
-                throw new IllegalArgumentException("Giỏ hàng đang trống.");
-            }
-
-            List<CartItem> items = cartDAO.getCartItems(cartId);
-
-            if (items == null || items.isEmpty()) {
-                throw new IllegalArgumentException("Giỏ hàng đang trống.");
-            }
-
-            double subtotal = cartDAO.getCartTotal(cartId);
-            BigDecimal discountAmount = BigDecimal.ZERO;
-
-            Voucher voucher = (Voucher) session.getAttribute("appliedVoucher");
-
-            if (voucher != null) {
-                Voucher valid = voucherDAO.getValidVoucher(
-                        voucher.getCode(),
-                        subtotal,
-                        user.getUserId()
+            synchronized (session) {
+                // REQUEST LAP THI DOC LAI DON DA TAO
+                Integer existingOrderId = orderDAO.findIdByToken(
+                        user.getUserId(),
+                        checkoutToken
                 );
 
-                if (valid == null) {
-                    throw new IllegalArgumentException("Voucher đã hết hiệu lực. Vui lòng chọn lại.");
+                if (existingOrderId != null) {
+                    orderId = existingOrderId;
+
+                } else {
+                    // TOKEN PHAI KHOP VOI TOKEN SERVER DA CAP
+                    if (!checkoutToken.equals(
+                            session.getAttribute("checkoutToken"))) {
+
+                        throw new IllegalArgumentException(
+                                "Phiên đặt hàng đã hết hạn. "
+                                        + "Vui lòng tải lại Checkout."
+                        );
+                    }
+
+                    if (!"COD".equalsIgnoreCase(
+                            request.getParameter("paymentMethod"))) {
+
+                        throw new IllegalArgumentException(
+                                "Hiện tại chỉ hỗ trợ thanh toán COD."
+                        );
+                    }
+
+                    int addressId = parsePositiveInt(
+                            request.getParameter("addressId")
+                    );
+
+                    Object selectedId =
+                            session.getAttribute("selectedAddressId");
+
+                    if (addressId <= 0
+                            || !(selectedId instanceof Integer)
+                            || ((Integer) selectedId) != addressId) {
+
+                        throw new IllegalArgumentException(
+                                "Vui lòng chọn và xác nhận địa chỉ giao hàng."
+                        );
+                    }
+
+                    Voucher voucher =
+                            (Voucher) session.getAttribute("appliedVoucher");
+
+                    String voucherCode =
+                            voucher == null ? null : voucher.getCode();
+
+                    // SERVICE TU KIEM TRA GIA, KHO, DIA CHI VA VOUCHER
+                    orderId = orderService.placeCodOrder(
+                            user.getUserId(),
+                            addressId,
+                            checkoutToken,
+                            voucherCode
+                    );
                 }
 
-                double discount = voucherDAO.calculateDiscount(valid, subtotal);
+                // CHI XOA TOKEN CUA LAN DAT HANG VUA XU LY
+                if (checkoutToken.equals(
+                        session.getAttribute("checkoutToken"))) {
 
-                discountAmount = BigDecimal.valueOf(discount)
-                        .setScale(2, RoundingMode.HALF_UP);
+                    session.removeAttribute("checkoutToken");
+                    session.removeAttribute("appliedVoucher");
+                }
 
-                voucher = valid;
+                // GIU selectedAddressId DE DUNG LAI TRONG SESSION
             }
 
-            int orderId = orderService.placeCodOrder(
-                    user.getUserId(),
-                    addressId,
-                    address.getRecipientName(),
-                    address.getPhoneNumber(),
-                    address.getAddressLine(),
-                    BigDecimal.ZERO,
-                    discountAmount
+            // POST -> REDIRECT -> GET
+            response.setStatus(HttpServletResponse.SC_SEE_OTHER);
+
+            response.setHeader(
+                    "Location",
+                    response.encodeRedirectURL(
+                            request.getContextPath()
+                                    + "/order-success?id=" + orderId
+                    )
             );
-
-            // GIU NGUYEN LUONG VOUCHER CU
-            // CHUA CHUYEN VOUCHER VAO CUNG TRANSACTION
-            if (voucher != null) {
-                boolean saved = voucherDAO.saveVoucherUsage(
-                        voucher.getVoucherId(),
-                        orderId,
-                        user.getUserId()
-                );
-
-                if (!saved) {
-                    LOGGER.warning("Order " + orderId + " chua luu duoc voucher usage.");
-                }
-            }
-
-            session.removeAttribute("appliedVoucher");
-            session.removeAttribute("selectedAddressId");
-
-            request.setAttribute("orderId", orderId);
-
-            request.getRequestDispatcher("/WEB-INF/checkout/order-success.jsp").forward(request, response);
 
         } catch (IllegalArgumentException e) {
             session.setAttribute("checkoutError", e.getMessage());
@@ -530,25 +749,42 @@ public class CheckoutServlet extends HttpServlet {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Loi dat hang COD!", e);
 
-            session.setAttribute("checkoutError", "Có lỗi khi đặt hàng. Vui lòng thử lại.");
+            session.setAttribute(
+                    "checkoutError",
+                    "Chưa xác nhận được kết quả đặt hàng. Vui lòng thử lại."
+            );
 
             redirectToCheckout(request, response);
         }
     }
 
-    // TRA LOI JSON KHI CO LOI
-    private void sendJsonError(HttpServletResponse response, int status, String message)
-            throws IOException {
+    // CHUYEN CHUOI THANH ID DUONG
+    private int parsePositiveInt(String value) {
+        try {
+            int id = Integer.parseInt(value);
+            return id > 0 ? id : -1;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    // TRA THONG BAO LOI JSON
+    private void sendJsonError(
+            HttpServletResponse response,
+            int status,
+            String message
+    ) throws IOException {
 
         response.setStatus(status);
         response.setContentType("application/json;charset=UTF-8");
 
         response.getWriter().write(
-                "{\"success\":false,\"message\":\"" + jsonEscape(message) + "\"}"
+                "{\"success\":false,\"message\":\""
+                        + jsonEscape(message) + "\"}"
         );
     }
 
-    // ESCAPE DU LIEU KHI GHI JSON
+    // ESCAPE CHUOI DE TAO JSON HOP LE
     private String jsonEscape(String value) {
         if (value == null) {
             return "";
@@ -561,21 +797,28 @@ public class CheckoutServlet extends HttpServlet {
                 case '"':
                     result.append("\\\"");
                     break;
+
                 case '\\':
                     result.append("\\\\");
                     break;
+
                 case '\n':
                     result.append("\\n");
                     break;
+
                 case '\r':
                     result.append("\\r");
                     break;
+
                 case '\t':
                     result.append("\\t");
                     break;
+
                 default:
                     if (c < 0x20) {
-                        result.append(String.format("\\u%04x", (int) c));
+                        result.append(
+                                String.format("\\u%04x", (int) c)
+                        );
                     } else {
                         result.append(c);
                     }
@@ -585,7 +828,7 @@ public class CheckoutServlet extends HttpServlet {
         return result.toString();
     }
 
-    // LAY USER DANG DANG NHAP
+    // LAY USER TU SESSION
     private User getLoggedInUser(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
 
@@ -598,8 +841,10 @@ public class CheckoutServlet extends HttpServlet {
         return value instanceof User ? (User) value : null;
     }
 
-    private void redirectToLogin(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+    private void redirectToLogin(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
 
         request.getSession().setAttribute(
                 "redirectUrl",
@@ -609,8 +854,10 @@ public class CheckoutServlet extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/login");
     }
 
-    private void redirectToCheckout(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+    private void redirectToCheckout(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
 
         response.sendRedirect(request.getContextPath() + "/checkout");
     }
