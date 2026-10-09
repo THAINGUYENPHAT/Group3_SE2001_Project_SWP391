@@ -2,20 +2,17 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Xác nhận đơn hàng - OECS Store</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/bootstrap.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
+<%@ include file="/WEB-INF/include/header.jsp" %>
+
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Let the shared header scroll with the page on checkout only. */
+.app-header { position: static; }
 /* Scoped to checkout so other store pages retain their existing presentation. */
-.checkout-body {
+.checkout-page {
+    max-width: 1144px;
+    margin: 0 auto;
+    padding: 4px 0 32px;
     --checkout-ink: #0f1b2d;
     --checkout-muted: #64748b;
     --checkout-line: #e5e9f0;
@@ -23,22 +20,12 @@
     --checkout-brand: #1d5bff;
     --checkout-soft: #eaf0ff;
     font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
-    background: var(--checkout-bg);
     color: var(--checkout-ink);
     font-size: 15px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
 }
-.checkout-body :focus-visible { outline: 3px solid #1d5bff66; outline-offset: 3px; }
-.checkout-topbar { background: #0f172a; border-bottom: 1px solid #1e293b; }
-.checkout-topbar-inner { max-width: 1200px; margin: auto; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.checkout-brand { display: flex; align-items: center; gap: 12px; font-size: 36px; line-height: 1; letter-spacing: -.01em; font-weight: 800; color: #f8fafc; text-decoration: none; }
-.checkout-brand:hover { color: #fff; }
-.checkout-brand-name { color: #60a5fa; }
-.checkout-brand-mark { width: 44px; height: 44px; border-radius: 14px; background: #162544; border: 1px solid #254779; color: #60a5fa; display: grid; place-items: center; font-size: 24px; }
-.checkout-secure { display: flex; align-items: center; gap: 6px; font-size: 14.5px; color: #cbd5e1; }
-.checkout-secure i { color: #34d399; font-size: 20px; }
-.checkout-main { max-width: 1200px; width: 100%; margin: auto; padding: 28px 28px 56px; }
+.checkout-page :focus-visible { outline: 3px solid #1d5bff66; outline-offset: 3px; }
 .checkout-steps { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px; color: var(--checkout-muted); font-size: 15px; }
 .checkout-step { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
 .checkout-step-dot { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--checkout-line); font-size: 15px; font-weight: 600; }
@@ -128,7 +115,6 @@
 .checkout-trust > div { display: flex; align-items: flex-start; gap: 9px; }
 .checkout-trust i { flex: none; color: #5be0ac; font-size: 18px; }
 .checkout-page .modal-content { border: 1px solid var(--checkout-line); border-radius: 14px !important; }
-.checkout-body > footer { background: #fff !important; font-size: 14px; color: var(--checkout-muted) !important; border-color: var(--checkout-line) !important; }
 @media (max-width: 1100px) and (min-width: 901px) {
     .checkout-product { grid-template-columns: 64px minmax(0, 1fr); gap: 14px; }
     .checkout-product-icon { width: 64px; height: 64px; }
@@ -141,11 +127,6 @@
     .checkout-step-bar { width: 40px; }
 }
 @media (max-width: 560px) {
-    .checkout-main { padding: 20px 16px 40px; }
-    .checkout-topbar-inner { padding: 14px 16px; flex-wrap: wrap; }
-    .checkout-brand { font-size: 28px; gap: 8px; }
-    .checkout-brand-mark { width: 36px; height: 36px; border-radius: 10px; font-size: 23px; }
-    .checkout-secure { font-size: 12px; }
     .checkout-steps { gap: 8px; font-size: 12px; align-items: flex-start; }
     .checkout-step { flex-direction: column; gap: 6px; text-align: center; }
     .checkout-step-dot { width: 28px; height: 28px; font-size: 14px; }
@@ -163,19 +144,7 @@
     .checkout-page #selectedAddressCard { padding: 16px !important; }
     .checkout-summary h4 { font-size: 34px; }
 }
-    </style>
-</head>
-<body class="checkout-body">
-    <header class="checkout-topbar">
-        <div class="checkout-topbar-inner">
-            <a class="checkout-brand" href="${pageContext.request.contextPath}/home" aria-label="OECS Store - Trang chủ">
-                <span class="checkout-brand-mark" aria-hidden="true"><i class="bi bi-bag"></i></span>
-                <span>OECS <span class="checkout-brand-name">Store</span></span>
-            </a>
-            <div class="checkout-secure"><i class="bi bi-lock" aria-hidden="true"></i>Thanh toán an toàn</div>
-        </div>
-    </header>
-    <main class="checkout-main">
+</style>
 
 <div class="checkout-page">
 <nav class="checkout-steps" aria-label="Các bước đặt hàng">
