@@ -1,13 +1,194 @@
-<%@ page pageEncoding="UTF-8" %>
+<%@ page contentType="text/html" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
-<%@ include file="/WEB-INF/include/header.jsp" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Xác nhận đơn hàng - OECS Store</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/bootstrap.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+/* Scoped to checkout so other store pages retain their existing presentation. */
+.checkout-body {
+    --checkout-ink: #0f1b2d;
+    --checkout-muted: #64748b;
+    --checkout-line: #e5e9f0;
+    --checkout-bg: #f4f6fa;
+    --checkout-brand: #1d5bff;
+    --checkout-soft: #eaf0ff;
+    font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--checkout-bg);
+    color: var(--checkout-ink);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+}
+.checkout-body :focus-visible { outline: 3px solid #1d5bff66; outline-offset: 3px; }
+.checkout-topbar { background: #0f172a; border-bottom: 1px solid #1e293b; }
+.checkout-topbar-inner { max-width: 1200px; margin: auto; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.checkout-brand { display: flex; align-items: center; gap: 12px; font-size: 36px; line-height: 1; letter-spacing: -.01em; font-weight: 800; color: #f8fafc; text-decoration: none; }
+.checkout-brand:hover { color: #fff; }
+.checkout-brand-name { color: #60a5fa; }
+.checkout-brand-mark { width: 44px; height: 44px; border-radius: 14px; background: #162544; border: 1px solid #254779; color: #60a5fa; display: grid; place-items: center; font-size: 24px; }
+.checkout-secure { display: flex; align-items: center; gap: 6px; font-size: 14.5px; color: #cbd5e1; }
+.checkout-secure i { color: #34d399; font-size: 20px; }
+.checkout-main { max-width: 1200px; width: 100%; margin: auto; padding: 28px 28px 56px; }
+.checkout-steps { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px; color: var(--checkout-muted); font-size: 15px; }
+.checkout-step { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
+.checkout-step-dot { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--checkout-line); font-size: 15px; font-weight: 600; }
+.checkout-step.is-done, .checkout-step.is-current { color: var(--checkout-ink); }
+.checkout-step.is-done .checkout-step-dot, .checkout-step-bar.is-done { background: #0f9d6b; color: #fff; }
+.checkout-step.is-current { font-weight: 600; }
+.checkout-step.is-current .checkout-step-dot { background: var(--checkout-brand); color: #fff; }
+.checkout-step-bar { width: 100px; height: 3px; border-radius: 2px; background: var(--checkout-line); }
+.checkout-heading { align-items: flex-end !important; gap: 16px; margin-bottom: 24px !important; }
+.checkout-heading h1 { font-size: 30px; letter-spacing: -.02em; line-height: 1.2; }
+.checkout-heading p { margin-top: 6px; }
+.checkout-heading > a { flex-shrink: 0; }
+.checkout-layout { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 24px; align-items: start; }
+.checkout-details { display: grid; gap: 16px; min-width: 0; }
+.checkout-details > .card { margin: 0 !important; }
+.checkout-page .card { border: 1px solid var(--checkout-line) !important; border-radius: 14px !important; background: #fff; box-shadow: none !important; min-width: 0; }
+.checkout-page .card-body { padding: 24px !important; }
+.checkout-page h5 { font-size: 18px; font-weight: 600 !important; line-height: 1.4; margin-bottom: 16px !important; }
+.checkout-details h5 { display: flex; align-items: center; gap: 12px; }
+.checkout-details h5 > i { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; flex: none; background: var(--checkout-soft); color: var(--checkout-brand) !important; margin: 0 !important; font-size: 18px; }
+.checkout-address-heading { flex-wrap: wrap; gap: 12px; margin-bottom: 16px !important; }
+.checkout-address-heading h5 { margin: 0 !important; }
+.checkout-page .text-muted { color: var(--checkout-muted) !important; }
+.checkout-page .btn { padding: 9px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; }
+.checkout-page .btn-sm { padding: 8px 12px; border-radius: 9px; font-size: 14px; }
+.checkout-page .btn-primary {
+    --bs-btn-bg: var(--checkout-brand); --bs-btn-border-color: var(--checkout-brand);
+    --bs-btn-hover-bg: #134be0; --bs-btn-hover-border-color: #134be0;
+    --bs-btn-active-bg: #134be0; --bs-btn-active-border-color: #134be0;
+    --bs-btn-disabled-bg: var(--checkout-brand); --bs-btn-disabled-border-color: var(--checkout-brand);
+    --bs-btn-focus-shadow-rgb: 29, 91, 255;
+}
+.checkout-page .btn-outline-primary {
+    --bs-btn-color: var(--checkout-brand); --bs-btn-border-color: var(--checkout-brand);
+    --bs-btn-hover-color: var(--checkout-brand); --bs-btn-hover-bg: var(--checkout-soft); --bs-btn-hover-border-color: var(--checkout-brand);
+    --bs-btn-active-bg: var(--checkout-brand); --bs-btn-active-border-color: var(--checkout-brand);
+    --bs-btn-focus-shadow-rgb: 29, 91, 255;
+}
+.checkout-page .btn-outline-secondary, .checkout-page #openAddressModalButton { color: var(--checkout-ink); border-color: var(--checkout-line); background: #fff; }
+.checkout-page .btn-outline-secondary:hover, .checkout-page #openAddressModalButton:hover { border-color: #c5cddb; background: #f8fafc; }
+.checkout-page .form-control { font-size: 16px; padding: 10px 14px; border-color: var(--checkout-line); border-radius: 10px; }
+.checkout-page .form-control:focus { border-color: var(--checkout-brand); box-shadow: 0 0 0 3px #1d5bff26; }
+.checkout-page #selectedAddressCard { border: 1.5px solid var(--checkout-brand) !important; background: #f7f9ff !important; border-radius: 12px !important; padding: 16px 18px !important; }
+.checkout-address-person { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.checkout-page #selectedAddressName { font-size: 16px; overflow-wrap: anywhere; }
+.checkout-page #selectedAddressLine { margin-top: 6px !important; overflow-wrap: anywhere; font-size: 15px; }
+.checkout-page #selectedDefaultBadge { margin: 0 !important; padding: 4px 9px; border-radius: 999px; font-size: 13px; color: var(--checkout-brand); background: var(--checkout-soft) !important; }
+.checkout-product { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 4px 0; }
+.checkout-product + .checkout-product { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--checkout-line); }
+.checkout-product-icon { width: 72px; height: 72px; border-radius: 14px; background: linear-gradient(135deg, #eef2f9, #dde5f2); display: grid; place-items: center; color: #8a98b4; font-size: 30px; }
+.checkout-product-info { font-size: 16px; overflow-wrap: anywhere; min-width: 0; }
+.checkout-product-info small { display: block; font-size: 14px; margin-top: 2px; }
+.checkout-product-quantity { display: inline-block; font-size: 14px; margin-top: 10px; padding: 2px 10px; border-radius: 999px; background: var(--checkout-bg); font-weight: 500; }
+.checkout-product-price { text-align: right; font-variant-numeric: tabular-nums; }
+.checkout-product-unit { font-size: 14px; color: var(--checkout-muted); }
+.checkout-product-total { font-size: 18px; font-weight: 700; margin-top: 2px; }
+.checkout-product-note { margin: 18px 0 0; padding-top: 18px; border-top: 1px dashed var(--checkout-line); color: var(--checkout-muted); font-size: 14.5px; }
+.checkout-product-note a { color: var(--checkout-brand); text-decoration: none; font-weight: 500; }
+.checkout-product-note a:hover { text-decoration: underline; }
+.checkout-voucher-input { display: flex; gap: 10px; margin-bottom: 12px; }
+.checkout-voucher-input input { min-width: 0; flex: 1; padding: 11px 14px !important; }
+.checkout-voucher-input input::placeholder { color: #9aa6ba; }
+.checkout-voucher-input button { flex: none; padding: 0 22px !important; font-weight: 600 !important; }
+.checkout-payment-options { display: grid; gap: 12px; }
+.checkout-payment { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border: 1.5px solid var(--checkout-line); border-radius: 12px; cursor: pointer; }
+.checkout-payment-selected { border-color: var(--checkout-brand); background: #f7f9ff; }
+.checkout-payment input { width: 21px; height: 21px; margin: 0; flex: none; accent-color: var(--checkout-brand); }
+.checkout-payment-copy { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; }
+.checkout-payment-description { display: block; color: var(--checkout-muted); font-size: 14.5px; font-weight: 400; }
+.checkout-payment-disabled { background: #fafbfd; color: #8a98b4; cursor: not-allowed; }
+.checkout-soon { flex: none; font-size: 13px; color: var(--checkout-muted); background: var(--checkout-bg); padding: 3px 10px; border-radius: 999px; }
+.checkout-summary-column { position: sticky; top: 20px; min-width: 0; }
+.checkout-page .checkout-summary { background: var(--checkout-ink); color: #fff; border: 0 !important; border-radius: 20px !important; }
+.checkout-summary .card-body { padding: 28px !important; }
+.checkout-summary h5 { margin-bottom: 18px !important; }
+.checkout-summary .card-body > .d-flex { gap: 16px; padding: 9px 0; margin: 0 !important; color: #b8c3d6; }
+.checkout-summary .card-body > .d-flex strong { color: #fff; font-weight: 500; text-align: right; }
+.checkout-summary .checkout-free, .checkout-summary .text-success { color: #5be0ac !important; }
+.checkout-summary hr { margin: 16px 0 22px; border-color: #ffffff24; opacity: 1; }
+.checkout-grand-total { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline; }
+.checkout-grand-total > strong { color: #b8c3d6; font-weight: 400; }
+.checkout-summary h4 { font-size: 34px; letter-spacing: -.02em; color: #fff !important; overflow-wrap: anywhere; max-width: 100%; margin-left: auto; text-align: right; }
+.checkout-summary #placeOrderButton { margin-top: 20px; padding: 15px !important; border: 0; border-radius: 14px; font-size: 16px; min-height: 54px; }
+.checkout-summary-note { font-size: 13.5px; color: #8a98b4; text-align: center; margin: 12px 0 0; }
+.checkout-summary #needAddressMessage { color: #ffb4bf !important; }
+.checkout-trust { display: grid; gap: 12px; font-size: 14px; color: #b8c3d6; margin-top: 18px; }
+.checkout-trust > div { display: flex; align-items: flex-start; gap: 9px; }
+.checkout-trust i { flex: none; color: #5be0ac; font-size: 18px; }
+.checkout-page .modal-content { border: 1px solid var(--checkout-line); border-radius: 14px !important; }
+.checkout-body > footer { background: #fff !important; font-size: 14px; color: var(--checkout-muted) !important; border-color: var(--checkout-line) !important; }
+@media (max-width: 1100px) and (min-width: 901px) {
+    .checkout-product { grid-template-columns: 64px minmax(0, 1fr); gap: 14px; }
+    .checkout-product-icon { width: 64px; height: 64px; }
+    .checkout-product-price { grid-column: 2; text-align: left; }
+}
+@media (max-width: 900px) {
+    .checkout-layout { grid-template-columns: minmax(0, 1fr); }
+    .checkout-summary-column { position: static; }
+    .checkout-steps { font-size: 14px; gap: 10px; }
+    .checkout-step-bar { width: 40px; }
+}
+@media (max-width: 560px) {
+    .checkout-main { padding: 20px 16px 40px; }
+    .checkout-topbar-inner { padding: 14px 16px; flex-wrap: wrap; }
+    .checkout-brand { font-size: 28px; gap: 8px; }
+    .checkout-brand-mark { width: 36px; height: 36px; border-radius: 10px; font-size: 23px; }
+    .checkout-secure { font-size: 12px; }
+    .checkout-steps { gap: 8px; font-size: 12px; align-items: flex-start; }
+    .checkout-step { flex-direction: column; gap: 6px; text-align: center; }
+    .checkout-step-dot { width: 28px; height: 28px; font-size: 14px; }
+    .checkout-step-bar { flex: 1; min-width: 12px; margin-top: 13px; }
+    .checkout-heading { flex-direction: column; align-items: flex-start !important; }
+    .checkout-heading h1 { font-size: 28px; }
+    .checkout-page .card-body { padding: 18px !important; }
+    .checkout-page h5 { font-size: 18px; }
+    .checkout-product { grid-template-columns: 56px minmax(0, 1fr); gap: 14px; }
+    .checkout-product-icon { width: 56px; height: 56px; font-size: 28px; }
+    .checkout-product-price { grid-column: 2; text-align: left; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+    .checkout-voucher-input button { padding: 0 14px !important; }
+    .checkout-payment { padding: 16px 12px; gap: 10px; }
+    .checkout-payment-copy { font-size: 15px; }
+    .checkout-page #selectedAddressCard { padding: 16px !important; }
+    .checkout-summary h4 { font-size: 34px; }
+}
+    </style>
+</head>
+<body class="checkout-body">
+    <header class="checkout-topbar">
+        <div class="checkout-topbar-inner">
+            <a class="checkout-brand" href="${pageContext.request.contextPath}/home" aria-label="OECS Store - Trang chủ">
+                <span class="checkout-brand-mark" aria-hidden="true"><i class="bi bi-bag"></i></span>
+                <span>OECS <span class="checkout-brand-name">Store</span></span>
+            </a>
+            <div class="checkout-secure"><i class="bi bi-lock" aria-hidden="true"></i>Thanh toán an toàn</div>
+        </div>
+    </header>
+    <main class="checkout-main">
 
+<div class="checkout-page">
+<nav class="checkout-steps" aria-label="Các bước đặt hàng">
+    <a class="checkout-step is-done" href="${pageContext.request.contextPath}/cart"><span class="checkout-step-dot" aria-hidden="true">✓</span>Giỏ hàng</a>
+    <span class="checkout-step-bar is-done" aria-hidden="true"></span>
+    <span class="checkout-step is-current" aria-current="step"><span class="checkout-step-dot">2</span>Xác nhận đơn hàng</span>
+    <span class="checkout-step-bar" aria-hidden="true"></span>
+    <span class="checkout-step"><span class="checkout-step-dot">3</span>Hoàn tất</span>
+</nav>
 <!-- TIEU DE CHECKOUT -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="checkout-heading d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h3 class="fw-bold mb-1">Xác nhận đơn hàng</h3>
+        <h1 class="fw-bold mb-1">Xác nhận đơn hàng</h1>
         <p class="text-muted mb-0">
             Vui lòng kiểm tra thông tin trước khi đặt hàng.
         </p>
@@ -35,16 +216,16 @@
     <c:remove var="checkoutMessage" scope="session" />
 </c:if>
 
-<div class="row g-4">
+<div class="checkout-layout">
 
     <!-- COT TRAI -->
-    <div class="col-lg-8">
+    <div class="checkout-details">
 
         <!-- DIA CHI GIAO HANG -->
         <div class="card shadow-sm border-0 rounded-4 mb-4">
             <div class="card-body p-4">
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="checkout-address-heading d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0">
                         <i class="bi bi-geo-alt text-primary me-2"></i>
                         Địa chỉ giao hàng
@@ -83,14 +264,11 @@
                      class="border rounded-3 p-3 bg-light"
                      style="${empty selectedAddress ? 'display:none;' : ''}">
 
+                    <div class="checkout-address-person">
                     <div class="fw-semibold" id="selectedAddressName">
                         <c:out value="${selectedAddress.recipientName}" />
                         |
                         <c:out value="${selectedAddress.phoneNumber}" />
-                    </div>
-
-                    <div class="text-muted mt-1" id="selectedAddressLine">
-                        <c:out value="${selectedAddress.addressLine}" />
                     </div>
 
                     <span id="selectedDefaultBadge"
@@ -98,6 +276,10 @@
                           style="${selectedAddress.defaultAddress ? '' : 'display:none;'}">
                         Mặc định
                     </span>
+                    </div>
+                    <div class="text-muted mt-1" id="selectedAddressLine">
+                        <c:out value="${selectedAddress.addressLine}" />
+                    </div>
                 </div>
 
             </div>
@@ -112,21 +294,13 @@
                     Sản phẩm đặt mua
                 </h5>
 
-                <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Sản phẩm</th>
-                                <th class="text-end">Đơn giá</th>
-                                <th class="text-center">Số lượng</th>
-                                <th class="text-end">Thành tiền</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
+                <div class="checkout-products" role="list" aria-label="Sản phẩm đặt mua">
                             <c:forEach var="item" items="${cartItems}">
-                                <tr>
-                                    <td>
+                                        <div class="checkout-product" role="listitem">
+                                            <span class="checkout-product-icon" aria-hidden="true">
+                                                <i class="bi bi-box-seam"></i>
+                                            </span>
+                                            <div class="checkout-product-info">
                                         <div class="fw-semibold">
                                             <c:out value="${item.productName}" />
                                         </div>
@@ -135,34 +309,31 @@
                                             SKU:
                                             <c:out value="${item.skuCode}" />
                                         </small>
-                                    </td>
-
-                                    <td class="text-end">
+                                        <span class="checkout-product-quantity">Số lượng: ${item.quantity}</span>
+                                            </div>
+                                    <div class="checkout-product-price">
+                                    <div class="checkout-product-unit">
+                                        <span class="visually-hidden">Đơn giá: </span>
                                         <fmt:formatNumber
                                             value="${item.price}"
                                             type="number"
                                             maxFractionDigits="0" />đ
-                                    </td>
-
-                                    <td class="text-center">
-                                        ${item.quantity}
-                                    </td>
-
-                                    <td class="text-end fw-semibold">
+                                    </div>
+                                    <div class="checkout-product-total">
+                                        <span class="visually-hidden">Thành tiền: </span>
                                         <fmt:formatNumber
                                             value="${item.price * item.quantity}"
                                             type="number"
                                             maxFractionDigits="0" />đ
-                                    </td>
-                                </tr>
+                                    </div>
+                                    </div>
+                                        </div>
                             </c:forEach>
-                        </tbody>
-                    </table>
                 </div>
 
-                <small class="text-muted">
-                    Muốn thay đổi số lượng, vui lòng quay lại giỏ hàng.
-                </small>
+                <p class="checkout-product-note">Muốn thay đổi số lượng?
+                    <a href="${pageContext.request.contextPath}/cart">Quay lại giỏ hàng</a>
+                </p>
 
             </div>
         </div>
@@ -208,11 +379,12 @@
                            name="action"
                            value="applyVoucher">
 
-                    <div class="input-group mb-3">
+                    <div class="checkout-voucher-input">
                         <input type="text"
                                name="voucherCode"
                                class="form-control"
                                placeholder="Nhập mã giảm giá"
+                               aria-label="Mã giảm giá"
                                maxlength="50"
                                required>
 
@@ -272,39 +444,43 @@
                     Phương thức thanh toán
                 </h5>
 
-                <label class="d-block border border-primary rounded-3 p-3 mb-3">
+                <div class="checkout-payment-options" role="radiogroup" aria-label="Phương thức thanh toán">
+                <label class="checkout-payment checkout-payment-selected">
                     <input type="radio"
                            name="paymentMethod"
                            value="COD"
                            form="orderForm"
                            checked>
 
-                    <span class="fw-semibold ms-2">
+                    <span class="checkout-payment-copy"><span class="fw-semibold">
                         Thanh toán khi nhận hàng (COD)
                     </span>
 
-                    <div class="text-muted small ms-4 mt-1">
+                    <span class="checkout-payment-description">
                         Thanh toán khi nhận được sản phẩm.
-                    </div>
+                    </span></span>
                 </label>
 
-                <label class="d-block border rounded-3 p-3 mb-3 text-muted">
+                <label class="checkout-payment checkout-payment-disabled">
                     <input type="radio" disabled>
-                    <span class="ms-2">VNPay — Đang phát triển</span>
+                    <span class="checkout-payment-copy">VNPay</span>
+                    <span class="checkout-soon">Sắp ra mắt</span>
                 </label>
 
-                <label class="d-block border rounded-3 p-3 text-muted">
+                <label class="checkout-payment checkout-payment-disabled">
                     <input type="radio" disabled>
-                    <span class="ms-2">MoMo — Đang phát triển</span>
+                    <span class="checkout-payment-copy">MoMo</span>
+                    <span class="checkout-soon">Sắp ra mắt</span>
                 </label>
+                </div>
 
             </div>
         </div>
     </div>
 
     <!-- COT PHAI: TONG KET -->
-    <div class="col-lg-4">
-        <div class="card shadow-sm border-0 rounded-4">
+    <aside class="checkout-summary-column" aria-label="Thông tin thanh toán">
+        <div class="card shadow-sm border-0 rounded-4 checkout-summary">
             <div class="card-body p-4">
 
                 <h5 class="fw-bold mb-4">
@@ -323,7 +499,7 @@
 
                 <div class="d-flex justify-content-between mb-3">
                     <span>Phí vận chuyển</span>
-                    <span>0đ</span>
+                    <span class="checkout-free">Miễn phí</span>
                 </div>
 
                 <div class="d-flex justify-content-between mb-3">
@@ -338,7 +514,7 @@
 
                 <hr>
 
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="checkout-grand-total">
                     <strong>Tổng thanh toán</strong>
                     <h4 class="text-danger fw-bold mb-0">
                         <fmt:formatNumber
@@ -380,13 +556,17 @@
                     Vui lòng thêm địa chỉ trước khi đặt hàng.
                 </p>
 
-                <p class="text-muted small text-center mt-3 mb-0">
+                <p class="checkout-summary-note">
                     Vui lòng kiểm tra đơn hàng trước khi xác nhận.
                 </p>
+                <div class="checkout-trust">
+                    <div><i class="bi bi-shield-check" aria-hidden="true"></i><span>Hàng chính hãng, bảo hành đầy đủ</span></div>
+                    <div><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i><span>Đổi trả trong 7 ngày nếu lỗi do nhà sản xuất</span></div>
+                </div>
 
             </div>
         </div>
-    </div>
+    </aside>
 </div>
 
 <!-- MODAL CHON VA SUA DIA CHI -->
@@ -674,6 +854,8 @@
 
         </div>
     </div>
+</div>
+
 </div>
 
 <script>
