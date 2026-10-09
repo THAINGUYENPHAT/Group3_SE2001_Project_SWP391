@@ -25,22 +25,24 @@ public class AdminOrderDAO extends DBContext {
 
         List<Order> list = new ArrayList<>();
 
-        String sql = "SELECT o.order_id, "
+        String sql
+                = "SELECT o.order_id, "
                 + "o.user_id, "
                 + "o.address_id, "
                 + "o.shipping_partner_id, "
                 + "o.total_amount, "
                 + "o.shipping_fee, "
+                + "o.discount_amount, "
+                + "o.order_status, "
+                + "o.payment_method, "
+                + "o.payment_status, "
+                + "o.recipient_name, "
+                + "o.recipient_phone, "
+                + "o.shipping_address, "
                 + "o.created_at, "
-                + "h.status AS order_status "
+                + "o.payment_expires_at "
                 + "FROM dbo.[ORDER] o "
-                + "OUTER APPLY ( "
-                + "    SELECT TOP 1 status "
-                + "    FROM ORDER_STATUS_HISTORY "
-                + "    WHERE order_id = o.order_id "
-                + "    ORDER BY status_id DESC "
-                + ") h "
-                + "ORDER BY o.created_at DESC, o.order_id DESC";
+                + "ORDER BY o.order_id ASC";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
 
@@ -48,9 +50,17 @@ public class AdminOrderDAO extends DBContext {
 
                 Order order = new Order();
 
-                order.setOrderId(rs.getInt("order_id"));
-                order.setUserId(rs.getInt("user_id"));
-                order.setAddressId(rs.getInt("address_id"));
+                order.setOrderId(
+                        rs.getInt("order_id")
+                );
+
+                order.setUserId(
+                        rs.getInt("user_id")
+                );
+
+                order.setAddressId(
+                        rs.getInt("address_id")
+                );
 
                 order.setShippingPartnerId(
                         (Integer) rs.getObject("shipping_partner_id")
@@ -64,23 +74,53 @@ public class AdminOrderDAO extends DBContext {
                         rs.getBigDecimal("shipping_fee")
                 );
 
+                order.setDiscountAmount(
+                        rs.getBigDecimal("discount_amount")
+                );
+
+                // Trạng thái hiện tại lấy trực tiếp từ ORDER
+                order.setOrderStatus(
+                        rs.getString("order_status")
+                );
+
+                order.setPaymentMethod(
+                        rs.getString("payment_method")
+                );
+
+                order.setPaymentStatus(
+                        rs.getString("payment_status")
+                );
+
+                order.setRecipientName(
+                        rs.getString("recipient_name")
+                );
+
+                order.setRecipientPhone(
+                        rs.getString("recipient_phone")
+                );
+
+                order.setShippingAddress(
+                        rs.getString("shipping_address")
+                );
+
                 order.setCreatedAt(
                         rs.getTimestamp("created_at")
                 );
 
-                // Status lấy từ ORDER_STATUS_HISTORY
-                order.setOrderStatus(
-                        rs.getString("order_status")
+                order.setPaymentExpiresAt(
+                        rs.getTimestamp("payment_expires_at")
                 );
 
                 list.add(order);
             }
 
         } catch (SQLException ex) {
-            ex.printStackTrace();
-            Logger.getLogger(AdminOrderDAO.class.getName())
-                    .log(Level.SEVERE,
-                            "Lỗi lấy danh sách Order!", ex);
+
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi lấy danh sách Order!",
+                    ex
+            );
         }
 
         return list;
@@ -91,21 +131,23 @@ public class AdminOrderDAO extends DBContext {
     // =========================================================
     public Order getById(int id) {
 
-        String sql = "SELECT o.order_id, "
+        String sql
+                = "SELECT o.order_id, "
                 + "o.user_id, "
                 + "o.address_id, "
                 + "o.shipping_partner_id, "
                 + "o.total_amount, "
                 + "o.shipping_fee, "
+                + "o.discount_amount, "
+                + "o.order_status, "
+                + "o.payment_method, "
+                + "o.payment_status, "
+                + "o.recipient_name, "
+                + "o.recipient_phone, "
+                + "o.shipping_address, "
                 + "o.created_at, "
-                + "h.status AS order_status "
+                + "o.payment_expires_at "
                 + "FROM dbo.[ORDER] o "
-                + "OUTER APPLY ( "
-                + "    SELECT TOP 1 status "
-                + "    FROM ORDER_STATUS_HISTORY "
-                + "    WHERE order_id = o.order_id "
-                + "    ORDER BY status_id DESC "
-                + ") h "
                 + "WHERE o.order_id = ?";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
@@ -142,12 +184,40 @@ public class AdminOrderDAO extends DBContext {
                             rs.getBigDecimal("shipping_fee")
                     );
 
-                    order.setCreatedAt(
-                            rs.getTimestamp("created_at")
+                    order.setDiscountAmount(
+                            rs.getBigDecimal("discount_amount")
                     );
 
                     order.setOrderStatus(
                             rs.getString("order_status")
+                    );
+
+                    order.setPaymentMethod(
+                            rs.getString("payment_method")
+                    );
+
+                    order.setPaymentStatus(
+                            rs.getString("payment_status")
+                    );
+
+                    order.setRecipientName(
+                            rs.getString("recipient_name")
+                    );
+
+                    order.setRecipientPhone(
+                            rs.getString("recipient_phone")
+                    );
+
+                    order.setShippingAddress(
+                            rs.getString("shipping_address")
+                    );
+
+                    order.setCreatedAt(
+                            rs.getTimestamp("created_at")
+                    );
+
+                    order.setPaymentExpiresAt(
+                            rs.getTimestamp("payment_expires_at")
                     );
 
                     return order;
@@ -155,10 +225,12 @@ public class AdminOrderDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
-            ex.printStackTrace();
-            Logger.getLogger(AdminOrderDAO.class.getName())
-                    .log(Level.SEVERE,
-                            "Lỗi lấy Order theo ID!", ex);
+
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi lấy Order theo ID!",
+                    ex
+            );
         }
 
         return null;
@@ -172,8 +244,11 @@ public class AdminOrderDAO extends DBContext {
         List<OrderItem> list = new ArrayList<>();
 
         String sql
-                = "SELECT order_item_id, order_id, sku_id, "
-                + "price, quantity "
+                = "SELECT order_item_id, "
+                + "order_id, "
+                + "sku_id, "
+                + "price, "
+                + "quantity "
                 + "FROM ORDER_ITEM "
                 + "WHERE order_id = ?";
 
@@ -229,10 +304,9 @@ public class AdminOrderDAO extends DBContext {
     public String getCurrentStatus(int orderId) {
 
         String sql
-                = "SELECT TOP 1 status "
-                + "FROM ORDER_STATUS_HISTORY "
-                + "WHERE order_id = ? "
-                + "ORDER BY updated_at DESC, status_id DESC";
+                = "SELECT order_status "
+                + "FROM dbo.[ORDER] "
+                + "WHERE order_id = ?";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
@@ -241,7 +315,7 @@ public class AdminOrderDAO extends DBContext {
             try (ResultSet rs = statement.executeQuery()) {
 
                 if (rs.next()) {
-                    return rs.getString("status");
+                    return rs.getString("order_status");
                 }
             }
 
@@ -262,17 +336,75 @@ public class AdminOrderDAO extends DBContext {
     // =========================================================
     public int updateStatus(int orderId, String status) {
 
-        String sql
+        String updateOrderSql
+                = "UPDATE dbo.[ORDER] "
+                + "SET order_status = ? "
+                + "WHERE order_id = ?";
+
+        String insertHistorySql
                 = "INSERT INTO ORDER_STATUS_HISTORY "
                 + "(order_id, status) "
                 + "VALUES (?, ?)";
 
-        try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection()) {
 
-            statement.setInt(1, orderId);
-            statement.setString(2, status);
+            // Đảm bảo update ORDER và insert HISTORY
+            // thành công cùng nhau
+            conn.setAutoCommit(false);
 
-            return statement.executeUpdate();
+            try (PreparedStatement updateOrderStmt
+                    = conn.prepareStatement(updateOrderSql); PreparedStatement insertHistoryStmt
+                    = conn.prepareStatement(insertHistorySql)) {
+
+                // -------------------------------------------------
+                // BƯỚC 1: UPDATE trạng thái hiện tại trong ORDER
+                // -------------------------------------------------
+                updateOrderStmt.setString(
+                        1,
+                        status.toUpperCase()
+                );
+
+                updateOrderStmt.setInt(
+                        2,
+                        orderId
+                );
+
+                int updated
+                        = updateOrderStmt.executeUpdate();
+
+                if (updated == 0) {
+                    conn.rollback();
+                    return 0;
+                }
+
+                // -------------------------------------------------
+                // BƯỚC 2: LƯU LỊCH SỬ
+                // -------------------------------------------------
+                insertHistoryStmt.setInt(
+                        1,
+                        orderId
+                );
+
+                // History giữ status dạng dễ đọc
+                insertHistoryStmt.setString(
+                        2,
+                        status
+                );
+
+                insertHistoryStmt.executeUpdate();
+
+                // -------------------------------------------------
+                // BƯỚC 3: COMMIT
+                // -------------------------------------------------
+                conn.commit();
+
+                return 1;
+
+            } catch (SQLException ex) {
+
+                conn.rollback();
+                throw ex;
+            }
 
         } catch (SQLException ex) {
 
@@ -291,27 +423,12 @@ public class AdminOrderDAO extends DBContext {
     // =========================================================
     public int cancelOrder(int orderId) {
 
-        String sql
-                = "INSERT INTO ORDER_STATUS_HISTORY "
-                + "(order_id, status) "
-                + "VALUES (?, ?)";
-
-        try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
-
-            statement.setInt(1, orderId);
-            statement.setString(2, "Cancelled");
-
-            return statement.executeUpdate();
-
-        } catch (SQLException ex) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi hủy Order!",
-                    ex
-            );
-        }
-
-        return 0;
+        // Dùng chung logic updateStatus:
+        // ORDER.order_status -> CANCELLED
+        // ORDER_STATUS_HISTORY -> Cancelled
+        return updateStatus(
+                orderId,
+                "Cancelled"
+        );
     }
 }
