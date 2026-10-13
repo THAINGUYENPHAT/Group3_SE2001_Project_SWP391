@@ -314,6 +314,15 @@
                 color: #94a3b8;
                 font-size: 0.9rem;
             }
+            /* Dropdown section headings - improve readability */
+            .dropdown-menu-dark .dropdown-header {
+                color: #60A5FA !important;
+                font-size: 0.75rem;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                padding-top: 0.65rem;
+                padding-bottom: 0.5rem;
+            }
         </style>
     </head>
     <body>

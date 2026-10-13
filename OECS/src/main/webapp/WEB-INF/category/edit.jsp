@@ -5,7 +5,6 @@
 
 <div class="row justify-content-center">
     <div class="col-md-9 col-lg-7">
-        <!-- Nút Back -->
         <div class="mb-3">
             <a href="${pageContext.request.contextPath}/category?view=list"
                class="text-decoration-none text-muted fw-medium">
@@ -25,7 +24,9 @@
 
                     <div>
                         <h4 class="fw-bold mb-0">Chỉnh Sửa Danh Mục</h4>
-                        <span class="text-muted fs-7">Cập nhật thông tin danh mục</span>
+                        <span class="text-muted fs-7">
+                            Cập nhật thông tin danh mục
+                        </span>
                     </div>
                 </div>
 
@@ -33,11 +34,12 @@
                 <form action="${pageContext.request.contextPath}/category" method="POST">
                     <input type="hidden" name="action" value="edit" />
 
-                    <!-- ID -->
+                    <!-- Category ID -->
                     <div class="mb-4">
                         <label for="category-id" class="form-label fw-semibold text-dark">
                             Mã Danh Mục
                         </label>
+
                         <input type="text"
                                name="id"
                                id="category-id"
@@ -46,37 +48,46 @@
                                readonly />
                     </div>
 
-                    <!-- Tên -->
+                    <!-- Category name -->
                     <div class="mb-4">
                         <label for="category-name" class="form-label fw-semibold text-dark">
-                            Tên Danh Mục
-                            <span class="text-danger">*</span>
+                            Tên Danh Mục <span class="text-danger">*</span>
                         </label>
+
                         <input type="text"
                                name="name"
                                id="category-name"
                                class="form-control form-control-lg fs-6"
-                               value="${category.categoryName}"
+                               value="<c:out value='${category.categoryName}'/>"
                                required />
                     </div>
 
-                    <!-- Danh mục cha -->
+                    <!-- Parent category -->
                     <div class="mb-4">
                         <label for="parent-id" class="form-label fw-semibold text-dark">
                             Danh Mục Cha
                         </label>
+
                         <select name="parentId"
                                 id="parent-id"
                                 class="form-select form-select-lg fs-6">
-                            <option value="" ${category.parentId == null ? 'selected' : ''}>
-                                -- Danh mục gốc --
+                            <option value=""
+                                    ${empty category.parentId ? 'selected' : ''}>
+                                📁 Danh mục gốc (không có danh mục cha)
                             </option>
 
                             <c:forEach items="${categoryList}" var="item">
                                 <c:if test="${item.categoryId != category.categoryId}">
                                     <option value="${item.categoryId}"
                                             ${item.categoryId == category.parentId ? 'selected' : ''}>
-                                        ${item.categoryName}
+                                        <c:choose>
+                                            <c:when test="${empty item.parentId}">
+                                                📁 <c:out value="${item.categoryName}"/> — Danh mục gốc
+                                            </c:when>
+                                            <c:otherwise>
+                                                ↳ <c:out value="${item.categoryName}"/> — Danh mục con
+                                            </c:otherwise>
+                                        </c:choose>
                                     </option>
                                 </c:if>
                             </c:forEach>
