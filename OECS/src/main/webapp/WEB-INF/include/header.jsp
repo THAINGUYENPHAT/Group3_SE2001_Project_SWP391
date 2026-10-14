@@ -323,6 +323,30 @@
                 padding-top: 0.65rem;
                 padding-bottom: 0.5rem;
             }
+
+            /* Bố cục mặc định cho các trang */
+            .page-main {
+                width: 100%;
+                max-width: 1440px;
+                margin: 0 auto;
+                padding: 1.5rem;
+            }
+
+            /* Trang chủ được phép sử dụng toàn bộ chiều rộng */
+            .page-main.home-main {
+                max-width: none;
+                padding: 0;
+            }
+
+            @media (max-width: 768px) {
+                .page-main {
+                    padding: 1rem;
+                }
+
+                .page-main.home-main {
+                    padding: 0;
+                }
+            }
         </style>
     </head>
     <body>
@@ -331,17 +355,16 @@
             <div class="container-fluid px-4 px-lg-5">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center gap-3">
-                        <span class="d-inline-flex align-items-center gap-1.5 text-success fw-medium">
-                            <span class="spinner-grow spinner-grow-sm text-success" style="width: 8px; height: 8px;" role="status"></span>
-                            Hệ thống hoạt động ổn định
-                        </span>
-                        <span class="text-secondary">|</span>
-                        <i class="bi bi-hdd-network text-secondary"></i> Server Node: <strong class="text-light">VN-SGN-01</strong>
+                        <i class="bi bi-hdd-network text-secondary"></i> Server Node: <strong class="text-light">VN-CTO-01</strong><!-- VN-CTO-01 có nghĩa là: "Máy chủ số 01 đặt tại cụm Cần Thơ, Việt Nam". -->
                     </div>
                     <div class="d-flex align-items-center gap-3">
-                        <a href="#"><i class="bi bi-geo-alt-fill text-primary me-1"></i>Khu vực: <strong>Cần Thơ HQ</strong></a>
+                        <a href="#"><i class="bi bi-geo-alt-fill text-primary me-1"></i>Khu vực: <strong>Cần Thơ HQ</strong></a><!--Headquarters => trụ sở chính-->
                         <span class="text-secondary">|</span>
-                        <a href="#"><i class="bi bi-question-circle me-1"></i>Trợ giúp API</a>
+
+                        <a href="${pageContext.request.contextPath}/guide">
+                            <i class="bi bi-question-circle me-1"></i>Hướng dẫn
+                        </a>
+
                     </div>
                 </div>
             </div>
@@ -376,13 +399,7 @@
                             <c:when test="${empty sessionScope.loggedInUser
                                             or sessionScope.loggedInUser.customer}">
 
-                                    <a href="${pageContext.request.contextPath}/cart"
-                                       class="btn btn-menu-category d-flex align-items-center gap-2 text-decoration-none">
 
-                                        <i class="bi bi-cart3 text-primary"></i>
-                                        <span>Giỏ hàng</span>
-
-                                    </a>
 
                             </c:when>
 
@@ -567,7 +584,22 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-2.5">
-                        <a href="#" class="header-icon-btn d-none d-sm-flex" title="Thông báo hệ thống">
+
+                        <%-- Giỏ hàng: chỉ hiển thị cho Guest và Customer --%>
+                        <c:if test="${empty sessionScope.loggedInUser
+                                      or sessionScope.loggedInUser.customer}">
+                              <a href="${pageContext.request.contextPath}/cart"
+                                 class="header-icon-btn me-2"
+                                 title="Giỏ hàng"
+                                 aria-label="Giỏ hàng">
+                                  <i class="bi bi-cart3 fs-5"></i>
+                              </a>
+                        </c:if>
+
+                        <%-- Thông báo hệ thống --%>
+                        <a href="#"
+                           class="header-icon-btn d-none d-sm-flex"
+                           title="Thông báo hệ thống">
                             <i class="bi bi-bell-fill fs-6"></i>
                             <span class="header-icon-badge">3</span>
                         </a>
@@ -675,4 +707,4 @@
                 });
             });
         </script>
-        <main class="container-fluid px-4 px-lg-5 py-4" style="max-width: 1440px;">
+        <main class="page-main">

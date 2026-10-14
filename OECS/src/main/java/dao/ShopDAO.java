@@ -213,10 +213,18 @@ public class ShopDAO extends DBContext {
 
         // 1. Filter babaen ti Keyword
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (p.product_name LIKE ? OR c.category_name LIKE ?) ");
-            parameters.add("%" + keyword.trim() + "%");
-            parameters.add("%" + keyword.trim() + "%");
-        }
+    sql.append("AND (p.product_name LIKE ? ");
+    sql.append("OR p.description LIKE ? ");
+    sql.append("OR c.category_name LIKE ? ");
+    sql.append("OR b.brand_name LIKE ?) ");
+
+    String searchPattern = "%" + keyword.trim() + "%";
+
+    parameters.add(searchPattern);
+    parameters.add(searchPattern);
+    parameters.add(searchPattern);
+    parameters.add(searchPattern);
+}
 
         // 2. Filter babaen ti Kategoria (Danh mục)
         if (categoryIds != null && categoryIds.length > 0) {

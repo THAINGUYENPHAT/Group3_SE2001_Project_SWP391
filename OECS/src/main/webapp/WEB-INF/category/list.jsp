@@ -85,7 +85,7 @@
     <div class="col-12 col-sm-6 col-lg-4">
         <div class="stat-card">
             <div class="d-flex align-items-center justify-content-between">
-                <span class="text-muted fs-7 fw-medium">Số danh mục mỗi trang</span>
+                <span class="text-muted fs-7 fw-medium">Số danh mục gốc mỗi trang</span>
                 <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2">
                     <i class="bi bi-list-ul"></i>
                 </span>
