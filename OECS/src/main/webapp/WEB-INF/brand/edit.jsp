@@ -5,7 +5,7 @@
 
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
-        
+
         <div class="mb-3">
             <a href="${pageContext.request.contextPath}/brand?view=list" class="text-decoration-none text-muted fw-medium">
                 <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
@@ -16,7 +16,7 @@
             <div class="card-body p-4 p-md-5">
                 <c:choose>
                     <c:when test="${not empty brand}">
-                        
+
                         <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
                             <div class="bg-primary bg-opacity-10 text-primary rounded d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
                                 <i class="bi bi-pencil-square fs-4"></i>
@@ -26,6 +26,33 @@
                                 <span class="text-muted fs-7">Cập nhật thông tin chi tiết</span>
                             </div>
                         </div>
+
+
+                        <c:if test="${not empty param.error}">
+                            <div class="alert alert-danger" role="alert">
+                                <c:choose>
+                                    <c:when test="${param.error == 'empty'}">
+                                        Vui lòng nhập tên thương hiệu.
+                                    </c:when>
+                                    <c:when test="${param.error == 'length'}">
+                                        Tên thương hiệu không được vượt quá 100 ký tự.
+                                    </c:when>
+                                    <c:when test="${param.error == 'duplicate'}">
+                                        Tên thương hiệu đã được sử dụng bởi thương hiệu khác.
+                                    </c:when>
+                                    <c:when test="${param.error == 'logo'}">
+                                        URL logo không hợp lệ hoặc vượt quá giới hạn cho phép.
+                                    </c:when>
+                                    <c:when test="${param.error == 'notFound'}">
+                                        Không tìm thấy thương hiệu cần chỉnh sửa.
+                                    </c:when>
+                                    <c:otherwise>
+                                        Không thể cập nhật thương hiệu. Vui lòng thử lại.
+                                    </c:otherwise>
+                                </c:choose>
+                            </div>
+                        </c:if>
+
 
                         <form action="${pageContext.request.contextPath}/brand" method="POST">
                             <input type="hidden" name="action" value="edit" />
@@ -63,14 +90,7 @@
                                 </div>
                             </div>
 
-                            <c:if test="${not empty brand.logoUrl}">
-                                <div class="mb-4 p-3 bg-light rounded-3 d-flex align-items-center">
-                                    <span class="me-3 text-muted fw-medium fs-7">Xem trước:</span>
-                                    <div class="bg-white border p-1 rounded" style="width: 60px; height: 60px;">
-                                        <img src="${brand.logoUrl}" alt="<c:out value='${brand.brandName}'/>" style="width: 100%; height: 100%; object-fit: contain;">
-                                    </div>
-                                </div>
-                            </c:if>
+                            
 
                             <div class="d-flex gap-2 pt-3 mt-4 border-top">
                                 <button type="submit" class="btn btn-primary btn-lg fs-6 px-4">

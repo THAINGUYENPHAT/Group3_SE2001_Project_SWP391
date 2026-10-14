@@ -5,7 +5,6 @@
 
 <div class="row justify-content-center">
     <div class="col-md-9 col-lg-7">
-        <!-- Nút Back -->
         <div class="mb-3">
             <a href="${pageContext.request.contextPath}/category?view=list"
                class="text-decoration-none text-muted fw-medium">
@@ -16,6 +15,7 @@
 
         <div class="card shadow-sm border-0 rounded-4">
             <div class="card-body p-4 p-md-5">
+
                 <!-- Header -->
                 <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
                     <div class="bg-primary bg-opacity-10 text-primary rounded d-flex align-items-center justify-content-center me-3"
@@ -31,13 +31,24 @@
                     </div>
                 </div>
 
+                <!-- Error message -->
+                <c:if test="${not empty errorMessage}">
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        <c:out value="${errorMessage}"/>
+                    </div>
+                </c:if>
+
                 <!-- Form -->
-                <form action="${pageContext.request.contextPath}/category" method="POST">
+                <form action="${pageContext.request.contextPath}/category"
+                      method="POST">
+
                     <input type="hidden" name="action" value="create" />
 
-                    <!-- Tên danh mục -->
+                    <!-- Category name -->
                     <div class="mb-4">
-                        <label for="category-name" class="form-label fw-semibold text-dark">
+                        <label for="category-name"
+                               class="form-label fw-semibold text-dark">
                             Tên Danh Mục <span class="text-danger">*</span>
                         </label>
 
@@ -46,35 +57,55 @@
                                id="category-name"
                                class="form-control form-control-lg fs-6"
                                placeholder="VD: Điện thoại, Laptop, Phụ kiện..."
+                               value="${param.name}"
                                required />
                     </div>
 
-                    <!-- Danh mục cha -->
+                    <!-- Parent category -->
                     <div class="mb-4">
-                        <label for="parent-id" class="form-label fw-semibold text-dark">
+                        <label for="parent-id"
+                               class="form-label fw-semibold text-dark">
                             Danh Mục Cha
                         </label>
 
                         <select name="parentId"
                                 id="parent-id"
                                 class="form-select form-select-lg fs-6">
-                            <option value="">-- Danh mục gốc --</option>
+
+                            <option value="">
+                                📁 Danh mục gốc (không có danh mục cha)
+                            </option>
+
                             <c:forEach items="${categoryList}" var="category">
-                                <option value="${category.categoryId}">
-                                    ${category.categoryName}
+                                <option value="${category.categoryId}"
+                                    <c:if test="${param.parentId == category.categoryId}">
+                                        selected
+                                    </c:if>>
+
+                                    <c:choose>
+                                        <c:when test="${empty category.parentId}">
+                                            📁 <c:out value="${category.categoryName}"/> — Danh mục gốc
+                                        </c:when>
+                                        <c:otherwise>
+                                            ↳ <c:out value="${category.categoryName}"/> — Danh mục con
+                                        </c:otherwise>
+                                    </c:choose>
                                 </option>
                             </c:forEach>
+
                         </select>
 
                         <div class="form-text mt-2">
                             <i class="bi bi-info-circle me-1"></i>
-                            Chọn danh mục cha nếu đây là danh mục con. Nếu không chọn, danh mục sẽ là danh mục gốc.
+                            Chọn danh mục cha nếu đây là danh mục con. Nếu không chọn,
+                            danh mục sẽ là danh mục gốc.
                         </div>
                     </div>
 
                     <!-- Buttons -->
                     <div class="d-flex gap-2 pt-3 mt-4 border-top">
-                        <button type="submit" class="btn btn-primary btn-lg fs-6 px-4">
+                        <button type="submit"
+                                class="btn btn-primary btn-lg fs-6 px-4">
                             <i class="bi bi-check-lg me-1"></i>
                             Lưu Danh Mục
                         </button>
@@ -84,7 +115,9 @@
                             Hủy
                         </a>
                     </div>
+
                 </form>
+
             </div>
         </div>
     </div>

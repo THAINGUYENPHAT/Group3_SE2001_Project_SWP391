@@ -9,12 +9,53 @@
         <h3 class="fw-bold text-dark mb-1">Quản lý Thương Hiệu</h3>
         <p class="text-muted fs-7 mb-0">Hiển thị danh sách các nhãn hàng và đối tác kinh doanh trong hệ thống.</p>
     </div>
-    <a class="btn btn-primary btn-md fw-semibold px-3 py-2 shadow-sm rounded-3 d-inline-flex align-items-center gap-2" 
-       href="${pageContext.request.contextPath}/brand?view=create">
-        <i class="bi bi-plus-lg fs-6"></i>
-        <span>Thêm thương hiệu</span>
-    </a>
+
 </div>
+
+
+<c:if test="${not empty param.success}">
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <c:choose>
+            <c:when test="${param.success == 'create'}">
+                Thêm thương hiệu thành công.
+            </c:when>
+            <c:when test="${param.success == 'edit'}">
+                Cập nhật thương hiệu thành công.
+            </c:when>
+            <c:when test="${param.success == 'delete'}">
+                Xóa thương hiệu thành công.
+            </c:when>
+        </c:choose>
+        <button type="button" class="btn-close"
+                data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+</c:if>
+
+<c:if test="${not empty param.error}">
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <c:choose>
+            <c:when test="${param.error == 'hasProducts'}">
+                Không thể xóa thương hiệu vì vẫn còn sản phẩm liên kết.
+                Hãy chuyển các sản phẩm sang thương hiệu khác trước.
+            </c:when>
+            <c:when test="${param.error == 'notFound'}">
+                Thương hiệu không tồn tại hoặc đã bị xóa.
+            </c:when>
+            <c:when test="${param.error == 'invalidId'}">
+                ID thương hiệu không hợp lệ.
+            </c:when>
+            <c:when test="${param.error == 'delete'}">
+                Không thể xóa thương hiệu.
+            </c:when>
+            <c:otherwise>
+                Đã xảy ra lỗi khi xử lý thương hiệu. Vui lòng thử lại.
+            </c:otherwise>
+        </c:choose>
+        <button type="button" class="btn-close"
+                data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+</c:if>
+
 
 <div class="row g-3 mb-4">
     <div class="col-12 col-sm-6 col-lg-4">
@@ -29,7 +70,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-12 col-sm-6 col-lg-4">
         <div class="stat-card">
             <div class="d-flex align-items-center justify-content-between">
@@ -50,27 +91,50 @@
                 <span class="badge bg-info-subtle text-info rounded-pill px-3 py-2"><i class="bi bi-shield-lock-fill"></i></span>
             </div>
             <div class="mt-2">
-                <span class="fs-3 fw-bold text-dark">Administrator</span>
-                <span class="text-muted fs-7 ms-2">Toàn quyền</span>
+                <span class="fs-3 fw-bold text-dark">Staff</span>
             </div>
         </div>
     </div>
 </div>
 
 <div class="card-custom overflow-hidden">
-    
+
     <div class="p-3 border-bottom d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 bg-white">
-        <div class="search-box w-100 w-sm-auto" style="min-width: 300px;">
+        <form action="${pageContext.request.contextPath}/brand"
+              method="get"
+              class="search-box w-100 w-sm-auto d-flex align-items-center gap-2"
+              style="min-width: 300px;">
+
+            <input type="hidden" name="view" value="list">
+
             <i class="bi bi-search"></i>
-            <input type="text" class="form-control" placeholder="Tìm kiếm thương hiệu...">
-        </div>
+
+            <input type="text"
+                   name="keyword"
+                   class="form-control"
+                   placeholder="Tìm kiếm thương hiệu..."
+                   value="<c:out value='${keyword}'/>">
+
+            <button type="submit"
+                    class="btn btn-primary"
+                    title="Tìm kiếm">
+                Tìm
+            </button>
+
+            <c:if test="${not empty keyword}">
+                <a href="${pageContext.request.contextPath}/brand?view=list"
+                   class="btn btn-outline-secondary"
+                   title="Xóa tìm kiếm">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </c:if>
+        </form>
         <div class="d-flex align-items-center gap-2 w-100 w-sm-auto justify-content-end">
-            <button class="btn btn-outline-secondary btn-md rounded-2 d-flex align-items-center gap-2 fs-7 fw-medium">
-                <i class="bi bi-funnel"></i> Bộ lọc
-            </button>
-            <button class="btn btn-outline-secondary btn-md rounded-2 d-flex align-items-center gap-2 fs-7 fw-medium">
-                <i class="bi bi-download"></i> Xuất dữ liệu
-            </button>
+            <a class="btn btn-primary btn-md fw-semibold px-3 py-2 shadow-sm rounded-3 d-inline-flex align-items-center gap-2" 
+               href="${pageContext.request.contextPath}/brand?view=create">
+                <i class="bi bi-plus-lg fs-6"></i>
+                <span>Thêm thương hiệu</span>
+            </a>
         </div>
     </div>
 
@@ -78,9 +142,6 @@
         <table class="table table-custom align-middle">
             <thead>
                 <tr>
-                    <th style="width: 40px;" class="text-center">
-                        <input type="checkbox" class="form-check-input">
-                    </th>
                     <th style="width: 90px;">MÃ ID</th>
                     <th>THƯƠNG HIỆU</th>
                     <th>TRẠNG THÁI</th>
@@ -93,9 +154,6 @@
                         <c:forEach items="${brandList}" var="brand">
                             <c:set var="brandSlug" value="${fn:toLowerCase(fn:replace(brand.brandName, ' ', ''))}" />
                             <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" class="form-check-input">
-                                </td>
                                 <td>
                                     <span class="badge bg-light text-secondary border fw-semibold">#${brand.brandId}</span>
                                 </td>
@@ -131,9 +189,20 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
-                                        <i class="bi bi-record-fill me-1"></i>Đang hoạt động
-                                    </span>
+                                    <c:choose>
+                                        <c:when test="${productCounts[brand.brandId] > 0}">
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i>
+                                                Đang kinh doanh
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-1">
+                                                <i class="bi bi-box-seam me-1"></i>
+                                                Chưa có sản phẩm
+                                            </span>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-1">
@@ -168,17 +237,69 @@
         </table>
     </div>
 
+
     <div class="p-3 border-top d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 bg-white">
+
         <span class="text-muted fs-7">
-            Hiển thị <strong>${not empty brandList ? fn:length(brandList) : 0}</strong> trên tổng số <strong>${not empty brandList ? fn:length(brandList) : 0}</strong> thương hiệu
+            Hiển thị
+            <strong>${startItem}</strong> - <strong>${endItem}</strong>
+            trên tổng số <strong>${totalBrands}</strong> thương hiệu
         </span>
-        
-        <ul class="pagination pagination-sm mb-0">
-            <li class="page-item disabled"><a class="page-link" href="#">Trước</a></li>
-            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-            <li class="page-item disabled"><a class="page-link" href="#">Sau</a></li>
-        </ul>
+
+        <c:if test="${totalPages > 1}">
+            <c:url var="prevUrl" value="/brand">
+                <c:param name="view" value="list"/>
+                <c:param name="page" value="${currentPage - 1}"/>
+                <c:if test="${not empty keyword}">
+                    <c:param name="keyword" value="${keyword}"/>
+                </c:if>
+            </c:url>
+
+            <c:url var="nextUrl" value="/brand">
+                <c:param name="view" value="list"/>
+                <c:param name="page" value="${currentPage + 1}"/>
+                <c:if test="${not empty keyword}">
+                    <c:param name="keyword" value="${keyword}"/>
+                </c:if>
+            </c:url>
+
+            <ul class="pagination pagination-sm mb-0">
+
+                <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+                    <a class="page-link"
+                       href="${currentPage > 1 ? prevUrl : '#'}">
+                        Trước
+                    </a>
+                </li>
+
+                <c:forEach begin="1" end="${totalPages}" var="p">
+                    <c:url var="pageUrl" value="/brand">
+                        <c:param name="view" value="list"/>
+                        <c:param name="page" value="${p}"/>
+                        <c:if test="${not empty keyword}">
+                            <c:param name="keyword" value="${keyword}"/>
+                        </c:if>
+                    </c:url>
+
+                    <li class="page-item ${p == currentPage ? 'active' : ''}">
+                        <a class="page-link" href="${pageUrl}">
+                            ${p}
+                        </a>
+                    </li>
+                </c:forEach>
+
+                <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
+                    <a class="page-link"
+                       href="${currentPage < totalPages ? nextUrl : '#'}">
+                        Sau
+                    </a>
+                </li>
+
+            </ul>
+        </c:if>
+
     </div>
+
 </div>
 
 <%@include file="/WEB-INF/include/footer.jsp" %>

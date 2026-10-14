@@ -1,72 +1,169 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@taglib prefix="c" uri="jakarta.tags.core" %>
 
 <%@include file="/WEB-INF/include/header.jsp" %>
 
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <!-- Nút Back -->
-        <div class="mb-3">
-            <a href="${pageContext.request.contextPath}/category?view=list"
-               class="text-decoration-none text-muted fw-medium">
-                <i class="bi bi-arrow-left me-1"></i>
-                Quay lại danh sách
-            </a>
-        </div>
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
 
-        <div class="card shadow-sm border-0 rounded-4">
-            <div class="card-body p-4 p-md-5 text-center">
-                <!-- Icon -->
-                <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4"
-                     style="width: 72px; height: 72px;">
-                    <i class="bi bi-trash3 fs-2"></i>
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                <div class="bg-danger" style="height: 4px;"></div>
+
+                <div class="card-body p-4 p-md-5 text-center">
+
+                    <c:choose>
+                        <c:when test="${not empty category}">
+
+                            <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-4"
+                                 style="width: 80px; height: 80px;">
+                                <i class="bi bi-trash3 fs-1"></i>
+                            </div>
+
+                            <h4 class="fw-bold text-dark mb-2">
+                                Bạn chắc chắn chứ?
+                            </h4>
+
+                            <p class="text-muted mb-4">
+                                Bạn đang chuẩn bị xóa danh mục
+                                <strong class="text-dark fs-5">
+                                    <c:out value="${category.categoryName}"/>
+                                </strong>.
+                                Vui lòng kiểm tra thông tin trước khi tiếp tục.
+                            </p>
+
+                            <div class="bg-light border rounded-3 p-3 mb-4 text-start">
+                                <div class="d-flex justify-content-between align-items-center gap-3 py-2 border-bottom">
+                                    <span class="text-muted">Mã danh mục</span>
+                                    <strong><c:out value="${category.categoryId}"/></strong>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center gap-3 py-2 border-bottom">
+                                    <span class="text-muted">Số sản phẩm</span>
+                                    <strong><c:out value="${productCount}"/></strong>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center gap-3 py-2">
+                                    <span class="text-muted">Số danh mục con</span>
+                                    <strong><c:out value="${childCount}"/></strong>
+                                </div>
+                            </div>
+
+                            <c:choose>
+                                <c:when test="${productCount > 0 or childCount > 0}">
+                                    <div class="alert alert-danger text-start mb-4">
+                                        <div class="fw-bold mb-2">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            Không thể xóa danh mục này
+                                        </div>
+
+                                        <c:if test="${productCount > 0}">
+                                            <p class="mb-1">
+                                                Danh mục đang chứa
+                                                <strong><c:out value="${productCount}"/></strong>
+                                                sản phẩm.
+                                            </p>
+                                        </c:if>
+
+                                        <c:if test="${childCount > 0}">
+                                            <p class="mb-1">
+                                                Danh mục đang có
+                                                <strong><c:out value="${childCount}"/></strong>
+                                                danh mục con.
+                                            </p>
+                                        </c:if>
+
+                                        <p class="mb-0 mt-2">
+                                            Vui lòng chuyển sản phẩm hoặc xử lý
+                                            danh mục con trước khi xóa.
+                                        </p>
+                                    </div>
+                                </c:when>
+
+                                <c:otherwise>
+                                    <div class="alert alert-warning text-start mb-4">
+                                        <i class="bi bi-exclamation-circle me-1"></i>
+                                        Danh mục này không có sản phẩm hoặc danh mục con.
+                                        Hành động xóa không thể hoàn tác.
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+
+                            <c:if test="${not empty param.error}">
+                                <div class="alert alert-danger text-start mb-4"
+                                     role="alert">
+                                    <c:choose>
+                                        <c:when test="${param.error == 'hasProducts'}">
+                                            Không thể xóa danh mục vì vẫn còn sản phẩm
+                                            hoặc danh mục con. Vui lòng xử lý dữ liệu
+                                            liên quan trước.
+                                        </c:when>
+
+                                        <c:when test="${param.error == 'delete'}">
+                                            Không thể xóa danh mục.
+                                            Vui lòng thử lại.
+                                        </c:when>
+
+                                        <c:when test="${param.error == 'server'}">
+                                            Đã xảy ra lỗi hệ thống khi xóa danh mục.
+                                            Vui lòng thử lại sau.
+                                        </c:when>
+
+                                        <c:otherwise>
+                                            Đã xảy ra lỗi khi xử lý danh mục.
+                                            Vui lòng thử lại.
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
+                            </c:if>
+
+                            <div class="d-flex gap-2 justify-content-center flex-wrap mt-3">
+
+                                <a href="${pageContext.request.contextPath}/category?view=list"
+                                   class="btn btn-light btn-lg border text-dark fs-6 px-4">
+                                    Hủy bỏ
+                                </a>
+
+                                <c:if test="${productCount == 0 and childCount == 0}">
+                                    <form action="${pageContext.request.contextPath}/category"
+                                          method="post">
+
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="${category.categoryId}">
+
+                                        <button type="submit"
+                                                class="btn btn-danger btn-lg fs-6 px-4 shadow-sm">
+                                            <i class="bi bi-trash3 me-1"></i>
+                                            Đúng, xóa nó!
+                                        </button>
+                                    </form>
+                                </c:if>
+
+                            </div>
+
+                        </c:when>
+
+                        <c:otherwise>
+                            <div class="py-4">
+                                <i class="bi bi-exclamation-circle text-warning fs-1 mb-3 d-block"></i>
+
+                                <h5 class="fw-bold">Lỗi truy xuất!</h5>
+
+                                <p class="text-muted mb-4">
+                                    Không tìm thấy danh mục cần xóa.
+                                </p>
+
+                                <a href="${pageContext.request.contextPath}/category?view=list"
+                                   class="btn btn-primary">
+                                    Quay lại danh sách
+                                </a>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
+
                 </div>
-
-                <!-- Title -->
-                <h4 class="fw-bold text-dark mb-2">
-                    Xóa Danh Mục
-                </h4>
-
-                <p class="text-muted mb-4">
-                    Bạn có chắc chắn muốn xóa danh mục này không?
-                </p>
-
-                <!-- Category Information -->
-                <div class="bg-light rounded-3 p-3 mb-4 text-start">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Mã danh mục:</span>
-                        <strong>#${category.categoryId}</strong>
-                    </div>
-
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted">Tên danh mục:</span>
-                        <strong class="text-dark">${category.categoryName}</strong>
-                    </div>
-                </div>
-
-                <div class="alert alert-warning text-start fs-7">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <strong>Lưu ý:</strong>
-                    Nếu danh mục này đang được sử dụng bởi danh mục con hoặc sản phẩm, hệ thống có thể không cho phép xóa.
-                </div>
-
-                <!-- Form -->
-                <form action="${pageContext.request.contextPath}/category" method="POST">
-                    <input type="hidden" name="action" value="delete" />
-                    <input type="hidden" name="id" value="${category.categoryId}" />
-
-                    <div class="d-flex justify-content-center gap-2 pt-3">
-                        <a href="${pageContext.request.contextPath}/category?view=list"
-                           class="btn btn-light btn-lg px-4 border">
-                            Hủy
-                        </a>
-
-                        <button type="submit" class="btn btn-danger btn-lg px-4">
-                            <i class="bi bi-trash3 me-1"></i>
-                            Xác Nhận Xóa
-                        </button>
-                    </div>
-                </form>
             </div>
+
         </div>
     </div>
 </div>
