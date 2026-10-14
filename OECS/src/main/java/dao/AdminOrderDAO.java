@@ -32,6 +32,9 @@ public class AdminOrderDAO extends DBContext {
                 + "o.total_amount, "
                 + "o.shipping_fee, "
                 + "o.created_at, "
+                + "o.recipient_name, "
+                + "o.recipient_phone, "
+                + "o.shipping_address, "
                 + "h.status AS order_status "
                 + "FROM dbo.[ORDER] o "
                 + "OUTER APPLY ( "
@@ -72,6 +75,9 @@ public class AdminOrderDAO extends DBContext {
                 order.setOrderStatus(
                         rs.getString("order_status")
                 );
+                order.setRecipientName(rs.getString("recipient_name"));
+                order.setRecipientPhone(rs.getString("recipient_phone"));
+                order.setShippingAddress(rs.getString("shipping_address"));
 
                 list.add(order);
             }
@@ -98,6 +104,9 @@ public class AdminOrderDAO extends DBContext {
                 + "o.total_amount, "
                 + "o.shipping_fee, "
                 + "o.created_at, "
+                + "o.recipient_name, "
+                + "o.recipient_phone, "
+                + "o.shipping_address, "
                 + "h.status AS order_status "
                 + "FROM dbo.[ORDER] o "
                 + "OUTER APPLY ( "
@@ -149,6 +158,9 @@ public class AdminOrderDAO extends DBContext {
                     order.setOrderStatus(
                             rs.getString("order_status")
                     );
+                    order.setRecipientName(rs.getString("recipient_name"));
+                    order.setRecipientPhone(rs.getString("recipient_phone"));
+                    order.setShippingAddress(rs.getString("shipping_address"));
 
                     return order;
                 }

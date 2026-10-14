@@ -383,6 +383,224 @@
                     grid-template-columns: 1fr;
                 }
             }
+
+            /* ================= NOTIFICATION ================= */
+
+            .success-message,
+            .error-message {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+
+                position: fixed;
+                top: 90px;
+                right: 28px;
+                z-index: 9999;
+
+                width: max-content;
+                max-width: min(450px, calc(100vw - 32px));
+                padding: 16px 20px;
+
+                border-radius: 12px;
+                font-size: 14px;
+                font-weight: 600;
+                line-height: 1.5;
+
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+
+                animation: notification-in 0.3s ease-out;
+            }
+
+            .success-message {
+                color: #166534;
+                background: #f0fdf4;
+                border: 1px solid #86efac;
+                border-left: 5px solid #22c55e;
+            }
+
+            .error-message {
+                color: #b91c1c;
+                background: #fef2f2;
+                border: 1px solid #fca5a5;
+                border-left: 5px solid #ef4444;
+            }
+
+            .notification-icon {
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            .success-message .notification-icon {
+                background: #dcfce7;
+                color: #15803d;
+            }
+
+            .error-message .notification-icon {
+                background: #fee2e2;
+                color: #dc2626;
+            }
+
+            @keyframes notification-in {
+                from {
+                    opacity: 0;
+                    transform: translateX(20px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+
+            @keyframes notification-out {
+                to {
+                    opacity: 0;
+                    transform: translateX(20px);
+                }
+            }
+
+            .notification-hide {
+                animation: notification-out 0.25s ease-in forwards;
+                pointer-events: none;
+            }
+
+            @media (max-width: 600px) {
+                .success-message,
+                .error-message {
+                    top: 82px;
+                    right: 12px;
+                    max-width: calc(100vw - 24px);
+                    padding: 12px 14px;
+                }
+            }
+
+
+            /* ================= CANCEL CONFIRM MODAL ================= */
+
+            .modal-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 10000;
+
+                display: none;
+                align-items: center;
+                justify-content: center;
+
+                padding: 20px;
+                background: rgba(15, 23, 42, 0.55);
+                backdrop-filter: blur(3px);
+            }
+
+            .modal-overlay.show {
+                display: flex;
+            }
+
+            .modal-box {
+                width: 100%;
+                max-width: 420px;
+                padding: 28px;
+
+                background: #ffffff;
+                border: 1px solid #e5eaf1;
+                border-radius: 18px;
+                box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+
+                text-align: center;
+                animation: modal-in 0.2s ease-out;
+            }
+
+            .modal-icon {
+                width: 58px;
+                height: 58px;
+                margin: 0 auto 18px;
+
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                border-radius: 50%;
+                background: #fff1f2;
+                color: #e53935;
+                font-size: 27px;
+                font-weight: 700;
+            }
+
+            .modal-box h2 {
+                margin: 0 0 10px;
+                color: #10213b;
+                font-size: 21px;
+            }
+
+            .modal-box p {
+                margin: 0;
+                color: #71819a;
+                font-size: 14px;
+                line-height: 1.7;
+            }
+
+            .modal-actions {
+                display: flex;
+                justify-content: center;
+                gap: 12px;
+                margin-top: 26px;
+            }
+
+            .modal-btn {
+                min-width: 120px;
+                padding: 11px 18px;
+
+                border-radius: 9px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+
+            .modal-btn-secondary {
+                background: #f1f5f9;
+                color: #334155;
+                border: 1px solid #e2e8f0;
+            }
+
+            .modal-btn-secondary:hover {
+                background: #e2e8f0;
+            }
+
+            .modal-btn-danger {
+                background: #e53935;
+                color: white;
+                border: 1px solid #e53935;
+            }
+
+            .modal-btn-danger:hover {
+                background: #c62828;
+            }
+
+            @keyframes modal-in {
+                from {
+                    opacity: 0;
+                    transform: translateY(8px) scale(0.98);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+            .modal-btn:disabled {
+                opacity: 0.65;
+                cursor: not-allowed;
+            }
+
         </style>
     </head>
 
@@ -407,7 +625,33 @@
 
         <!-- ================= PAGE ================= -->
 
+
         <main class="page">
+
+
+            <!-- SUCCESS NOTIFICATION -->
+            <c:if test="${not empty sessionScope.successMessage}">
+                <div class="success-message notification" role="status">
+                    <span class="notification-icon">✓</span>
+                    <span>
+                        <c:out value="${sessionScope.successMessage}" />
+                    </span>
+                </div>
+                <c:remove var="successMessage" scope="session" />
+            </c:if>
+
+            <!-- ERROR NOTIFICATION -->
+            <c:if test="${not empty sessionScope.errorMessage}">
+                <div class="error-message notification" role="alert">
+                    <span class="notification-icon">!</span>
+                    <span>
+                        <c:out value="${sessionScope.errorMessage}" />
+                    </span>
+                </div>
+                <c:remove var="errorMessage" scope="session" />
+            </c:if>
+
+
 
             <!-- TITLE -->
 
@@ -523,33 +767,42 @@
                         </c:if>
 
                         <!-- CHANGE STATUS -->
-                        <div class="action-box">
-                            <p>Cập nhật trạng thái</p>
-                            <form method="post" action="${pageContext.request.contextPath}/admin/orders" class="status-form">
-                                <input type="hidden" name="action" value="changeStatus">
-                                <input type="hidden" name="orderId" value="${order.orderId}">
-                                <select name="status">
-                                    <option value="Confirmed" ${status == 'Confirmed' ? 'selected' : ''}>Confirmed</option>
-                                    <option value="Packing" ${status == 'Packing' ? 'selected' : ''}>Packing</option>
-                                    <option value="Shipping" ${status == 'Shipping' ? 'selected' : ''}>Shipping</option>
-                                    <option value="Completed" ${status == 'Completed' ? 'selected' : ''}>Completed</option>
-                                </select>
-                                <button type="submit" class="btn btn-primary">
-                                    Cập nhật
-                                </button>
-                            </form>
-                        </div>
+                        <c:if test="${status != 'Completed' && status != 'Cancelled'}">
+                            <div class="action-box">
+                                <p>Cập nhật trạng thái</p>
+                                <form method="post" action="${pageContext.request.contextPath}/admin/orders" class="status-form">
+                                    <input type="hidden" name="action" value="changeStatus">
+                                    <input type="hidden" name="orderId" value="${order.orderId}">
+                                    <select name="status">
+                                        <option value="Confirmed" ${status == 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                        <option value="Packing" ${status == 'Packing' ? 'selected' : ''}>Packing</option>
+                                        <option value="Shipping" ${status == 'Shipping' ? 'selected' : ''}>Shipping</option>
+                                        <option value="Completed" ${status == 'Completed' ? 'selected' : ''}>Completed</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary">
+                                        Cập nhật
+                                    </button>
+                                </form>
+                            </div>
+                        </c:if>
 
                         <!-- CANCEL -->
-                        <div class="cancel-area">
-                            <form method="post" action="${pageContext.request.contextPath}/admin/orders" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?');">
-                                <input type="hidden" name="action" value="cancel">
-                                <input type="hidden" name="orderId" value="${order.orderId}">
-                                <button type="submit" class="btn btn-danger">
-                                    ✕ Hủy đơn hàng
-                                </button>
-                            </form>
-                        </div>
+                        <c:if test="${status != 'Completed' && status != 'Cancelled'}">
+                            <div class="cancel-area">
+                                <form method="post"
+                                      action="${pageContext.request.contextPath}/admin/orders"
+                                      onsubmit="return showCancelModal(event);">
+
+                                    <input type="hidden" name="action" value="cancel">
+                                    <input type="hidden" name="orderId" value="${order.orderId}">
+
+                                    <button type="submit" class="btn btn-danger">
+                                        ✕ Hủy đơn hàng
+                                    </button>
+                                </form>
+                            </div>
+                        </c:if>
+
                     </div>
                 </div>
 
@@ -604,6 +857,106 @@
             </div>
 
         </main>
+
+
+        <!-- CANCEL CONFIRMATION MODAL -->
+        <div id="cancelModal"
+             class="modal-overlay"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="cancelModalTitle">
+
+            <div class="modal-box">
+                <div class="modal-icon">!</div>
+
+                <h2 id="cancelModalTitle">Xác nhận hủy đơn hàng</h2>
+
+                <p>
+                    Bạn có chắc chắn muốn hủy đơn hàng
+                    <strong>#${order.orderId}</strong> không?
+                    <br>
+                    Vui lòng kiểm tra trước khi tiếp tục.
+                </p>
+
+                <div class="modal-actions">
+                    <button type="button"
+                            class="modal-btn modal-btn-secondary"
+                            onclick="closeCancelModal()">
+                        Không, quay lại
+                    </button>
+
+                    <button type="button"
+                            class="modal-btn modal-btn-danger"
+                            onclick="confirmCancelOrder()">
+                        Xác nhận hủy
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+
+        <script>
+            document.querySelectorAll(".notification").forEach(function (message) {
+                setTimeout(function () {
+                    message.classList.add("notification-hide");
+
+                    setTimeout(function () {
+                        message.remove();
+                    }, 300);
+                }, 3500);
+            });
+
+
+            let cancelForm = null;
+
+            function showCancelModal(event) {
+                event.preventDefault();
+
+                cancelForm = event.currentTarget;
+
+                document.getElementById("cancelModal").classList.add("show");
+
+                return false;
+            }
+
+            function closeCancelModal() {
+                document.getElementById("cancelModal").classList.remove("show");
+
+                const button = document.querySelector(".modal-btn-danger");
+                button.disabled = false;
+                button.textContent = "Xác nhận hủy";
+
+                cancelForm = null;
+            }
+
+            function confirmCancelOrder() {
+                if (cancelForm) {
+                    const form = cancelForm;
+                    cancelForm = null;
+
+                    const button = document.querySelector(".modal-btn-danger");
+                    button.disabled = true;
+                    button.textContent = "Đang xử lý...";
+
+                    form.submit();
+                }
+            }
+
+            document.getElementById("cancelModal").addEventListener("click", function (event) {
+                if (event.target === this) {
+                    closeCancelModal();
+                }
+            });
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape") {
+                    closeCancelModal();
+                }
+            });
+
+        </script>
+
 
     </body>
 </html>
