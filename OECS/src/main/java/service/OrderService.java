@@ -1,23 +1,29 @@
-
 package service;
 
 import dao.OrderDAO;
 import db.DBContext;
+
 import model.Order;
 
 import java.math.BigDecimal;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class OrderService {
 
-    private final OrderDAO orderDAO = new OrderDAO();
+    private final OrderDAO orderDAO
+            = new OrderDAO();
 
-    // LUU THONG TIN SAN PHAM TRONG GIO HANG
+
+    // =====================================================
+    // CART LINE
+    // =====================================================
     private static final class CartLine {
 
         final int id;
@@ -25,7 +31,13 @@ public class OrderService {
         final int quantity;
         final BigDecimal price;
 
-        CartLine(int id, int skuId, int quantity, BigDecimal price) {
+
+        CartLine(
+                int id,
+                int skuId,
+                int quantity,
+                BigDecimal price) {
+
             this.id = id;
             this.skuId = skuId;
             this.quantity = quantity;
@@ -33,15 +45,18 @@ public class OrderService {
         }
     }
 
-    // GIU LAI HAM CU DE KHONG ANH HUONG CODE KHAC
+
+    // =====================================================
+    // OLD METHOD
+    // =====================================================
     public int placeCodOrder(
             int userId,
             int addressId,
             String name,
             String phone,
             String address,
-            BigDecimal shippingFee
-    ) throws SQLException {
+            BigDecimal shippingFee)
+            throws SQLException {
 
         return placeCodOrder(
                 userId,
@@ -54,7 +69,10 @@ public class OrderService {
         );
     }
 
-    // DAT HANG COD CO HO TRO GIAM GIA
+
+    // =====================================================
+    // OLD METHOD WITH DISCOUNT
+    // =====================================================
     public int placeCodOrder(
             int userId,
             int addressId,
@@ -62,139 +80,384 @@ public class OrderService {
             String phone,
             String address,
             BigDecimal shippingFee,
-            BigDecimal discountAmount
-    ) throws SQLException {
+            BigDecimal discountAmount)
+            throws SQLException {
 
-        // KIEM TRA THONG TIN DAU VAO
-        if (userId <= 0 || addressId <= 0) {
+        return placeCodOrder(
+                userId,
+                addressId,
+                name,
+                phone,
+                address,
+                shippingFee,
+                discountAmount,
+                null
+        );
+    }
+
+
+    // =====================================================
+    // NEW METHOD - SELECTED CART ITEMS
+    // =====================================================
+    public int placeCodOrder(
+            int userId,
+            int addressId,
+            String name,
+            String phone,
+            String address,
+            BigDecimal shippingFee,
+            BigDecimal discountAmount,
+            List<Integer> selectedCartItemIds)
+            throws SQLException {
+
+        // =================================================
+        // VALIDATE
+        // =================================================
+
+        if (userId <= 0
+                || addressId <= 0) {
+
             throw new IllegalArgumentException(
                     "Thông tin tài khoản hoặc địa chỉ không hợp lệ."
             );
         }
 
-        if (isBlank(name) || isBlank(phone) || isBlank(address)) {
+
+        if (isBlank(name)
+                || isBlank(phone)
+                || isBlank(address)) {
+
             throw new IllegalArgumentException(
                     "Vui lòng nhập đầy đủ thông tin người nhận."
             );
         }
 
+
         if (name.trim().length() > 100
-                || !phone.trim().matches("[0-9]{9,11}")) {
+                || !phone.trim()
+                        .matches("[0-9]{9,11}")) {
+
             throw new IllegalArgumentException(
                     "Tên hoặc số điện thoại không hợp lệ."
             );
         }
 
-        if (shippingFee == null || shippingFee.signum() < 0) {
+
+        if (shippingFee == null
+                || shippingFee.signum() < 0) {
+
             throw new IllegalArgumentException(
                     "Phí vận chuyển không hợp lệ."
             );
         }
 
-        if (discountAmount == null || discountAmount.signum() < 0) {
+
+        if (discountAmount == null
+                || discountAmount.signum() < 0) {
+
             throw new IllegalArgumentException(
                     "Số tiền giảm giá không hợp lệ."
             );
         }
 
-        Connection conn = new DBContext().getConnection();
+
+        boolean selectedMode
+                = selectedCartItemIds != null;
+
+
+        List<Integer> selectedIds
+                = new ArrayList<>();
+
+
+        if (selectedMode) {
+
+            for (Integer id
+                    : selectedCartItemIds) {
+
+                if (id != null
+                        && id > 0
+                        && !selectedIds.contains(id)) {
+
+                    selectedIds.add(id);
+                }
+            }
+
+
+            if (selectedIds.isEmpty()) {
+
+                throw new IllegalArgumentException(
+                        "Vui lòng chọn sản phẩm để đặt hàng."
+                );
+            }
+        }
+
+
+        Connection conn
+                = new DBContext()
+                        .getConnection();
+
 
         if (conn == null) {
-            throw new SQLException("Không thể kết nối database.");
+
+            throw new SQLException(
+                    "Không thể kết nối database."
+            );
         }
+
 
         try (Connection closeMe = conn) {
 
             conn.setAutoCommit(false);
 
+
             try {
 
-                // 1. KHOA GIO HANG DE TRANH XU LY DONG THOI
+                // =========================================
+                // LOCK CART
+                // =========================================
+
                 int cartId;
 
-                String cartSql =
-                        "SELECT cart_id "
-                        + "FROM dbo.CART WITH (UPDLOCK, HOLDLOCK) "
+
+                String cartSql
+                        = "SELECT cart_id "
+                        + "FROM dbo.CART "
+                        + "WITH (UPDLOCK, HOLDLOCK) "
                         + "WHERE user_id = ?";
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(cartSql)) {
 
-                    ps.setInt(1, userId);
+                try (PreparedStatement ps
+                        = conn.prepareStatement(
+                                cartSql)) {
 
-                    try (ResultSet rs = ps.executeQuery()) {
+                    ps.setInt(
+                            1,
+                            userId
+                    );
+
+
+                    try (ResultSet rs
+                            = ps.executeQuery()) {
 
                         if (!rs.next()) {
+
                             throw new IllegalArgumentException(
                                     "Giỏ hàng không tồn tại."
                             );
                         }
 
-                        cartId = rs.getInt("cart_id");
+
+                        cartId
+                                = rs.getInt(
+                                        "cart_id"
+                                );
                     }
                 }
 
-                // 2. KIEM TRA DIA CHI THUOC USER VA CHUA BI XOA
-                // QUAN TRONG: THEM is_deleted = 0
-                String addressSql =
-                        "SELECT recipient_name, phone_number, address_line "
+
+                // =========================================
+                // ADDRESS
+                // =========================================
+
+                String addressSql
+                        = "SELECT "
+                        + "recipient_name, "
+                        + "phone_number, "
+                        + "address_line "
                         + "FROM dbo.ADDRESSBOOK "
                         + "WHERE address_id = ? "
                         + "AND user_id = ? "
                         + "AND is_deleted = 0";
 
+
                 String recipientName;
                 String recipientPhone;
                 String shippingAddress;
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(addressSql)) {
 
-                    ps.setInt(1, addressId);
-                    ps.setInt(2, userId);
+                try (PreparedStatement ps
+                        = conn.prepareStatement(
+                                addressSql)) {
 
-                    try (ResultSet rs = ps.executeQuery()) {
+                    ps.setInt(
+                            1,
+                            addressId
+                    );
+
+                    ps.setInt(
+                            2,
+                            userId
+                    );
+
+
+                    try (ResultSet rs
+                            = ps.executeQuery()) {
 
                         if (!rs.next()) {
+
                             throw new IllegalArgumentException(
                                     "Địa chỉ không tồn tại hoặc đã bị xóa."
                             );
                         }
 
-                        recipientName = rs.getString("recipient_name");
-                        recipientPhone = rs.getString("phone_number");
-                        shippingAddress = rs.getString("address_line");
+
+                        recipientName
+                                = rs.getString(
+                                        "recipient_name"
+                                );
+
+                        recipientPhone
+                                = rs.getString(
+                                        "phone_number"
+                                );
+
+                        shippingAddress
+                                = rs.getString(
+                                        "address_line"
+                                );
                     }
                 }
 
-                // 3. LAY SAN PHAM VA GIA HIEN TAI
-                List<CartLine> lines = new ArrayList<>();
-                BigDecimal subtotal = BigDecimal.ZERO;
 
-                String itemsSql =
-                        "SELECT ci.cart_item_id, "
-                        + "ci.sku_id, "
-                        + "ci.quantity, "
-                        + "s.price "
-                        + "FROM dbo.CART_ITEMS ci WITH (UPDLOCK, HOLDLOCK) "
-                        + "JOIN dbo.PRODUCT_SKU s "
-                        + "ON s.sku_id = ci.sku_id "
-                        + "WHERE ci.cart_id = ? "
-                        + "ORDER BY ci.cart_item_id";
+                // =========================================
+                // CART ITEMS
+                // =========================================
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(itemsSql)) {
+                List<CartLine> lines
+                        = new ArrayList<>();
 
-                    ps.setInt(1, cartId);
 
-                    try (ResultSet rs = ps.executeQuery()) {
+                BigDecimal subtotal
+                        = BigDecimal.ZERO;
+
+
+                StringBuilder itemsSql
+                        = new StringBuilder();
+
+
+                itemsSql.append(
+                        "SELECT "
+                );
+
+                itemsSql.append(
+                        "ci.cart_item_id, "
+                );
+
+                itemsSql.append(
+                        "ci.sku_id, "
+                );
+
+                itemsSql.append(
+                        "ci.quantity, "
+                );
+
+                itemsSql.append(
+                        "s.price "
+                );
+
+                itemsSql.append(
+                        "FROM dbo.CART_ITEMS ci "
+                );
+
+                itemsSql.append(
+                        "WITH (UPDLOCK, HOLDLOCK) "
+                );
+
+                itemsSql.append(
+                        "JOIN dbo.PRODUCT_SKU s "
+                );
+
+                itemsSql.append(
+                        "ON s.sku_id = ci.sku_id "
+                );
+
+                itemsSql.append(
+                        "WHERE ci.cart_id = ? "
+                );
+
+
+                if (selectedMode) {
+
+                    itemsSql.append(
+                            "AND ci.cart_item_id IN ("
+                    );
+
+
+                    for (int i = 0;
+                         i < selectedIds.size();
+                         i++) {
+
+                        if (i > 0) {
+                            itemsSql.append(",");
+                        }
+
+                        itemsSql.append("?");
+                    }
+
+
+                    itemsSql.append(") ");
+                }
+
+
+                itemsSql.append(
+                        "ORDER BY ci.cart_item_id"
+                );
+
+
+                try (PreparedStatement ps
+                        = conn.prepareStatement(
+                                itemsSql.toString())) {
+
+                    int index = 1;
+
+
+                    ps.setInt(
+                            index++,
+                            cartId
+                    );
+
+
+                    if (selectedMode) {
+
+                        for (Integer id
+                                : selectedIds) {
+
+                            ps.setInt(
+                                    index++,
+                                    id
+                            );
+                        }
+                    }
+
+
+                    try (ResultSet rs
+                            = ps.executeQuery()) {
 
                         while (rs.next()) {
 
-                            int itemId = rs.getInt("cart_item_id");
-                            int skuId = rs.getInt("sku_id");
-                            int quantity = rs.getInt("quantity");
-                            BigDecimal price = rs.getBigDecimal("price");
+                            int itemId
+                                    = rs.getInt(
+                                            "cart_item_id"
+                                    );
+
+
+                            int skuId
+                                    = rs.getInt(
+                                            "sku_id"
+                                    );
+
+
+                            int quantity
+                                    = rs.getInt(
+                                            "quantity"
+                                    );
+
+
+                            BigDecimal price
+                                    = rs.getBigDecimal(
+                                            "price"
+                                    );
+
 
                             if (quantity <= 0
                                     || price == null
@@ -205,6 +468,7 @@ public class OrderService {
                                 );
                             }
 
+
                             lines.add(
                                     new CartLine(
                                             itemId,
@@ -214,98 +478,204 @@ public class OrderService {
                                     )
                             );
 
-                            BigDecimal lineTotal = price.multiply(
-                                    BigDecimal.valueOf(quantity)
-                            );
 
-                            subtotal = subtotal.add(lineTotal);
+                            subtotal
+                                    = subtotal.add(
+                                            price.multiply(
+                                                    BigDecimal.valueOf(
+                                                            quantity
+                                                    )
+                                            )
+                                    );
                         }
                     }
                 }
 
+
                 if (lines.isEmpty()) {
+
                     throw new IllegalArgumentException(
                             "Giỏ hàng đang trống."
                     );
                 }
 
-                // 4. KIEM TRA SO TIEN GIAM GIA
-                if (discountAmount.compareTo(subtotal) > 0) {
+
+                if (selectedMode
+                        && lines.size()
+                        != selectedIds.size()) {
+
+                    throw new IllegalArgumentException(
+                            "Một số sản phẩm đã chọn "
+                            + "không còn trong giỏ hàng."
+                    );
+                }
+
+
+                // =========================================
+                // DISCOUNT
+                // =========================================
+
+                if (discountAmount
+                        .compareTo(
+                                subtotal
+                        ) > 0) {
+
                     throw new IllegalArgumentException(
                             "Số tiền giảm giá vượt quá giá trị đơn hàng."
                     );
                 }
 
-                // 5. TINH TONG TIEN DON HANG
-                BigDecimal totalAmount = subtotal
-                        .add(shippingFee)
-                        .subtract(discountAmount);
+
+                // =========================================
+                // TOTAL
+                // =========================================
+
+                BigDecimal totalAmount
+                        = subtotal
+                                .add(
+                                        shippingFee
+                                )
+                                .subtract(
+                                        discountAmount
+                                );
+
 
                 if (totalAmount.signum() < 0) {
-                    totalAmount = BigDecimal.ZERO;
+
+                    totalAmount
+                            = BigDecimal.ZERO;
                 }
 
-                // 6. TRU TON KHO AN TOAN
+
+                // =========================================
+                // STOCK
+                // =========================================
+
                 for (CartLine line : lines) {
 
-                    String stockSql =
-                            "UPDATE dbo.PRODUCT_SKU "
-                            + "SET stock_quantity = stock_quantity - ? "
+                    String stockSql
+                            = "UPDATE dbo.PRODUCT_SKU "
+                            + "SET stock_quantity = "
+                            + "stock_quantity - ? "
                             + "WHERE sku_id = ? "
                             + "AND stock_quantity >= ?";
 
-                    try (PreparedStatement ps =
-                            conn.prepareStatement(stockSql)) {
 
-                        ps.setInt(1, line.quantity);
-                        ps.setInt(2, line.skuId);
-                        ps.setInt(3, line.quantity);
+                    try (PreparedStatement ps
+                            = conn.prepareStatement(
+                                    stockSql)) {
 
-                        int updatedRows = ps.executeUpdate();
+                        ps.setInt(
+                                1,
+                                line.quantity
+                        );
 
-                        if (updatedRows != 1) {
+                        ps.setInt(
+                                2,
+                                line.skuId
+                        );
+
+                        ps.setInt(
+                                3,
+                                line.quantity
+                        );
+
+
+                        if (ps.executeUpdate()
+                                != 1) {
+
                             throw new IllegalArgumentException(
-                                    "Sản phẩm SKU " + line.skuId
-                                    + " không đủ số lượng tồn kho."
+                                    "Sản phẩm SKU "
+                                    + line.skuId
+                                    + " không đủ tồn kho."
                             );
                         }
                     }
                 }
 
-                // 7. TAO DON HANG COD
-                Order order = new Order();
 
-                order.setUserId(userId);
-                order.setAddressId(addressId);
+                // =========================================
+                // ORDER
+                // =========================================
 
-                // LAY THONG TIN TRUC TIEP TU DATABASE
-                // TRANH SU DUNG DIA CHI KHONG HOP LE
-                order.setRecipientName(recipientName);
-                order.setRecipientPhone(recipientPhone);
-                order.setShippingAddress(shippingAddress);
+                Order order
+                        = new Order();
 
-                order.setShippingFee(shippingFee);
-                order.setDiscountAmount(discountAmount);
-                order.setTotalAmount(totalAmount);
 
-                order.setOrderStatus("PENDING_CONFIRMATION");
-                order.setPaymentMethod("COD");
+                order.setUserId(
+                        userId
+                );
+
+                order.setAddressId(
+                        addressId
+                );
+
+                order.setRecipientName(
+                        recipientName
+                );
+
+                order.setRecipientPhone(
+                        recipientPhone
+                );
+
+                order.setShippingAddress(
+                        shippingAddress
+                );
+
+                order.setShippingFee(
+                        shippingFee
+                );
+
+                order.setDiscountAmount(
+                        discountAmount
+                );
+
+                order.setTotalAmount(
+                        totalAmount
+                );
+
+                order.setOrderStatus(
+                        "PENDING_CONFIRMATION"
+                );
+
+                order.setPaymentMethod(
+                        "COD"
+                );
+
 
                 if (totalAmount.signum() == 0) {
-                    order.setPaymentStatus("PAID");
+
+                    order.setPaymentStatus(
+                            "PAID"
+                    );
+
                 } else {
-                    order.setPaymentStatus("UNPAID");
+
+                    order.setPaymentStatus(
+                            "UNPAID"
+                    );
                 }
 
-                int orderId = orderDAO.insert(conn, order);
+
+                int orderId
+                        = orderDAO.insert(
+                                conn,
+                                order
+                        );
+
 
                 if (orderId <= 0) {
+
                     throw new SQLException(
                             "Không thể tạo đơn hàng."
                     );
                 }
 
-                // 8. LUU CHI TIET DON HANG
+
+                // =========================================
+                // ORDER ITEMS
+                // =========================================
+
                 for (CartLine line : lines) {
 
                     orderDAO.insertItem(
@@ -317,44 +687,149 @@ public class OrderService {
                     );
                 }
 
-                // 9. LUU LICH SU TRANG THAI
+
+                // =========================================
+                // HISTORY
+                // =========================================
+
                 orderDAO.addHistory(
                         conn,
                         orderId,
                         "PENDING_CONFIRMATION"
                 );
 
-                // 10. XOA SAN PHAM KHOI GIO HANG
-                String deleteCartSql =
-                        "DELETE FROM dbo.CART_ITEMS "
-                        + "WHERE cart_id = ?";
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(deleteCartSql)) {
+                // =========================================
+                // DELETE CART ITEMS
+                // =========================================
 
-                    ps.setInt(1, cartId);
-                    ps.executeUpdate();
+                if (selectedMode) {
+
+                    StringBuilder deleteSql
+                            = new StringBuilder();
+
+
+                    deleteSql.append(
+                            "DELETE FROM dbo.CART_ITEMS "
+                    );
+
+                    deleteSql.append(
+                            "WHERE cart_id = ? "
+                    );
+
+                    deleteSql.append(
+                            "AND cart_item_id IN ("
+                    );
+
+
+                    for (int i = 0;
+                         i < selectedIds.size();
+                         i++) {
+
+                        if (i > 0) {
+                            deleteSql.append(",");
+                        }
+
+                        deleteSql.append("?");
+                    }
+
+
+                    deleteSql.append(")");
+
+
+                    try (PreparedStatement ps
+                            = conn.prepareStatement(
+                                    deleteSql.toString())) {
+
+                        int index = 1;
+
+
+                        ps.setInt(
+                                index++,
+                                cartId
+                        );
+
+
+                        for (Integer id
+                                : selectedIds) {
+
+                            ps.setInt(
+                                    index++,
+                                    id
+                            );
+                        }
+
+
+                        int deleted
+                                = ps.executeUpdate();
+
+
+                        if (deleted
+                                != selectedIds.size()) {
+
+                            throw new SQLException(
+                                    "Không thể cập nhật giỏ hàng."
+                            );
+                        }
+                    }
+
+                } else {
+
+                    String deleteSql
+                            = "DELETE FROM dbo.CART_ITEMS "
+                            + "WHERE cart_id = ?";
+
+
+                    try (PreparedStatement ps
+                            = conn.prepareStatement(
+                                    deleteSql)) {
+
+                        ps.setInt(
+                                1,
+                                cartId
+                        );
+
+
+                        ps.executeUpdate();
+                    }
                 }
 
-                // 11. COMMIT KHI TAT CA THANH CONG
+
+                // =========================================
+                // COMMIT
+                // =========================================
+
                 conn.commit();
+
 
                 return orderId;
 
-            } catch (SQLException | RuntimeException e) {
 
-                // CO LOI THI HOAN TAC TOAN BO
+            } catch (SQLException
+                    | RuntimeException e) {
+
                 conn.rollback();
+
                 throw e;
 
             } finally {
-                conn.setAutoCommit(true);
+
+                conn.setAutoCommit(
+                        true
+                );
             }
         }
     }
 
-    // KIEM TRA CHUOI RONG
-    private static boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
+
+    // =====================================================
+    // BLANK
+    // =====================================================
+    private static boolean isBlank(
+            String value) {
+
+        return value == null
+                || value.trim()
+                        .isEmpty();
     }
 }

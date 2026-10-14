@@ -790,43 +790,6 @@
             </div>
 
         </section>
-        <%-- =====================================================
-            ADMIN VOUCHER SHORTCUT
-            CHỈ HIỂN THỊ VỚI ADMIN
-            ===================================================== --%>
-
-        <c:if test="${sessionScope.loggedInUser.admin}">
-
-            <div class="admin-shortcut">
-
-                <a href="${pageContext.request.contextPath}/admin/voucher"
-                   class="admin-voucher-card">
-
-                    <div class="admin-voucher-icon">
-                        <i class="bi bi-ticket-perforated-fill"></i>
-                    </div>
-
-                    <div>
-
-                        <div class="admin-voucher-title">
-                            Quản lý Voucher
-                        </div>
-
-                        <div class="admin-voucher-description">
-                            Tạo và quản lý mã giảm giá
-                        </div>
-
-                    </div>
-
-                    <div class="admin-voucher-arrow">
-                        <i class="bi bi-chevron-right"></i>
-                    </div>
-
-                </a>
-
-            </div>
-
-        </c:if>
 
 
         <!-- =====================================================

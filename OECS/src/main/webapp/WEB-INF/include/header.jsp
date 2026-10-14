@@ -468,7 +468,7 @@
 
                                                 <li>
                                                     <a class="dropdown-item rounded-2 py-2"
-                                                       href="${pageContext.request.contextPath}/admin/voucher">
+                                                       href="${pageContext.request.contextPath}/staff/voucher">
                                                         <i class="bi bi-ticket-perforated text-warning me-2"></i>
                                                         Quản lý Voucher / Mã giảm giá
                                                     </a>
