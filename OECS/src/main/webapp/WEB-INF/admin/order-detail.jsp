@@ -1,692 +1,964 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@taglib prefix="c" uri="jakarta.tags.core" %>
-<%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
-<%@include file="/WEB-INF/include/header.jsp" %>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>OECS - Order Detail</title>
 
-<style>
-    /* ================= ORDER DETAIL PAGE ================= */
-    .order-detail-page {
-        width: 100%;
-        padding: 20px 0 30px;
-        background: #f4f7fb;
-        color: #10213b;
-        box-sizing: border-box;
-    }
+        <style>
+            * {
+                box-sizing: border-box;
+            }
 
-    .order-detail-page *,
-    .order-detail-page *::before,
-    .order-detail-page *::after {
-        box-sizing: border-box;
-    }
+            html, body {
+                width: 100%;
+                min-height: 100vh;
+                margin: 0;
+            }
 
-    .order-detail-page .page {
-        width: 100%;
-        padding: 0 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-    }
+            body {
+                font-family: Arial, sans-serif;
+                background: #f4f7fb;
+                color: #10213b;
+                overflow-x: hidden;
+                overflow-y: auto;
+            }
 
-    /* ================= PAGE TITLE ================= */
-    .order-detail-page .page-title {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 15px;
-    }
+            /* ================= HEADER ================= */
 
-    .order-detail-page .page-title h1 {
-        margin: 0;
-        font-size: 28px;
-        line-height: 1.2;
-        font-weight: 800;
-        color: #10213b;
-    }
+            .topbar {
+                height: 70px;
+                background: #0d162b;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 40px;
+                color: white;
+            }
 
-    .order-detail-page .page-title p {
-        margin: 7px 0 0;
-        color: #71819a;
-        font-size: 14px;
-    }
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+            }
 
-    .order-detail-page .back-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #eaf3ff;
-        color: #0878ff;
-        text-decoration: none;
-        padding: 11px 17px;
-        border-radius: 10px;
-        font-size: 14px;
-        font-weight: 600;
-        white-space: nowrap;
-        transition: background .2s;
-    }
+            .brand-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 10px;
+                background: #1677ff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                font-weight: bold;
+            }
 
-    .order-detail-page .back-btn:hover {
-        background: #dcecff;
-        color: #0878ff;
-    }
+            .brand-name {
+                font-size: 23px;
+                font-weight: 700;
+                letter-spacing: .3px;
+            }
 
-    /* ================= MAIN GRID ================= */
-    .order-detail-page .main-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 18px;
-        align-items: stretch;
-    }
+            .brand-sub {
+                display: block;
+                font-size: 12px;
+                letter-spacing: 1px;
+                color: #9eacc3;
+                margin-top: 2px;
+            }
 
-    /* ================= CARD ================= */
-    .order-detail-page .card {
-        min-width: 0;
-        background: white;
-        border: 1px solid #dfe7f1;
-        border-radius: 15px;
-        box-shadow: 0 5px 18px rgba(27, 61, 99, .06);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
+            .system-status {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+            }
 
-    .order-detail-page .card-header {
-        min-height: 58px;
-        padding: 12px 20px;
-        border-bottom: 1px solid #e8edf4;
-        display: flex;
-        align-items: center;
-        background: #fafbfc;
-    }
+            .status-dot {
+                width: 9px;
+                height: 9px;
+                border-radius: 50%;
+                background: #20c878;
+            }
 
-    .order-detail-page .card-header h2 {
-        margin: 0;
-        font-size: 17px;
-        font-weight: 700;
-        color: #10213b;
-    }
+            /* ================= PAGE ================= */
 
-    .order-detail-page .card-body {
-        padding: 18px;
-        flex: 1;
-    }
+            .page {
+                min-height: calc(100vh - 70px);
+                padding: 22px 38px 28px;
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+            }
 
-    /* ================= ORDER INFORMATION ================= */
-    .order-detail-page .info-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-    }
+            .page-title {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
 
-    .order-detail-page .info-item {
-        min-width: 0;
-        min-height: 60px;
-        background: #f7f9fc;
-        border-radius: 10px;
-        padding: 11px 13px;
-        overflow-wrap: anywhere;
-    }
+            .page-title h1 {
+                margin: 0;
+                font-size: 28px;
+                color: #10213b;
+            }
 
-    .order-detail-page .label {
-        display: block;
-        color: #8292aa;
-        font-size: 10px;
-        text-transform: uppercase;
-        margin-bottom: 6px;
-        letter-spacing: .4px;
-    }
+            .page-title p {
+                margin: 5px 0 0;
+                color: #71819a;
+                font-size: 14px;
+            }
 
-    .order-detail-page .value {
-        display: block;
-        font-size: 14px;
-        font-weight: 600;
-        color: #10213b;
-    }
+            .back-btn {
+                background: #eaf3ff;
+                color: #0878ff;
+                text-decoration: none;
+                padding: 11px 17px;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 600;
+                transition: background 0.2s;
+            }
 
-    /* ================= TOTAL ================= */
-    .order-detail-page .total-box {
-        margin-top: 12px;
-        padding: 14px 16px;
-        border-radius: 10px;
-        background: #edf6ff;
-        border: 1px solid #cfe5ff;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-    }
+            .back-btn:hover {
+                background: #dcecff;
+            }
 
-    .order-detail-page .total-label {
-        color: #66809e;
-        font-size: 13px;
-        font-weight: 500;
-    }
+            /* ================= MAIN GRID ================= */
 
-    .order-detail-page .total-value {
-        color: #0878ff;
-        font-size: 19px;
-        font-weight: 800;
-        white-space: nowrap;
-    }
+            .main-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 18px;
+            }
 
-    /* ================= CURRENT STATUS ================= */
-    .order-detail-page .current-status {
-        background: #f5f9ff;
-        border: 1px solid #e1ecfa;
-        border-radius: 10px;
-        padding: 12px 14px;
-        margin-bottom: 12px;
-    }
+            .card {
+                background: white;
+                border: 1px solid #dfe7f1;
+                border-radius: 15px;
+                box-shadow: 0 5px 18px rgba(27, 61, 99, .06);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
 
-    .order-detail-page .status-label {
-        display: block;
-        font-size: 12px;
-        color: #71819a;
-        margin-bottom: 7px;
-    }
+            .card-header {
+                height: 54px;
+                padding: 0 20px;
+                border-bottom: 1px solid #e8edf4;
+                display: flex;
+                align-items: center;
+                background: #fafbfc;
+            }
 
-    .order-detail-page .status-badge {
-        display: inline-block;
-        padding: 7px 12px;
-        border-radius: 8px;
-        background: #e7f2ff;
-        color: #0878ff;
-        font-size: 13px;
-        font-weight: 700;
-    }
+            .card-header h2 {
+                margin: 0;
+                font-size: 17px;
+                color: #10213b;
+            }
 
-    /* ================= ACTION BOX ================= */
-    .order-detail-page .action-box {
-        background: #f7f9fc;
-        border-radius: 10px;
-        padding: 12px;
-        margin-bottom: 12px;
-    }
+            .card-body {
+                padding: 18px;
+                flex: 1;
+            }
 
-    .order-detail-page .action-box p {
-        margin: 0 0 10px;
-        color: #71819a;
-        font-size: 13px;
-        line-height: 1.5;
-    }
+            /* ================= ORDER INFO ================= */
 
-    .order-detail-page form {
-        margin: 0;
-    }
+            .info-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
 
-    /* ================= BUTTONS ================= */
-    .order-detail-page .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 16px;
-        min-height: 38px;
-        font-size: 13px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: background .2s, transform .2s;
-    }
+            .info-item {
+                background: #f7f9fc;
+                border-radius: 10px;
+                padding: 11px 13px;
+                min-height: 56px;
+            }
 
-    .order-detail-page .btn-primary {
-        background: #1677ff;
-        color: white;
-    }
+            .label {
+                display: block;
+                color: #8292aa;
+                font-size: 10px;
+                text-transform: uppercase;
+                margin-bottom: 5px;
+                letter-spacing: .4px;
+            }
 
-    .order-detail-page .btn-primary:hover {
-        background: #0867e8;
-        color: white;
-    }
+            .value {
+                display: block;
+                font-size: 14px;
+                font-weight: 600;
+                color: #10213b;
+            }
 
-    .order-detail-page .btn-danger {
-        background: #fff1f2;
-        color: #e53935;
-        border: 1px solid #ffc9cd;
-    }
+            .total-box {
+                margin-top: 12px;
+                padding: 14px 16px;
+                border-radius: 10px;
+                background: #edf6ff;
+                border: 1px solid #cfe5ff;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
 
-    .order-detail-page .btn-danger:hover {
-        background: #ffe5e7;
-        color: #d92d20;
-    }
+            .total-label {
+                color: #66809e;
+                font-size: 13px;
+                font-weight: 500;
+            }
 
-    /* ================= STATUS FORM ================= */
-    .order-detail-page .status-form {
-        display: flex;
-        gap: 9px;
-        align-items: center;
-    }
+            .total-value {
+                color: #0878ff;
+                font-size: 19px;
+                font-weight: 700;
+            }
 
-    .order-detail-page .status-form select {
-        flex: 1;
-        min-width: 0;
-        height: 38px;
-        padding: 0 11px;
-        border: 1px solid #d5dfeb;
-        border-radius: 8px;
-        background: white;
-        color: #24364d;
-        font-size: 13px;
-        outline: none;
-    }
+            /* ================= MANAGEMENT ================= */
 
-    .order-detail-page .status-form select:focus {
-        border-color: #1677ff;
-    }
+            .current-status {
+                background: #f5f9ff;
+                border: 1px solid #e1ecfa;
+                border-radius: 10px;
+                padding: 12px 14px;
+                margin-bottom: 12px;
+            }
 
-    .order-detail-page .cancel-area {
-        margin-top: 5px;
-    }
+            .status-label {
+                display: block;
+                font-size: 12px;
+                color: #71819a;
+                margin-bottom: 7px;
+            }
 
-    /* ================= PRODUCTS ================= */
-    .order-detail-page .products-card {
-        min-height: 220px;
-    }
+            .status-badge {
+                display: inline-block;
+                padding: 7px 12px;
+                border-radius: 8px;
+                background: #e7f2ff;
+                color: #0878ff;
+                font-size: 13px;
+                font-weight: 700;
+            }
 
-    .order-detail-page .products-body {
-        width: 100%;
-        padding: 0;
-        overflow-x: auto;
-        overflow-y: auto;
-        max-height: 320px;
-    }
+            .action-box {
+                background: #f7f9fc;
+                border-radius: 10px;
+                padding: 12px;
+                margin-bottom: 12px;
+            }
 
-    .order-detail-page .products-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-    }
+            .action-box p {
+                margin: 0 0 9px;
+                color: #71819a;
+                font-size: 13px;
+            }
 
-    .order-detail-page .products-table thead {
-        background: #f7f9fc;
-    }
+            form {
+                margin: 0;
+            }
 
-    .order-detail-page .products-table th {
-        height: 42px;
-        background: #f7f9fc;
-        color: #71819a;
-        text-align: left;
-        padding: 0 18px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        white-space: nowrap;
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        border-bottom: 1px solid #edf1f5;
-    }
+            .btn {
+                border: none;
+                border-radius: 8px;
+                padding: 10px 16px;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
 
-    .order-detail-page .products-table td {
-        height: 46px;
-        padding: 8px 18px;
-        border-bottom: 1px solid #edf1f5;
-        color: #26384f;
-        white-space: nowrap;
-    }
+            .btn-primary {
+                background: #1677ff;
+                color: white;
+            }
 
-    .order-detail-page .products-table tbody tr:hover {
-        background: #f8fbff;
-    }
+            .btn-primary:hover {
+                background: #0867e8;
+            }
 
-    .order-detail-page .products-table tbody tr:last-child td {
-        border-bottom: none;
-    }
+            .btn-danger {
+                background: #fff1f2;
+                color: #e53935;
+                border: 1px solid #ffc9cd;
+            }
 
-    .order-detail-page .price {
-        font-weight: 700;
-        color: #10213b;
-    }
+            .btn-danger:hover {
+                background: #ffe5e7;
+            }
 
-    .order-detail-page .empty {
-        text-align: center;
-        color: #8a98aa;
-        padding: 25px !important;
-    }
+            .status-form {
+                display: flex;
+                gap: 9px;
+                align-items: center;
+            }
 
-    /* ================= RESPONSIVE ================= */
-    @media (max-width: 1100px) {
-        .order-detail-page .main-grid {
-            grid-template-columns: 1fr;
-        }
-    }
+            select {
+                flex: 1;
+                height: 38px;
+                padding: 0 11px;
+                border: 1px solid #d5dfeb;
+                border-radius: 8px;
+                background: white;
+                color: #24364d;
+                font-size: 13px;
+                outline: none;
+            }
 
-    @media (max-width: 700px) {
-        .order-detail-page {
-            padding-top: 15px;
-        }
+            select:focus {
+                border-color: #1677ff;
+            }
 
-        .order-detail-page .page {
-            padding: 0 12px;
-            gap: 14px;
-        }
+            .cancel-area {
+                margin-top: 5px;
+            }
 
-        .order-detail-page .page-title {
-            align-items: flex-start;
-            flex-direction: column;
-        }
+            /* ================= PRODUCTS ================= */
 
-        .order-detail-page .page-title h1 {
-            font-size: 24px;
-        }
+            .products-card {
+                min-height: 220px;
+            }
 
-        .order-detail-page .card-body {
-            padding: 14px;
-        }
+            .products-body {
+                padding: 0;
+                overflow-y: auto;
+                max-height: 320px;
+            }
 
-        .order-detail-page .card-header {
-            padding: 12px 14px;
-        }
+            .products-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+            }
 
-        .order-detail-page .total-box {
-            align-items: flex-start;
-            flex-direction: column;
-            gap: 6px;
-        }
+            .products-table th {
+                height: 38px;
+                background: #f7f9fc;
+                color: #71819a;
+                text-align: left;
+                padding: 0 18px;
+                font-size: 11px;
+                text-transform: uppercase;
+                position: sticky;
+                top: 0;
+                z-index: 1;
+                border-bottom: 1px solid #edf1f5;
+            }
 
-        .order-detail-page .status-form {
-            align-items: stretch;
-            flex-direction: column;
-        }
+            .products-table td {
+                height: 42px;
+                padding: 8px 18px;
+                border-bottom: 1px solid #edf1f5;
+                color: #26384f;
+            }
 
-        .order-detail-page .status-form .btn {
-            width: 100%;
-        }
+            .products-table tbody tr:last-child td {
+                border-bottom: none;
+            }
 
-        .order-detail-page .products-table {
-            min-width: 650px;
-        }
-    }
+            .empty {
+                text-align: center;
+                color: #8a98aa;
+                padding: 25px !important;
+            }
 
-    @media (max-width: 420px) {
-        .order-detail-page .info-grid {
-            grid-template-columns: 1fr;
-        }
+            .price {
+                font-weight: 600;
+            }
 
-        .order-detail-page .btn-danger {
-            width: 100%;
-        }
-    }
-</style>
+            /* ================= RESPONSIVE ================= */
 
-<!-- ================= ORDER DETAIL PAGE ================= -->
-<div class="order-detail-page">
+            @media (max-width: 900px) {
+                .page {
+                    padding: 16px;
+                }
 
-    <main class="page">
+                .main-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
 
-        <!-- ================= PAGE TITLE ================= -->
-        <div class="page-title">
-            <div>
-                <h1>Order #${order.orderId}</h1>
-                <p>Chi tiết và quản lý trạng thái đơn hàng</p>
+            /* ================= NOTIFICATION ================= */
+
+            .success-message,
+            .error-message {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+
+                position: fixed;
+                top: 90px;
+                right: 28px;
+                z-index: 9999;
+
+                width: max-content;
+                max-width: min(450px, calc(100vw - 32px));
+                padding: 16px 20px;
+
+                border-radius: 12px;
+                font-size: 14px;
+                font-weight: 600;
+                line-height: 1.5;
+
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+
+                animation: notification-in 0.3s ease-out;
+            }
+
+            .success-message {
+                color: #166534;
+                background: #f0fdf4;
+                border: 1px solid #86efac;
+                border-left: 5px solid #22c55e;
+            }
+
+            .error-message {
+                color: #b91c1c;
+                background: #fef2f2;
+                border: 1px solid #fca5a5;
+                border-left: 5px solid #ef4444;
+            }
+
+            .notification-icon {
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            .success-message .notification-icon {
+                background: #dcfce7;
+                color: #15803d;
+            }
+
+            .error-message .notification-icon {
+                background: #fee2e2;
+                color: #dc2626;
+            }
+
+            @keyframes notification-in {
+                from {
+                    opacity: 0;
+                    transform: translateX(20px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+
+            @keyframes notification-out {
+                to {
+                    opacity: 0;
+                    transform: translateX(20px);
+                }
+            }
+
+            .notification-hide {
+                animation: notification-out 0.25s ease-in forwards;
+                pointer-events: none;
+            }
+
+            @media (max-width: 600px) {
+                .success-message,
+                .error-message {
+                    top: 82px;
+                    right: 12px;
+                    max-width: calc(100vw - 24px);
+                    padding: 12px 14px;
+                }
+            }
+
+
+            /* ================= CANCEL CONFIRM MODAL ================= */
+
+            .modal-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 10000;
+
+                display: none;
+                align-items: center;
+                justify-content: center;
+
+                padding: 20px;
+                background: rgba(15, 23, 42, 0.55);
+                backdrop-filter: blur(3px);
+            }
+
+            .modal-overlay.show {
+                display: flex;
+            }
+
+            .modal-box {
+                width: 100%;
+                max-width: 420px;
+                padding: 28px;
+
+                background: #ffffff;
+                border: 1px solid #e5eaf1;
+                border-radius: 18px;
+                box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+
+                text-align: center;
+                animation: modal-in 0.2s ease-out;
+            }
+
+            .modal-icon {
+                width: 58px;
+                height: 58px;
+                margin: 0 auto 18px;
+
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                border-radius: 50%;
+                background: #fff1f2;
+                color: #e53935;
+                font-size: 27px;
+                font-weight: 700;
+            }
+
+            .modal-box h2 {
+                margin: 0 0 10px;
+                color: #10213b;
+                font-size: 21px;
+            }
+
+            .modal-box p {
+                margin: 0;
+                color: #71819a;
+                font-size: 14px;
+                line-height: 1.7;
+            }
+
+            .modal-actions {
+                display: flex;
+                justify-content: center;
+                gap: 12px;
+                margin-top: 26px;
+            }
+
+            .modal-btn {
+                min-width: 120px;
+                padding: 11px 18px;
+
+                border-radius: 9px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+
+            .modal-btn-secondary {
+                background: #f1f5f9;
+                color: #334155;
+                border: 1px solid #e2e8f0;
+            }
+
+            .modal-btn-secondary:hover {
+                background: #e2e8f0;
+            }
+
+            .modal-btn-danger {
+                background: #e53935;
+                color: white;
+                border: 1px solid #e53935;
+            }
+
+            .modal-btn-danger:hover {
+                background: #c62828;
+            }
+
+            @keyframes modal-in {
+                from {
+                    opacity: 0;
+                    transform: translateY(8px) scale(0.98);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+            .modal-btn:disabled {
+                opacity: 0.65;
+                cursor: not-allowed;
+            }
+
+        </style>
+    </head>
+
+    <body>
+
+        <!-- ================= HEADER ================= -->
+
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-icon">◆</div>
+                <div>
+                    <div class="brand-name">OECS</div>
+                    <span class="brand-sub">MANAGEMENT</span>
+                </div>
             </div>
 
-            <a class="back-btn"
-               href="${pageContext.request.contextPath}/admin/orders">
-                ← Danh sách đơn hàng
-            </a>
-        </div>
+            <div class="system-status">
+                <span class="status-dot"></span>
+                Hệ thống hoạt động ổn định
+            </div>
+        </header>
 
-        <!-- ================= ORDER INFORMATION + MANAGEMENT ================= -->
-        <div class="main-grid">
+        <!-- ================= PAGE ================= -->
 
-            <!-- ================= ORDER INFORMATION ================= -->
-            <div class="card">
 
-                <div class="card-header">
-                    <h2>Thông tin đơn hàng</h2>
+        <main class="page">
+
+
+            <!-- SUCCESS NOTIFICATION -->
+            <c:if test="${not empty sessionScope.successMessage}">
+                <div class="success-message notification" role="status">
+                    <span class="notification-icon">✓</span>
+                    <span>
+                        <c:out value="${sessionScope.successMessage}" />
+                    </span>
+                </div>
+                <c:remove var="successMessage" scope="session" />
+            </c:if>
+
+            <!-- ERROR NOTIFICATION -->
+            <c:if test="${not empty sessionScope.errorMessage}">
+                <div class="error-message notification" role="alert">
+                    <span class="notification-icon">!</span>
+                    <span>
+                        <c:out value="${sessionScope.errorMessage}" />
+                    </span>
+                </div>
+                <c:remove var="errorMessage" scope="session" />
+            </c:if>
+
+
+
+            <!-- TITLE -->
+
+            <div class="page-title">
+                <div>
+                    <h1>Order #${order.orderId}</h1>
+                    <p>Chi tiết và quản lý trạng thái đơn hàng</p>
                 </div>
 
-                <div class="card-body">
+                <a class="back-btn" href="${pageContext.request.contextPath}/admin/orders">
+                    ← Danh sách đơn hàng
+                </a>
+            </div>
 
-                    <div class="info-grid">
+            <!-- ================= TOP ================= -->
 
-                        <div class="info-item">
-                            <span class="label">Order ID</span>
-                            <span class="value">#${order.orderId}</span>
+            <div class="main-grid">
+
+                <!-- ================= ORDER INFO ================= -->
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Thông tin đơn hàng</h2>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="label">Order ID</span>
+                                <span class="value">#${order.orderId}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="label">User ID</span>
+                                <span class="value">${order.userId}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="label">Address ID</span>
+                                <span class="value">${order.addressId}</span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="label">Shipping Partner</span>
+                                <span class="value">
+                                    <c:choose>
+                                        <c:when test="${not empty order.shippingPartnerId}">
+                                            #${order.shippingPartnerId}
+                                        </c:when>
+                                        <c:otherwise>
+                                            Chưa phân công
+                                        </c:otherwise>
+                                    </c:choose>
+                                </span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="label">Phí giao hàng</span>
+                                <span class="value">
+                                    <fmt:formatNumber value="${order.shippingFee}" type="number" groupingUsed="true"/> ₫
+                                </span>
+                            </div>
+
+                            <div class="info-item">
+                                <span class="label">Ngày tạo</span>
+                                <span class="value">${order.createdAt}</span>
+                            </div>
                         </div>
 
-                        <div class="info-item">
-                            <span class="label">User ID</span>
-                            <span class="value">${order.userId}</span>
+                        <div class="total-box">
+                            <span class="total-label">Tổng tiền đơn hàng</span>
+                            <span class="total-value">
+                                <fmt:formatNumber value="${order.totalAmount}" type="number" groupingUsed="true"/> ₫
+                            </span>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="info-item">
-                            <span class="label">Address ID</span>
-                            <span class="value">
+                <!-- ================= MANAGEMENT ================= -->
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Quản lý đơn hàng</h2>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="current-status">
+                            <span class="status-label">Trạng thái hiện tại</span>
+                            <span class="status-badge">
                                 <c:choose>
-                                    <c:when test="${not empty order.addressId}">
-                                        ${order.addressId}
+                                    <c:when test="${not empty status}">
+                                        ${status}
                                     </c:when>
                                     <c:otherwise>
-                                        Chưa cập nhật
+                                        Chưa có trạng thái
                                     </c:otherwise>
                                 </c:choose>
                             </span>
                         </div>
 
-                        <div class="info-item">
-                            <span class="label">Shipping Partner</span>
-                            <span class="value">
-                                <c:choose>
-                                    <c:when test="${not empty order.shippingPartnerId}">
-                                        #${order.shippingPartnerId}
-                                    </c:when>
-                                    <c:otherwise>
-                                        Chưa phân công
-                                    </c:otherwise>
-                                </c:choose>
-                            </span>
-                        </div>
+                        <!-- CONFIRM -->
+                        <c:if test="${status == 'Pending'}">
+                            <div class="action-box">
+                                <p>Xác nhận đơn hàng để chuyển sang bước xử lý tiếp theo.</p>
+                                <form method="post" action="${pageContext.request.contextPath}/admin/orders">
+                                    <input type="hidden" name="action" value="confirm">
+                                    <input type="hidden" name="orderId" value="${order.orderId}">
+                                    <button type="submit" class="btn btn-primary">
+                                        ✓ Xác nhận đơn hàng
+                                    </button>
+                                </form>
+                            </div>
+                        </c:if>
 
-                        <div class="info-item">
-                            <span class="label">Phí giao hàng</span>
-                            <span class="value">
-                                <fmt:formatNumber
-                                    value="${order.shippingFee}"
-                                    type="number"
-                                    groupingUsed="true"
-                                    maxFractionDigits="0"/> ₫
-                            </span>
-                        </div>
+                        <!-- CHANGE STATUS -->
+                        <c:if test="${status != 'Completed' && status != 'Cancelled'}">
+                            <div class="action-box">
+                                <p>Cập nhật trạng thái</p>
+                                <form method="post" action="${pageContext.request.contextPath}/admin/orders" class="status-form">
+                                    <input type="hidden" name="action" value="changeStatus">
+                                    <input type="hidden" name="orderId" value="${order.orderId}">
+                                    <select name="status">
+                                        <option value="Confirmed" ${status == 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                        <option value="Packing" ${status == 'Packing' ? 'selected' : ''}>Packing</option>
+                                        <option value="Shipping" ${status == 'Shipping' ? 'selected' : ''}>Shipping</option>
+                                        <option value="Completed" ${status == 'Completed' ? 'selected' : ''}>Completed</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary">
+                                        Cập nhật
+                                    </button>
+                                </form>
+                            </div>
+                        </c:if>
 
-                        <div class="info-item">
-                            <span class="label">Ngày tạo</span>
-                            <span class="value">
-                                <fmt:formatDate
-                                    value="${order.createdAt}"
-                                    pattern="dd/MM/yyyy HH:mm"/>
-                            </span>
-                        </div>
+                        <!-- CANCEL -->
+                        <c:if test="${status != 'Completed' && status != 'Cancelled'}">
+                            <div class="cancel-area">
+                                <form method="post"
+                                      action="${pageContext.request.contextPath}/admin/orders"
+                                      onsubmit="return showCancelModal(event);">
+
+                                    <input type="hidden" name="action" value="cancel">
+                                    <input type="hidden" name="orderId" value="${order.orderId}">
+
+                                    <button type="submit" class="btn btn-danger">
+                                        ✕ Hủy đơn hàng
+                                    </button>
+                                </form>
+                            </div>
+                        </c:if>
 
                     </div>
-
-                    <div class="total-box">
-                        <span class="total-label">Tổng tiền đơn hàng</span>
-
-                        <span class="total-value">
-                            <fmt:formatNumber
-                                value="${order.totalAmount}"
-                                type="number"
-                                groupingUsed="true"
-                                maxFractionDigits="0"/> ₫
-                        </span>
-                    </div>
-
                 </div>
+
             </div>
 
-            <!-- ================= ORDER MANAGEMENT ================= -->
-            <div class="card">
+            <!-- ================= PRODUCTS ================= -->
 
+            <div class="card products-card">
                 <div class="card-header">
-                    <h2>Quản lý đơn hàng</h2>
+                    <h2>Sản phẩm trong đơn hàng</h2>
                 </div>
 
-                <div class="card-body">
-
-                    <!-- CURRENT STATUS -->
-                    <div class="current-status">
-                        <span class="status-label">Trạng thái hiện tại</span>
-
-                        <span class="status-badge">
+                <div class="products-body">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>Order Item</th>
+                                <th>SKU ID</th>
+                                <th>Số lượng</th>
+                                <th>Đơn giá</th>
+                                <th>Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             <c:choose>
-                                <c:when test="${not empty status}">
-                                    <c:out value="${status}"/>
+                                <c:when test="${not empty items}">
+                                    <c:forEach var="item" items="${items}">
+                                        <tr>
+                                            <td>#${item.orderItemId}</td>
+                                            <td>${item.skuId}</td>
+                                            <td>${item.quantity}</td>
+                                            <td class="price">
+                                                <fmt:formatNumber value="${item.price}" type="number" groupingUsed="true"/> ₫
+                                            </td>
+                                            <td class="price">
+                                                <fmt:formatNumber value="${item.price * item.quantity}" type="number" groupingUsed="true"/> ₫
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
                                 </c:when>
                                 <c:otherwise>
-                                    Chưa có trạng thái
+                                    <tr>
+                                        <td colspan="5" class="empty">
+                                            Không có sản phẩm trong đơn hàng.
+                                        </td>
+                                    </tr>
                                 </c:otherwise>
                             </c:choose>
-                        </span>
-                    </div>
-
-                    <!-- CONFIRM ORDER -->
-                    <c:if test="${status == 'Pending'}">
-                        <div class="action-box">
-                            <p>
-                                Xác nhận đơn hàng để chuyển sang bước xử lý tiếp theo.
-                            </p>
-
-                            <form method="post"
-                                  action="${pageContext.request.contextPath}/admin/orders">
-
-                                <input type="hidden" name="action" value="confirm">
-                                <input type="hidden" name="orderId" value="${order.orderId}">
-
-                                <button type="submit" class="btn btn-primary">
-                                    ✓ Xác nhận đơn hàng
-                                </button>
-                            </form>
-                        </div>
-                    </c:if>
-
-                    <!-- CHANGE STATUS -->
-                    <div class="action-box">
-                        <p>Cập nhật trạng thái đơn hàng</p>
-
-                        <form method="post"
-                              action="${pageContext.request.contextPath}/admin/orders"
-                              class="status-form">
-
-                            <input type="hidden" name="action" value="changeStatus">
-                            <input type="hidden" name="orderId" value="${order.orderId}">
-
-                            <select name="status" required>
-                                <option value="Confirmed"
-                                    ${status == 'Confirmed' ? 'selected' : ''}>
-                                    Confirmed
-                                </option>
-
-                                <option value="Packing"
-                                    ${status == 'Packing' ? 'selected' : ''}>
-                                    Packing
-                                </option>
-
-                                <option value="Shipping"
-                                    ${status == 'Shipping' ? 'selected' : ''}>
-                                    Shipping
-                                </option>
-
-                                <option value="Completed"
-                                    ${status == 'Completed' ? 'selected' : ''}>
-                                    Completed
-                                </option>
-                            </select>
-
-                            <button type="submit" class="btn btn-primary">
-                                Cập nhật
-                            </button>
-                        </form>
-                    </div>
-
-                    <!-- CANCEL ORDER -->
-                    <div class="cancel-area">
-                        <form method="post"
-                              action="${pageContext.request.contextPath}/admin/orders"
-                              onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?');">
-
-                            <input type="hidden" name="action" value="cancel">
-                            <input type="hidden" name="orderId" value="${order.orderId}">
-
-                            <button type="submit" class="btn btn-danger">
-                                ✕ Hủy đơn hàng
-                            </button>
-                        </form>
-                    </div>
-
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
+        </main>
+
+
+        <!-- CANCEL CONFIRMATION MODAL -->
+        <div id="cancelModal"
+             class="modal-overlay"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="cancelModalTitle">
+
+            <div class="modal-box">
+                <div class="modal-icon">!</div>
+
+                <h2 id="cancelModalTitle">Xác nhận hủy đơn hàng</h2>
+
+                <p>
+                    Bạn có chắc chắn muốn hủy đơn hàng
+                    <strong>#${order.orderId}</strong> không?
+                    <br>
+                    Vui lòng kiểm tra trước khi tiếp tục.
+                </p>
+
+                <div class="modal-actions">
+                    <button type="button"
+                            class="modal-btn modal-btn-secondary"
+                            onclick="closeCancelModal()">
+                        Không, quay lại
+                    </button>
+
+                    <button type="button"
+                            class="modal-btn modal-btn-danger"
+                            onclick="confirmCancelOrder()">
+                        Xác nhận hủy
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- ================= PRODUCTS ================= -->
-        <div class="card products-card">
 
-            <div class="card-header">
-                <h2>Sản phẩm trong đơn hàng</h2>
-            </div>
 
-            <div class="products-body">
-                <table class="products-table">
+        <script>
+            document.querySelectorAll(".notification").forEach(function (message) {
+                setTimeout(function () {
+                    message.classList.add("notification-hide");
 
-                    <thead>
-                        <tr>
-                            <th>Order Item</th>
-                            <th>SKU ID</th>
-                            <th>Số lượng</th>
-                            <th>Đơn giá</th>
-                            <th>Thành tiền</th>
-                        </tr>
-                    </thead>
+                    setTimeout(function () {
+                        message.remove();
+                    }, 300);
+                }, 3500);
+            });
 
-                    <tbody>
-                        <c:choose>
-                            <c:when test="${not empty items}">
-                                <c:forEach var="item" items="${items}">
-                                    <tr>
-                                        <td>#${item.orderItemId}</td>
 
-                                        <td>${item.skuId}</td>
+            let cancelForm = null;
 
-                                        <td>${item.quantity}</td>
+            function showCancelModal(event) {
+                event.preventDefault();
 
-                                        <td class="price">
-                                            <fmt:formatNumber
-                                                value="${item.price}"
-                                                type="number"
-                                                groupingUsed="true"
-                                                maxFractionDigits="0"/> ₫
-                                        </td>
+                cancelForm = event.currentTarget;
 
-                                        <td class="price">
-                                            <fmt:formatNumber
-                                                value="${item.price * item.quantity}"
-                                                type="number"
-                                                groupingUsed="true"
-                                                maxFractionDigits="0"/> ₫
-                                        </td>
-                                    </tr>
-                                </c:forEach>
-                            </c:when>
+                document.getElementById("cancelModal").classList.add("show");
 
-                            <c:otherwise>
-                                <tr>
-                                    <td colspan="5" class="empty">
-                                        Không có sản phẩm trong đơn hàng.
-                                    </td>
-                                </tr>
-                            </c:otherwise>
-                        </c:choose>
-                    </tbody>
+                return false;
+            }
 
-                </table>
-            </div>
+            function closeCancelModal() {
+                document.getElementById("cancelModal").classList.remove("show");
 
-        </div>
+                const button = document.querySelector(".modal-btn-danger");
+                button.disabled = false;
+                button.textContent = "Xác nhận hủy";
 
-    </main>
+                cancelForm = null;
+            }
 
-</div>
+            function confirmCancelOrder() {
+                if (cancelForm) {
+                    const form = cancelForm;
+                    cancelForm = null;
+
+                    const button = document.querySelector(".modal-btn-danger");
+                    button.disabled = true;
+                    button.textContent = "Đang xử lý...";
+
+                    form.submit();
+                }
+            }
+
+            document.getElementById("cancelModal").addEventListener("click", function (event) {
+                if (event.target === this) {
+                    closeCancelModal();
+                }
+            });
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape") {
+                    closeCancelModal();
+                }
+            });
+
+        </script>
+
+
+    </body>
+</html>
 
 <%@include file="/WEB-INF/include/footer.jsp" %>
