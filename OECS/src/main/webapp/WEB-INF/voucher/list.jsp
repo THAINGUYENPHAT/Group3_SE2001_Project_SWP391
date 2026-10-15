@@ -5,556 +5,1434 @@
 <%@include file="/WEB-INF/include/header.jsp" %>
 
 <style>
+
+    :root {
+        --page-bg: #f7f9fc;
+        --border: #dde5ef;
+        --text-main: #111827;
+        --text-muted: #64748b;
+
+        --primary: #0d6efd;
+        --primary-soft: #e7f0ff;
+
+        --success: #059669;
+        --success-soft: #dcfce7;
+
+        --cyan: #0891b2;
+        --cyan-soft: #cffafe;
+
+        --danger: #ef4444;
+    }
+
+
+    body {
+        background: var(--page-bg);
+    }
+
+
     .voucher-page {
-        padding-bottom: 30px;
+        padding: 5px 0 40px;
     }
 
-    .page-title {
-        font-size: 1.55rem;
-        font-weight: 700;
-        color: #0f172a;
-        margin-bottom: 4px;
-    }
 
-    .page-description {
-        color: #64748b;
-        font-size: 0.9rem;
-    }
+    /* =====================================================
+       PAGE HEADER
+       ===================================================== */
 
-    .btn-create {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        padding: 9px 15px;
-        background: #2563eb;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        text-decoration: none;
-        font-size: 0.88rem;
-        font-weight: 600;
-        transition: 0.2s;
-    }
-
-    .btn-create:hover {
-        background: #1d4ed8;
-        color: white;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.20);
-    }
-
-    /* ================= STAT ================= */
-
-    .stat-card {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 22px;
-        height: 100%;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
-    }
-
-    .stat-label {
-        color: #475569;
-        font-size: 0.95rem;
-        font-weight: 500;
-    }
-
-    .stat-value {
-        margin-top: 12px;
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .stat-note {
-        margin-left: 7px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        color: #64748b;
-    }
-
-    .stat-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #dbeafe;
-        color: #2563eb;
-        font-size: 1rem;
-    }
-
-    .stat-green {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-
-    .stat-cyan {
-        background: #cffafe;
-        color: #0891b2;
-    }
-
-    /* ================= TABLE ================= */
-
-    .voucher-card {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
-    }
-
-    .voucher-card-header {
-        padding: 18px 20px;
-        border-bottom: 1px solid #e2e8f0;
+    .page-heading {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 15px;
+
+        gap: 20px;
+
+        margin-bottom: 28px;
     }
 
-    .card-title-custom {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #0f172a;
-        margin: 0;
+
+    .page-heading h1 {
+        margin: 0 0 5px;
+
+        color: var(--text-main);
+
+        font-size: 34px;
+        font-weight: 800;
     }
+
+
+    .page-heading p {
+        margin: 0;
+
+        color: var(--text-muted);
+
+        font-size: 16px;
+    }
+
+
+    .create-voucher-btn {
+        display: inline-flex;
+        align-items: center;
+
+        gap: 8px;
+
+        padding: 12px 19px;
+
+        border: none;
+        border-radius: 10px;
+
+        background: var(--primary);
+        color: #fff;
+
+        text-decoration: none;
+
+        font-size: 15px;
+        font-weight: 700;
+
+        box-shadow:
+            0 4px 10px rgba(13, 110, 253, .18);
+    }
+
+
+    .create-voucher-btn:hover {
+        background: #0b5ed7;
+        color: #fff;
+    }
+
+
+    /* =====================================================
+       STAT CARDS
+       ===================================================== */
+
+    .stat-card {
+        position: relative;
+
+        min-height: 145px;
+
+        padding: 26px 28px;
+
+        border: 1px solid var(--border);
+        border-radius: 18px;
+
+        background: #fff;
+    }
+
+
+    .stat-title {
+        margin-bottom: 20px;
+
+        color: #334155;
+
+        font-size: 17px;
+    }
+
+
+    .stat-value {
+        display: flex;
+        align-items: baseline;
+
+        gap: 14px;
+    }
+
+
+    .stat-value strong {
+        color: #111827;
+
+        font-size: 32px;
+        font-weight: 800;
+
+        line-height: 1;
+    }
+
+
+    .stat-value span {
+        color: #64748b;
+
+        font-size: 14px;
+    }
+
+
+    .stat-icon {
+        position: absolute;
+
+        top: 27px;
+        right: 27px;
+
+        width: 50px;
+        height: 50px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 15px;
+
+        font-size: 20px;
+    }
+
+
+    .stat-icon.blue {
+        background: var(--primary-soft);
+        color: var(--primary);
+    }
+
+
+    .stat-icon.green {
+        background: var(--success-soft);
+        color: var(--success);
+    }
+
+
+    .stat-icon.cyan {
+        background: var(--cyan-soft);
+        color: var(--cyan);
+    }
+
+
+    .stat-link {
+        position: absolute;
+
+        left: 28px;
+        bottom: 18px;
+
+        color: var(--primary);
+
+        font-size: 13px;
+        font-weight: 600;
+
+        text-decoration: none;
+    }
+
+
+    .stat-link:hover {
+        text-decoration: underline;
+    }
+
+
+    /* =====================================================
+       MESSAGE
+       ===================================================== */
+
+    .page-message {
+        margin-top: 24px;
+    }
+
+
+    /* =====================================================
+       MAIN CARD
+       ===================================================== */
+
+    .voucher-card {
+        margin-top: 30px;
+
+        overflow: hidden;
+
+        border: 1px solid var(--border);
+        border-radius: 18px;
+
+        background: #fff;
+    }
+
+
+    .voucher-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        gap: 20px;
+
+        padding: 20px 24px;
+
+        border-bottom: 1px solid var(--border);
+    }
+
+
+    .voucher-card-header h5 {
+        margin: 0;
+
+        color: #111827;
+
+        font-size: 20px;
+        font-weight: 750;
+    }
+
+
+    .voucher-count {
+        color: #64748b;
+
+        font-size: 14px;
+    }
+
+
+    /* =====================================================
+       TABLE
+       ===================================================== */
 
     .voucher-table {
         margin: 0;
     }
 
+
     .voucher-table thead th {
-        background: #f8fafc;
-        color: #64748b;
+        padding: 15px 16px;
+
+        vertical-align: middle;
+
+        border-bottom: 1px solid var(--border);
+
+        background: #f7f9fc;
+        color: #5e708d;
+
+        font-size: 12px;
+        font-weight: 750;
+
+        letter-spacing: .4px;
+
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        font-size: 0.72rem;
-        font-weight: 600;
-        padding: 16px 18px;
-        border-bottom: 1px solid #e2e8f0;
+
         white-space: nowrap;
     }
 
+
     .voucher-table tbody td {
-        padding: 17px 18px;
+        padding: 17px 16px;
+
         vertical-align: middle;
-        font-size: 0.86rem;
+
+        border-color: #edf1f5;
+
         color: #334155;
-        border-bottom: 1px solid #f1f5f9;
+
+        font-size: 14px;
     }
 
-    .voucher-table tbody tr:last-child td {
-        border-bottom: none;
-    }
 
     .voucher-table tbody tr:hover {
-        background: #fafcff;
+        background: #fbfcfe;
     }
 
-    /* ================= VOUCHER ================= */
 
-    .voucher-id {
+    /* =====================================================
+       ID
+       ===================================================== */
+
+    .id-badge {
+        display: inline-block;
+
+        padding: 5px 9px;
+
+        border: 1px solid #dbe4ee;
+        border-radius: 7px;
+
         background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        padding: 3px 7px;
         color: #64748b;
-        font-size: 0.75rem;
+
+        font-size: 13px;
     }
+
+
+    /* =====================================================
+       VOUCHER CODE
+       ===================================================== */
 
     .voucher-code {
-        color: #0f172a;
-        font-weight: 700;
+        color: #111827;
+
+        font-size: 15px;
+        font-weight: 800;
     }
 
-    .badge-percent {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px 10px;
-        border-radius: 999px;
-        background: #dbeafe;
-        border: 1px solid #bfdbfe;
-        color: #1d4ed8;
-        font-size: 0.75rem;
-        font-weight: 600;
+
+    /* =====================================================
+       VALUE
+       ===================================================== */
+
+    .voucher-value {
+        font-weight: 750;
+        color: #1e293b;
     }
 
-    .badge-amount {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px 10px;
-        border-radius: 999px;
-        background: #dcfce7;
-        border: 1px solid #bbf7d0;
-        color: #15803d;
-        font-size: 0.75rem;
-        font-weight: 600;
+
+    .value-percent {
+        color: #0d6efd;
     }
+
+
+    .value-amount {
+        color: #059669;
+    }
+
+
+    /* =====================================================
+       LIMIT BADGE
+       ===================================================== */
 
     .limit-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 32px;
-        padding: 4px 8px;
+        display: inline-block;
+
+        min-width: 40px;
+
+        padding: 6px 9px;
+
+        border-radius: 7px;
+
         background: #f1f5f9;
-        border-radius: 6px;
-        color: #475569;
-        font-size: 0.76rem;
-        font-weight: 600;
+        color: #334155;
+
+        text-align: center;
+
+        font-weight: 650;
     }
 
-    /* ================= ACTION ================= */
+
+    /* =====================================================
+       DATE
+       ===================================================== */
+
+    .voucher-time {
+        min-width: 180px;
+
+        font-size: 13px;
+    }
+
+
+    .time-start {
+        color: #059669;
+    }
+
+
+    .time-end {
+        color: #ef4444;
+    }
+
+
+    .time-separator {
+        margin: 3px 0;
+
+        color: #64748b;
+
+        font-size: 12px;
+    }
+
+
+    /* =====================================================
+       ACTION
+       ===================================================== */
+
+    .action-group {
+        display: flex;
+        justify-content: center;
+
+        gap: 7px;
+    }
+
 
     .action-btn {
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
+
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
+
+        border-radius: 9px;
+
+        background: #fff;
+
         text-decoration: none;
-        transition: 0.2s;
     }
 
+
     .edit-btn {
-        color: #2563eb;
-        background: white;
-        border: 1px solid #dbeafe;
+        border: 1px solid #bfdbfe;
+
+        color: #0d6efd;
     }
+
 
     .edit-btn:hover {
         background: #eff6ff;
-        border-color: #93c5fd;
-        color: #1d4ed8;
+        color: #0b5ed7;
     }
+
 
     .delete-btn {
+        border: 1px solid #fecaca;
+
         color: #ef4444;
-        background: white;
-        border: 1px solid #e2e8f0;
     }
+
 
     .delete-btn:hover {
-        background: #fef2f2;
+        background: #fff1f2;
         color: #dc2626;
-        border-color: #fecaca;
     }
 
-    /* ================= EMPTY ================= */
+
+    /* =====================================================
+       EMPTY
+       ===================================================== */
 
     .empty-voucher {
-        padding: 55px 20px;
+        padding: 60px 20px;
+
         text-align: center;
-        color: #94a3b8;
+
+        color: #64748b;
     }
 
-    .empty-voucher i {
-        font-size: 2rem;
-        display: block;
-        margin-bottom: 10px;
+
+    /* =====================================================
+       RECENT USAGE
+       ===================================================== */
+
+    .usage-card {
+        margin-top: 28px;
+
+        overflow: hidden;
+
+        border: 1px solid var(--border);
+        border-radius: 18px;
+
+        background: #fff;
     }
 
-    /* ================= RESPONSIVE ================= */
+
+    .usage-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        gap: 20px;
+
+        padding: 20px 24px;
+
+        border-bottom: 1px solid var(--border);
+    }
+
+
+    .usage-header h5 {
+        margin: 0 0 4px;
+
+        font-size: 19px;
+        font-weight: 750;
+    }
+
+
+    .usage-header small {
+        color: #64748b;
+    }
+
+
+    .view-history-btn {
+        padding: 8px 13px;
+
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+
+        color: #0d6efd;
+        background: #fff;
+
+        text-decoration: none;
+
+        font-size: 13px;
+        font-weight: 650;
+    }
+
+
+    .view-history-btn:hover {
+        background: #eff6ff;
+        color: #0b5ed7;
+    }
+
+
+    .usage-table {
+        margin: 0;
+    }
+
+
+    .usage-table th {
+        padding: 14px 18px;
+
+        background: #f8fafc;
+
+        color: #64748b;
+
+        font-size: 12px;
+
+        text-transform: uppercase;
+    }
+
+
+    .usage-table td {
+        padding: 14px 18px;
+
+        vertical-align: middle;
+
+        border-color: #edf1f5;
+    }
+
+
+    /* =====================================================
+       RESPONSIVE
+       ===================================================== */
 
     @media (max-width: 992px) {
+
         .voucher-table {
-            min-width: 1100px;
+            min-width: 1250px;
         }
 
-        .voucher-card-header {
+
+        .usage-table {
+            min-width: 700px;
+        }
+
+    }
+
+
+    @media (max-width: 768px) {
+
+        .page-heading {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+
+        .page-heading h1 {
+            font-size: 28px;
+        }
+
+
+        .voucher-card-header,
+        .usage-header {
             align-items: flex-start;
             flex-direction: column;
         }
+
     }
+
 </style>
+
 
 <div class="voucher-page">
 
-    <%-- =====================================================
+
+    <!-- =====================================================
          PAGE HEADER
-         ===================================================== --%>
-    <div class="d-flex justify-content-between align-items-center mb-4">
+         ===================================================== -->
+
+    <div class="page-heading">
+
         <div>
-            <h1 class="page-title">Quản lý Voucher</h1>
-            <div class="page-description">
-                Quản lý mã giảm giá và chương trình khuyến mãi trong hệ thống.
-            </div>
+
+            <h1>
+                Quản lý Voucher
+            </h1>
+
+            <p>
+                Tạo và quản lý các chương trình giảm giá.
+            </p>
+
         </div>
 
-        <a href="${pageContext.request.contextPath}/admin/voucher?view=create" class="btn-create">
-            <i class="bi bi-plus-lg"></i> Tạo mới
+
+        <a
+            href="${pageContext.request.contextPath}/staff/voucher?view=create"
+            class="create-voucher-btn">
+
+            <i class="bi bi-plus-lg"></i>
+
+            Thêm Voucher
+
         </a>
-    </div>
-
-    <%-- =====================================================
-         SUCCESS MESSAGE
-         ===================================================== --%>
-    <c:if test="${not empty sessionScope.successMessage}">
-        <div class="alert alert-success alert-dismissible fade show">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            ${sessionScope.successMessage}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <c:remove var="successMessage" scope="session"/>
-    </c:if>
-
-    <%-- =====================================================
-         ERROR MESSAGE
-         ===================================================== --%>
-    <c:if test="${not empty sessionScope.errorMessage}">
-        <div class="alert alert-danger alert-dismissible fade show">
-            <i class="bi bi-exclamation-circle-fill me-2"></i>
-            ${sessionScope.errorMessage}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <c:remove var="errorMessage" scope="session"/>
-    </c:if>
-
-    <%-- =====================================================
-         STATISTIC
-         ===================================================== --%>
-    <div class="row g-3 mb-4">
-
-        <%-- TOTAL --%>
-        <div class="col-lg-4">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-label">Tổng Voucher</div>
-                        <div class="stat-value">
-                            ${vouchers.size()}
-                            <span class="stat-note">mã giảm giá</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon">
-                        <i class="bi bi-ticket-perforated-fill"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <%-- TYPE --%>
-        <div class="col-lg-4">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-label">Loại giảm giá</div>
-                        <div class="stat-value">
-                            2
-                            <span class="stat-note">hình thức</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon stat-green">
-                        <i class="bi bi-percent"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <%-- MANAGEMENT --%>
-        <div class="col-lg-4">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <div class="stat-label">Chức năng</div>
-                        <div class="stat-value">
-                            CRUD
-                            <span class="stat-note">Voucher</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon stat-cyan">
-                        <i class="bi bi-shield-check"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
 
     </div>
 
-    <%-- =====================================================
+
+    <!-- =====================================================
+         MESSAGES
+         ===================================================== -->
+
+    <div class="page-message">
+
+
+        <c:if test="${not empty sessionScope.successMessage}">
+
+            <div
+                class="alert alert-success alert-dismissible fade show">
+
+                ${sessionScope.successMessage}
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+                </button>
+
+            </div>
+
+
+            <c:remove
+                var="successMessage"
+                scope="session"/>
+
+        </c:if>
+
+
+        <c:if test="${not empty sessionScope.errorMessage}">
+
+            <div
+                class="alert alert-danger alert-dismissible fade show">
+
+                ${sessionScope.errorMessage}
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+                </button>
+
+            </div>
+
+
+            <c:remove
+                var="errorMessage"
+                scope="session"/>
+
+        </c:if>
+
+
+    </div>
+
+
+    <!-- =====================================================
+         STATISTICS
+         ===================================================== -->
+
+    <div class="row g-4">
+
+
+        <!-- TOTAL VOUCHERS -->
+
+        <div class="col-lg-4">
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    Tổng Voucher
+                </div>
+
+
+                <div class="stat-icon blue">
+
+                    <i class="bi bi-ticket-perforated-fill"></i>
+
+                </div>
+
+
+                <div class="stat-value">
+
+                    <strong>
+
+                        <c:choose>
+
+                            <c:when test="${not empty vouchers}">
+                                ${vouchers.size()}
+                            </c:when>
+
+                            <c:otherwise>
+                                0
+                            </c:otherwise>
+
+                        </c:choose>
+
+                    </strong>
+
+
+                    <span>
+                        mã giảm giá
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- USED VOUCHERS -->
+
+        <div class="col-lg-4">
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    Mã đã sử dụng
+                </div>
+
+
+                <div class="stat-icon green">
+
+                    <i class="bi bi-check2-circle"></i>
+
+                </div>
+
+
+                <div class="stat-value">
+
+                    <strong>
+
+                        <c:out
+                            value="${usedVoucherCount}"
+                            default="0"/>
+
+                    </strong>
+
+
+                    <span>
+                        mã Voucher
+                    </span>
+
+                </div>
+
+
+                <a
+                    href="${pageContext.request.contextPath}/staff/voucher?view=usage"
+                    class="stat-link">
+
+                    Xem lịch sử
+
+                    <i class="bi bi-chevron-right"></i>
+
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- CRUD -->
+
+        <div class="col-lg-4">
+
+            <div class="stat-card">
+
+                <div class="stat-title">
+                    Chức năng
+                </div>
+
+
+                <div class="stat-icon cyan">
+
+                    <i class="bi bi-shield-check"></i>
+
+                </div>
+
+
+                <div class="stat-value">
+
+                    <strong>
+                        CRUD
+                    </strong>
+
+
+                    <span>
+                        Voucher
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- =====================================================
          VOUCHER LIST
-         ===================================================== --%>
+         ===================================================== -->
+
     <div class="voucher-card">
 
-        <div class="voucher-card-header">
-            <h5 class="card-title-custom">
-                <i class="bi bi-ticket-detailed me-2 text-primary"></i>
-                Danh sách Voucher
-            </h5>
-            <span class="text-muted small">
-                Hiển thị <strong>${vouchers.size()}</strong> Voucher
-            </span>
-        </div>
 
-        <div class="table-responsive">
-            <table class="table voucher-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Mã Voucher</th>
-                        <th>Loại</th>
-                        <th>Giá trị</th>
-                        <th>Đơn tối thiểu</th>
-                        <th>Giảm tối đa</th>
-                        <th>Usage</th>
-                        <th>Mỗi User</th>
-                        <th>Thời gian</th>
-                        <th class="text-center">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
+        <!-- HEADER -->
+
+        <div class="voucher-card-header">
+
+            <h5>
+
+                <i class="bi bi-ticket-perforated me-2 text-primary"></i>
+
+                Danh sách Voucher
+
+            </h5>
+
+
+            <div class="voucher-count">
+
+                Hiển thị
+
+                <strong>
+
                     <c:choose>
 
-                        <%-- EMPTY --%>
-                        <c:when test="${empty vouchers}">
-                            <tr>
-                                <td colspan="10" class="empty-voucher">
-                                    <i class="bi bi-ticket-perforated"></i>
-                                    <div class="fw-semibold text-dark mb-1">Chưa có Voucher</div>
-                                    <div>Hãy tạo Voucher đầu tiên cho hệ thống.</div>
-                                </td>
-                            </tr>
+                        <c:when test="${not empty vouchers}">
+                            ${vouchers.size()}
                         </c:when>
 
-                        <%-- DATA --%>
                         <c:otherwise>
-                            <c:forEach var="v" items="${vouchers}">
-                                <tr>
-
-                                    <%-- ID --%>
-                                    <td>
-                                        <span class="voucher-id">#${v.voucherId}</span>
-                                    </td>
-
-                                    <%-- CODE --%>
-                                    <td>
-                                        <span class="voucher-code">${v.code}</span>
-                                    </td>
-
-                                    <%-- TYPE --%>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${v.discountType == 'PERCENT'}">
-                                                <span class="badge-percent">
-                                                    <i class="bi bi-percent"></i> Phần trăm
-                                                </span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="badge-amount">
-                                                    <i class="bi bi-cash"></i> Số tiền
-                                                </span>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </td>
-
-                                    <%-- DISCOUNT VALUE --%>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${v.discountType == 'PERCENT'}">
-                                                <strong>
-                                                    <fmt:formatNumber value="${v.discountValue}" type="number" maxFractionDigits="2"/> %
-                                                </strong>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <strong>
-                                                    <fmt:formatNumber value="${v.discountValue}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
-                                                </strong>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </td>
-
-                                    <%-- MIN ORDER --%>
-                                    <td>
-                                        <fmt:formatNumber value="${v.minOrderValue}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
-                                    </td>
-
-                                    <%-- MAX DISCOUNT --%>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${empty v.maxDiscount}">
-                                                <span class="text-muted">—</span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <fmt:formatNumber value="${v.maxDiscount}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </td>
-
-                                    <%-- USAGE LIMIT --%>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${empty v.usageLimit}">
-                                                <span class="limit-badge">∞</span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="limit-badge">${v.usageLimit}</span>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </td>
-
-                                    <%-- USER LIMIT --%>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${empty v.perUserLimit}">
-                                                <span class="limit-badge">∞</span>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="limit-badge">${v.perUserLimit}</span>
-                                            </c:otherwise>
-                                        </c:choose>
-                                    </td>
-
-                                    <%-- TIME --%>
-                                    <td>
-                                        <div class="small">
-                                            <div class="text-success mb-1">
-                                                <i class="bi bi-calendar-check me-1"></i>
-                                                <fmt:formatDate value="${v.validFrom}" pattern="dd/MM/yyyy HH:mm"/>
-                                            </div>
-                                            <div class="text-muted mb-1">đến</div>
-                                            <div class="text-danger">
-                                                <i class="bi bi-calendar-x me-1"></i>
-                                                <fmt:formatDate value="${v.validTo}" pattern="dd/MM/yyyy HH:mm"/>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <%-- ACTION --%>
-                                    <td class="text-center">
-                                        <div class="d-flex justify-content-center gap-1">
-                                            <%-- EDIT --%>
-                                            <a href="${pageContext.request.contextPath}/admin/voucher?view=edit&id=${v.voucherId}"
-                                               class="action-btn edit-btn"
-                                               title="Chỉnh sửa Voucher">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-
-                                            <%-- DELETE --%>
-                                            <a href="${pageContext.request.contextPath}/admin/voucher?view=delete&id=${v.voucherId}"
-                                               class="action-btn delete-btn"
-                                               title="Xóa Voucher">
-                                                <i class="bi bi-trash3"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-
-                                </tr>
-                            </c:forEach>
+                            0
                         </c:otherwise>
 
                     </c:choose>
-                </tbody>
-            </table>
+
+                </strong>
+
+                Voucher
+
+            </div>
+
         </div>
+
+
+        <!-- EMPTY -->
+
+        <c:if test="${empty vouchers}">
+
+            <div class="empty-voucher">
+
+                <i
+                    class="bi bi-ticket-perforated"
+                    style="font-size:48px;">
+                </i>
+
+
+                <h5 class="mt-3">
+                    Chưa có Voucher
+                </h5>
+
+
+                <p>
+                    Hãy tạo Voucher đầu tiên.
+                </p>
+
+
+                <a
+                    href="${pageContext.request.contextPath}/staff/voucher?view=create"
+                    class="btn btn-primary">
+
+                    <i class="bi bi-plus-lg me-1"></i>
+
+                    Thêm Voucher
+
+                </a>
+
+            </div>
+
+        </c:if>
+
+
+        <!-- TABLE -->
+
+        <c:if test="${not empty vouchers}">
+
+            <div class="table-responsive">
+
+                <table class="table voucher-table">
+
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                ID
+                            </th>
+
+
+                            <th>
+                                Mã Voucher
+                            </th>
+
+
+                            <%-- KHÔNG CÒN CỘT LOẠI --%>
+
+
+                            <th>
+                                Giá trị
+                            </th>
+
+
+                            <th>
+                                Đơn tối thiểu
+                            </th>
+
+
+                            <th>
+                                Giảm tối đa
+                            </th>
+
+
+                            <th>
+                                Usage
+                            </th>
+
+
+                            <th>
+                                Mỗi User
+                            </th>
+
+
+                            <th>
+                                Thời gian
+                            </th>
+
+
+                            <th class="text-center">
+                                Thao tác
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+
+                        <c:forEach
+                            var="v"
+                            items="${vouchers}">
+
+
+                            <tr>
+
+
+                                <!-- ID -->
+
+                                <td>
+
+                                    <span class="id-badge">
+
+                                        #${v.voucherId}
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- CODE -->
+
+                                <td>
+
+                                    <span class="voucher-code">
+
+                                        ${v.code}
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- VALUE -->
+
+                                <td>
+
+                                    <c:choose>
+
+
+                                        <%-- PERCENT --%>
+
+                                        <c:when test="${v.discountType == 'PERCENT'}">
+
+                                            <span
+                                                class="
+                                                    voucher-value
+                                                    value-percent
+                                                ">
+
+                                                <fmt:formatNumber
+                                                    value="${v.discountValue}"
+                                                    type="number"
+                                                    maxFractionDigits="2"/>
+
+                                                %
+
+                                            </span>
+
+                                        </c:when>
+
+
+                                        <%-- AMOUNT --%>
+
+                                        <c:otherwise>
+
+                                            <span
+                                                class="
+                                                    voucher-value
+                                                    value-amount
+                                                ">
+
+                                                <fmt:formatNumber
+                                                    value="${v.discountValue}"
+                                                    type="number"
+                                                    groupingUsed="true"
+                                                    maxFractionDigits="0"/>
+
+                                                đ
+
+                                            </span>
+
+                                        </c:otherwise>
+
+
+                                    </c:choose>
+
+                                </td>
+
+
+                                <!-- MIN ORDER -->
+
+                                <td>
+
+                                    <fmt:formatNumber
+                                        value="${v.minOrderValue}"
+                                        type="number"
+                                        groupingUsed="true"
+                                        maxFractionDigits="0"/>
+
+                                    đ
+
+                                </td>
+
+
+                                <!-- MAX DISCOUNT -->
+
+                                <td>
+
+                                    <c:choose>
+
+
+                                        <c:when test="${not empty v.maxDiscount}">
+
+                                            <fmt:formatNumber
+                                                value="${v.maxDiscount}"
+                                                type="number"
+                                                groupingUsed="true"
+                                                maxFractionDigits="0"/>
+
+                                            đ
+
+                                        </c:when>
+
+
+                                        <c:otherwise>
+
+                                            <span class="text-muted">
+                                                —
+                                            </span>
+
+                                        </c:otherwise>
+
+
+                                    </c:choose>
+
+                                </td>
+
+
+                                <!-- USAGE LIMIT -->
+
+                                <td>
+
+                                    <span class="limit-badge">
+
+                                        <c:choose>
+
+                                            <c:when test="${not empty v.usageLimit}">
+
+                                                ${v.usageLimit}
+
+                                            </c:when>
+
+                                            <c:otherwise>
+
+                                                &infin;
+
+                                            </c:otherwise>
+
+                                        </c:choose>
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- PER USER -->
+
+                                <td>
+
+                                    <span class="limit-badge">
+
+                                        <c:choose>
+
+                                            <c:when test="${not empty v.perUserLimit}">
+
+                                                ${v.perUserLimit}
+
+                                            </c:when>
+
+                                            <c:otherwise>
+
+                                                &infin;
+
+                                            </c:otherwise>
+
+                                        </c:choose>
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- TIME -->
+
+                                <td class="voucher-time">
+
+
+                                    <div class="time-start">
+
+                                        <i class="bi bi-calendar-check me-1"></i>
+
+                                        <fmt:formatDate
+                                            value="${v.validFrom}"
+                                            pattern="dd/MM/yyyy HH:mm"/>
+
+                                    </div>
+
+
+                                    <div class="time-separator">
+
+                                        đến
+
+                                    </div>
+
+
+                                    <div class="time-end">
+
+                                        <i class="bi bi-calendar-x me-1"></i>
+
+                                        <fmt:formatDate
+                                            value="${v.validTo}"
+                                            pattern="dd/MM/yyyy HH:mm"/>
+
+                                    </div>
+
+
+                                </td>
+
+
+                                <!-- ACTION -->
+
+                                <td>
+
+                                    <div class="action-group">
+
+
+                                        <!-- EDIT -->
+
+                                        <a
+                                            href="${pageContext.request.contextPath}/staff/voucher?view=edit&id=${v.voucherId}"
+                                            class="action-btn edit-btn"
+                                            title="Chỉnh sửa">
+
+                                            <i class="bi bi-pencil-square"></i>
+
+                                        </a>
+
+
+                                        <!-- DELETE -->
+
+                                        <a
+                                            href="${pageContext.request.contextPath}/staff/voucher?view=delete&id=${v.voucherId}"
+                                            class="action-btn delete-btn"
+                                            title="Xóa">
+
+                                            <i class="bi bi-trash"></i>
+
+                                        </a>
+
+
+                                    </div>
+
+                                </td>
+
+
+                            </tr>
+
+
+                        </c:forEach>
+
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </c:if>
+
 
     </div>
 
+
+    <!-- =====================================================
+         RECENT USED VOUCHERS - LAST 7 DAYS
+         Chỉ hiện khi Servlet có truyền recentVoucherUsages
+         ===================================================== -->
+
+    <c:if test="${not empty recentVoucherUsages}">
+
+        <div class="usage-card">
+
+
+            <div class="usage-header">
+
+
+                <div>
+
+                    <h5>
+
+                        <i class="bi bi-clock-history me-2 text-success"></i>
+
+                        Mã Voucher đã sử dụng gần đây
+
+                    </h5>
+
+
+                    <small>
+
+                        Các lượt sử dụng trong 7 ngày gần nhất
+
+                    </small>
+
+                </div>
+
+
+                <a
+                    href="${pageContext.request.contextPath}/staff/voucher?view=usage"
+                    class="view-history-btn">
+
+                    Xem tất cả lịch sử
+
+                    <i class="bi bi-chevron-right ms-1"></i>
+
+                </a>
+
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="table usage-table">
+
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Voucher
+                            </th>
+
+
+                            <th>
+                                User
+                            </th>
+
+
+                            <th>
+                                Đơn hàng
+                            </th>
+
+
+                            <th>
+                                Thời gian sử dụng
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+
+                        <c:forEach
+                            var="usage"
+                            items="${recentVoucherUsages}">
+
+
+                            <tr>
+
+
+                                <td>
+
+                                    <strong class="text-primary">
+
+                                        ${usage.voucherCode}
+
+                                    </strong>
+
+                                </td>
+
+
+                                <td>
+
+                                    #${usage.userId}
+
+                                </td>
+
+
+                                <td>
+
+                                    #${usage.orderId}
+
+                                </td>
+
+
+                                <td>
+
+                                    <i class="bi bi-clock me-1 text-muted"></i>
+
+                                    <fmt:formatDate
+                                        value="${usage.usedAt}"
+                                        pattern="dd/MM/yyyy HH:mm"/>
+
+                                </td>
+
+
+                            </tr>
+
+
+                        </c:forEach>
+
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+        </div>
+
+    </c:if>
+
+
 </div>
+
 
 <%@include file="/WEB-INF/include/footer.jsp" %>

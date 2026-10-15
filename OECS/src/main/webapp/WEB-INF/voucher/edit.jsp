@@ -125,7 +125,7 @@
             Thông tin Voucher
         </div>
 
-        <form action="${pageContext.request.contextPath}/admin/voucher" method="post">
+        <form action="${pageContext.request.contextPath}/staff/voucher" method="post">
 
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="voucherId" value="${voucher.voucherId}">
