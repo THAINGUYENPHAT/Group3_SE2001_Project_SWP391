@@ -3,6 +3,7 @@ package controller.admin;
 import dao.AdminOrderDAO;
 import model.Order;
 import model.OrderItem;
+import dao.NotificationDAO;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -21,10 +22,12 @@ public class AdminOrderServlet extends HttpServlet {
             = Logger.getLogger(AdminOrderServlet.class.getName());
 
     private AdminOrderDAO orderDAO;
+    private NotificationDAO notificationDAO;
 
     @Override
     public void init() {
         orderDAO = new AdminOrderDAO();
+        notificationDAO = new NotificationDAO();
     }
 
     @Override
@@ -117,14 +120,24 @@ public class AdminOrderServlet extends HttpServlet {
             );
 
             if ("confirm".equals(action)) {
-                // 1. XÁC NHẬN ĐƠN HÀNG
+                // 1. Xác nhận đơn hàng
                 orderDAO.updateStatus(orderId, "Confirmed");
 
+                // 2. Tạo thông báo cho khách hàng
+                boolean notified = notificationDAO
+                        .createOrderStatusNotification(orderId, "Confirmed");
+
+                if (!notified) {
+                    LOGGER.warning(
+                            "Không tạo được thông báo cho đơn hàng #" + orderId
+                    );
+                }
+
+                // 3. Thông báo cho staff
                 request.getSession().setAttribute(
                         "successMessage",
                         "Xác nhận đơn hàng thành công!"
                 );
-
             } else if ("cancel".equals(action)) {
                 // 2. HỦY ĐƠN HÀNG
                 orderDAO.cancelOrder(orderId);
@@ -145,6 +158,15 @@ public class AdminOrderServlet extends HttpServlet {
                     );
                 } else {
                     orderDAO.updateStatus(orderId, status);
+
+                    boolean notified = notificationDAO
+                            .createOrderStatusNotification(orderId, status);
+
+                    if (!notified) {
+                        LOGGER.warning(
+                                "Không tạo được thông báo cho đơn hàng #" + orderId
+                        );
+                    }
 
                     request.getSession().setAttribute(
                             "successMessage",
