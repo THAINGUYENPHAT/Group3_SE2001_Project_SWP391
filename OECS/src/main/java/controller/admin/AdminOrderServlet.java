@@ -1,16 +1,15 @@
 package controller.admin;
 
 import dao.AdminOrderDAO;
-import dao.NotificationDAO;
 import model.Order;
 import model.OrderItem;
+import dao.NotificationDAO;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
@@ -31,9 +30,6 @@ public class AdminOrderServlet extends HttpServlet {
         notificationDAO = new NotificationDAO();
     }
 
-    // =========================================================
-    // GET
-    // =========================================================
     @Override
     protected void doGet(HttpServletRequest request,
             HttpServletResponse response)
@@ -41,37 +37,17 @@ public class AdminOrderServlet extends HttpServlet {
 
         String path = request.getPathInfo();
 
-        // =====================================================
-        // 1. ORDER DETAIL
-        // URL: /admin/orders/detail?id=1
-        // =====================================================
-        if ("/detail".equals(path)) {
-
+        if (path != null && "/detail".equals(path)) {
+            // 1. CHI TIẾT ĐƠN HÀNG
             try {
-                String idParam = request.getParameter("id");
-
-                if (idParam == null || idParam.trim().isEmpty()) {
-                    response.sendRedirect(
-                            request.getContextPath() + "/admin/orders"
-                    );
-                    return;
-                }
-
-                int orderId = Integer.parseInt(idParam);
+                int orderId = Integer.parseInt(
+                        request.getParameter("id")
+                );
 
                 Order order = orderDAO.getById(orderId);
-
-                if (order == null) {
-                    response.sendRedirect(
-                            request.getContextPath() + "/admin/orders"
-                    );
-                    return;
-                }
-
                 List<OrderItem> items
                         = orderDAO.getItemsByOrderId(orderId);
-
-                String status = order.getOrderStatus();
+                String status = orderDAO.getCurrentStatus(orderId);
 
                 request.setAttribute("order", order);
                 request.setAttribute("items", items);
@@ -82,10 +58,9 @@ public class AdminOrderServlet extends HttpServlet {
                 ).forward(request, response);
 
             } catch (NumberFormatException e) {
-
                 LOGGER.log(
                         Level.WARNING,
-                        "Order ID khong hop le khi xem chi tiet",
+                        "Order ID không hợp lệ khi xem chi tiết!",
                         e
                 );
 
@@ -94,10 +69,9 @@ public class AdminOrderServlet extends HttpServlet {
                 );
 
             } catch (Exception e) {
-
                 LOGGER.log(
                         Level.SEVERE,
-                        "Loi khi tai chi tiet don hang",
+                        "Lỗi khi tải thông tin chi tiết đơn hàng!",
                         e
                 );
 
@@ -106,39 +80,31 @@ public class AdminOrderServlet extends HttpServlet {
                 );
             }
 
-            return;
-        }
+        } else {
+            // 2. DANH SÁCH ĐƠN HÀNG
+            try {
+                List<Order> orders = orderDAO.getList();
 
-        // =====================================================
-        // 2. ORDER LIST
-        // URL: /admin/orders
-        // =====================================================
-        try {
-            List<Order> orders = orderDAO.getList();
+                request.setAttribute("orders", orders);
 
-            request.setAttribute("orders", orders);
+                request.getRequestDispatcher(
+                        "/WEB-INF/admin/orders.jsp"
+                ).forward(request, response);
 
-            request.getRequestDispatcher(
-                    "/WEB-INF/admin/orders.jsp"
-            ).forward(request, response);
+            } catch (Exception e) {
+                LOGGER.log(
+                        Level.SEVERE,
+                        "Lỗi khi lấy danh sách đơn hàng!",
+                        e
+                );
 
-        } catch (Exception e) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Loi khi lay danh sach don hang",
-                    e
-            );
-
-            response.sendRedirect(
-                    request.getContextPath() + "/admin/dashboard"
-            );
+                response.sendRedirect(
+                        request.getContextPath() + "/admin/dashboard"
+                );
+            }
         }
     }
 
-    // =========================================================
-    // POST
-    // =========================================================
     @Override
     protected void doPost(HttpServletRequest request,
             HttpServletResponse response)
@@ -147,140 +113,78 @@ public class AdminOrderServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
 
         String action = request.getParameter("action");
-        String orderIdParam = request.getParameter("orderId");
 
         try {
-            // =================================================
-            // 1. VALIDATE ORDER ID
-            // =================================================
-            if (orderIdParam == null
-                    || orderIdParam.trim().isEmpty()) {
+            int orderId = Integer.parseInt(
+                    request.getParameter("orderId")
+            );
 
-                response.sendRedirect(
-                        request.getContextPath() + "/admin/orders"
-                );
-                return;
-            }
+            if ("confirm".equals(action)) {
+                // 1. Xác nhận đơn hàng
+                orderDAO.updateStatus(orderId, "Confirmed");
 
-            int orderId = Integer.parseInt(orderIdParam);
+                // 2. Tạo thông báo cho khách hàng
+                boolean notified = notificationDAO
+                        .createOrderStatusNotification(orderId, "Confirmed");
 
-            // =================================================
-            // 2. CHECK ORDER EXISTS
-            // =================================================
-            Order order = orderDAO.getById(orderId);
-
-            if (order == null) {
-                response.sendRedirect(
-                        request.getContextPath() + "/admin/orders"
-                );
-                return;
-            }
-
-            // =================================================
-            // 3. CONFIRM ORDER
-            // =================================================
-            if ("confirm".equalsIgnoreCase(action)) {
-
-                String currentStatus = normalizeStatus(
-                        order.getOrderStatus()
-                );
-
-                if ("PENDING_CONFIRMATION".equals(currentStatus)) {
-
-                    // Cap nhat trang thai don hang
-                    orderDAO.updateStatus(orderId, "Confirmed");
-
-                    // Kiem tra lai trang thai sau khi cap nhat
-                    if (isOrderStatus(orderId, "CONFIRMED")) {
-
-                        createNotificationSafely(
-                                orderId,
-                                "Da xac nhan"
-                        );
-                    }
+                if (!notified) {
+                    LOGGER.warning(
+                            "Không tạo được thông báo cho đơn hàng #" + orderId
+                    );
                 }
 
-            // =================================================
-            // 4. CANCEL ORDER
-            // =================================================
-            } else if ("cancel".equalsIgnoreCase(action)) {
+                // 3. Thông báo cho staff
+                request.getSession().setAttribute(
+                        "successMessage",
+                        "Xác nhận đơn hàng thành công!"
+                );
+            } else if ("cancel".equals(action)) {
+                // 2. HỦY ĐƠN HÀNG
+                orderDAO.cancelOrder(orderId);
 
-                String currentStatus = normalizeStatus(
-                        order.getOrderStatus()
+                request.getSession().setAttribute(
+                        "successMessage",
+                        "Hủy đơn hàng thành công!"
                 );
 
-                // Khong cho huy don da hoan thanh hoac da huy
-                if (!"COMPLETED".equals(currentStatus)
-                        && !"CANCELLED".equals(currentStatus)) {
-
-                    // Huy don hang
-                    orderDAO.cancelOrder(orderId);
-
-                    // Chi tao thong bao neu don da thuc su bi huy
-                    if (isOrderStatus(orderId, "CANCELLED")) {
-
-                        createNotificationSafely(
-                                orderId,
-                                "Da huy"
-                        );
-                    }
-                }
-
-            // =================================================
-            // 5. CHANGE STATUS
-            // =================================================
-            } else if ("changeStatus".equalsIgnoreCase(action)) {
-
+            } else if ("changeStatus".equals(action)) {
+                // 3. THAY ĐỔI TRẠNG THÁI ĐƠN HÀNG
                 String status = request.getParameter("status");
 
-                if (isValidStatus(status)) {
-
-                    String currentStatus = normalizeStatus(
-                            order.getOrderStatus()
+                if (status == null || status.trim().isEmpty()) {
+                    request.getSession().setAttribute(
+                            "errorMessage",
+                            "Vui lòng chọn trạng thái đơn hàng!"
                     );
+                } else {
+                    orderDAO.updateStatus(orderId, status);
 
-                    String newStatus = normalizeStatus(status);
+                    boolean notified = notificationDAO
+                            .createOrderStatusNotification(orderId, status);
 
-                    // Khong cap nhat neu trang thai khong thay doi
-                    if (!currentStatus.equals(newStatus)) {
-
-                        orderDAO.updateStatus(
-                                orderId,
-                                toHistoryStatus(newStatus)
+                    if (!notified) {
+                        LOGGER.warning(
+                                "Không tạo được thông báo cho đơn hàng #" + orderId
                         );
-
-                        // Chi tao thong bao neu cap nhat thanh cong
-                        if (isOrderStatus(orderId, newStatus)) {
-
-                            createNotificationSafely(
-                                    orderId,
-                                    getDisplayStatus(newStatus)
-                            );
-                        }
                     }
+
+                    request.getSession().setAttribute(
+                            "successMessage",
+                            "Cập nhật trạng thái đơn hàng thành công!"
+                    );
                 }
-
-            } else {
-
-                LOGGER.warning(
-                        "Action khong hop le: " + action
-                );
             }
 
-            // =================================================
-            // 6. REDIRECT TO ORDER DETAIL
-            // =================================================
+            // Quay lại trang chi tiết đơn hàng
             response.sendRedirect(
                     request.getContextPath()
-                    + "/admin/orders/detail?id="
-                    + orderId
+                    + "/admin/orders/detail?id=" + orderId
             );
 
         } catch (NumberFormatException e) {
-
             LOGGER.log(
                     Level.WARNING,
-                    "Order ID khong hop le khi thuc hien action",
+                    "Order ID không hợp lệ khi thực hiện action đơn hàng!",
                     e
             );
 
@@ -289,168 +193,20 @@ public class AdminOrderServlet extends HttpServlet {
             );
 
         } catch (Exception e) {
-
             LOGGER.log(
                     Level.SEVERE,
-                    "Loi khi xu ly thao tac don hang",
+                    "Lỗi khi cập nhật trạng thái đơn hàng!",
                     e
+            );
+
+            request.getSession().setAttribute(
+                    "errorMessage",
+                    "Thao tác thất bại! Vui lòng kiểm tra lại."
             );
 
             response.sendRedirect(
                     request.getContextPath() + "/admin/orders"
             );
         }
-    }
-
-    // =========================================================
-    // CHECK ORDER STATUS AFTER UPDATE
-    // =========================================================
-    private boolean isOrderStatus(int orderId, String expectedStatus)
-            throws Exception {
-
-        Order updatedOrder = orderDAO.getById(orderId);
-
-        if (updatedOrder == null) {
-            return false;
-        }
-
-        String actualStatus = normalizeStatus(
-                updatedOrder.getOrderStatus()
-        );
-
-        return expectedStatus.equals(actualStatus);
-    }
-
-    // =========================================================
-    // CREATE NOTIFICATION
-    // Notification failure must not undo the order update.
-    // =========================================================
-    private void createNotificationSafely(
-            int orderId, String displayStatus) {
-
-        try {
-            boolean created
-                    = notificationDAO.createOrderStatusNotification(
-                            orderId,
-                            displayStatus
-                    );
-
-            if (!created) {
-                LOGGER.warning(
-                        "Khong tao duoc thong bao cho don hang #"
-                        + orderId
-                );
-            }
-
-        } catch (Exception e) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Loi khi tao thong bao cho don hang #"
-                    + orderId,
-                    e
-            );
-        }
-    }
-
-    // =========================================================
-    // VALID STATUS
-    // =========================================================
-    private boolean isValidStatus(String status) {
-
-        if (status == null || status.trim().isEmpty()) {
-            return false;
-        }
-
-        String normalized = normalizeStatus(status);
-
-        return "PENDING_CONFIRMATION".equals(normalized)
-                || "CONFIRMED".equals(normalized)
-                || "PACKING".equals(normalized)
-                || "SHIPPING".equals(normalized)
-                || "COMPLETED".equals(normalized)
-                || "CANCELLED".equals(normalized);
-    }
-
-    // =========================================================
-    // NORMALIZE STATUS
-    // =========================================================
-    private String normalizeStatus(String status) {
-
-        if (status == null) {
-            return "";
-        }
-
-        String value = status.trim().toUpperCase();
-
-        if ("PENDING".equals(value)) {
-            return "PENDING_CONFIRMATION";
-        }
-
-        return value;
-    }
-
-    // =========================================================
-    // STATUS FOR ORDER_STATUS_HISTORY
-    // =========================================================
-    private String toHistoryStatus(String status) {
-
-        if ("PENDING_CONFIRMATION".equals(status)) {
-            return "Pending";
-        }
-
-        if ("CONFIRMED".equals(status)) {
-            return "Confirmed";
-        }
-
-        if ("PACKING".equals(status)) {
-            return "Packing";
-        }
-
-        if ("SHIPPING".equals(status)) {
-            return "Shipping";
-        }
-
-        if ("COMPLETED".equals(status)) {
-            return "Completed";
-        }
-
-        if ("CANCELLED".equals(status)) {
-            return "Cancelled";
-        }
-
-        return status;
-    }
-
-    // =========================================================
-    // STATUS DISPLAY FOR CUSTOMER NOTIFICATION
-    // =========================================================
-    private String getDisplayStatus(String status) {
-
-        if ("PENDING_CONFIRMATION".equals(status)) {
-            return "Cho xac nhan";
-        }
-
-        if ("CONFIRMED".equals(status)) {
-            return "Da xac nhan";
-        }
-
-        if ("PACKING".equals(status)) {
-            return "Dang dong goi";
-        }
-
-        if ("SHIPPING".equals(status)) {
-            return "Dang giao hang";
-        }
-
-        if ("COMPLETED".equals(status)) {
-            return "Da hoan thanh";
-        }
-
-        if ("CANCELLED".equals(status)) {
-            return "Da huy";
-        }
-
-        return status;
     }
 }
