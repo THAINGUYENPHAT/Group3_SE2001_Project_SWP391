@@ -1,13 +1,105 @@
-<%@ page pageEncoding="UTF-8" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8"%>
+<%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
-<%@ include file="/WEB-INF/include/header.jsp" %>
+<%@include file="/WEB-INF/include/header.jsp" %>
 
 
-<!-- ===================================================== -->
-<!-- HEADER -->
-<!-- ===================================================== -->
+<style>
+
+    body {
+        background: #f7f9fc;
+    }
+
+
+    .checkout-card {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 16px !important;
+        background: #fff;
+    }
+
+
+    .voucher-option {
+        width: 100%;
+
+        padding: 14px 16px;
+
+        border: 1px solid #dbe5ef;
+        border-radius: 10px;
+
+        background: #fff;
+
+        text-align: left;
+
+        transition:
+            border-color .18s,
+            background .18s;
+    }
+
+
+    .voucher-option:hover {
+        border-color: #86b7fe;
+        background: #f8fbff;
+    }
+
+
+    .voucher-option:disabled {
+        background: #ecfdf5;
+        border-color: #86efac;
+        opacity: 1;
+    }
+
+
+    .voucher-code {
+        color: #0d6efd;
+
+        font-weight: 750;
+    }
+
+
+    .checkout-total {
+        color: #dc3545;
+
+        font-size: 25px;
+        font-weight: 800;
+    }
+
+
+    .address-option {
+        transition:
+            background .18s,
+            border-color .18s;
+    }
+
+
+    .address-option:hover {
+        background: #f8fbff;
+        border-color: #b9d7ff !important;
+    }
+
+
+    .address-option:has(.address-radio:checked) {
+        border-color: #0d6efd !important;
+        background: #f5f9ff;
+    }
+
+
+    .sticky-summary {
+
+        position: sticky;
+        top: 90px;
+    }
+
+
+    @media (max-width: 991px) {
+
+        .sticky-summary {
+            position: static;
+        }
+    }
+
+</style>
+
 
 <div class="d-flex justify-content-between align-items-center mb-4">
 
@@ -24,8 +116,9 @@
     </div>
 
 
-    <a href="${pageContext.request.contextPath}/cart"
-       class="btn btn-outline-secondary">
+    <a
+        href="${pageContext.request.contextPath}/cart"
+        class="btn btn-outline-secondary">
 
         <i class="bi bi-arrow-left me-1"></i>
 
@@ -36,17 +129,15 @@
 </div>
 
 
-<!-- ===================================================== -->
-<!-- SERVER MESSAGE -->
-<!-- ===================================================== -->
-
 <c:if test="${not empty sessionScope.checkoutError}">
 
     <div class="alert alert-danger">
 
-        <c:out value="${sessionScope.checkoutError}"/>
+        <c:out
+            value="${sessionScope.checkoutError}"/>
 
     </div>
+
 
     <c:remove
         var="checkoutError"
@@ -59,9 +150,11 @@
 
     <div class="alert alert-success">
 
-        <c:out value="${sessionScope.checkoutMessage}"/>
+        <c:out
+            value="${sessionScope.checkoutMessage}"/>
 
     </div>
+
 
     <c:remove
         var="checkoutMessage"
@@ -84,7 +177,7 @@
         <!-- ADDRESS -->
         <!-- ============================================= -->
 
-        <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card checkout-card shadow-sm mb-4">
 
             <div class="card-body p-4">
 
@@ -128,6 +221,7 @@
 
                         </button>
 
+
                     </div>
 
                 </div>
@@ -154,11 +248,13 @@
                         class="fw-semibold"
                         id="selectedAddressName">
 
-                        <c:out value="${selectedAddress.recipientName}"/>
+                        <c:out
+                            value="${selectedAddress.recipientName}"/>
 
                         |
 
-                        <c:out value="${selectedAddress.phoneNumber}"/>
+                        <c:out
+                            value="${selectedAddress.phoneNumber}"/>
 
                     </div>
 
@@ -167,7 +263,8 @@
                         class="text-muted mt-1"
                         id="selectedAddressLine">
 
-                        <c:out value="${selectedAddress.addressLine}"/>
+                        <c:out
+                            value="${selectedAddress.addressLine}"/>
 
                     </div>
 
@@ -183,6 +280,7 @@
 
                 </div>
 
+
             </div>
 
         </div>
@@ -192,7 +290,7 @@
         <!-- PRODUCTS -->
         <!-- ============================================= -->
 
-        <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card checkout-card shadow-sm mb-4">
 
             <div class="card-body p-4">
 
@@ -208,7 +306,7 @@
 
                 <div class="table-responsive">
 
-                    <table class="table align-middle">
+                    <table class="table align-middle mb-0">
 
                         <thead class="table-light">
 
@@ -247,7 +345,8 @@
 
                                         <div class="fw-semibold">
 
-                                            <c:out value="${item.productName}"/>
+                                            <c:out
+                                                value="${item.productName}"/>
 
                                         </div>
 
@@ -256,7 +355,8 @@
 
                                             SKU:
 
-                                            <c:out value="${item.skuCode}"/>
+                                            <c:out
+                                                value="${item.skuCode}"/>
 
                                         </small>
 
@@ -268,6 +368,7 @@
                                         <fmt:formatNumber
                                             value="${item.price}"
                                             type="number"
+                                            groupingUsed="true"
                                             maxFractionDigits="0"/>
 
                                         đ
@@ -287,6 +388,7 @@
                                         <fmt:formatNumber
                                             value="${item.price * item.quantity}"
                                             type="number"
+                                            groupingUsed="true"
                                             maxFractionDigits="0"/>
 
                                         đ
@@ -304,12 +406,14 @@
                 </div>
 
 
-                <small class="text-muted">
+                <div class="text-muted small mt-3">
 
-                    Muốn thay đổi số lượng,
-                    vui lòng quay lại giỏ hàng.
+                    <i class="bi bi-info-circle me-1"></i>
 
-                </small>
+                    Chỉ các sản phẩm bạn đã chọn trong giỏ hàng
+                    được hiển thị tại đây.
+
+                </div>
 
             </div>
 
@@ -320,7 +424,7 @@
         <!-- VOUCHER -->
         <!-- ============================================= -->
 
-        <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card checkout-card shadow-sm mb-4">
 
             <div class="card-body p-4">
 
@@ -334,83 +438,99 @@
                 </h5>
 
 
-                <!-- APPLIED -->
+                <!-- APPLIED VOUCHER -->
 
                 <c:if test="${not empty appliedVoucher}">
 
                     <div class="alert alert-success">
 
-                        Đang áp dụng:
+                        <div class="d-flex justify-content-between align-items-start gap-3">
 
-                        <strong>
+                            <div>
 
-                            <c:out value="${appliedVoucher.code}"/>
+                                <div>
 
-                        </strong>
+                                    Đang áp dụng:
 
+                                    <strong>
 
-                        <div class="small mt-1">
+                                        <c:out
+                                            value="${appliedVoucher.code}"/>
 
-                            <c:choose>
+                                    </strong>
 
-                                <c:when test="${appliedVoucher.discountType == 'PERCENT'}">
-
-                                    Giảm
-                                    ${appliedVoucher.discountValue}%
-
-                                    <c:if test="${not empty appliedVoucher.maxDiscount}">
-
-                                        - tối đa
-
-                                        <fmt:formatNumber
-                                            value="${appliedVoucher.maxDiscount}"
-                                            type="number"
-                                            maxFractionDigits="0"/>
-
-                                        đ
-
-                                    </c:if>
-
-                                </c:when>
+                                </div>
 
 
-                                <c:otherwise>
+                                <div class="small mt-1">
 
-                                    Giảm
+                                    <c:choose>
 
-                                    <fmt:formatNumber
-                                        value="${appliedVoucher.discountValue}"
-                                        type="number"
-                                        maxFractionDigits="0"/>
+                                        <c:when test="${appliedVoucher.discountType == 'PERCENT'}">
 
-                                    đ
+                                            Giảm
+                                            ${appliedVoucher.discountValue}%
 
-                                </c:otherwise>
+                                            <c:if test="${not empty appliedVoucher.maxDiscount}">
 
-                            </c:choose>
+                                                · tối đa
+
+                                                <fmt:formatNumber
+                                                    value="${appliedVoucher.maxDiscount}"
+                                                    type="number"
+                                                    groupingUsed="true"
+                                                    maxFractionDigits="0"/>
+
+                                                đ
+
+                                            </c:if>
+
+                                        </c:when>
+
+
+                                        <c:otherwise>
+
+                                            Giảm
+
+                                            <fmt:formatNumber
+                                                value="${appliedVoucher.discountValue}"
+                                                type="number"
+                                                groupingUsed="true"
+                                                maxFractionDigits="0"/>
+
+                                            đ
+
+                                        </c:otherwise>
+
+                                    </c:choose>
+
+                                </div>
+
+                            </div>
+
+
+                            <form
+                                action="${pageContext.request.contextPath}/checkout"
+                                method="post"
+                                class="mb-0">
+
+                                <input
+                                    type="hidden"
+                                    name="action"
+                                    value="removeVoucher">
+
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-outline-danger btn-sm">
+
+                                    Bỏ mã
+
+                                </button>
+
+                            </form>
 
                         </div>
-
-
-                        <form
-                            action="${pageContext.request.contextPath}/checkout"
-                            method="post"
-                            class="mt-2">
-
-                            <input
-                                type="hidden"
-                                name="action"
-                                value="removeVoucher">
-
-                            <button
-                                type="submit"
-                                class="btn btn-outline-danger btn-sm">
-
-                                Bỏ mã
-
-                            </button>
-
-                        </form>
 
                     </div>
 
@@ -421,8 +541,8 @@
 
                 <c:choose>
 
-
                     <c:when test="${not empty availableVouchers}">
+
 
                         <div class="fw-semibold mb-2">
 
@@ -441,7 +561,8 @@
 
                                 <form
                                     action="${pageContext.request.contextPath}/checkout"
-                                    method="post">
+                                    method="post"
+                                    class="mb-0">
 
 
                                     <input
@@ -458,28 +579,28 @@
 
                                     <button
                                         type="submit"
-                                        class="btn btn-outline-success w-100 text-start"
+                                        class="voucher-option"
                                         ${not empty appliedVoucher
                                           && appliedVoucher.voucherId == voucher.voucherId
                                           ? 'disabled' : ''}>
 
 
-                                        <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex justify-content-between align-items-center gap-3">
 
 
-                                            <strong>
+                                            <strong class="voucher-code">
 
                                                 <i class="bi bi-ticket-perforated me-1"></i>
 
-                                                <c:out value="${voucher.code}"/>
+                                                <c:out
+                                                    value="${voucher.code}"/>
 
                                             </strong>
 
 
-                                            <span>
+                                            <strong>
 
                                                 <c:choose>
-
 
                                                     <c:when test="${voucher.discountType == 'PERCENT'}">
 
@@ -496,16 +617,16 @@
                                                         <fmt:formatNumber
                                                             value="${voucher.discountValue}"
                                                             type="number"
+                                                            groupingUsed="true"
                                                             maxFractionDigits="0"/>
 
                                                         đ
 
                                                     </c:otherwise>
 
-
                                                 </c:choose>
 
-                                            </span>
+                                            </strong>
 
                                         </div>
 
@@ -517,6 +638,7 @@
                                             <fmt:formatNumber
                                                 value="${voucher.minOrderValue}"
                                                 type="number"
+                                                groupingUsed="true"
                                                 maxFractionDigits="0"/>
 
                                             đ
@@ -525,11 +647,12 @@
                                             <c:if test="${voucher.discountType == 'PERCENT'
                                                         && not empty voucher.maxDiscount}">
 
-                                                · Tối đa:
+                                                · Giảm tối đa:
 
                                                 <fmt:formatNumber
                                                     value="${voucher.maxDiscount}"
                                                     type="number"
+                                                    groupingUsed="true"
                                                     maxFractionDigits="0"/>
 
                                                 đ
@@ -538,30 +661,34 @@
 
                                         </small>
 
+
                                     </button>
 
                                 </form>
 
+
                             </c:forEach>
 
+
                         </div>
+
 
                     </c:when>
 
 
                     <c:otherwise>
 
-                        <p class="text-muted small mb-0">
+                        <div class="text-muted small">
 
                             Hiện không có Voucher khả dụng
-                            cho đơn hàng này.
+                            cho các sản phẩm đã chọn.
 
-                        </p>
+                        </div>
 
                     </c:otherwise>
 
-
                 </c:choose>
+
 
             </div>
 
@@ -572,7 +699,7 @@
         <!-- PAYMENT -->
         <!-- ============================================= -->
 
-        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card checkout-card shadow-sm">
 
             <div class="card-body p-4">
 
@@ -587,7 +714,6 @@
 
 
                 <label class="d-block border border-primary rounded-3 p-3 mb-3">
-
 
                     <input
                         type="radio"
@@ -615,10 +741,14 @@
 
                 <label class="d-block border rounded-3 p-3 mb-3 text-muted">
 
-                    <input type="radio" disabled>
+                    <input
+                        type="radio"
+                        disabled>
 
                     <span class="ms-2">
+
                         VNPay — Đang phát triển
+
                     </span>
 
                 </label>
@@ -626,29 +756,34 @@
 
                 <label class="d-block border rounded-3 p-3 text-muted">
 
-                    <input type="radio" disabled>
+                    <input
+                        type="radio"
+                        disabled>
 
                     <span class="ms-2">
+
                         MoMo — Đang phát triển
+
                     </span>
 
                 </label>
+
 
             </div>
 
         </div>
 
+
     </div>
 
 
     <!-- ================================================= -->
-    <!-- RIGHT SUMMARY -->
+    <!-- RIGHT -->
     <!-- ================================================= -->
 
     <div class="col-lg-4">
 
-
-        <div class="card shadow-sm border-0 rounded-4">
+        <div class="card checkout-card shadow-sm sticky-summary">
 
             <div class="card-body p-4">
 
@@ -666,12 +801,12 @@
                         Tiền hàng
                     </span>
 
-
                     <strong>
 
                         <fmt:formatNumber
                             value="${subtotal}"
                             type="number"
+                            groupingUsed="true"
                             maxFractionDigits="0"/>
 
                         đ
@@ -688,7 +823,15 @@
                     </span>
 
                     <span>
-                        0đ
+
+                        <fmt:formatNumber
+                            value="${shippingFee}"
+                            type="number"
+                            groupingUsed="true"
+                            maxFractionDigits="0"/>
+
+                        đ
+
                     </span>
 
                 </div>
@@ -700,7 +843,6 @@
                         Giảm giá
                     </span>
 
-
                     <span class="text-success">
 
                         -
@@ -708,6 +850,7 @@
                         <fmt:formatNumber
                             value="${discount}"
                             type="number"
+                            groupingUsed="true"
                             maxFractionDigits="0"/>
 
                         đ
@@ -727,21 +870,20 @@
                     </strong>
 
 
-                    <h4 class="text-danger fw-bold mb-0">
+                    <span class="checkout-total">
 
                         <fmt:formatNumber
                             value="${totalAmount}"
                             type="number"
+                            groupingUsed="true"
                             maxFractionDigits="0"/>
 
                         đ
 
-                    </h4>
+                    </span>
 
                 </div>
 
-
-                <!-- ORDER FORM -->
 
                 <form
                     id="orderForm"
@@ -757,15 +899,15 @@
 
                     <input
                         type="hidden"
-                        name="addressId"
-                        id="orderAddressId"
-                        value="${selectedAddress.addressId}">
+                        name="checkoutToken"
+                        value="<c:out value='${sessionScope.checkoutToken}'/>">
 
 
                     <input
                         type="hidden"
-                        name="checkoutToken"
-                        value="${checkoutToken}">
+                        name="addressId"
+                        id="orderAddressId"
+                        value="${selectedAddress.addressId}">
 
 
                     <button
@@ -780,12 +922,13 @@
 
                     </button>
 
+
                 </form>
 
 
                 <p
                     id="needAddressMessage"
-                    class="text-danger small text-center mt-2"
+                    class="text-danger small text-center mt-2 mb-0"
                     style="${empty selectedAddress ? '' : 'display:none;'}">
 
                     Vui lòng thêm địa chỉ trước khi đặt hàng.
@@ -795,9 +938,11 @@
 
                 <p class="text-muted small text-center mt-3 mb-0">
 
-                    Vui lòng kiểm tra đơn hàng trước khi xác nhận.
+                    Chỉ các sản phẩm được chọn
+                    trong giỏ hàng sẽ được đặt mua.
 
                 </p>
+
 
             </div>
 
@@ -805,11 +950,12 @@
 
     </div>
 
+
 </div>
 
 
 <!-- ===================================================== -->
-<!-- ADDRESS SELECT MODAL -->
+<!-- ADDRESS MODAL -->
 <!-- ===================================================== -->
 
 <div
@@ -820,7 +966,6 @@
 
 
     <div class="modal-dialog modal-dialog-centered modal-lg">
-
 
         <div class="modal-content rounded-4">
 
@@ -837,7 +982,8 @@
                 <button
                     type="button"
                     class="btn-close"
-                    data-bs-dismiss="modal">
+                    data-bs-dismiss="modal"
+                    aria-label="Đóng">
                 </button>
 
             </div>
@@ -845,9 +991,12 @@
 
             <div
                 id="addressModalMessage"
-                class="alert mx-3 mt-3 mb-0 d-none">
+                class="alert mx-3 mt-3 mb-0 d-none"
+                role="alert">
             </div>
 
+
+            <!-- ADDRESS LIST -->
 
             <div
                 id="addressList"
@@ -862,10 +1011,11 @@
 
                     <div
                         class="border rounded-3 p-3 mb-2 address-option"
-                        data-address-id="${address.addressId}">
+                        data-address-id="${address.addressId}"
+                        data-default="${address.defaultAddress}">
 
 
-                        <div class="d-flex gap-3 align-items-start">
+                        <div class="d-flex flex-wrap gap-3 align-items-start">
 
 
                             <input
@@ -873,7 +1023,8 @@
                                 class="form-check-input mt-1 address-radio"
                                 name="modalAddressId"
                                 value="${address.addressId}"
-                                ${selectedAddress.addressId == address.addressId
+                                ${not empty selectedAddress
+                                  && selectedAddress.addressId == address.addressId
                                   ? 'checked' : ''}>
 
 
@@ -882,74 +1033,100 @@
 
                                 <label class="fw-semibold d-block address-name">
 
-                                    <c:out value="${address.recipientName}"/>
+                                    <span class="address-recipient">
+
+                                        <c:out
+                                            value="${address.recipientName}"/>
+
+                                    </span>
 
                                     |
 
-                                    <c:out value="${address.phoneNumber}"/>
+                                    <span class="address-phone">
+
+                                        <c:out
+                                            value="${address.phoneNumber}"/>
+
+                                    </span>
 
                                 </label>
 
 
                                 <div class="text-muted small address-line">
 
-                                    <c:out value="${address.addressLine}"/>
+                                    <c:out
+                                        value="${address.addressLine}"/>
 
                                 </div>
 
 
-                                <c:if test="${address.defaultAddress}">
+                                <span
+                                    class="badge bg-primary mt-2 default-address-badge"
+                                    style="${address.defaultAddress ? '' : 'display:none;'}">
 
-                                    <span class="badge bg-primary mt-2">
+                                    Mặc định
 
-                                        Mặc định
+                                </span>
 
-                                    </span>
-
-                                </c:if>
 
                             </div>
 
 
-                            <form
-                                action="${pageContext.request.contextPath}/checkout"
-                                method="post"
-                                class="delete-address-form">
-
-
-                                <input
-                                    type="hidden"
-                                    name="action"
-                                    value="deleteAddress">
-
-
-                                <input
-                                    type="hidden"
-                                    name="addressId"
-                                    value="${address.addressId}">
-
-
-                                <input
-                                    type="hidden"
-                                    name="addressActionToken"
-                                    value="${sessionScope.addressActionToken}">
+                            <div class="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
 
 
                                 <button
-                                    type="submit"
-                                    class="btn btn-outline-danger btn-sm delete-address-button">
+                                    type="button"
+                                    class="btn btn-link btn-sm px-1 py-0 text-decoration-none text-secondary edit-address-button">
 
-                                    <i class="bi bi-trash me-1"></i>
-
-                                    Xóa
+                                    Sửa
 
                                 </button>
 
-                            </form>
+
+                                <form
+                                    action="${pageContext.request.contextPath}/checkout"
+                                    method="post"
+                                    class="delete-address-form mb-0">
+
+
+                                    <input
+                                        type="hidden"
+                                        name="action"
+                                        value="deleteAddress">
+
+
+                                    <input
+                                        type="hidden"
+                                        name="addressId"
+                                        value="${address.addressId}">
+
+
+                                    <input
+                                        type="hidden"
+                                        name="addressActionToken"
+                                        value="<c:out value='${sessionScope.addressActionToken}'/>">
+
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-link btn-sm px-1 py-0 text-decoration-none text-danger delete-address-button">
+
+                                        Xóa
+
+                                    </button>
+
+
+                                </form>
+
+
+                            </div>
+
 
                         </div>
 
                     </div>
+
 
                 </c:forEach>
 
@@ -963,10 +1140,148 @@
 
                 </p>
 
+
             </div>
 
 
-            <div class="modal-footer">
+            <!-- EDIT ADDRESS -->
+
+            <form
+                id="editAddressForm"
+                class="d-none"
+                method="post"
+                action="${pageContext.request.contextPath}/checkout">
+
+
+                <div class="modal-body">
+
+
+                    <h6 class="fw-bold">
+
+                        Chỉnh sửa địa chỉ
+
+                    </h6>
+
+
+                    <input
+                        type="hidden"
+                        id="editAddressId"
+                        name="addressId">
+
+
+                    <input
+                        type="hidden"
+                        name="action"
+                        value="editAddress">
+
+
+                    <input
+                        type="hidden"
+                        name="addressActionToken"
+                        value="<c:out value='${sessionScope.addressActionToken}'/>">
+
+
+                    <div class="mb-3">
+
+                        <label
+                            for="editRecipientName"
+                            class="form-label">
+
+                            Tên người nhận
+
+                        </label>
+
+
+                        <input
+                            id="editRecipientName"
+                            name="recipientName"
+                            class="form-control"
+                            type="text"
+                            maxlength="100"
+                            required>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label
+                            for="editPhoneNumber"
+                            class="form-label">
+
+                            Số điện thoại
+
+                        </label>
+
+
+                        <input
+                            id="editPhoneNumber"
+                            name="phoneNumber"
+                            class="form-control"
+                            type="tel"
+                            pattern="[0-9]{9,11}"
+                            maxlength="11"
+                            required>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label
+                            for="editAddressLine"
+                            class="form-label">
+
+                            Địa chỉ chi tiết
+
+                        </label>
+
+
+                        <textarea
+                            id="editAddressLine"
+                            name="addressLine"
+                            class="form-control"
+                            rows="3"
+                            required></textarea>
+
+                    </div>
+
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button
+                        id="cancelEditAddressButton"
+                        type="button"
+                        class="btn btn-outline-secondary">
+
+                        Hủy chỉnh sửa
+
+                    </button>
+
+
+                    <button
+                        id="saveEditAddressButton"
+                        type="submit"
+                        class="btn btn-primary">
+
+                        Lưu thay đổi
+
+                    </button>
+
+                </div>
+
+
+            </form>
+
+
+            <!-- LIST FOOTER -->
+
+            <div
+                class="modal-footer"
+                id="addressListFooter">
 
 
                 <button
@@ -989,7 +1304,9 @@
 
                 </button>
 
+
             </div>
+
 
         </div>
 
@@ -999,7 +1316,7 @@
 
 
 <!-- ===================================================== -->
-<!-- ADD ADDRESS MODAL -->
+<!-- ADD ADDRESS -->
 <!-- ===================================================== -->
 
 <div
@@ -1011,26 +1328,7 @@
 
     <div class="modal-dialog modal-dialog-centered">
 
-
         <div class="modal-content rounded-4">
-
-
-            <div class="modal-header">
-
-                <h5 class="modal-title fw-bold">
-
-                    Thêm địa chỉ giao hàng
-
-                </h5>
-
-
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal">
-                </button>
-
-            </div>
 
 
             <form
@@ -1039,24 +1337,42 @@
                 method="post">
 
 
-                <input
-                    type="hidden"
-                    name="action"
-                    value="addAddress">
+                <div class="modal-header">
+
+                    <h5 class="modal-title fw-bold">
+
+                        Thêm địa chỉ giao hàng
+
+                    </h5>
 
 
-                <input
-                    type="hidden"
-                    name="addressAddToken"
-                    value="${sessionScope.addressAddToken}">
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                    </button>
+
+                </div>
 
 
                 <div class="modal-body">
 
 
+                    <input
+                        type="hidden"
+                        name="action"
+                        value="addAddress">
+
+
+                    <input
+                        type="hidden"
+                        name="addressAddToken"
+                        value="<c:out value='${sessionScope.addressAddToken}'/>">
+
+
                     <div class="mb-3">
 
-                        <label class="form-label fw-semibold">
+                        <label class="form-label">
 
                             Tên người nhận
 
@@ -1075,7 +1391,7 @@
 
                     <div class="mb-3">
 
-                        <label class="form-label fw-semibold">
+                        <label class="form-label">
 
                             Số điện thoại
 
@@ -1095,7 +1411,7 @@
 
                     <div class="mb-3">
 
-                        <label class="form-label fw-semibold">
+                        <label class="form-label">
 
                             Địa chỉ chi tiết
 
@@ -1106,10 +1422,10 @@
                             name="addressLine"
                             class="form-control"
                             rows="3"
-                            placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"
                             required></textarea>
 
                     </div>
+
 
                 </div>
 
@@ -1119,7 +1435,7 @@
 
                     <button
                         type="button"
-                        class="btn btn-light border"
+                        class="btn btn-outline-secondary"
                         data-bs-dismiss="modal">
 
                         Hủy
@@ -1136,9 +1452,12 @@
 
                     </button>
 
+
                 </div>
 
+
             </form>
+
 
         </div>
 
@@ -1147,698 +1466,1169 @@
 </div>
 
 
-<!-- ===================================================== -->
-<!-- JAVASCRIPT ADDRESS -->
-<!-- ===================================================== -->
-
 <script>
-    document.addEventListener(
-            "DOMContentLoaded",
-            function () {
 
-                const checkoutUrl =
-                        "${pageContext.request.contextPath}/checkout";
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
 
-                const addressActionToken =
-                        "${sessionScope.addressActionToken}";
-
-                const addressInput =
-                        document.getElementById(
-                            "orderAddressId"
-                        );
-
-                const selectedCard =
-                        document.getElementById(
-                            "selectedAddressCard"
-                        );
-
-                const selectedName =
-                        document.getElementById(
-                            "selectedAddressName"
-                        );
-
-                const selectedLine =
-                        document.getElementById(
-                            "selectedAddressLine"
-                        );
-
-                const selectedDefaultBadge =
-                        document.getElementById(
-                            "selectedDefaultBadge"
-                        );
-
-                const noAddressMessage =
-                        document.getElementById(
-                            "noAddressMessage"
-                        );
-
-                const needAddressMessage =
-                        document.getElementById(
-                            "needAddressMessage"
-                        );
-
-                const addressList =
-                        document.getElementById(
-                            "addressList"
-                        );
-
-                const addressListEmpty =
-                        document.getElementById(
-                            "addressListEmpty"
-                        );
-
-                const openAddressModalButton =
-                        document.getElementById(
-                            "openAddressModalButton"
-                        );
-
-                const confirmAddressButton =
-                        document.getElementById(
-                            "confirmAddressButton"
-                        );
-
-                const placeOrderButton =
-                        document.getElementById(
-                            "placeOrderButton"
-                        );
-
-                const modalMessage =
-                        document.getElementById(
-                            "addressModalMessage"
-                        );
-
-                const addressModal =
-                        document.getElementById(
-                            "addressModal"
-                        );
+        const checkoutUrl =
+                "${pageContext.request.contextPath}/checkout";
 
 
-                let committedAddressId =
-                        addressInput
-                        ? addressInput.value
-                        : "";
-
-                let addressRequestBusy = false;
+        const addressActionToken =
+                "${sessionScope.addressActionToken}";
 
 
-                function showModalMessage(
-                        message,
-                        success) {
+        // =================================================
+        // MAIN ELEMENTS
+        // =================================================
 
-                    modalMessage.textContent =
-                            message;
-
-                    modalMessage.className =
-                            success
-                            ? "alert alert-success mx-3 mt-3 mb-0"
-                            : "alert alert-danger mx-3 mt-3 mb-0";
-                }
+        const addressInput =
+                document.getElementById(
+                    "orderAddressId"
+                );
 
 
-                async function postAddressAction(
-                        data) {
+        const selectedCard =
+                document.getElementById(
+                    "selectedAddressCard"
+                );
 
-                    const response =
-                            await fetch(
-                                    checkoutUrl,
-                                    {
-                                        method: "POST",
 
-                                        credentials:
-                                                "same-origin",
+        const selectedName =
+                document.getElementById(
+                    "selectedAddressName"
+                );
 
-                                        headers: {
-                                            "Accept":
-                                                "application/json",
 
-                                            "Content-Type":
-                                                "application/x-www-form-urlencoded;charset=UTF-8"
-                                        },
+        const selectedLine =
+                document.getElementById(
+                    "selectedAddressLine"
+                );
 
-                                        body:
-                                            new URLSearchParams(
-                                                data
-                                            ).toString()
-                                    }
+
+        const selectedDefaultBadge =
+                document.getElementById(
+                    "selectedDefaultBadge"
+                );
+
+
+        const noAddressMessage =
+                document.getElementById(
+                    "noAddressMessage"
+                );
+
+
+        const needAddressMessage =
+                document.getElementById(
+                    "needAddressMessage"
+                );
+
+
+        const addressList =
+                document.getElementById(
+                    "addressList"
+                );
+
+
+        const addressListEmpty =
+                document.getElementById(
+                    "addressListEmpty"
+                );
+
+
+        const openAddressModalButton =
+                document.getElementById(
+                    "openAddressModalButton"
+                );
+
+
+        const confirmAddressButton =
+                document.getElementById(
+                    "confirmAddressButton"
+                );
+
+
+        const placeOrderButton =
+                document.getElementById(
+                    "placeOrderButton"
+                );
+
+
+        const modalMessage =
+                document.getElementById(
+                    "addressModalMessage"
+                );
+
+
+        const addressModal =
+                document.getElementById(
+                    "addressModal"
+                );
+
+
+        const addressListFooter =
+                document.getElementById(
+                    "addressListFooter"
+                );
+
+
+        // =================================================
+        // EDIT ELEMENTS
+        // =================================================
+
+        const editAddressForm =
+                document.getElementById(
+                    "editAddressForm"
+                );
+
+
+        const editAddressId =
+                document.getElementById(
+                    "editAddressId"
+                );
+
+
+        const editRecipientName =
+                document.getElementById(
+                    "editRecipientName"
+                );
+
+
+        const editPhoneNumber =
+                document.getElementById(
+                    "editPhoneNumber"
+                );
+
+
+        const editAddressLine =
+                document.getElementById(
+                    "editAddressLine"
+                );
+
+
+        const saveEditAddressButton =
+                document.getElementById(
+                    "saveEditAddressButton"
+                );
+
+
+        const cancelEditAddressButton =
+                document.getElementById(
+                    "cancelEditAddressButton"
+                );
+
+
+        let committedAddressId =
+                addressInput
+                ? addressInput.value
+                : "";
+
+
+        let addressRequestBusy =
+                false;
+
+
+        let editingOption =
+                null;
+
+
+        // =================================================
+        // MESSAGE
+        // =================================================
+
+        function showModalMessage(
+            message,
+            success
+        ) {
+
+            if (!modalMessage) {
+                return;
+            }
+
+
+            modalMessage.textContent =
+                    message;
+
+
+            modalMessage.className =
+                    success
+                    ? "alert alert-success mx-3 mt-3 mb-0"
+                    : "alert alert-danger mx-3 mt-3 mb-0";
+        }
+
+
+        // =================================================
+        // POST AJAX
+        // =================================================
+
+        async function postAddressAction(
+            data
+        ) {
+
+            const response =
+                    await fetch(
+                        checkoutUrl,
+                        {
+                            method: "POST",
+
+                            credentials:
+                                "same-origin",
+
+                            headers: {
+
+                                "Accept":
+                                    "application/json",
+
+                                "Content-Type":
+                                    "application/x-www-form-urlencoded;charset=UTF-8"
+                            },
+
+                            body:
+                                new URLSearchParams(
+                                    data
+                                ).toString()
+                        }
+                    );
+
+
+            let result;
+
+
+            try {
+
+                result =
+                        await response.json();
+
+            } catch (e) {
+
+                throw new Error(
+                    "Phản hồi từ server không hợp lệ."
+                );
+            }
+
+
+            if (!response.ok
+                    || !result.success) {
+
+                throw new Error(
+                    result.message
+                    || "Không thể thực hiện thao tác."
+                );
+            }
+
+
+            return result;
+        }
+
+
+        // =================================================
+        // ADDRESS LIST STATE
+        // =================================================
+
+        function getOptions() {
+
+            if (!addressList) {
+                return [];
+            }
+
+
+            return Array.from(
+                addressList.querySelectorAll(
+                    ".address-option"
+                )
+            );
+        }
+
+
+        function updateAddressListState() {
+
+            const options =
+                    getOptions();
+
+
+            if (addressListEmpty) {
+
+                addressListEmpty.style.display =
+                        options.length === 0
+                        ? ""
+                        : "none";
+            }
+
+
+            if (openAddressModalButton) {
+
+                openAddressModalButton.disabled =
+                        options.length === 0;
+            }
+
+
+            if (confirmAddressButton) {
+
+                confirmAddressButton.disabled =
+                        options.length === 0;
+            }
+        }
+
+
+        // =================================================
+        // DELETE BUTTON STATE
+        // =================================================
+
+        function updateDeleteButtons() {
+
+            getOptions().forEach(
+                function (option) {
+
+                    const id =
+                            option.dataset
+                                .addressId;
+
+
+                    const button =
+                            option.querySelector(
+                                ".delete-address-button"
                             );
 
 
-                    const contentType =
-                            response.headers
-                                    .get(
-                                        "content-type"
-                                    ) || "";
-
-
-                    if (!contentType.includes(
-                            "application/json")) {
-
-                        throw new Error(
-                            "Server không trả JSON. Vui lòng tải lại trang."
-                        );
+                    if (!button) {
+                        return;
                     }
 
 
-                    const result =
-                            await response.json();
-
-
-                    if (!response.ok
-                            || !result.success) {
-
-                        throw new Error(
-                            result.message
-                            || "Thao tác không thành công."
-                        );
-                    }
-
-
-                    return result;
+                    button.disabled =
+                            addressRequestBusy
+                            || id === committedAddressId;
                 }
+            );
+        }
 
 
-                function updateSelectedAddress(
-                        address,
-                        isDefault) {
+        // =================================================
+        // UPDATE CURRENT ADDRESS CARD
+        // =================================================
 
-                    if (!address) {
+        function updateSelectedAddress(
+            address,
+            setDefaultBadge
+        ) {
 
-                        addressInput.value = "";
+            if (!address) {
+                return;
+            }
 
-                        committedAddressId = "";
 
-                        selectedName.textContent = "";
+            committedAddressId =
+                    String(
+                        address.addressId
+                    );
 
-                        selectedLine.textContent = "";
 
-                        selectedCard.style.display =
-                                "none";
+            if (addressInput) {
 
-                        noAddressMessage.style.display =
-                                "";
+                addressInput.value =
+                        committedAddressId;
+            }
 
-                        needAddressMessage.style.display =
-                                "";
 
-                        selectedDefaultBadge.style.display =
-                                "none";
+            if (selectedName) {
 
-                        placeOrderButton.disabled =
-                                true;
+                selectedName.textContent =
+                        address.recipientName
+                        + " | "
+                        + address.phoneNumber;
+            }
+
+
+            if (selectedLine) {
+
+                selectedLine.textContent =
+                        address.addressLine;
+            }
+
+
+            if (selectedCard) {
+
+                selectedCard.style.display =
+                        "";
+            }
+
+
+            if (noAddressMessage) {
+
+                noAddressMessage.style.display =
+                        "none";
+            }
+
+
+            if (needAddressMessage) {
+
+                needAddressMessage.style.display =
+                        "none";
+            }
+
+
+            if (placeOrderButton) {
+
+                placeOrderButton.disabled =
+                        false;
+            }
+
+
+            if (selectedDefaultBadge) {
+
+                selectedDefaultBadge.style.display =
+                        setDefaultBadge
+                        && address.defaultAddress
+                        ? ""
+                        : "none";
+            }
+
+
+            updateDeleteButtons();
+        }
+
+
+        // =================================================
+        // CANCEL EDIT
+        // =================================================
+
+        function closeEditMode() {
+
+            editingOption =
+                    null;
+
+
+            if (editAddressForm) {
+
+                editAddressForm.reset();
+
+                editAddressForm.classList.add(
+                    "d-none"
+                );
+            }
+
+
+            if (addressList) {
+
+                addressList.classList.remove(
+                    "d-none"
+                );
+            }
+
+
+            if (addressListFooter) {
+
+                addressListFooter.classList.remove(
+                    "d-none"
+                );
+            }
+
+
+            if (modalMessage) {
+
+                modalMessage.className =
+                        "alert mx-3 mt-3 mb-0 d-none";
+            }
+        }
+
+
+        // =================================================
+        // OPEN EDIT
+        // =================================================
+
+        if (addressList) {
+
+            addressList.addEventListener(
+                "click",
+                function (event) {
+
+                    const button =
+                            event.target.closest(
+                                ".edit-address-button"
+                            );
+
+
+                    if (!button
+                            || addressRequestBusy) {
+
+                        return;
+                    }
+
+
+                    editingOption =
+                            button.closest(
+                                ".address-option"
+                            );
+
+
+                    if (!editingOption) {
+
+                        return;
+                    }
+
+
+                    editAddressId.value =
+                            editingOption.dataset
+                                .addressId;
+
+
+                    editRecipientName.value =
+                            editingOption
+                                .querySelector(
+                                    ".address-recipient"
+                                )
+                                .textContent
+                                .trim();
+
+
+                    editPhoneNumber.value =
+                            editingOption
+                                .querySelector(
+                                    ".address-phone"
+                                )
+                                .textContent
+                                .trim();
+
+
+                    editAddressLine.value =
+                            editingOption
+                                .querySelector(
+                                    ".address-line"
+                                )
+                                .textContent
+                                .trim();
+
+
+                    addressList.classList.add(
+                        "d-none"
+                    );
+
+
+                    addressListFooter.classList.add(
+                        "d-none"
+                    );
+
+
+                    editAddressForm.classList.remove(
+                        "d-none"
+                    );
+                }
+            );
+        }
+
+
+        // =================================================
+        // CANCEL EDIT BUTTON
+        // =================================================
+
+        if (cancelEditAddressButton) {
+
+            cancelEditAddressButton.addEventListener(
+                "click",
+                function () {
+
+                    closeEditMode();
+                }
+            );
+        }
+
+
+        // =================================================
+        // SAVE EDIT AJAX
+        // =================================================
+
+        if (editAddressForm) {
+
+            editAddressForm.addEventListener(
+                "submit",
+                async function (event) {
+
+                    event.preventDefault();
+
+
+                    if (addressRequestBusy) {
+                        return;
+                    }
+
+
+                    editRecipientName.value =
+                            editRecipientName.value
+                                .trim();
+
+
+                    editPhoneNumber.value =
+                            editPhoneNumber.value
+                                .trim();
+
+
+                    editAddressLine.value =
+                            editAddressLine.value
+                                .trim();
+
+
+                    if (!editAddressForm
+                            .reportValidity()) {
+
+                        return;
+                    }
+
+
+                    addressRequestBusy =
+                            true;
+
+
+                    saveEditAddressButton.disabled =
+                            true;
+
+
+                    saveEditAddressButton.textContent =
+                            "Đang lưu...";
+
+
+                    updateDeleteButtons();
+
+
+                    try {
+
+                        const result =
+                                await postAddressAction(
+                                    {
+                                        action:
+                                            "editAddress",
+
+                                        addressId:
+                                            editAddressId.value,
+
+                                        recipientName:
+                                            editRecipientName.value,
+
+                                        phoneNumber:
+                                            editPhoneNumber.value,
+
+                                        addressLine:
+                                            editAddressLine.value,
+
+                                        addressActionToken:
+                                            addressActionToken
+                                    }
+                                );
+
+
+                        const address =
+                                result.address;
+
+
+                        editingOption
+                            .querySelector(
+                                ".address-recipient"
+                            )
+                            .textContent =
+                                address.recipientName;
+
+
+                        editingOption
+                            .querySelector(
+                                ".address-phone"
+                            )
+                            .textContent =
+                                address.phoneNumber;
+
+
+                        editingOption
+                            .querySelector(
+                                ".address-line"
+                            )
+                            .textContent =
+                                address.addressLine;
+
+
+                        /*
+                         * Nếu đang sửa chính địa chỉ Checkout
+                         * hiện tại thì cập nhật luôn card phía ngoài.
+                         */
+                        if (String(
+                                address.addressId
+                        ) === committedAddressId) {
+
+                            updateSelectedAddress(
+                                address,
+                                false
+                            );
+                        }
+
+
+                        closeEditMode();
+
+
+                        showModalMessage(
+                            "Đã cập nhật địa chỉ.",
+                            true
+                        );
+
+
+                    } catch (error) {
+
+                        showModalMessage(
+                            error.message,
+                            false
+                        );
+
+
+                    } finally {
+
+                        addressRequestBusy =
+                                false;
+
+
+                        saveEditAddressButton.disabled =
+                                false;
+
+
+                        saveEditAddressButton.textContent =
+                                "Lưu thay đổi";
+
+
+                        updateDeleteButtons();
+                    }
+                }
+            );
+        }
+
+
+        // =================================================
+        // RESET MODAL
+        // =================================================
+
+        if (addressModal) {
+
+            addressModal.addEventListener(
+                "show.bs.modal",
+                function () {
+
+                    closeEditMode();
+
+
+                    if (addressList) {
+
+                        addressList
+                            .querySelectorAll(
+                                'input[name="modalAddressId"]'
+                            )
+                            .forEach(
+                                function (radio) {
+
+                                    radio.checked =
+                                        radio.value
+                                        === committedAddressId;
+                                }
+                            );
+
+
+                        const currentOption =
+                                getOptions()
+                                .find(
+                                    function (option) {
+
+                                        return option.dataset
+                                            .addressId
+                                            === committedAddressId;
+                                    }
+                                );
+
+
+                        if (currentOption) {
+
+                            addressList.prepend(
+                                currentOption
+                            );
+                        }
+                    }
+
+
+                    updateDeleteButtons();
+                }
+            );
+        }
+
+
+        // =================================================
+        // SELECT RADIO
+        // =================================================
+
+        if (addressList) {
+
+            addressList.addEventListener(
+                "change",
+                function (event) {
+
+                    if (event.target.matches(
+                        'input[name="modalAddressId"]'
+                    )) {
+
+                        updateDeleteButtons();
+                    }
+                }
+            );
+        }
+
+
+        // =================================================
+        // CONFIRM ADDRESS
+        // =================================================
+
+        if (confirmAddressButton) {
+
+            confirmAddressButton.addEventListener(
+                "click",
+                async function () {
+
+                    if (addressRequestBusy
+                            || !addressList) {
+
+                        return;
+                    }
+
+
+                    const selectedRadio =
+                            addressList
+                            .querySelector(
+                                'input[name="modalAddressId"]:checked'
+                            );
+
+
+                    if (!selectedRadio) {
+
+                        showModalMessage(
+                            "Vui lòng chọn địa chỉ giao hàng.",
+                            false
+                        );
 
                         return;
                     }
 
 
                     const id =
-                            String(
-                                address.addressId
-                            );
+                            selectedRadio.value;
 
 
-                    committedAddressId =
-                            id;
-
-                    addressInput.value =
-                            id;
-
-
-                    selectedName.textContent =
-                            address.recipientName
-                            + " | "
-                            + address.phoneNumber;
-
-
-                    selectedLine.textContent =
-                            address.addressLine;
-
-
-                    selectedDefaultBadge.style.display =
-                            isDefault
-                            ? ""
-                            : "none";
-
-
-                    selectedCard.style.display =
-                            "";
-
-                    noAddressMessage.style.display =
-                            "none";
-
-                    needAddressMessage.style.display =
-                            "none";
-
-                    placeOrderButton.disabled =
-                            false;
-                }
-
-
-                function updateDeleteButtons() {
-
-                    if (!addressList) {
-                        return;
-                    }
-
-
-                    addressList
-                            .querySelectorAll(
-                                ".address-option"
-                            )
-                            .forEach(
-                                function (option) {
-
-                                    const button =
-                                            option.querySelector(
-                                                ".delete-address-button"
-                                            );
-
-                                    if (!button) {
-                                        return;
-                                    }
-
-
-                                    const isSelected =
-                                            option.dataset.addressId
-                                            === committedAddressId;
-
-
-                                    button.disabled =
-                                            isSelected
-                                            || addressRequestBusy;
-
-
-                                    button.title =
-                                            isSelected
-                                            ? "Không thể xóa địa chỉ đang sử dụng"
-                                            : "Xóa địa chỉ";
-
-
-                                    button.innerHTML =
-                                            isSelected
-                                            ? '<i class="bi bi-check-circle me-1"></i>Đang dùng'
-                                            : '<i class="bi bi-trash me-1"></i>Xóa';
-                                });
-
-
-                    confirmAddressButton.disabled =
-                            addressRequestBusy
-                            || !addressList.querySelector(
-                                ".address-option"
-                            );
-                }
-
-
-                function updateAddressListState() {
-
-                    if (!addressList) {
-                        return;
-                    }
-
-
-                    const options =
-                            addressList.querySelectorAll(
-                                ".address-option"
-                            );
-
-
-                    const hasAddress =
-                            options.length > 0;
-
-
-                    addressListEmpty.style.display =
-                            hasAddress
-                            ? "none"
-                            : "";
-
-
-                    openAddressModalButton.disabled =
-                            !hasAddress;
-
-
-                    if (!hasAddress) {
-
-                        updateSelectedAddress(
-                            null,
-                            false
-                        );
-                    }
+                    addressRequestBusy =
+                            true;
 
 
                     updateDeleteButtons();
-                }
 
 
-                if (addressModal) {
+                    try {
 
-                    addressModal.addEventListener(
-                            "show.bs.modal",
-                            function () {
-
-                                addressList
-                                        .querySelectorAll(
-                                            'input[name="modalAddressId"]'
-                                        )
-                                        .forEach(
-                                            function (radio) {
-
-                                                radio.checked =
-                                                        radio.value
-                                                        === committedAddressId;
-                                            });
-
-
-                                modalMessage.className =
-                                        "alert mx-3 mt-3 mb-0 d-none";
-
-
-                                updateDeleteButtons();
-                            });
-                }
-
-
-                if (confirmAddressButton) {
-
-                    confirmAddressButton.addEventListener(
-                            "click",
-                            async function () {
-
-                                if (addressRequestBusy) {
-                                    return;
-                                }
-
-
-                                const selectedRadio =
-                                        addressList
-                                        .querySelector(
-                                            'input[name="modalAddressId"]:checked'
-                                        );
-
-
-                                if (!selectedRadio) {
-
-                                    showModalMessage(
-                                        "Vui lòng chọn địa chỉ giao hàng.",
-                                        false
-                                    );
-
-                                    return;
-                                }
-
-
-                                const id =
-                                        selectedRadio.value;
-
-
-                                if (id
-                                        === committedAddressId) {
-
-                                    bootstrap.Modal
-                                            .getOrCreateInstance(
-                                                addressModal
-                                            )
-                                            .hide();
-
-                                    return;
-                                }
-
-
-                                addressRequestBusy =
-                                        true;
-
-                                updateDeleteButtons();
-
-
-                                try {
-
-                                    const result =
-                                            await postAddressAction({
-                                                action:
-                                                    "selectAddress",
-
-                                                addressId:
-                                                    id,
-
-                                                addressActionToken:
-                                                    addressActionToken
-                                            });
-
-
-                                    const option =
-                                            selectedRadio
-                                            .closest(
-                                                ".address-option"
-                                            );
-
-
-                                    const isDefault =
-                                            !!option
-                                            .querySelector(
-                                                ".badge"
-                                            );
-
-
-                                    updateSelectedAddress(
-                                        result.selectedAddress,
-                                        isDefault
-                                    );
-
-
-                                    updateDeleteButtons();
-
-
-                                    bootstrap.Modal
-                                            .getOrCreateInstance(
-                                                addressModal
-                                            )
-                                            .hide();
-
-
-                                } catch (error) {
-
-                                    showModalMessage(
-                                        error.message,
-                                        false
-                                    );
-
-
-                                } finally {
-
-                                    addressRequestBusy =
-                                            false;
-
-                                    updateDeleteButtons();
-                                }
-                            });
-                }
-
-
-                if (addressList) {
-
-                    addressList.addEventListener(
-                            "submit",
-                            async function (event) {
-
-                                const form =
-                                        event.target.closest(
-                                            ".delete-address-form"
-                                        );
-
-
-                                if (!form) {
-                                    return;
-                                }
-
-
-                                event.preventDefault();
-
-
-                                if (addressRequestBusy) {
-                                    return;
-                                }
-
-
-                                const option =
-                                        form.closest(
-                                            ".address-option"
-                                        );
-
-
-                                const id =
-                                        option.dataset.addressId;
-
-
-                                if (id
-                                        === committedAddressId) {
-
-                                    showModalMessage(
-                                        "Không thể xóa địa chỉ đang sử dụng. "
-                                        + "Vui lòng chọn địa chỉ khác trước.",
-                                        false
-                                    );
-
-                                    return;
-                                }
-
-
-                                if (!window.confirm(
-                                        "Bạn chắc chắn muốn xóa địa chỉ này?"
-                                    )) {
-
-                                    return;
-                                }
-
-
-                                addressRequestBusy =
-                                        true;
-
-                                updateDeleteButtons();
-
-
-                                try {
-
-                                    await postAddressAction({
+                        const result =
+                                await postAddressAction(
+                                    {
                                         action:
-                                            "deleteAddress",
+                                            "selectAddress",
 
                                         addressId:
                                             id,
 
                                         addressActionToken:
                                             addressActionToken
-                                    });
+                                    }
+                                );
 
 
-                                    option.remove();
+                        const option =
+                                selectedRadio
+                                .closest(
+                                    ".address-option"
+                                );
 
 
-                                    updateAddressListState();
-
-
-                                    showModalMessage(
-                                        "Đã xóa địa chỉ thành công.",
-                                        true
-                                    );
-
-
-                                } catch (error) {
-
-                                    showModalMessage(
-                                        error.message,
-                                        false
-                                    );
-
-
-                                } finally {
-
-                                    addressRequestBusy =
-                                            false;
-
-                                    updateDeleteButtons();
-                                }
-                            });
-                }
-
-
-                const addAddressForm =
-                        document.getElementById(
-                            "addAddressForm"
+                        updateSelectedAddress(
+                            result.selectedAddress,
+                            true
                         );
 
 
-                const saveAddressButton =
-                        document.getElementById(
-                            "saveAddressButton"
+                        if (option) {
+
+                            addressList.prepend(
+                                option
+                            );
+                        }
+
+
+                        bootstrap.Modal
+                            .getOrCreateInstance(
+                                addressModal
+                            )
+                            .hide();
+
+
+                    } catch (error) {
+
+                        showModalMessage(
+                            error.message,
+                            false
                         );
 
 
-                if (addAddressForm) {
+                    } finally {
 
-                    addAddressForm.addEventListener(
-                            "submit",
-                            function (event) {
-
-                                if (addAddressForm
-                                        .dataset
-                                        .submitting
-                                        === "true") {
-
-                                    event.preventDefault();
-
-                                    return;
-                                }
+                        addressRequestBusy =
+                                false;
 
 
-                                if (!addAddressForm
-                                        .checkValidity()) {
-
-                                    return;
-                                }
-
-
-                                addAddressForm
-                                        .dataset
-                                        .submitting =
-                                        "true";
-
-
-                                saveAddressButton.disabled =
-                                        true;
-
-
-                                saveAddressButton.textContent =
-                                        "Đang lưu...";
-                            });
+                        updateDeleteButtons();
+                    }
                 }
+            );
+        }
 
 
-                const orderForm =
-                        document.getElementById(
-                            "orderForm"
+        // =================================================
+        // DELETE ADDRESS AJAX
+        // =================================================
+
+        if (addressList) {
+
+            addressList.addEventListener(
+                "submit",
+                async function (event) {
+
+                    const form =
+                            event.target.closest(
+                                ".delete-address-form"
+                            );
+
+
+                    if (!form) {
+                        return;
+                    }
+
+
+                    event.preventDefault();
+
+
+                    if (addressRequestBusy) {
+                        return;
+                    }
+
+
+                    const option =
+                            form.closest(
+                                ".address-option"
+                            );
+
+
+                    if (!option) {
+                        return;
+                    }
+
+
+                    const id =
+                            option.dataset
+                                .addressId;
+
+
+                    if (id === committedAddressId) {
+
+                        showModalMessage(
+                            "Không thể xóa địa chỉ đang sử dụng. "
+                            + "Vui lòng xác nhận địa chỉ khác trước.",
+                            false
+                        );
+
+                        return;
+                    }
+
+
+                    if (!window.confirm(
+                        "Bạn chắc chắn muốn xóa địa chỉ này?"
+                    )) {
+
+                        return;
+                    }
+
+
+                    addressRequestBusy =
+                            true;
+
+
+                    updateDeleteButtons();
+
+
+                    try {
+
+                        await postAddressAction(
+                            {
+                                action:
+                                    "deleteAddress",
+
+                                addressId:
+                                    id,
+
+                                addressActionToken:
+                                    addressActionToken
+                            }
                         );
 
 
-                if (orderForm) {
-
-                    orderForm.addEventListener(
-                            "submit",
-                            function (event) {
-
-                                if (orderForm
-                                        .dataset
-                                        .submitting
-                                        === "true") {
-
-                                    event.preventDefault();
-
-                                    return;
-                                }
+                        option.remove();
 
 
-                                if (!orderForm
-                                        .checkValidity()) {
-
-                                    return;
-                                }
+                        updateAddressListState();
 
 
-                                orderForm
-                                        .dataset
-                                        .submitting =
-                                        "true";
+                        showModalMessage(
+                            "Đã xóa địa chỉ thành công.",
+                            true
+                        );
 
 
-                                placeOrderButton.disabled =
-                                        true;
+                    } catch (error) {
+
+                        showModalMessage(
+                            error.message,
+                            false
+                        );
 
 
-                                placeOrderButton.textContent =
-                                        "Đang xử lý đơn hàng...";
-                            });
+                    } finally {
+
+                        addressRequestBusy =
+                                false;
+
+
+                        updateDeleteButtons();
+                    }
                 }
+            );
+        }
 
 
-                updateAddressListState();
-            });
+        // =================================================
+        // ADD ADDRESS ANTI DOUBLE SUBMIT
+        // =================================================
+
+        const addAddressForm =
+                document.getElementById(
+                    "addAddressForm"
+                );
+
+
+        const saveAddressButton =
+                document.getElementById(
+                    "saveAddressButton"
+                );
+
+
+        if (addAddressForm) {
+
+            addAddressForm.addEventListener(
+                "submit",
+                function (event) {
+
+                    if (addAddressForm
+                            .dataset
+                            .submitting
+                            === "true") {
+
+                        event.preventDefault();
+
+                        return;
+                    }
+
+
+                    if (!addAddressForm
+                            .checkValidity()) {
+
+                        return;
+                    }
+
+
+                    addAddressForm
+                        .dataset
+                        .submitting =
+                            "true";
+
+
+                    if (saveAddressButton) {
+
+                        saveAddressButton.disabled =
+                                true;
+
+
+                        saveAddressButton.textContent =
+                                "Đang lưu...";
+                    }
+                }
+            );
+        }
+
+
+        // =================================================
+        // PLACE ORDER ANTI DOUBLE SUBMIT
+        // =================================================
+
+        const orderForm =
+                document.getElementById(
+                    "orderForm"
+                );
+
+
+        if (orderForm) {
+
+            orderForm.addEventListener(
+                "submit",
+                function (event) {
+
+                    if (orderForm
+                            .dataset
+                            .submitting
+                            === "true") {
+
+                        event.preventDefault();
+
+                        return;
+                    }
+
+
+                    if (!orderForm
+                            .checkValidity()) {
+
+                        return;
+                    }
+
+
+                    orderForm
+                        .dataset
+                        .submitting =
+                            "true";
+
+
+                    if (placeOrderButton) {
+
+                        placeOrderButton.disabled =
+                                true;
+
+
+                        placeOrderButton.textContent =
+                                "Đang xử lý đơn hàng...";
+                    }
+                }
+            );
+        }
+
+
+        updateAddressListState();
+
+        updateDeleteButtons();
+
+    }
+);
+
 </script>
 
-<%@ include file="/WEB-INF/include/footer.jsp" %>
+
+<%@include file="/WEB-INF/include/footer.jsp" %>

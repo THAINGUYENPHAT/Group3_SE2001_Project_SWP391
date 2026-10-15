@@ -5,7 +5,7 @@
 
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
-        
+
         <div class="mb-3">
             <a href="${pageContext.request.contextPath}/brand?view=list" class="text-decoration-none text-muted fw-medium">
                 <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
@@ -27,15 +27,48 @@
                 <form action="${pageContext.request.contextPath}/brand" method="POST">
                     <input type="hidden" name="action" value="create" />
 
+
                     <div class="mb-4">
-                        <label for="brand-name" class="form-label fw-semibold text-dark">Tên Thương Hiệu <span class="text-danger">*</span></label>
+                        <label for="brand-name" class="form-label fw-semibold text-dark">
+                            Tên Thương Hiệu <span class="text-danger">*</span>
+                        </label>
+
                         <input type="text"
                                name="name"
                                id="brand-name"
                                class="form-control form-control-lg fs-6"
                                placeholder="VD: Samsung, Apple, Lenovo, Nike..."
+                               maxlength="100"
+                               value="<c:out value='${param.name}'/>"
                                required />
+
+                        <div class="form-text">Tối đa 100 ký tự.</div>
+
+
+                        <c:if test="${not empty param.error}">
+                            <div class="alert alert-danger small mt-2" role="alert">
+                                <c:choose>
+                                    <c:when test="${param.error == 'empty'}">
+                                        Vui lòng nhập tên thương hiệu.
+                                    </c:when>
+                                    <c:when test="${param.error == 'length'}">
+                                        Tên thương hiệu không được vượt quá 100 ký tự.
+                                    </c:when>
+                                    <c:when test="${param.error == 'duplicate'}">
+                                        Tên thương hiệu đã tồn tại.
+                                    </c:when>
+                                    <c:when test="${param.error == 'logo'}">
+                                        URL logo không hợp lệ hoặc vượt quá giới hạn cho phép.
+                                    </c:when>
+                                    <c:otherwise>
+                                        Không thể lưu thương hiệu. Vui lòng thử lại.
+                                    </c:otherwise>
+                                </c:choose>
+                            </div>
+                        </c:if>
+
                     </div>
+
 
                     <div class="mb-4">
                         <label for="brand-logo" class="form-label fw-semibold text-dark">Đường Dẫn Logo (URL)</label>

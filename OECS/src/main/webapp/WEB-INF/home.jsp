@@ -3,7 +3,10 @@
 <%@taglib prefix="fn" uri="jakarta.tags.functions"%>
 
 <%@include file="/WEB-INF/include/header.jsp"%>
-
+<script>
+    document.querySelector(".page-main")
+            ?.classList.add("home-main");
+</script>
 <style>
     /* =========================================================
        HOME PAGE
@@ -19,18 +22,21 @@
        HERO
        ========================================================= */
 
+
     .home-hero {
         position: relative;
-        height: 300px;
-        border-radius: 18px;
+        width: 100%;
+        height: 380px;
+        min-height: 380px;
         overflow: hidden;
 
         background-image:
             linear-gradient(
             90deg,
-            rgba(3, 17, 38, 0.94) 0%,
-            rgba(3, 17, 38, 0.75) 45%,
-            rgba(3, 17, 38, 0.20) 100%
+            rgba(3, 17, 38, 0.95) 0%,
+            rgba(3, 17, 38, 0.82) 38%,
+            rgba(3, 17, 38, 0.40) 70%,
+            rgba(3, 17, 38, 0.12) 100%
             ),
             url("${pageContext.request.contextPath}/assets/images/home-hero.png");
 
@@ -41,45 +47,74 @@
         align-items: center;
     }
 
+
     .home-hero-content {
         position: relative;
         z-index: 2;
+
         color: white;
-        max-width: 560px;
-        padding: 30px 45px;
+        width: 100%;
+        max-width: 680px;
+
+        /* Căn nội dung gọn, đều */
+        padding: 40px 60px;
+    }
+
+    .home-hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+
+        padding: 8px 14px;
+        margin-bottom: 18px;
+
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 30px;
+
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1px;
     }
 
     .home-hero-title {
-        font-size: 34px;
-        line-height: 1.15;
+        font-size: clamp(34px, 3.2vw, 46px);
+        line-height: 1.2;
         font-weight: 800;
-        margin-bottom: 12px;
+
+        margin: 0 0 16px;
+        letter-spacing: -0.8px;
     }
 
     .home-hero-description {
-        font-size: 15px;
-        line-height: 1.5;
-        color: rgba(255,255,255,0.80);
-        max-width: 460px;
-        margin-bottom: 18px;
+        max-width: 480px;
+
+        font-size: 16px;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.82);
+
+        margin: 0 0 25px;
     }
 
     .home-hero-button {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        justify-content: center;
+        gap: 10px;
 
         background: #0d6efd;
         color: white;
 
-        padding: 11px 20px;
-        border-radius: 8px;
+        padding: 13px 22px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 9px;
 
         font-size: 15px;
-        font-weight: 600;
-
+        font-weight: 700;
         text-decoration: none;
 
+        box-shadow: 0 8px 22px rgba(13, 110, 253, 0.25);
         transition: all 0.2s ease;
     }
 
@@ -87,9 +122,8 @@
         background: #0b5ed7;
         color: white;
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(13, 110, 253, 0.35);
+        box-shadow: 0 10px 26px rgba(13, 110, 253, 0.38);
     }
-
     /* =========================================================
        SERVICE BAR
        ========================================================= */
@@ -637,10 +671,169 @@
             font-size: 26px;
         }
     }
+
+    /* =========================================================
+       HOME SLIDESHOW
+       ========================================================= */
+
+    .home-slider {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 3 / 1;
+        overflow: hidden;
+        border-radius: 18px;
+        background: #e9eef5;
+        box-shadow: 0 8px 24px rgba(20, 40, 70, 0.08);
+    }
+
+    .slider-track {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+
+    .home-slider .slide {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.6s ease;
+    }
+
+    .home-slider .slide.active {
+        opacity: 1;
+        visibility: visible;
+        z-index: 1;
+    }
+
+    .home-slider .slide img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .slider-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 2;
+        width: 42px;
+        height: 42px;
+        border: none;
+        border-radius: 50%;
+        background: rgba(15, 23, 42, 0.65);
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+    .slider-arrow:hover {
+        background: #0d6efd;
+    }
+
+    .slider-arrow.prev {
+        left: 16px;
+    }
+
+    .slider-arrow.next {
+        right: 16px;
+    }
+
+    .slider-dots {
+        position: absolute;
+        bottom: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        display: flex;
+        gap: 8px;
+    }
+
+    .slider-dot {
+        width: 9px;
+        height: 9px;
+        padding: 0;
+        border: none;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+    }
+
+    .slider-dot.active {
+        width: 26px;
+        background: white;
+    }
+
+    @media (max-width: 768px) {
+        .home-slider {
+            aspect-ratio: 16 / 9;
+            border-radius: 12px;
+        }
+
+        .slider-arrow {
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+        }
+
+        .slider-arrow.prev {
+            left: 8px;
+        }
+
+        .slider-arrow.next {
+            right: 8px;
+        }
+    }
+
 </style>
 
 <div class="home-page">
 
+    <%-- Thông báo --%>
+    <div class="container">
+        <c:if test="${not empty sessionScope.toastMessage}">
+            <div class="alert alert-danger alert-dismissible fade show mt-3"
+                 role="alert">
+                ${sessionScope.toastMessage}
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"></button>
+            </div>
+
+            <c:remove var="toastMessage" scope="session"/>
+            <c:remove var="toastType" scope="session"/>
+        </c:if>
+    </div>
+
+    <%-- HERO tràn toàn bộ chiều rộng màn hình --%>
+    <section class="home-hero">
+        <div class="home-hero-content">
+
+            <div class="home-hero-badge">
+                <i class="bi bi-lightning-charge-fill"></i>
+                DEAL CÔNG NGHỆ THÁNG 10
+            </div>
+
+            <h1 class="home-hero-title">
+                Công nghệ chính hãng.
+                <br>
+                Giá tốt mỗi ngày.
+            </h1>
+
+            <p class="home-hero-description">
+                Khám phá smartphone, laptop và phụ kiện chính hãng
+                với nhiều lựa chọn phù hợp cho bạn.
+            </p>
+
+            <a href="#recommended-products" class="home-hero-button">
+                Xem sản phẩm nổi bật
+            </a>
+
+        </div>
+    </section>
+
+    <%-- Nội dung còn lại vẫn nằm trong container --%>
     <div class="container">
         <c:if test="${not empty sessionScope.toastMessage}">
             <div class="container mt-3">
@@ -664,36 +857,7 @@
              HERO
              ===================================================== -->
 
-        <section class="home-hero">
 
-            <div class="home-hero-content">
-
-                <div class="home-hero-badge">
-                    <i class="bi bi-lightning-charge-fill"></i>
-                    DEAL CÔNG NGHỆ THÁNG 10
-                </div>
-
-                <h1 class="home-hero-title">
-                    Công nghệ chính hãng.
-                    <br>
-                    Giá tốt mỗi ngày.
-                </h1>
-
-                <p class="home-hero-description">
-                    Khám phá smartphone, laptop và phụ kiện chính hãng
-                    với nhiều lựa chọn phù hợp cho bạn.
-                </p>
-
-                <a href="#recommended-products"
-                   class="home-hero-button">
-
-                    Xem sản phẩm nổi bật
-
-                </a>
-
-            </div>
-
-        </section>
 
 
         <!-- =====================================================
@@ -792,28 +956,69 @@
         </section>
 
 
+
+        <!-- =====================================================
+             PROMOTION SLIDESHOW
+             NẰM TRÊN CATEGORY
+             ===================================================== -->
+
+        <section class="home-section">
+            <div class="home-slider" id="homeSlider">
+
+                <div class="slider-track">
+
+                    <a href="${pageContext.request.contextPath}/shop"
+                       class="slide active">
+                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-1.jpg"
+                             alt="Khuyến mãi công nghệ">
+                    </a>
+
+                    <a href="${pageContext.request.contextPath}/shop"
+                       class="slide">
+                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-2.jpg"
+                             alt="Ưu đãi laptop">
+                    </a>
+
+                    <a href="${pageContext.request.contextPath}/shop"
+                       class="slide">
+                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-3.jpg"
+                             alt="Ưu đãi phụ kiện">
+                    </a>
+
+                </div>
+
+                <button type="button"
+                        class="slider-arrow prev"
+                        aria-label="Ảnh trước">
+                    &#10094;
+                </button>
+
+                <button type="button"
+                        class="slider-arrow next"
+                        aria-label="Ảnh tiếp theo">
+                    &#10095;
+                </button>
+
+                <div class="slider-dots">
+                    <button type="button"
+                            class="slider-dot active"
+                            aria-label="Ảnh 1"></button>
+                    <button type="button"
+                            class="slider-dot"
+                            aria-label="Ảnh 2"></button>
+                    <button type="button"
+                            class="slider-dot"
+                            aria-label="Ảnh 3"></button>
+                </div>
+
+            </div>
+        </section>
+
         <!-- =====================================================
              CATEGORY
              ===================================================== -->
 
         <section class="home-section">
-
-            <div class="section-header">
-
-                <div>
-                    <h2 class="section-title">
-                        Danh mục nổi bật
-                    </h2>
-
-                    <p class="section-description">
-                        Khám phá các danh mục sản phẩm phổ biến nhất tại OECS
-                    </p>
-                </div>
-
-
-
-            </div>
-
 
             <div class="row g-3">
 
@@ -861,7 +1066,7 @@
 
                 <!-- 4. Đồng hồ thông minh -->
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Đồng hồ" class="category-card category-watch">
+                    <a href="${pageContext.request.contextPath}/shop?keyword=Dong%20ho" class="category-card category-watch">
                         <div class="category-content">
                             <div class="category-name">
                                 Đồng hồ thông minh
@@ -875,7 +1080,7 @@
 
                 <!-- 5. Tai nghe -->
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Tai nghe" class="category-card category-headphone">
+                    <a href="${pageContext.request.contextPath}/shop?keyword=Tai%20nghe" class="category-card category-headphone">
                         <div class="category-content">
                             <div class="category-name">
                                 Tai nghe
@@ -889,7 +1094,7 @@
 
                 <!-- 6. Máy ảnh -->
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Máy ảnh" class="category-card category-camera">
+                    <a href="${pageContext.request.contextPath}/shop?keyword=May%20anh" class="category-card category-camera">
                         <div class="category-content">
                             <div class="category-name">
                                 Máy ảnh
@@ -902,6 +1107,8 @@
                 </div>
 
             </div>
+
+        </section>
 
         </section>
         <!-- =====================================================
@@ -923,14 +1130,6 @@ PROMOTION
                         sản phẩm phù hợp với nhu cầu của bạn.
                     </p>
 
-                    <a href="#recommended-products"
-                       class="btn btn-primary px-4 py-2">
-
-                        Khám phá sản phẩm
-
-                        <i class="bi bi-arrow-right ms-2"></i>
-
-                    </a>
 
                 </div>
 
@@ -1038,5 +1237,72 @@ PROMOTION
     </div>
 
 </div>
+
+<script>
+    (function () {
+        const slider = document.getElementById("homeSlider");
+
+        if (!slider)
+            return;
+
+        const slides = slider.querySelectorAll(".slide");
+        const dots = slider.querySelectorAll(".slider-dot");
+        const prevButton = slider.querySelector(".prev");
+        const nextButton = slider.querySelector(".next");
+
+        let currentIndex = 0;
+        let timer = null;
+
+        function showSlide(index) {
+            currentIndex = (index + slides.length) % slides.length;
+
+            slides.forEach(function (slide, i) {
+                slide.classList.toggle("active", i === currentIndex);
+            });
+
+            dots.forEach(function (dot, i) {
+                dot.classList.toggle("active", i === currentIndex);
+            });
+        }
+
+        function stopAutoPlay() {
+            if (timer !== null) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+
+        function startAutoPlay() {
+            stopAutoPlay();
+
+            timer = setInterval(function () {
+                showSlide(currentIndex + 1);
+            }, 4000);
+        }
+
+        prevButton.addEventListener("click", function () {
+            showSlide(currentIndex - 1);
+            startAutoPlay();
+        });
+
+        nextButton.addEventListener("click", function () {
+            showSlide(currentIndex + 1);
+            startAutoPlay();
+        });
+
+        dots.forEach(function (dot, index) {
+            dot.addEventListener("click", function () {
+                showSlide(index);
+                startAutoPlay();
+            });
+        });
+
+        slider.addEventListener("mouseenter", stopAutoPlay);
+        slider.addEventListener("mouseleave", startAutoPlay);
+
+        showSlide(0);
+        startAutoPlay();
+    })();
+</script>
 
 <%@include file="/WEB-INF/include/footer.jsp"%>

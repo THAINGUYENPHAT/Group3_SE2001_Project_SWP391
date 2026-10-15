@@ -2,6 +2,7 @@ package controller;
 
 import dao.AddressDAO;
 import dao.CartDAO;
+import dao.OrderDAO;
 import dao.VoucherDAO;
 
 import model.Address;
@@ -13,17 +14,12 @@ import service.OrderService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-
 import java.sql.SQLException;
 
 import java.util.ArrayList;
@@ -39,22 +35,25 @@ import java.util.logging.Logger;
 )
 public class CheckoutServlet extends HttpServlet {
 
-    private static final Logger LOGGER
-            = Logger.getLogger(
+    private static final Logger LOGGER =
+            Logger.getLogger(
                     CheckoutServlet.class.getName()
             );
 
-    private final CartDAO cartDAO
-            = new CartDAO();
+    private final CartDAO cartDAO =
+            new CartDAO();
 
-    private final AddressDAO addressDAO
-            = new AddressDAO();
+    private final AddressDAO addressDAO =
+            new AddressDAO();
 
-    private final VoucherDAO voucherDAO
-            = new VoucherDAO();
+    private final OrderDAO orderDAO =
+            new OrderDAO();
 
-    private final OrderService orderService
-            = new OrderService();
+    private final VoucherDAO voucherDAO =
+            new VoucherDAO();
+
+    private final OrderService orderService =
+            new OrderService();
 
 
     // =====================================================
@@ -63,11 +62,11 @@ public class CheckoutServlet extends HttpServlet {
     @Override
     protected void doGet(
             HttpServletRequest request,
-            HttpServletResponse response)
-            throws ServletException, IOException {
+            HttpServletResponse response
+    ) throws ServletException, IOException {
 
-        User user
-                = getLoggedInUser(request);
+        User user =
+                getLoggedInUser(request);
 
 
         if (user == null) {
@@ -81,29 +80,30 @@ public class CheckoutServlet extends HttpServlet {
         }
 
 
-        HttpSession session
-                = request.getSession();
+        HttpSession session =
+                request.getSession();
 
 
-        String[] values
-                = request.getParameterValues(
+        /*
+         * Khi đi từ Cart sang Checkout:
+         *
+         * /checkout?selectedItems=1&selectedItems=3
+         *
+         * thì lưu các cart_item_id đã chọn vào session.
+         *
+         * Khi reload Checkout hoặc redirect sau khi áp Voucher,
+         * request không còn selectedItems nhưng session vẫn giữ.
+         */
+        String[] values =
+                request.getParameterValues(
                         "selectedItems"
                 );
 
 
-        /*
-         * Có selectedItems từ Cart:
-         * lưu selection mới.
-         *
-         * Không xóa Voucher ở đây.
-         * showCheckout sẽ tự revalidate Voucher.
-         */
         if (values != null) {
 
-            List<Integer> ids
-                    = parseSelectedIds(
-                            values
-                    );
+            List<Integer> ids =
+                    parseSelectedIds(values);
 
 
             if (ids.isEmpty()) {
@@ -127,6 +127,13 @@ public class CheckoutServlet extends HttpServlet {
                     "checkoutSelectedItemIds",
                     ids
             );
+
+
+            /*
+             * Selection mới có thể làm Voucher cũ không còn đủ
+             * điều kiện. Không cần xóa ngay vì showCheckout()
+             * sẽ kiểm tra lại.
+             */
         }
 
 
@@ -144,30 +151,33 @@ public class CheckoutServlet extends HttpServlet {
     @Override
     protected void doPost(
             HttpServletRequest request,
-            HttpServletResponse response)
-            throws ServletException, IOException {
+            HttpServletResponse response
+    ) throws ServletException, IOException {
 
         request.setCharacterEncoding(
                 "UTF-8"
         );
 
 
-        String action
-                = request.getParameter(
+        String action =
+                request.getParameter(
                         "action"
                 );
 
 
-        User user
-                = getLoggedInUser(
-                        request
-                );
+        User user =
+                getLoggedInUser(request);
 
 
         if (user == null) {
 
-            if ("deleteAddress".equals(action)
-                    || "selectAddress".equals(action)) {
+            /*
+             * Các thao tác AJAX Address cần JSON,
+             * các thao tác còn lại redirect Login.
+             */
+            if ("selectAddress".equals(action)
+                    || "editAddress".equals(action)
+                    || "deleteAddress".equals(action)) {
 
                 sendJsonError(
                         response,
@@ -196,6 +206,7 @@ public class CheckoutServlet extends HttpServlet {
                     user
             );
 
+
         } else if ("selectAddress".equals(action)) {
 
             selectAddress(
@@ -203,6 +214,16 @@ public class CheckoutServlet extends HttpServlet {
                     response,
                     user
             );
+
+
+        } else if ("editAddress".equals(action)) {
+
+            editAddress(
+                    request,
+                    response,
+                    user
+            );
+
 
         } else if ("deleteAddress".equals(action)) {
 
@@ -212,6 +233,7 @@ public class CheckoutServlet extends HttpServlet {
                     user
             );
 
+
         } else if ("applyVoucher".equals(action)) {
 
             applyVoucher(
@@ -220,12 +242,14 @@ public class CheckoutServlet extends HttpServlet {
                     user
             );
 
+
         } else if ("removeVoucher".equals(action)) {
 
             removeVoucher(
                     request,
                     response
             );
+
 
         } else if ("placeOrder".equals(action)) {
 
@@ -235,11 +259,12 @@ public class CheckoutServlet extends HttpServlet {
                     user
             );
 
+
         } else {
 
             response.sendError(
-                    400,
-                    "Action khong hop le."
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "Action không hợp lệ."
             );
         }
     }
@@ -251,15 +276,15 @@ public class CheckoutServlet extends HttpServlet {
     private void showCheckout(
             HttpServletRequest request,
             HttpServletResponse response,
-            User user)
-            throws ServletException, IOException {
+            User user
+    ) throws ServletException, IOException {
 
-        int userId
-                = user.getUserId();
+        int userId =
+                user.getUserId();
 
 
-        int cartId
-                = cartDAO.getCartIdByUserId(
+        int cartId =
+                cartDAO.getCartIdByUserId(
                         userId
                 );
 
@@ -275,12 +300,16 @@ public class CheckoutServlet extends HttpServlet {
         }
 
 
-        HttpSession session
-                = request.getSession();
+        HttpSession session =
+                request.getSession();
 
 
-        List<Integer> selectedIds
-                = getSelectedIds(
+        // =================================================
+        // SELECTED CART ITEMS
+        // =================================================
+
+        List<Integer> selectedIds =
+                getSelectedIds(
                         session
                 );
 
@@ -302,19 +331,30 @@ public class CheckoutServlet extends HttpServlet {
         }
 
 
-        List<CartItem> cartItems
-                = cartDAO.getCartItemsByIds(
+        List<CartItem> cartItems =
+                cartDAO.getCartItemsByIds(
                         cartId,
                         selectedIds
                 );
 
 
-        if (cartItems.isEmpty()
+        /*
+         * Phải lấy đủ chính xác số item user đã chọn.
+         *
+         * Nếu thiếu thì có thể sản phẩm đã bị xóa khỏi Cart.
+         */
+        if (cartItems == null
+                || cartItems.isEmpty()
                 || cartItems.size()
                 != selectedIds.size()) {
 
             session.removeAttribute(
                     "checkoutSelectedItemIds"
+            );
+
+
+            session.removeAttribute(
+                    "appliedVoucher"
             );
 
 
@@ -334,7 +374,7 @@ public class CheckoutServlet extends HttpServlet {
 
 
         // =================================================
-        // STOCK
+        // CHECK STOCK
         // =================================================
 
         for (CartItem item : cartItems) {
@@ -347,7 +387,7 @@ public class CheckoutServlet extends HttpServlet {
                         "errorMessage",
                         "Sản phẩm "
                         + item.getProductName()
-                        + " không đủ tồn kho."
+                        + " không đủ số lượng tồn kho."
                 );
 
 
@@ -389,6 +429,18 @@ public class CheckoutServlet extends HttpServlet {
                                 .toString()
                 );
             }
+
+
+            if (session.getAttribute(
+                    "checkoutToken"
+            ) == null) {
+
+                session.setAttribute(
+                        "checkoutToken",
+                        UUID.randomUUID()
+                                .toString()
+                );
+            }
         }
 
 
@@ -396,37 +448,41 @@ public class CheckoutServlet extends HttpServlet {
         // ADDRESS
         // =================================================
 
-        List<Address> addresses
-                = addressDAO.getAddressesByUser(
+        List<Address> addresses =
+                addressDAO.getAddressesByUser(
                         userId
                 );
 
 
-        Address selectedAddress
-                = null;
+        Address selectedAddress =
+                null;
 
 
-        Object savedId
-                = session.getAttribute(
+        Object savedId =
+                session.getAttribute(
                         "selectedAddressId"
                 );
 
 
         if (savedId instanceof Integer) {
 
-            selectedAddress
-                    = addressDAO.getAddressById(
+            selectedAddress =
+                    addressDAO.getAddressById(
                             (Integer) savedId,
                             userId
                     );
         }
 
 
+        /*
+         * Nếu chưa chọn thì tạm lấy địa chỉ đầu tiên.
+         */
         if (selectedAddress == null
+                && addresses != null
                 && !addresses.isEmpty()) {
 
-            selectedAddress
-                    = addresses.get(0);
+            selectedAddress =
+                    addresses.get(0);
         }
 
 
@@ -449,27 +505,35 @@ public class CheckoutServlet extends HttpServlet {
         // MONEY
         // =================================================
 
-        double subtotal
-                = calculateSubtotal(
+        double subtotal =
+                calculateSubtotal(
                         cartItems
                 );
 
 
-        double shippingFee = 0;
-        double discount = 0;
+        double shippingFee =
+                0;
 
 
-        Voucher appliedVoucher
-                = (Voucher)
-                        session.getAttribute(
-                                "appliedVoucher"
-                        );
+        double discount =
+                0;
 
 
+        Voucher appliedVoucher =
+                (Voucher)
+                session.getAttribute(
+                        "appliedVoucher"
+                );
+
+
+        /*
+         * Revalidate Voucher theo đúng subtotal
+         * của các sản phẩm được chọn.
+         */
         if (appliedVoucher != null) {
 
-            Voucher valid
-                    = voucherDAO.getValidVoucher(
+            Voucher valid =
+                    voucherDAO.getValidVoucher(
                             appliedVoucher.getCode(),
                             subtotal,
                             userId
@@ -478,12 +542,12 @@ public class CheckoutServlet extends HttpServlet {
 
             if (valid != null) {
 
-                appliedVoucher
-                        = valid;
+                appliedVoucher =
+                        valid;
 
 
-                discount
-                        = voucherDAO.calculateDiscount(
+                discount =
+                        voucherDAO.calculateDiscount(
                                 valid,
                                 subtotal
                         );
@@ -496,7 +560,8 @@ public class CheckoutServlet extends HttpServlet {
 
             } else {
 
-                appliedVoucher = null;
+                appliedVoucher =
+                        null;
 
 
                 session.removeAttribute(
@@ -513,53 +578,68 @@ public class CheckoutServlet extends HttpServlet {
         }
 
 
-        List<Voucher> availableVouchers
-                = voucherDAO
-                        .getAvailableVouchers(
-                                subtotal,
-                                userId
-                        );
+        // =================================================
+        // AVAILABLE VOUCHERS
+        // =================================================
 
+        List<Voucher> availableVouchers =
+                voucherDAO.getAvailableVouchers(
+                        subtotal,
+                        userId
+                );
+
+
+        // =================================================
+        // ATTRIBUTES
+        // =================================================
 
         request.setAttribute(
                 "cartItems",
                 cartItems
         );
 
+
         request.setAttribute(
                 "addresses",
                 addresses
         );
+
 
         request.setAttribute(
                 "selectedAddress",
                 selectedAddress
         );
 
+
         request.setAttribute(
                 "availableVouchers",
                 availableVouchers
         );
+
 
         request.setAttribute(
                 "appliedVoucher",
                 appliedVoucher
         );
 
+
         request.setAttribute(
                 "subtotal",
                 subtotal
         );
+
 
         request.setAttribute(
                 "shippingFee",
                 shippingFee
         );
 
+
         request.setAttribute(
                 "discount",
                 discount
         );
+
 
         request.setAttribute(
                 "totalAmount",
@@ -587,26 +667,26 @@ public class CheckoutServlet extends HttpServlet {
     private void addAddress(
             HttpServletRequest request,
             HttpServletResponse response,
-            User user)
-            throws IOException {
+            User user
+    ) throws IOException {
 
-        HttpSession session
-                = request.getSession();
+        HttpSession session =
+                request.getSession();
 
 
-        String submittedToken
-                = request.getParameter(
+        String submittedToken =
+                request.getParameter(
                         "addressAddToken"
                 );
 
 
         synchronized (session) {
 
-            String expectedToken
-                    = (String)
-                            session.getAttribute(
-                                    "addressAddToken"
-                            );
+            String expectedToken =
+                    (String)
+                    session.getAttribute(
+                            "addressAddToken"
+                    );
 
 
             if (expectedToken == null
@@ -617,7 +697,8 @@ public class CheckoutServlet extends HttpServlet {
 
                 session.setAttribute(
                         "checkoutError",
-                        "Yêu cầu thêm địa chỉ đã được xử lý hoặc hết hạn."
+                        "Yêu cầu thêm địa chỉ đã được xử lý "
+                        + "hoặc hết hạn."
                 );
 
 
@@ -636,30 +717,29 @@ public class CheckoutServlet extends HttpServlet {
         }
 
 
-        String name
-                = request.getParameter(
+        String name =
+                request.getParameter(
                         "recipientName"
                 );
 
-        String phone
-                = request.getParameter(
+
+        String phone =
+                request.getParameter(
                         "phoneNumber"
                 );
 
-        String line
-                = request.getParameter(
+
+        String line =
+                request.getParameter(
                         "addressLine"
                 );
 
 
-        if (name == null
-                || name.trim().isEmpty()
-                || name.trim().length() > 100
-                || phone == null
-                || !phone.trim()
-                        .matches("[0-9]{9,11}")
-                || line == null
-                || line.trim().isEmpty()) {
+        if (!validAddressInput(
+                name,
+                phone,
+                line
+        )) {
 
             session.setAttribute(
                     "checkoutError",
@@ -676,8 +756,8 @@ public class CheckoutServlet extends HttpServlet {
         }
 
 
-        int newId
-                = addressDAO.insertAddress(
+        int newId =
+                addressDAO.insertAddress(
                         user.getUserId(),
                         name.trim(),
                         phone.trim(),
@@ -720,11 +800,11 @@ public class CheckoutServlet extends HttpServlet {
     private void selectAddress(
             HttpServletRequest request,
             HttpServletResponse response,
-            User user)
-            throws IOException {
+            User user
+    ) throws IOException {
 
-        HttpSession session
-                = request.getSession();
+        HttpSession session =
+                request.getSession();
 
 
         if (!validAddressActionToken(
@@ -742,8 +822,8 @@ public class CheckoutServlet extends HttpServlet {
         }
 
 
-        int addressId
-                = parsePositiveInt(
+        int addressId =
+                parsePositiveInt(
                         request.getParameter(
                                 "addressId"
                         )
@@ -764,8 +844,8 @@ public class CheckoutServlet extends HttpServlet {
 
         synchronized (session) {
 
-            Address address
-                    = addressDAO.getAddressById(
+            Address address =
+                    addressDAO.getAddressById(
                             addressId,
                             user.getUserId()
                     );
@@ -799,16 +879,169 @@ public class CheckoutServlet extends HttpServlet {
 
 
     // =====================================================
+    // EDIT ADDRESS
+    // =====================================================
+    private void editAddress(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User user
+    ) throws IOException {
+
+        HttpSession session =
+                request.getSession();
+
+
+        if (!validAddressActionToken(
+                request,
+                session
+        )) {
+
+            sendJsonError(
+                    response,
+                    403,
+                    "Yêu cầu sửa địa chỉ không hợp lệ. "
+                    + "Vui lòng tải lại trang."
+            );
+
+            return;
+        }
+
+
+        int addressId =
+                parsePositiveInt(
+                        request.getParameter(
+                                "addressId"
+                        )
+                );
+
+
+        String name =
+                request.getParameter(
+                        "recipientName"
+                );
+
+
+        String phone =
+                request.getParameter(
+                        "phoneNumber"
+                );
+
+
+        String line =
+                request.getParameter(
+                        "addressLine"
+                );
+
+
+        if (addressId <= 0
+                || !validAddressInput(
+                        name,
+                        phone,
+                        line
+                )) {
+
+            sendJsonError(
+                    response,
+                    400,
+                    "Nhập đủ tên (tối đa 100 ký tự), "
+                    + "số điện thoại 9–11 chữ số và địa chỉ."
+            );
+
+            return;
+        }
+
+
+        synchronized (session) {
+
+            try {
+
+                boolean updated =
+                        addressDAO.updateAddress(
+                                addressId,
+                                user.getUserId(),
+                                name.trim(),
+                                phone.trim(),
+                                line.trim()
+                        );
+
+
+                if (!updated) {
+
+                    sendJsonError(
+                            response,
+                            404,
+                            "Địa chỉ không tồn tại hoặc đã bị xóa."
+                    );
+
+                    return;
+                }
+
+
+                response.setContentType(
+                        "application/json;charset=UTF-8"
+                );
+
+
+                String json =
+                        "{\"success\":true,"
+                        + "\"address\":{"
+                        + "\"addressId\":"
+                        + addressId
+                        + ","
+                        + "\"recipientName\":\""
+                        + jsonEscape(
+                                name.trim()
+                        )
+                        + "\","
+                        + "\"phoneNumber\":\""
+                        + jsonEscape(
+                                phone.trim()
+                        )
+                        + "\","
+                        + "\"addressLine\":\""
+                        + jsonEscape(
+                                line.trim()
+                        )
+                        + "\"}}";
+
+
+                response.getWriter()
+                        .write(
+                                json
+                        );
+
+
+            } catch (SQLException e) {
+
+                LOGGER.log(
+                        Level.SEVERE,
+                        "Lỗi sửa địa chỉ!",
+                        e
+                );
+
+
+                sendJsonError(
+                        response,
+                        500,
+                        "Không thể lưu địa chỉ. "
+                        + "Vui lòng thử lại."
+                );
+            }
+        }
+    }
+
+
+    // =====================================================
     // DELETE ADDRESS
     // =====================================================
     private void deleteAddress(
             HttpServletRequest request,
             HttpServletResponse response,
-            User user)
-            throws IOException {
+            User user
+    ) throws IOException {
 
-        HttpSession session
-                = request.getSession();
+        HttpSession session =
+                request.getSession();
 
 
         if (!validAddressActionToken(
@@ -826,8 +1059,8 @@ public class CheckoutServlet extends HttpServlet {
         }
 
 
-        int addressId
-                = parsePositiveInt(
+        int addressId =
+                parsePositiveInt(
                         request.getParameter(
                                 "addressId"
                         )
@@ -848,12 +1081,15 @@ public class CheckoutServlet extends HttpServlet {
 
         synchronized (session) {
 
-            Object selected
-                    = session.getAttribute(
+            Object selected =
+                    session.getAttribute(
                             "selectedAddressId"
                     );
 
 
+            /*
+             * Không xóa địa chỉ đang được Checkout sử dụng.
+             */
             if (selected instanceof Integer
                     && ((Integer) selected)
                     == addressId) {
@@ -862,15 +1098,16 @@ public class CheckoutServlet extends HttpServlet {
                         response,
                         409,
                         "Không thể xóa địa chỉ đang chọn. "
-                        + "Vui lòng chọn địa chỉ khác trước."
+                        + "Vui lòng chọn và xác nhận "
+                        + "địa chỉ khác trước."
                 );
 
                 return;
             }
 
 
-            boolean deleted
-                    = addressDAO.deleteAddress(
+            boolean deleted =
+                    addressDAO.deleteAddress(
                             addressId,
                             user.getUserId()
                     );
@@ -909,37 +1146,48 @@ public class CheckoutServlet extends HttpServlet {
     private void applyVoucher(
             HttpServletRequest request,
             HttpServletResponse response,
-            User user)
-            throws IOException {
+            User user
+    ) throws IOException {
 
-        HttpSession session
-                = request.getSession();
+        HttpSession session =
+                request.getSession();
 
 
-        String code
-                = request.getParameter(
+        String code =
+                request.getParameter(
                         "voucherCode"
                 );
 
 
-        int cartId
-                = cartDAO.getCartIdByUserId(
+        if (code == null
+                || code.trim().isEmpty()) {
+
+            session.setAttribute(
+                    "checkoutError",
+                    "Vui lòng chọn Voucher."
+            );
+
+
+            redirectToCheckout(
+                    request,
+                    response
+            );
+
+            return;
+        }
+
+
+        int cartId =
+                cartDAO.getCartIdByUserId(
                         user.getUserId()
                 );
 
 
-        List<CartItem> items
-                = getSelectedCartItems(
-                        session,
-                        cartId
-                );
-
-
-        if (items.isEmpty()) {
+        if (cartId <= 0) {
 
             session.setAttribute(
                     "checkoutError",
-                    "Không tìm thấy sản phẩm đã chọn."
+                    "Giỏ hàng đang trống."
             );
 
 
@@ -952,15 +1200,48 @@ public class CheckoutServlet extends HttpServlet {
         }
 
 
-        double subtotal
-                = calculateSubtotal(
+        List<CartItem> items =
+                getSelectedCartItems(
+                        session,
+                        cartId
+                );
+
+
+        List<Integer> selectedIds =
+                getSelectedIds(
+                        session
+                );
+
+
+        if (items.isEmpty()
+                || items.size()
+                != selectedIds.size()) {
+
+            session.setAttribute(
+                    "checkoutError",
+                    "Không tìm thấy đầy đủ các sản phẩm "
+                    + "đang Checkout."
+            );
+
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/cart"
+            );
+
+            return;
+        }
+
+
+        double subtotal =
+                calculateSubtotal(
                         items
                 );
 
 
-        Voucher voucher
-                = voucherDAO.getValidVoucher(
-                        code,
+        Voucher voucher =
+                voucherDAO.getValidVoucher(
+                        code.trim(),
                         subtotal,
                         user.getUserId()
                 );
@@ -970,7 +1251,8 @@ public class CheckoutServlet extends HttpServlet {
 
             session.setAttribute(
                     "checkoutError",
-                    "Voucher không khả dụng."
+                    "Voucher không hợp lệ, chưa đủ điều kiện "
+                    + "hoặc đã hết lượt."
             );
 
         } else {
@@ -983,7 +1265,9 @@ public class CheckoutServlet extends HttpServlet {
 
             session.setAttribute(
                     "checkoutMessage",
-                    "Áp dụng Voucher thành công."
+                    "Áp dụng Voucher "
+                    + voucher.getCode()
+                    + " thành công."
             );
         }
 
@@ -1000,11 +1284,11 @@ public class CheckoutServlet extends HttpServlet {
     // =====================================================
     private void removeVoucher(
             HttpServletRequest request,
-            HttpServletResponse response)
-            throws IOException {
+            HttpServletResponse response
+    ) throws IOException {
 
-        HttpSession session
-                = request.getSession();
+        HttpSession session =
+                request.getSession();
 
 
         session.removeAttribute(
@@ -1031,251 +1315,238 @@ public class CheckoutServlet extends HttpServlet {
     private void placeOrder(
             HttpServletRequest request,
             HttpServletResponse response,
-            User user)
-            throws ServletException, IOException {
+            User user
+    ) throws IOException {
 
-        HttpSession session
-                = request.getSession();
+        HttpSession session =
+                request.getSession();
+
+
+        String checkoutToken =
+                request.getParameter(
+                        "checkoutToken"
+                );
 
 
         try {
 
-            if (!"COD".equalsIgnoreCase(
-                    request.getParameter(
-                            "paymentMethod"
-                    )
-            )) {
+            // =============================================
+            // TOKEN FORMAT
+            // =============================================
+
+            if (checkoutToken == null
+                    || !checkoutToken.matches(
+                            "[0-9a-fA-F-]{36}"
+                    )) {
 
                 throw new IllegalArgumentException(
-                        "Hiện tại chỉ hỗ trợ thanh toán COD."
+                        "Phiên đặt hàng không hợp lệ. "
+                        + "Vui lòng tải lại Checkout."
                 );
             }
 
 
-            int addressId
-                    = parsePositiveInt(
+            int orderId;
+
+
+            synchronized (session) {
+
+                /*
+                 * Nếu request bị gửi lặp lại nhưng token đã tạo
+                 * Order, trả về chính Order cũ.
+                 */
+                Integer existingOrderId =
+                        orderDAO.findIdByToken(
+                                user.getUserId(),
+                                checkoutToken
+                        );
+
+
+                if (existingOrderId != null) {
+
+                    orderId =
+                            existingOrderId;
+
+
+                } else {
+
+                    // =====================================
+                    // CHECK TOKEN
+                    // =====================================
+
+                    Object expectedToken =
+                            session.getAttribute(
+                                    "checkoutToken"
+                            );
+
+
+                    if (!(expectedToken instanceof String)
+                            || !checkoutToken.equals(
+                                    expectedToken
+                            )) {
+
+                        throw new IllegalArgumentException(
+                                "Phiên đặt hàng đã hết hạn. "
+                                + "Vui lòng tải lại Checkout."
+                        );
+                    }
+
+
+                    // =====================================
+                    // PAYMENT
+                    // =====================================
+
+                    if (!"COD".equalsIgnoreCase(
                             request.getParameter(
-                                    "addressId"
+                                    "paymentMethod"
                             )
-                    );
+                    )) {
+
+                        throw new IllegalArgumentException(
+                                "Hiện tại chỉ hỗ trợ thanh toán COD."
+                        );
+                    }
 
 
-            if (addressId <= 0) {
+                    // =====================================
+                    // ADDRESS
+                    // =====================================
 
-                throw new IllegalArgumentException(
-                        "Vui lòng chọn địa chỉ giao hàng."
-                );
-            }
-
-
-            Object selectedAddressId
-                    = session.getAttribute(
-                            "selectedAddressId"
-                    );
+                    int addressId =
+                            parsePositiveInt(
+                                    request.getParameter(
+                                            "addressId"
+                                    )
+                            );
 
 
-            if (!(selectedAddressId
-                    instanceof Integer)
-                    || ((Integer) selectedAddressId)
-                    != addressId) {
-
-                throw new IllegalArgumentException(
-                        "Địa chỉ chưa được xác nhận."
-                );
-            }
+                    Object selectedAddressId =
+                            session.getAttribute(
+                                    "selectedAddressId"
+                            );
 
 
-            Address address
-                    = addressDAO.getAddressById(
-                            addressId,
-                            user.getUserId()
-                    );
+                    if (addressId <= 0
+                            || !(selectedAddressId
+                            instanceof Integer)
+                            || ((Integer) selectedAddressId)
+                            != addressId) {
+
+                        throw new IllegalArgumentException(
+                                "Vui lòng chọn và xác nhận "
+                                + "địa chỉ giao hàng."
+                        );
+                    }
 
 
-            if (address == null) {
+                    // =====================================
+                    // SELECTED ITEMS
+                    // =====================================
 
-                throw new IllegalArgumentException(
-                        "Địa chỉ không hợp lệ."
-                );
-            }
-
-
-            int cartId
-                    = cartDAO.getCartIdByUserId(
-                            user.getUserId()
-                    );
+                    List<Integer> selectedIds =
+                            getSelectedIds(
+                                    session
+                            );
 
 
-            List<Integer> selectedIds
-                    = getSelectedIds(
-                            session
-                    );
+                    if (selectedIds.isEmpty()) {
+
+                        throw new IllegalArgumentException(
+                                "Không tìm thấy sản phẩm đã chọn."
+                        );
+                    }
 
 
-            if (selectedIds.isEmpty()) {
+                    // =====================================
+                    // VOUCHER
+                    // =====================================
 
-                throw new IllegalArgumentException(
-                        "Không tìm thấy sản phẩm đã chọn."
-                );
-            }
-
-
-            List<CartItem> items
-                    = cartDAO.getCartItemsByIds(
-                            cartId,
-                            selectedIds
-                    );
-
-
-            if (items.size()
-                    != selectedIds.size()) {
-
-                throw new IllegalArgumentException(
-                        "Một số sản phẩm không còn trong giỏ."
-                );
-            }
-
-
-            double subtotal
-                    = calculateSubtotal(
-                            items
-                    );
-
-
-            BigDecimal discountAmount
-                    = BigDecimal.ZERO;
-
-
-            Voucher voucher
-                    = (Voucher)
+                    Voucher voucher =
+                            (Voucher)
                             session.getAttribute(
                                     "appliedVoucher"
                             );
 
 
-            if (voucher != null) {
-
-                Voucher valid
-                        = voucherDAO.getValidVoucher(
-                                voucher.getCode(),
-                                subtotal,
-                                user.getUserId()
-                        );
+                    String voucherCode =
+                            voucher == null
+                            ? null
+                            : voucher.getCode();
 
 
-                if (valid == null) {
+                    /*
+                     * Service tự kiểm tra lại:
+                     *
+                     * - Cart
+                     * - selected cart_item_id
+                     * - stock
+                     * - address
+                     * - Voucher
+                     * - usage limit
+                     * - token
+                     *
+                     * trong cùng transaction.
+                     */
+                    orderId =
+                            orderService.placeCodOrder(
+                                    user.getUserId(),
+                                    addressId,
+                                    checkoutToken,
+                                    voucherCode,
+                                    selectedIds
+                            );
+                }
 
-                    throw new IllegalArgumentException(
-                            "Voucher đã hết hiệu lực "
-                            + "hoặc không còn phù hợp."
+
+                /*
+                 * Xóa state chỉ khi token này vẫn là token
+                 * của phiên hiện tại.
+                 */
+                if (checkoutToken.equals(
+                        session.getAttribute(
+                                "checkoutToken"
+                        )
+                )) {
+
+                    session.removeAttribute(
+                            "checkoutToken"
+                    );
+
+
+                    session.removeAttribute(
+                            "appliedVoucher"
+                    );
+
+
+                    session.removeAttribute(
+                            "checkoutSelectedItemIds"
                     );
                 }
 
 
-                double discount
-                        = voucherDAO.calculateDiscount(
-                                valid,
-                                subtotal
-                        );
-
-
-                discountAmount
-                        = BigDecimal.valueOf(
-                                discount
-                        ).setScale(
-                                2,
-                                RoundingMode.HALF_UP
-                        );
-
-
-                voucher = valid;
+                /*
+                 * Giữ selectedAddressId để Checkout lần sau
+                 * vẫn nhớ địa chỉ user đang sử dụng.
+                 */
             }
 
 
-            int orderId
-                    = orderService.placeCodOrder(
-                            user.getUserId(),
+            // =============================================
+            // POST -> REDIRECT -> GET
+            // =============================================
 
-                            addressId,
-
-                            address.getRecipientName(),
-
-                            address.getPhoneNumber(),
-
-                            address.getAddressLine(),
-
-                            BigDecimal.ZERO,
-
-                            discountAmount,
-
-                            selectedIds
-                    );
+            response.setStatus(
+                    HttpServletResponse.SC_SEE_OTHER
+            );
 
 
-            if (voucher != null) {
-
-                boolean saved
-                        = voucherDAO.saveVoucherUsage(
-                                voucher.getVoucherId(),
-                                orderId,
-                                user.getUserId()
-                        );
-
-
-                if (!saved) {
-
-                    LOGGER.warning(
-                            "Order "
+            response.setHeader(
+                    "Location",
+                    response.encodeRedirectURL(
+                            request.getContextPath()
+                            + "/order-success?id="
                             + orderId
-                            + " chưa lưu được voucher usage."
-                    );
-                }
-            }
-
-
-            session.removeAttribute(
-                    "appliedVoucher"
-            );
-
-            session.removeAttribute(
-                    "selectedAddressId"
-            );
-
-            session.removeAttribute(
-                    "checkoutSelectedItemIds"
-            );
-
-
-            request.setAttribute(
-                    "orderId",
-                    orderId
-            );
-
-            request.setAttribute(
-                    "subtotal",
-                    subtotal
-            );
-
-            request.setAttribute(
-                    "discount",
-                    discountAmount.doubleValue()
-            );
-
-            request.setAttribute(
-                    "totalAmount",
-                    Math.max(
-                            0,
-                            subtotal
-                            - discountAmount.doubleValue()
                     )
-            );
-
-
-            request.getRequestDispatcher(
-                    "/WEB-INF/checkout/order-success.jsp"
-            ).forward(
-                    request,
-                    response
             );
 
 
@@ -1297,14 +1568,14 @@ public class CheckoutServlet extends HttpServlet {
 
             LOGGER.log(
                     Level.SEVERE,
-                    "Loi dat hang COD!",
+                    "Lỗi đặt hàng COD!",
                     e
             );
 
 
             session.setAttribute(
                     "checkoutError",
-                    "Có lỗi khi đặt hàng. "
+                    "Chưa xác nhận được kết quả đặt hàng. "
                     + "Vui lòng thử lại."
             );
 
@@ -1318,27 +1589,47 @@ public class CheckoutServlet extends HttpServlet {
 
 
     // =====================================================
-    // SELECTED IDS
+    // GET SELECTED IDS
     // =====================================================
     @SuppressWarnings("unchecked")
     private List<Integer> getSelectedIds(
-            HttpSession session) {
+            HttpSession session
+    ) {
 
-        Object value
-                = session.getAttribute(
+        Object value =
+                session.getAttribute(
                         "checkoutSelectedItemIds"
                 );
 
 
-        if (value instanceof List<?>) {
+        if (!(value instanceof List<?>)) {
 
-            return new ArrayList<>(
-                    (List<Integer>) value
-            );
+            return new ArrayList<>();
         }
 
 
-        return new ArrayList<>();
+        List<Integer> result =
+                new ArrayList<>();
+
+
+        for (Object item : (List<?>) value) {
+
+            if (item instanceof Integer) {
+
+                Integer id =
+                        (Integer) item;
+
+
+                if (id > 0
+                        && !result.contains(id)) {
+
+                    result.add(id);
+                }
+            }
+        }
+
+
+        return result;
     }
 
 
@@ -1347,50 +1638,61 @@ public class CheckoutServlet extends HttpServlet {
     // =====================================================
     private List<CartItem> getSelectedCartItems(
             HttpSession session,
-            int cartId) {
+            int cartId
+    ) {
 
         if (cartId <= 0) {
+
             return new ArrayList<>();
         }
 
 
-        List<Integer> ids
-                = getSelectedIds(
+        List<Integer> ids =
+                getSelectedIds(
                         session
                 );
 
 
         if (ids.isEmpty()) {
+
             return new ArrayList<>();
         }
 
 
-        return cartDAO.getCartItemsByIds(
-                cartId,
-                ids
-        );
+        List<CartItem> items =
+                cartDAO.getCartItemsByIds(
+                        cartId,
+                        ids
+                );
+
+
+        return items == null
+                ? new ArrayList<>()
+                : items;
     }
 
 
     // =====================================================
-    // PARSE SELECTED IDS
+    // PARSE SELECTED ITEMS
     // =====================================================
     private List<Integer> parseSelectedIds(
-            String[] values) {
+            String[] values
+    ) {
 
-        List<Integer> list
-                = new ArrayList<>();
+        List<Integer> list =
+                new ArrayList<>();
 
 
         if (values == null) {
+
             return list;
         }
 
 
         for (String value : values) {
 
-            int id
-                    = parsePositiveInt(
+            int id =
+                    parsePositiveInt(
                             value
                     );
 
@@ -1408,17 +1710,26 @@ public class CheckoutServlet extends HttpServlet {
 
 
     // =====================================================
-    // TOTAL
+    // CALCULATE SUBTOTAL
     // =====================================================
     private double calculateSubtotal(
-            List<CartItem> items) {
+            List<CartItem> items
+    ) {
 
-        double total = 0;
+        double total =
+                0;
+
+
+        if (items == null) {
+
+            return total;
+        }
 
 
         for (CartItem item : items) {
 
-            total += item.getPrice()
+            total +=
+                    item.getPrice()
                     * item.getQuantity();
         }
 
@@ -1428,20 +1739,43 @@ public class CheckoutServlet extends HttpServlet {
 
 
     // =====================================================
-    // ADDRESS TOKEN
+    // VALID ADDRESS INPUT
+    // =====================================================
+    private boolean validAddressInput(
+            String name,
+            String phone,
+            String line
+    ) {
+
+        return name != null
+                && !name.trim().isEmpty()
+                && name.trim().length() <= 100
+                && phone != null
+                && phone.trim()
+                        .matches(
+                                "[0-9]{9,11}"
+                        )
+                && line != null
+                && !line.trim().isEmpty();
+    }
+
+
+    // =====================================================
+    // VALID ADDRESS TOKEN
     // =====================================================
     private boolean validAddressActionToken(
             HttpServletRequest request,
-            HttpSession session) {
+            HttpSession session
+    ) {
 
-        String submitted
-                = request.getParameter(
+        String submitted =
+                request.getParameter(
                         "addressActionToken"
                 );
 
 
-        Object expected
-                = session.getAttribute(
+        Object expected =
+                session.getAttribute(
                         "addressActionToken"
                 );
 
@@ -1455,21 +1789,21 @@ public class CheckoutServlet extends HttpServlet {
 
 
     // =====================================================
-    // ADDRESS JSON
+    // SELECTED ADDRESS JSON
     // =====================================================
     private void sendSelectedAddressJson(
             HttpServletResponse response,
             int addressId,
-            Address address)
-            throws IOException {
+            Address address
+    ) throws IOException {
 
         response.setContentType(
                 "application/json;charset=UTF-8"
         );
 
 
-        String json
-                = "{\"success\":true,"
+        String json =
+                "{\"success\":true,"
                 + "\"selectedAddress\":{"
                 + "\"addressId\":"
                 + addressId
@@ -1494,9 +1828,10 @@ public class CheckoutServlet extends HttpServlet {
                 + "}}";
 
 
-        response.getWriter().write(
-                json
-        );
+        response.getWriter()
+                .write(
+                        json
+                );
     }
 
 
@@ -1506,8 +1841,8 @@ public class CheckoutServlet extends HttpServlet {
     private void sendJsonError(
             HttpServletResponse response,
             int status,
-            String message)
-            throws IOException {
+            String message
+    ) throws IOException {
 
         response.setStatus(
                 status
@@ -1519,12 +1854,15 @@ public class CheckoutServlet extends HttpServlet {
         );
 
 
-        response.getWriter().write(
-                "{\"success\":false,"
-                + "\"message\":\""
-                + jsonEscape(message)
-                + "\"}"
-        );
+        response.getWriter()
+                .write(
+                        "{\"success\":false,"
+                        + "\"message\":\""
+                        + jsonEscape(
+                                message
+                        )
+                        + "\"}"
+                );
     }
 
 
@@ -1532,38 +1870,111 @@ public class CheckoutServlet extends HttpServlet {
     // JSON ESCAPE
     // =====================================================
     private String jsonEscape(
-            String value) {
+            String value
+    ) {
 
         if (value == null) {
+
             return "";
         }
 
 
-        return value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+        StringBuilder result =
+                new StringBuilder();
+
+
+        for (char c
+                : value.toCharArray()) {
+
+            switch (c) {
+
+                case '"':
+
+                    result.append(
+                            "\\\""
+                    );
+
+                    break;
+
+
+                case '\\':
+
+                    result.append(
+                            "\\\\"
+                    );
+
+                    break;
+
+
+                case '\n':
+
+                    result.append(
+                            "\\n"
+                    );
+
+                    break;
+
+
+                case '\r':
+
+                    result.append(
+                            "\\r"
+                    );
+
+                    break;
+
+
+                case '\t':
+
+                    result.append(
+                            "\\t"
+                    );
+
+                    break;
+
+
+                default:
+
+                    if (c < 0x20) {
+
+                        result.append(
+                                String.format(
+                                        "\\u%04x",
+                                        (int) c
+                                )
+                        );
+
+                    } else {
+
+                        result.append(c);
+                    }
+            }
+        }
+
+
+        return result.toString();
     }
 
 
     // =====================================================
-    // PARSE INT
+    // PARSE POSITIVE INT
     // =====================================================
     private int parsePositiveInt(
-            String value) {
+            String value
+    ) {
 
         try {
 
-            int id
-                    = Integer.parseInt(
+            int id =
+                    Integer.parseInt(
                             value
                     );
+
 
             return id > 0
                     ? id
                     : -1;
+
 
         } catch (Exception e) {
 
@@ -1573,22 +1984,26 @@ public class CheckoutServlet extends HttpServlet {
 
 
     // =====================================================
-    // USER
+    // LOGGED USER
     // =====================================================
     private User getLoggedInUser(
-            HttpServletRequest request) {
+            HttpServletRequest request
+    ) {
 
-        HttpSession session
-                = request.getSession(false);
+        HttpSession session =
+                request.getSession(
+                        false
+                );
 
 
         if (session == null) {
+
             return null;
         }
 
 
-        Object value
-                = session.getAttribute(
+        Object value =
+                session.getAttribute(
                         "loggedInUser"
                 );
 
@@ -1600,12 +2015,12 @@ public class CheckoutServlet extends HttpServlet {
 
 
     // =====================================================
-    // LOGIN
+    // REDIRECT LOGIN
     // =====================================================
     private void redirectToLogin(
             HttpServletRequest request,
-            HttpServletResponse response)
-            throws IOException {
+            HttpServletResponse response
+    ) throws IOException {
 
         request.getSession()
                 .setAttribute(
@@ -1623,12 +2038,12 @@ public class CheckoutServlet extends HttpServlet {
 
 
     // =====================================================
-    // CHECKOUT
+    // REDIRECT CHECKOUT
     // =====================================================
     private void redirectToCheckout(
             HttpServletRequest request,
-            HttpServletResponse response)
-            throws IOException {
+            HttpServletResponse response
+    ) throws IOException {
 
         response.sendRedirect(
                 request.getContextPath()

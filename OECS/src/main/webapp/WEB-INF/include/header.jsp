@@ -314,6 +314,121 @@
                 color: #94a3b8;
                 font-size: 0.9rem;
             }
+            /* Dropdown section headings - improve readability */
+            .dropdown-menu-dark .dropdown-header {
+                color: #60A5FA !important;
+                font-size: 0.75rem;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                padding-top: 0.65rem;
+                padding-bottom: 0.5rem;
+            }
+
+            /* Bố cục mặc định cho các trang */
+            .page-main {
+                width: 100%;
+                max-width: 1440px;
+                margin: 0 auto;
+                padding: 1.5rem;
+            }
+
+            /* Trang chủ được phép sử dụng toàn bộ chiều rộng */
+            .page-main.home-main {
+                max-width: none;
+                padding: 0;
+            }
+
+            @media (max-width: 768px) {
+                .page-main {
+                    padding: 1rem;
+                }
+
+                .page-main.home-main {
+                    padding: 0;
+                }
+            }
+            .notification-wrapper {
+    position: relative;
+}
+
+.notification-wrapper #notificationBell {
+    position: relative;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.notification-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(360px, calc(100vw - 24px));
+    max-height: 420px;
+    overflow-y: auto;
+    background: #fff;
+    color: #212529;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .14);
+    z-index: 2000;
+}
+
+.notification-panel[hidden],
+#notificationBadge[hidden] {
+    display: none;
+}
+
+.notification-panel-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid #eee;
+}
+
+.notification-item {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    text-align: left;
+    border: 0;
+    border-bottom: 1px solid #f1f1f1;
+    background: #fff;
+    cursor: pointer;
+}
+
+.notification-item:hover {
+    background: #f8f9fa;
+}
+
+.notification-item.unread {
+    background: #eef5ff;
+}
+
+.notification-item-title {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.notification-item-message {
+    display: block;
+    font-size: 13px;
+    color: #555;
+}
+
+.notification-item-time {
+    display: block;
+    margin-top: 6px;
+    font-size: 11px;
+    color: #777;
+}
+
+.notification-empty {
+    padding: 18px 16px;
+    margin: 0;
+    color: #777;
+    font-size: 14px;
+}
         </style>
     </head>
     <body>
@@ -322,17 +437,16 @@
             <div class="container-fluid px-4 px-lg-5">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center gap-3">
-                        <span class="d-inline-flex align-items-center gap-1.5 text-success fw-medium">
-                            <span class="spinner-grow spinner-grow-sm text-success" style="width: 8px; height: 8px;" role="status"></span>
-                            Hệ thống hoạt động ổn định
-                        </span>
-                        <span class="text-secondary">|</span>
-                        <i class="bi bi-hdd-network text-secondary"></i> Server Node: <strong class="text-light">VN-SGN-01</strong>
+                        <i class="bi bi-hdd-network text-secondary"></i> Server Node: <strong class="text-light">VN-CTO-01</strong><!-- VN-CTO-01 có nghĩa là: "Máy chủ số 01 đặt tại cụm Cần Thơ, Việt Nam". -->
                     </div>
                     <div class="d-flex align-items-center gap-3">
-                        <a href="#"><i class="bi bi-geo-alt-fill text-primary me-1"></i>Khu vực: <strong>Cần Thơ HQ</strong></a>
+                        <a href="#"><i class="bi bi-geo-alt-fill text-primary me-1"></i>Khu vực: <strong>Cần Thơ HQ</strong></a><!--Headquarters => trụ sở chính-->
                         <span class="text-secondary">|</span>
-                        <a href="#"><i class="bi bi-question-circle me-1"></i>Trợ giúp API</a>
+
+                        <a href="${pageContext.request.contextPath}/guide">
+                            <i class="bi bi-question-circle me-1"></i>Hướng dẫn
+                        </a>
+
                     </div>
                 </div>
             </div>
@@ -367,13 +481,7 @@
                             <c:when test="${empty sessionScope.loggedInUser
                                             or sessionScope.loggedInUser.customer}">
 
-                                    <a href="${pageContext.request.contextPath}/cart"
-                                       class="btn btn-menu-category d-flex align-items-center gap-2 text-decoration-none">
 
-                                        <i class="bi bi-cart3 text-primary"></i>
-                                        <span>Giỏ hàng</span>
-
-                                    </a>
 
                             </c:when>
 
@@ -551,17 +659,58 @@
                         </form>
                         <div class="search-quick-tags">
                             <span class="text-secondary me-1"><i class="bi bi-lightning-charge-fill text-warning"></i> Nhanh:</span>
-                            <a href="#">Apple</a>
-                            <a href="#">Samsung</a>
-                            <a href="#">Lenovo</a>
+                            <a href="${pageContext.request.contextPath}/shop?keyword=Apple">Apple</a>
+                            <a href="${pageContext.request.contextPath}/shop?keyword=Samsung">Samsung</a>
+                            <a href="${pageContext.request.contextPath}/shop?keyword=Lenovo">Lenovo</a>
                         </div>
                     </div>
 
                     <div class="d-flex align-items-center gap-2.5">
-                        <a href="#" class="header-icon-btn d-none d-sm-flex" title="Thông báo hệ thống">
-                            <i class="bi bi-bell-fill fs-6"></i>
-                            <span class="header-icon-badge">3</span>
-                        </a>
+
+                        <%-- Giỏ hàng: chỉ hiển thị cho Guest và Customer --%>
+                        <c:if test="${empty sessionScope.loggedInUser
+                                      or sessionScope.loggedInUser.customer}">
+                              <a href="${pageContext.request.contextPath}/cart"
+                                 class="header-icon-btn me-2"
+                                 title="Giỏ hàng"
+                                 aria-label="Giỏ hàng">
+                                  <i class="bi bi-cart3 fs-5"></i>
+                              </a>
+                        </c:if>
+
+                        <c:if test="${not empty sessionScope.loggedInUser
+              and sessionScope.loggedInUser.customer}">
+
+    <div class="notification-wrapper">
+        <button type="button"
+                id="notificationBell"
+                class="header-icon-btn"
+                title="Thông báo đơn hàng"
+                aria-label="Thông báo đơn hàng"
+                aria-expanded="false">
+            <i class="bi bi-bell-fill fs-6"></i>
+            <span id="notificationBadge"
+                  class="header-icon-badge"
+                  hidden>0</span>
+        </button>
+
+        <div id="notificationPanel"
+             class="notification-panel"
+             hidden>
+            <div class="notification-panel-header">
+                <strong>Thông báo</strong>
+                <span id="notificationTotal"></span>
+            </div>
+
+            <div id="notificationList"
+                 class="notification-list">
+                <p class="notification-empty">
+                    Đang tải thông báo...
+                </p>
+            </div>
+        </div>
+    </div>
+</c:if>
 
 
                         <div class="vr bg-secondary opacity-25 mx-1" style="height: 28px;"></div>
@@ -666,4 +815,169 @@
                 });
             });
         </script>
-        <main class="container-fluid px-4 px-lg-5 py-4" style="max-width: 1440px;">
+        <c:if test="${not empty sessionScope.loggedInUser
+              and sessionScope.loggedInUser.customer}">
+<script>
+(() => {
+    const contextPath = '${pageContext.request.contextPath}';
+    const bell = document.getElementById('notificationBell');
+    const panel = document.getElementById('notificationPanel');
+    const badge = document.getElementById('notificationBadge');
+    const list = document.getElementById('notificationList');
+    const total = document.getElementById('notificationTotal');
+
+    if (!bell || !panel || !badge || !list) return;
+
+    async function loadCount() {
+        try {
+            const response = await fetch(
+                contextPath + '/notification?action=count',
+                { credentials: 'same-origin' }
+            );
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+            const count = Number(data.count) || 0;
+
+            badge.textContent = count > 99 ? '99+' : String(count);
+            badge.hidden = count === 0;
+        } catch (error) {
+            console.error('Cannot load notification count.', error);
+        }
+    }
+
+    async function loadList() {
+        list.replaceChildren();
+
+        const loading = document.createElement('p');
+        loading.className = 'notification-empty';
+        loading.textContent = 'Đang tải thông báo...';
+        list.appendChild(loading);
+
+        try {
+            const response = await fetch(
+                contextPath + '/notification?action=list',
+                { credentials: 'same-origin' }
+            );
+
+            if (!response.ok) {
+                throw new Error('Không thể tải thông báo.');
+            }
+
+            const notifications = await response.json();
+            list.replaceChildren();
+
+            if (notifications.length === 0) {
+                const empty = document.createElement('p');
+                empty.className = 'notification-empty';
+                empty.textContent = 'Bạn chưa có thông báo nào.';
+                list.appendChild(empty);
+                total.textContent = '';
+                return;
+            }
+
+            const unread = notifications.filter(n => !n.read).length;
+            total.textContent = unread > 0
+                ? unread + ' chưa đọc'
+                : '';
+
+            notifications.forEach(n => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'notification-item'
+                    + (n.read ? '' : ' unread');
+
+                const title = document.createElement('span');
+                title.className = 'notification-item-title';
+                title.textContent = n.title || 'Thông báo';
+
+                const message = document.createElement('span');
+                message.className = 'notification-item-message';
+                message.textContent = n.message || '';
+
+                const time = document.createElement('span');
+                time.className = 'notification-item-time';
+                time.textContent = n.createdAt || '';
+
+                item.append(title, message, time);
+
+                item.addEventListener('click', async () => {
+                    try {
+                        const body = new URLSearchParams({
+                            action: 'read',
+                            id: String(n.id)
+                        });
+
+                        const readResponse = await fetch(
+                            contextPath + '/notification',
+                            {
+                                method: 'POST',
+                                credentials: 'same-origin',
+                                headers: {
+                                    'Content-Type':
+                                        'application/x-www-form-urlencoded'
+                                },
+                                body: body.toString()
+                            }
+                        );
+
+                        if (!readResponse.ok) {
+                            throw new Error(
+                                'Không thể cập nhật trạng thái đã đọc.'
+                            );
+                        }
+
+                        await loadCount();
+
+                        // TODO: thay bằng URL trang chi tiết đơn hàng
+                        // thực tế của OECS sau khi xác nhận route.
+                        if (n.orderId != null) {
+                            window.location.href =
+                                contextPath + '/order/detail?id='
+                                + encodeURIComponent(n.orderId);
+                        } else {
+                            await loadList();
+                        }
+                    } catch (error) {
+                        console.error(error);
+                    }
+                });
+
+                list.appendChild(item);
+            });
+        } catch (error) {
+            list.replaceChildren();
+
+            const failed = document.createElement('p');
+            failed.className = 'notification-empty';
+            failed.textContent = 'Không tải được thông báo. Vui lòng thử lại.';
+            list.appendChild(failed);
+
+            console.error(error);
+        }
+    }
+
+    bell.addEventListener('click', async () => {
+        const isOpening = panel.hidden;
+        panel.hidden = !isOpening;
+        bell.setAttribute('aria-expanded', String(isOpening));
+
+        if (isOpening) {
+            await loadList();
+            await loadCount();
+        }
+    });
+
+    document.addEventListener('click', event => {
+        if (!event.target.closest('.notification-wrapper')) {
+            panel.hidden = true;
+            bell.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    loadCount();
+})();
+</script>
+</c:if>
+        <main class="page-main">

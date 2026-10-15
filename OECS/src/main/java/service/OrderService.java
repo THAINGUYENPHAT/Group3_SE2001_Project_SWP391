@@ -6,6 +6,7 @@ import db.DBContext;
 import model.Order;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,8 +18,8 @@ import java.util.List;
 
 public class OrderService {
 
-    private final OrderDAO orderDAO
-            = new OrderDAO();
+    private final OrderDAO orderDAO =
+            new OrderDAO();
 
 
     // =====================================================
@@ -26,22 +27,57 @@ public class OrderService {
     // =====================================================
     private static final class CartLine {
 
-        final int id;
+        final int cartItemId;
+
         final int skuId;
+
         final int quantity;
+
         final BigDecimal price;
 
 
         CartLine(
-                int id,
+                int cartItemId,
                 int skuId,
                 int quantity,
-                BigDecimal price) {
+                BigDecimal price
+        ) {
 
-            this.id = id;
-            this.skuId = skuId;
-            this.quantity = quantity;
-            this.price = price;
+            this.cartItemId =
+                    cartItemId;
+
+            this.skuId =
+                    skuId;
+
+            this.quantity =
+                    quantity;
+
+            this.price =
+                    price;
+        }
+    }
+
+
+    // =====================================================
+    // VOUCHER RESULT
+    // =====================================================
+    private static final class VoucherResult {
+
+        final Integer id;
+
+        final BigDecimal discount;
+
+
+        VoucherResult(
+                Integer id,
+                BigDecimal discount
+        ) {
+
+            this.id =
+                    id;
+
+            this.discount =
+                    discount;
         }
     }
 
@@ -49,23 +85,19 @@ public class OrderService {
     // =====================================================
     // OLD METHOD
     // =====================================================
+    @Deprecated
     public int placeCodOrder(
             int userId,
             int addressId,
             String name,
             String phone,
             String address,
-            BigDecimal shippingFee)
-            throws SQLException {
+            BigDecimal shippingFee
+    ) throws SQLException {
 
-        return placeCodOrder(
-                userId,
-                addressId,
-                name,
-                phone,
-                address,
-                shippingFee,
-                BigDecimal.ZERO
+        throw new IllegalArgumentException(
+                "Cần cập nhật CheckoutServlet "
+                + "sang luồng đặt hàng mới."
         );
     }
 
@@ -73,6 +105,7 @@ public class OrderService {
     // =====================================================
     // OLD METHOD WITH DISCOUNT
     // =====================================================
+    @Deprecated
     public int placeCodOrder(
             int userId,
             int addressId,
@@ -80,25 +113,20 @@ public class OrderService {
             String phone,
             String address,
             BigDecimal shippingFee,
-            BigDecimal discountAmount)
-            throws SQLException {
+            BigDecimal discountAmount
+    ) throws SQLException {
 
-        return placeCodOrder(
-                userId,
-                addressId,
-                name,
-                phone,
-                address,
-                shippingFee,
-                discountAmount,
-                null
+        throw new IllegalArgumentException(
+                "Cần cập nhật CheckoutServlet "
+                + "sang luồng đặt hàng mới."
         );
     }
 
 
     // =====================================================
-    // NEW METHOD - SELECTED CART ITEMS
+    // OLD SELECTED METHOD
     // =====================================================
+    @Deprecated
     public int placeCodOrder(
             int userId,
             int addressId,
@@ -107,66 +135,84 @@ public class OrderService {
             String address,
             BigDecimal shippingFee,
             BigDecimal discountAmount,
-            List<Integer> selectedCartItemIds)
-            throws SQLException {
+            List<Integer> selectedCartItemIds
+    ) throws SQLException {
+
+        throw new IllegalArgumentException(
+                "Cần cập nhật CheckoutServlet "
+                + "sang luồng Checkout Token + Voucher mới."
+        );
+    }
+
+
+    // =====================================================
+    // TOKEN + VOUCHER
+    //
+    // Giữ lại để code cũ vẫn compile.
+    //
+    // null = checkout toàn bộ Cart.
+    // =====================================================
+    public int placeCodOrder(
+            int userId,
+            int addressId,
+            String checkoutToken,
+            String voucherCode
+    ) throws SQLException {
+
+        return placeCodOrder(
+                userId,
+                addressId,
+                checkoutToken,
+                voucherCode,
+                null
+        );
+    }
+
+
+    // =====================================================
+    // MAIN METHOD
+    //
+    // TOKEN + VOUCHER + SELECTED CART ITEMS
+    // =====================================================
+    public int placeCodOrder(
+            int userId,
+            int addressId,
+            String checkoutToken,
+            String voucherCode,
+            List<Integer> selectedCartItemIds
+    ) throws SQLException {
 
         // =================================================
         // VALIDATE
         // =================================================
 
         if (userId <= 0
-                || addressId <= 0) {
+                || addressId <= 0
+                || checkoutToken == null
+                || !checkoutToken.matches(
+                        "[0-9a-fA-F-]{36}"
+                )) {
 
             throw new IllegalArgumentException(
-                    "Thông tin tài khoản hoặc địa chỉ không hợp lệ."
+                    "Yêu cầu đặt hàng không hợp lệ. "
+                    + "Vui lòng tải lại Checkout."
             );
         }
 
 
-        if (isBlank(name)
-                || isBlank(phone)
-                || isBlank(address)) {
-
-            throw new IllegalArgumentException(
-                    "Vui lòng nhập đầy đủ thông tin người nhận."
-            );
-        }
-
-
-        if (name.trim().length() > 100
-                || !phone.trim()
-                        .matches("[0-9]{9,11}")) {
-
-            throw new IllegalArgumentException(
-                    "Tên hoặc số điện thoại không hợp lệ."
-            );
-        }
+        /*
+         * selectedCartItemIds == null
+         * dùng cho method tương thích cũ:
+         * checkout toàn bộ Cart.
+         *
+         * CheckoutServlet mới luôn truyền List.
+         */
+        boolean selectedMode =
+                selectedCartItemIds != null;
 
 
-        if (shippingFee == null
-                || shippingFee.signum() < 0) {
-
-            throw new IllegalArgumentException(
-                    "Phí vận chuyển không hợp lệ."
-            );
-        }
-
-
-        if (discountAmount == null
-                || discountAmount.signum() < 0) {
-
-            throw new IllegalArgumentException(
-                    "Số tiền giảm giá không hợp lệ."
-            );
-        }
-
-
-        boolean selectedMode
-                = selectedCartItemIds != null;
-
-
-        List<Integer> selectedIds
-                = new ArrayList<>();
+        List<Integer> selectedIds =
+                new ArrayList<>();
 
 
         if (selectedMode) {
@@ -176,9 +222,13 @@ public class OrderService {
 
                 if (id != null
                         && id > 0
-                        && !selectedIds.contains(id)) {
+                        && !selectedIds.contains(
+                                id
+                        )) {
 
-                    selectedIds.add(id);
+                    selectedIds.add(
+                            id
+                    );
                 }
             }
 
@@ -186,49 +236,54 @@ public class OrderService {
             if (selectedIds.isEmpty()) {
 
                 throw new IllegalArgumentException(
-                        "Vui lòng chọn sản phẩm để đặt hàng."
+                        "Vui lòng chọn sản phẩm "
+                        + "để đặt hàng."
                 );
             }
         }
 
 
-        Connection conn
-                = new DBContext()
-                        .getConnection();
+        try (
+            Connection conn =
+                    new DBContext()
+                            .getConnection()
+        ) {
+
+            if (conn == null) {
+
+                throw new SQLException(
+                        "Không kết nối được database."
+                );
+            }
 
 
-        if (conn == null) {
-
-            throw new SQLException(
-                    "Không thể kết nối database."
+            conn.setAutoCommit(
+                    false
             );
-        }
-
-
-        try (Connection closeMe = conn) {
-
-            conn.setAutoCommit(false);
 
 
             try {
 
                 // =========================================
-                // LOCK CART
+                // 1. LOCK CART
                 // =========================================
 
                 int cartId;
 
 
-                String cartSql
-                        = "SELECT cart_id "
+                String sql =
+                        "SELECT cart_id "
                         + "FROM dbo.CART "
                         + "WITH (UPDLOCK, HOLDLOCK) "
                         + "WHERE user_id = ?";
 
 
-                try (PreparedStatement ps
-                        = conn.prepareStatement(
-                                cartSql)) {
+                try (
+                    PreparedStatement ps =
+                            conn.prepareStatement(
+                                    sql
+                            )
+                ) {
 
                     ps.setInt(
                             1,
@@ -236,8 +291,10 @@ public class OrderService {
                     );
 
 
-                    try (ResultSet rs
-                            = ps.executeQuery()) {
+                    try (
+                        ResultSet rs =
+                                ps.executeQuery()
+                    ) {
 
                         if (!rs.next()) {
 
@@ -247,8 +304,8 @@ public class OrderService {
                         }
 
 
-                        cartId
-                                = rs.getInt(
+                        cartId =
+                                rs.getInt(
                                         "cart_id"
                                 );
                     }
@@ -256,33 +313,67 @@ public class OrderService {
 
 
                 // =========================================
-                // ADDRESS
+                // 2. IDEMPOTENCY TOKEN
                 // =========================================
 
-                String addressSql
-                        = "SELECT "
+                Integer existingOrderId =
+                        orderDAO.findIdByToken(
+                                conn,
+                                userId,
+                                checkoutToken
+                        );
+
+
+                if (existingOrderId != null) {
+
+                    conn.commit();
+
+                    return existingOrderId;
+                }
+
+
+                // =========================================
+                // 3. ADDRESS
+                // =========================================
+
+                Order order =
+                        new Order();
+
+
+                order.setUserId(
+                        userId
+                );
+
+
+                order.setAddressId(
+                        addressId
+                );
+
+
+                sql =
+                        "SELECT "
                         + "recipient_name, "
                         + "phone_number, "
                         + "address_line "
                         + "FROM dbo.ADDRESSBOOK "
+                        + "WITH (HOLDLOCK) "
                         + "WHERE address_id = ? "
                         + "AND user_id = ? "
                         + "AND is_deleted = 0";
 
 
-                String recipientName;
-                String recipientPhone;
-                String shippingAddress;
-
-
-                try (PreparedStatement ps
-                        = conn.prepareStatement(
-                                addressSql)) {
+                try (
+                    PreparedStatement ps =
+                            conn.prepareStatement(
+                                    sql
+                            )
+                ) {
 
                     ps.setInt(
                             1,
                             addressId
                     );
+
 
                     ps.setInt(
                             2,
@@ -290,92 +381,117 @@ public class OrderService {
                     );
 
 
-                    try (ResultSet rs
-                            = ps.executeQuery()) {
+                    try (
+                        ResultSet rs =
+                                ps.executeQuery()
+                    ) {
 
                         if (!rs.next()) {
 
                             throw new IllegalArgumentException(
-                                    "Địa chỉ không tồn tại hoặc đã bị xóa."
+                                    "Địa chỉ không tồn tại "
+                                    + "hoặc đã bị xóa."
                             );
                         }
 
 
-                        recipientName
-                                = rs.getString(
+                        order.setRecipientName(
+                                rs.getString(
                                         "recipient_name"
-                                );
+                                )
+                        );
 
-                        recipientPhone
-                                = rs.getString(
+
+                        order.setRecipientPhone(
+                                rs.getString(
                                         "phone_number"
-                                );
+                                )
+                        );
 
-                        shippingAddress
-                                = rs.getString(
+
+                        order.setShippingAddress(
+                                rs.getString(
                                         "address_line"
-                                );
+                                )
+                        );
                     }
                 }
 
 
                 // =========================================
-                // CART ITEMS
+                // 4. SELECT CART ITEMS
                 // =========================================
 
-                List<CartLine> lines
-                        = new ArrayList<>();
+                List<CartLine> lines =
+                        new ArrayList<>();
 
 
-                BigDecimal subtotal
-                        = BigDecimal.ZERO;
+                BigDecimal subtotal =
+                        BigDecimal.ZERO;
 
 
-                StringBuilder itemsSql
-                        = new StringBuilder();
+                StringBuilder itemsSql =
+                        new StringBuilder();
 
 
                 itemsSql.append(
                         "SELECT "
                 );
 
+
                 itemsSql.append(
                         "ci.cart_item_id, "
                 );
+
 
                 itemsSql.append(
                         "ci.sku_id, "
                 );
 
+
                 itemsSql.append(
                         "ci.quantity, "
                 );
+
 
                 itemsSql.append(
                         "s.price "
                 );
 
+
                 itemsSql.append(
                         "FROM dbo.CART_ITEMS ci "
                 );
+
 
                 itemsSql.append(
                         "WITH (UPDLOCK, HOLDLOCK) "
                 );
 
+
                 itemsSql.append(
                         "JOIN dbo.PRODUCT_SKU s "
                 );
 
+
+                itemsSql.append(
+                        "WITH (UPDLOCK, HOLDLOCK) "
+                );
+
+
                 itemsSql.append(
                         "ON s.sku_id = ci.sku_id "
                 );
+
 
                 itemsSql.append(
                         "WHERE ci.cart_id = ? "
                 );
 
 
+                /*
+                 * Chỉ lấy những cart_item_id user đã tick.
+                 */
                 if (selectedMode) {
 
                     itemsSql.append(
@@ -384,18 +500,26 @@ public class OrderService {
 
 
                     for (int i = 0;
-                         i < selectedIds.size();
-                         i++) {
+                            i < selectedIds.size();
+                            i++) {
 
                         if (i > 0) {
-                            itemsSql.append(",");
+
+                            itemsSql.append(
+                                    ","
+                            );
                         }
 
-                        itemsSql.append("?");
+
+                        itemsSql.append(
+                                "?"
+                        );
                     }
 
 
-                    itemsSql.append(") ");
+                    itemsSql.append(
+                            ") "
+                    );
                 }
 
 
@@ -404,11 +528,15 @@ public class OrderService {
                 );
 
 
-                try (PreparedStatement ps
-                        = conn.prepareStatement(
-                                itemsSql.toString())) {
+                try (
+                    PreparedStatement ps =
+                            conn.prepareStatement(
+                                    itemsSql.toString()
+                            )
+                ) {
 
-                    int index = 1;
+                    int index =
+                            1;
 
 
                     ps.setInt(
@@ -430,31 +558,33 @@ public class OrderService {
                     }
 
 
-                    try (ResultSet rs
-                            = ps.executeQuery()) {
+                    try (
+                        ResultSet rs =
+                                ps.executeQuery()
+                    ) {
 
                         while (rs.next()) {
 
-                            int itemId
-                                    = rs.getInt(
+                            int cartItemId =
+                                    rs.getInt(
                                             "cart_item_id"
                                     );
 
 
-                            int skuId
-                                    = rs.getInt(
+                            int skuId =
+                                    rs.getInt(
                                             "sku_id"
                                     );
 
 
-                            int quantity
-                                    = rs.getInt(
+                            int quantity =
+                                    rs.getInt(
                                             "quantity"
                                     );
 
 
-                            BigDecimal price
-                                    = rs.getBigDecimal(
+                            BigDecimal price =
+                                    rs.getBigDecimal(
                                             "price"
                                     );
 
@@ -464,14 +594,15 @@ public class OrderService {
                                     || price.signum() < 0) {
 
                                 throw new IllegalArgumentException(
-                                        "Sản phẩm trong giỏ hàng không hợp lệ."
+                                        "Sản phẩm trong giỏ hàng "
+                                        + "không hợp lệ."
                                 );
                             }
 
 
                             lines.add(
                                     new CartLine(
-                                            itemId,
+                                            cartItemId,
                                             skuId,
                                             quantity,
                                             price
@@ -479,8 +610,8 @@ public class OrderService {
                             );
 
 
-                            subtotal
-                                    = subtotal.add(
+                            subtotal =
+                                    subtotal.add(
                                             price.multiply(
                                                     BigDecimal.valueOf(
                                                             quantity
@@ -495,11 +626,17 @@ public class OrderService {
                 if (lines.isEmpty()) {
 
                     throw new IllegalArgumentException(
-                            "Giỏ hàng đang trống."
+                            selectedMode
+                            ? "Không tìm thấy sản phẩm đã chọn."
+                            : "Giỏ hàng đang trống."
                     );
                 }
 
 
+                /*
+                 * Có item bị xóa / không thuộc Cart user
+                 * thì số record sẽ không khớp.
+                 */
                 if (selectedMode
                         && lines.size()
                         != selectedIds.size()) {
@@ -512,68 +649,76 @@ public class OrderService {
 
 
                 // =========================================
-                // DISCOUNT
+                // 5. VOUCHER
                 // =========================================
 
-                if (discountAmount
-                        .compareTo(
+                VoucherResult voucher =
+                        lockAndCalculateVoucher(
+                                conn,
+                                userId,
+                                voucherCode,
                                 subtotal
-                        ) > 0) {
-
-                    throw new IllegalArgumentException(
-                            "Số tiền giảm giá vượt quá giá trị đơn hàng."
-                    );
-                }
+                        );
 
 
                 // =========================================
-                // TOTAL
+                // 6. TOTAL
                 // =========================================
 
-                BigDecimal totalAmount
-                        = subtotal
+                BigDecimal shippingFee =
+                        BigDecimal.ZERO;
+
+
+                BigDecimal totalAmount =
+                        subtotal
                                 .add(
                                         shippingFee
                                 )
                                 .subtract(
-                                        discountAmount
+                                        voucher.discount
                                 );
 
 
                 if (totalAmount.signum() < 0) {
 
-                    totalAmount
-                            = BigDecimal.ZERO;
+                    totalAmount =
+                            BigDecimal.ZERO;
                 }
 
 
                 // =========================================
-                // STOCK
+                // 7. STOCK
                 // =========================================
 
-                for (CartLine line : lines) {
-
-                    String stockSql
-                            = "UPDATE dbo.PRODUCT_SKU "
-                            + "SET stock_quantity = "
-                            + "stock_quantity - ? "
-                            + "WHERE sku_id = ? "
-                            + "AND stock_quantity >= ?";
+                sql =
+                        "UPDATE dbo.PRODUCT_SKU "
+                        + "SET stock_quantity = "
+                        + "stock_quantity - ? "
+                        + "WHERE sku_id = ? "
+                        + "AND stock_quantity >= ?";
 
 
-                    try (PreparedStatement ps
-                            = conn.prepareStatement(
-                                    stockSql)) {
+                try (
+                    PreparedStatement ps =
+                            conn.prepareStatement(
+                                    sql
+                            )
+                ) {
+
+                    for (CartLine line
+                            : lines) {
 
                         ps.setInt(
                                 1,
                                 line.quantity
                         );
 
+
                         ps.setInt(
                                 2,
                                 line.skuId
                         );
+
 
                         ps.setInt(
                                 3,
@@ -587,7 +732,7 @@ public class OrderService {
                             throw new IllegalArgumentException(
                                     "Sản phẩm SKU "
                                     + line.skuId
-                                    + " không đủ tồn kho."
+                                    + " không đủ số lượng tồn kho."
                             );
                         }
                     }
@@ -595,72 +740,46 @@ public class OrderService {
 
 
                 // =========================================
-                // ORDER
+                // 8. CREATE ORDER
                 // =========================================
-
-                Order order
-                        = new Order();
-
-
-                order.setUserId(
-                        userId
-                );
-
-                order.setAddressId(
-                        addressId
-                );
-
-                order.setRecipientName(
-                        recipientName
-                );
-
-                order.setRecipientPhone(
-                        recipientPhone
-                );
-
-                order.setShippingAddress(
-                        shippingAddress
-                );
 
                 order.setShippingFee(
                         shippingFee
                 );
 
+
                 order.setDiscountAmount(
-                        discountAmount
+                        voucher.discount
                 );
+
 
                 order.setTotalAmount(
                         totalAmount
                 );
 
+
                 order.setOrderStatus(
                         "PENDING_CONFIRMATION"
                 );
+
 
                 order.setPaymentMethod(
                         "COD"
                 );
 
 
-                if (totalAmount.signum() == 0) {
-
-                    order.setPaymentStatus(
-                            "PAID"
-                    );
-
-                } else {
-
-                    order.setPaymentStatus(
-                            "UNPAID"
-                    );
-                }
+                order.setPaymentStatus(
+                        totalAmount.signum() == 0
+                        ? "PAID"
+                        : "UNPAID"
+                );
 
 
-                int orderId
-                        = orderDAO.insert(
+                int orderId =
+                        orderDAO.insert(
                                 conn,
-                                order
+                                order,
+                                checkoutToken
                         );
 
 
@@ -673,10 +792,11 @@ public class OrderService {
 
 
                 // =========================================
-                // ORDER ITEMS
+                // 9. ORDER ITEMS
                 // =========================================
 
-                for (CartLine line : lines) {
+                for (CartLine line
+                        : lines) {
 
                     orderDAO.insertItem(
                             conn,
@@ -689,7 +809,7 @@ public class OrderService {
 
 
                 // =========================================
-                // HISTORY
+                // 10. ORDER HISTORY
                 // =========================================
 
                 orderDAO.addHistory(
@@ -700,89 +820,79 @@ public class OrderService {
 
 
                 // =========================================
-                // DELETE CART ITEMS
+                // 11. SAVE VOUCHER USAGE
                 // =========================================
 
-                if (selectedMode) {
+                if (voucher.id != null) {
 
-                    StringBuilder deleteSql
-                            = new StringBuilder();
-
-
-                    deleteSql.append(
-                            "DELETE FROM dbo.CART_ITEMS "
-                    );
-
-                    deleteSql.append(
-                            "WHERE cart_id = ? "
-                    );
-
-                    deleteSql.append(
-                            "AND cart_item_id IN ("
-                    );
+                    sql =
+                            "INSERT INTO dbo.VOUCHER_USAGES "
+                            + "(voucher_id, order_id, user_id) "
+                            + "VALUES (?, ?, ?)";
 
 
-                    for (int i = 0;
-                         i < selectedIds.size();
-                         i++) {
-
-                        if (i > 0) {
-                            deleteSql.append(",");
-                        }
-
-                        deleteSql.append("?");
-                    }
-
-
-                    deleteSql.append(")");
-
-
-                    try (PreparedStatement ps
-                            = conn.prepareStatement(
-                                    deleteSql.toString())) {
-
-                        int index = 1;
-
+                    try (
+                        PreparedStatement ps =
+                                conn.prepareStatement(
+                                        sql
+                                )
+                    ) {
 
                         ps.setInt(
-                                index++,
-                                cartId
+                                1,
+                                voucher.id
                         );
 
 
-                        for (Integer id
-                                : selectedIds) {
-
-                            ps.setInt(
-                                    index++,
-                                    id
-                            );
-                        }
+                        ps.setInt(
+                                2,
+                                orderId
+                        );
 
 
-                        int deleted
-                                = ps.executeUpdate();
+                        ps.setInt(
+                                3,
+                                userId
+                        );
 
 
-                        if (deleted
-                                != selectedIds.size()) {
+                        if (ps.executeUpdate()
+                                != 1) {
 
                             throw new SQLException(
-                                    "Không thể cập nhật giỏ hàng."
+                                    "Không lưu được lượt "
+                                    + "sử dụng Voucher."
                             );
                         }
                     }
-
-                } else {
-
-                    String deleteSql
-                            = "DELETE FROM dbo.CART_ITEMS "
-                            + "WHERE cart_id = ?";
+                }
 
 
-                    try (PreparedStatement ps
-                            = conn.prepareStatement(
-                                    deleteSql)) {
+                // =========================================
+                // 12. DELETE PURCHASED CART ITEMS
+                // =========================================
+
+                /*
+                 * Không DELETE toàn bộ cart.
+                 *
+                 * Chỉ xóa những cart_item_id thực sự
+                 * đã được đưa vào Order.
+                 */
+                sql =
+                        "DELETE FROM dbo.CART_ITEMS "
+                        + "WHERE cart_id = ? "
+                        + "AND cart_item_id = ?";
+
+
+                try (
+                    PreparedStatement ps =
+                            conn.prepareStatement(
+                                    sql
+                            )
+                ) {
+
+                    for (CartLine line
+                            : lines) {
 
                         ps.setInt(
                                 1,
@@ -790,13 +900,26 @@ public class OrderService {
                         );
 
 
-                        ps.executeUpdate();
+                        ps.setInt(
+                                2,
+                                line.cartItemId
+                        );
+
+
+                        if (ps.executeUpdate()
+                                != 1) {
+
+                            throw new SQLException(
+                                    "Không xóa được sản phẩm "
+                                    + "đã đặt khỏi giỏ hàng."
+                            );
+                        }
                     }
                 }
 
 
                 // =========================================
-                // COMMIT
+                // 13. COMMIT
                 // =========================================
 
                 conn.commit();
@@ -808,28 +931,320 @@ public class OrderService {
             } catch (SQLException
                     | RuntimeException e) {
 
-                conn.rollback();
+                try {
+
+                    conn.rollback();
+
+                } catch (SQLException rollbackError) {
+
+                    e.addSuppressed(
+                            rollbackError
+                    );
+                }
+
 
                 throw e;
-
-            } finally {
-
-                conn.setAutoCommit(
-                        true
-                );
             }
         }
     }
 
 
     // =====================================================
-    // BLANK
+    // LOCK + VALIDATE + CALCULATE VOUCHER
     // =====================================================
-    private static boolean isBlank(
-            String value) {
+    private VoucherResult lockAndCalculateVoucher(
+            Connection conn,
+            int userId,
+            String voucherCode,
+            BigDecimal subtotal
+    ) throws SQLException {
 
-        return value == null
-                || value.trim()
-                        .isEmpty();
+        /*
+         * User không chọn Voucher.
+         */
+        if (voucherCode == null
+                || voucherCode.trim().isEmpty()) {
+
+            return new VoucherResult(
+                    null,
+                    BigDecimal.ZERO
+            );
+        }
+
+
+        String sql =
+                "SELECT "
+                + "voucher_id, "
+                + "discount_type, "
+                + "discount_value, "
+                + "max_discount, "
+                + "usage_limit, "
+                + "per_user_limit "
+                + "FROM dbo.VOUCHER "
+                + "WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE UPPER(code) = UPPER(?) "
+                + "AND GETDATE() "
+                + "BETWEEN valid_from AND valid_to "
+                + "AND min_order_value <= ?";
+
+
+        int voucherId;
+
+        String discountType;
+
+        BigDecimal discountValue;
+
+        BigDecimal maxDiscount;
+
+        Integer usageLimit;
+
+        Integer perUserLimit;
+
+
+        try (
+            PreparedStatement ps =
+                    conn.prepareStatement(
+                            sql
+                    )
+        ) {
+
+            ps.setString(
+                    1,
+                    voucherCode.trim()
+            );
+
+
+            ps.setBigDecimal(
+                    2,
+                    subtotal
+            );
+
+
+            try (
+                ResultSet rs =
+                        ps.executeQuery()
+            ) {
+
+                if (!rs.next()) {
+
+                    throw new IllegalArgumentException(
+                            "Voucher hết hạn hoặc đơn hàng "
+                            + "chưa đủ điều kiện áp dụng."
+                    );
+                }
+
+
+                voucherId =
+                        rs.getInt(
+                                "voucher_id"
+                        );
+
+
+                discountType =
+                        rs.getString(
+                                "discount_type"
+                        );
+
+
+                discountValue =
+                        rs.getBigDecimal(
+                                "discount_value"
+                        );
+
+
+                maxDiscount =
+                        rs.getBigDecimal(
+                                "max_discount"
+                        );
+
+
+                Object usageValue =
+                        rs.getObject(
+                                "usage_limit"
+                        );
+
+
+                usageLimit =
+                        usageValue == null
+                        ? null
+                        : ((Number) usageValue)
+                                .intValue();
+
+
+                Object perUserValue =
+                        rs.getObject(
+                                "per_user_limit"
+                        );
+
+
+                perUserLimit =
+                        perUserValue == null
+                        ? null
+                        : ((Number) perUserValue)
+                                .intValue();
+            }
+        }
+
+
+        if (discountValue == null
+                || discountValue.signum() <= 0) {
+
+            throw new IllegalArgumentException(
+                    "Voucher có giá trị giảm không hợp lệ."
+            );
+        }
+
+
+        // =================================================
+        // USAGE LIMITS
+        // =================================================
+
+        sql =
+                "SELECT "
+                + "COUNT_BIG(*) AS total_used, "
+                + "COALESCE("
+                + "SUM("
+                + "CASE WHEN user_id = ? "
+                + "THEN CAST(1 AS bigint) "
+                + "ELSE 0 END"
+                + "), 0"
+                + ") AS user_used "
+                + "FROM dbo.VOUCHER_USAGES "
+                + "WHERE voucher_id = ?";
+
+
+        try (
+            PreparedStatement ps =
+                    conn.prepareStatement(
+                            sql
+                    )
+        ) {
+
+            ps.setInt(
+                    1,
+                    userId
+            );
+
+
+            ps.setInt(
+                    2,
+                    voucherId
+            );
+
+
+            try (
+                ResultSet rs =
+                        ps.executeQuery()
+            ) {
+
+                rs.next();
+
+
+                long totalUsed =
+                        rs.getLong(
+                                "total_used"
+                        );
+
+
+                long userUsed =
+                        rs.getLong(
+                                "user_used"
+                        );
+
+
+                if (usageLimit != null
+                        && totalUsed
+                        >= usageLimit) {
+
+                    throw new IllegalArgumentException(
+                            "Voucher đã hết lượt sử dụng."
+                    );
+                }
+
+
+                if (perUserLimit != null
+                        && userUsed
+                        >= perUserLimit) {
+
+                    throw new IllegalArgumentException(
+                            "Bạn đã dùng hết lượt "
+                            + "của Voucher này."
+                    );
+                }
+            }
+        }
+
+
+        // =================================================
+        // CALCULATE DISCOUNT
+        // =================================================
+
+        BigDecimal discount;
+
+
+        if ("AMOUNT".equalsIgnoreCase(
+                discountType
+        )) {
+
+            discount =
+                    discountValue;
+
+
+        } else if ("PERCENT".equalsIgnoreCase(
+                discountType
+        )) {
+
+            discount =
+                    subtotal.multiply(
+                            discountValue
+                    ).divide(
+                            BigDecimal.valueOf(
+                                    100
+                            ),
+                            2,
+                            RoundingMode.HALF_UP
+                    );
+
+
+            if (maxDiscount != null) {
+
+                discount =
+                        discount.min(
+                                maxDiscount
+                        );
+            }
+
+
+        } else {
+
+            throw new IllegalArgumentException(
+                    "Loại Voucher không được hỗ trợ."
+            );
+        }
+
+
+        /*
+         * Discount:
+         *
+         * 0 <= discount <= subtotal
+         */
+        discount =
+                discount
+                        .max(
+                                BigDecimal.ZERO
+                        )
+                        .min(
+                                subtotal
+                        )
+                        .setScale(
+                                2,
+                                RoundingMode.HALF_UP
+                        );
+
+
+        return new VoucherResult(
+                voucherId,
+                discount
+        );
     }
 }

@@ -33,6 +33,26 @@
                         <c:remove var="logoutMessage" scope="session"/>
                     </c:if>
 
+                    <!-- THÔNG BÁO RESET PASSWORD THÀNH CÔNG -->
+                    <c:if test="${not empty sessionScope.resetPasswordMessage}">
+                        <div class="alert alert-success alert-dismissible fade show"
+                             role="alert">
+
+                            <i class="bi bi-check-circle-fill me-2"></i>
+
+                            <c:out value="${sessionScope.resetPasswordMessage}"/>
+
+                            <button type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="alert"
+                                    aria-label="Close">
+                            </button>
+
+                        </div>
+
+                        <c:remove var="resetPasswordMessage" scope="session"/>
+                    </c:if>
+
                     <!-- FORM ĐĂNG NHẬP -->
                     <form action="${pageContext.request.contextPath}/login" method="post">
                         <div class="mb-3">
@@ -52,7 +72,7 @@
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center mb-3">
- 
+
                             <a href="${pageContext.request.contextPath}/forgot-password" class="text-decoration-none small text-primary">Quên mật khẩu?</a>
                         </div>
 
@@ -88,7 +108,7 @@
             togglePassword.addEventListener('click', function () {
                 const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
                 password.setAttribute('type', type);
-                
+
                 toggleIcon.classList.toggle('bi-eye');
                 toggleIcon.classList.toggle('bi-eye-slash');
             });
