@@ -53,7 +53,7 @@ public class AuthFilter implements Filter {
             "/category",
             "/product",
             "/admin/orders",
-            "/admin/voucher"
+            "/staff/voucher"
     );
 
     // =====================================================
@@ -190,7 +190,8 @@ public class AuthFilter implements Filter {
         // =====================================================
         boolean isStaffUrl
                 = STAFF_URLS.contains(relativePath)
-                || relativePath.startsWith("/admin/orders/");
+                || relativePath.startsWith("/admin/orders/")
+                || relativePath.startsWith("/staff/voucher/");
 
         if (isStaffUrl && !user.isStaff()) {
 

@@ -57,6 +57,7 @@ public final class CheckoutIntegrationChecks {
                 cancelTwice(orderId);
                 invalidAndRollback();
                 purchaseHistoryChecks();
+                selectedCheckoutChecks();
                 servletGuards();
                 System.out.println("PASS: " + passed + " checkout/order integration assertions");
             } finally {
@@ -234,6 +235,40 @@ public final class CheckoutIntegrationChecks {
         check(OrderService.trackingSteps(shipping, java.util.Collections.emptyList()).isEmpty(), "unknown status does not fabricate progress");
         shipping.setOrderStatus("DELIVERED");
         check(Boolean.TRUE.equals(OrderService.trackingSteps(shipping, java.util.Collections.emptyList()).get(4).get("current")), "delivered order reaches final tracking step");
+    }
+
+    private void selectedCheckoutChecks() throws Exception {
+        execute("INSERT INTO dbo.PRODUCT_SKU(product_id,sku_code,price,stock_quantity) VALUES (1,'UNSELECTED-SKU',50000,10)");
+        execute("INSERT INTO dbo.CART_ITEMS(cart_id,sku_id,quantity) VALUES (1,1,2),(1,2,3),(2,1,1)");
+        int selectedId = (int) scalar("SELECT cart_item_id FROM dbo.CART_ITEMS WHERE cart_id=1 AND sku_id=1");
+        int foreignId = (int) scalar("SELECT cart_item_id FROM dbo.CART_ITEMS WHERE cart_id=2");
+        long ordersBefore = scalar("SELECT COUNT(*) FROM dbo.[ORDER]");
+        long stockBefore = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+        expectInvalid(() -> checkout.placeCodOrder(1, 1, UUID.randomUUID().toString(), null,
+                java.util.Collections.emptyList()), "empty selection cannot checkout the whole cart");
+        expectInvalid(() -> checkout.placeCodOrder(1, 1, UUID.randomUUID().toString(), null,
+                java.util.Arrays.asList(selectedId, foreignId)), "selection cannot include another customer's cart item");
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER]") == ordersBefore
+                && scalar("SELECT COUNT(*) FROM dbo.CART_ITEMS WHERE cart_id=1") == 2,
+                "invalid selection preserves orders and cart");
+        String token = UUID.randomUUID().toString();
+        int orderId = checkout.placeCodOrder(1, 1, token, "TEST10",
+                java.util.Arrays.asList(selectedId, selectedId));
+        check(scalar("SELECT COUNT(*) FROM dbo.ORDER_ITEM WHERE order_id=" + orderId) == 1
+                && scalar("SELECT quantity FROM dbo.ORDER_ITEM WHERE order_id=" + orderId) == 2,
+                "selected checkout deduplicates item IDs");
+        check(scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + orderId) == 390000,
+                "selected checkout applies voucher only to purchased items");
+        check(scalar("SELECT COUNT(*) FROM dbo.CART_ITEMS WHERE cart_id=1") == 1
+                && scalar("SELECT quantity FROM dbo.CART_ITEMS WHERE cart_id=1 AND sku_id=2") == 3,
+                "unselected items stay in cart");
+        check(checkout.placeCodOrder(1, 1, token, "TEST10", java.util.Arrays.asList(selectedId)) == orderId
+                && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stockBefore - 2,
+                "selected checkout replay does not deduct stock again");
+        check(checkout.cancelOrderByCustomer(1, orderId)
+                && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stockBefore
+                && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=2") == 10,
+                "cancelling selected checkout restores only purchased stock");
     }
 
     private void servletGuards() throws Exception {

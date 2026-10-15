@@ -2,274 +2,1153 @@ package controller;
 
 import dao.CartDAO;
 import dao.VoucherDAO;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+
 import model.CartItem;
 import model.User;
 import model.Voucher;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
 import java.io.IOException;
+
+import java.util.ArrayList;
 import java.util.List;
 
-@WebServlet(name = "CartServlet", urlPatterns = {"/cart"})
+@WebServlet(
+        name = "CartServlet",
+        urlPatterns = {"/cart"}
+)
 public class CartServlet extends HttpServlet {
 
-    private CartDAO cartDAO;
-    private VoucherDAO voucherDAO;
+    private final CartDAO cartDAO
+            = new CartDAO();
 
-    @Override
-    public void init() throws ServletException {
-        cartDAO = new CartDAO();
-        voucherDAO = new VoucherDAO();
-    }
+    private final VoucherDAO voucherDAO
+            = new VoucherDAO();
 
+
+    // =====================================================
+    // GET
+    // =====================================================
     @Override
     protected void doGet(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
-        processRequest(request, response);
+
+        User user
+                = getLoggedInUser(request);
+
+        if (user == null) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/login"
+            );
+
+            return;
+        }
+
+
+        /*
+         * Giữ tương thích với link cũ:
+         *
+         * /cart?action=remove
+         * /cart?action=clear
+         */
+        String action
+                = request.getParameter(
+                        "action"
+                );
+
+
+        if ("remove".equals(action)) {
+
+            removeItem(
+                    request,
+                    response,
+                    user
+            );
+
+            return;
+        }
+
+
+        if ("clear".equals(action)) {
+
+            clearCart(
+                    request,
+                    response,
+                    user
+            );
+
+            return;
+        }
+
+
+        showCart(
+                request,
+                response,
+                user
+        );
     }
 
+
+    // =====================================================
+    // POST
+    // =====================================================
     @Override
     protected void doPost(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
-        processRequest(request, response);
-    }
 
-    private void processRequest(
-            HttpServletRequest request,
-            HttpServletResponse response)
-            throws ServletException, IOException {
+        request.setCharacterEncoding(
+                "UTF-8"
+        );
 
-        request.setCharacterEncoding("UTF-8");
-        HttpSession session = request.getSession();
+        User user
+                = getLoggedInUser(request);
 
-        User loggedInUser = (User) session.getAttribute("loggedInUser");
 
-        if (loggedInUser == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
+        if (user == null) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/login"
+            );
+
             return;
         }
 
-        int userId = loggedInUser.getUserId();
-        int cartId = cartDAO.getOrCreateCart(userId);
 
-        String action = request.getParameter("action");
+        String action
+                = request.getParameter(
+                        "action"
+                );
 
-        if (action == null || action.trim().isEmpty()) {
-            action = "view";
-        }
 
-        switch (action) {
-            case "add":
-                addToCart(request, response, cartId);
-                break;
+        if ("add".equals(action)) {
 
-            case "update":
-                updateCart(request, response);
-                break;
+            addItem(
+                    request,
+                    response,
+                    user
+            );
 
-            case "remove":
-                removeItem(request, response);
-                break;
+        } else if ("update".equals(action)) {
 
-            case "clear":
-                clearCart(request, response, cartId);
-                break;
+            updateItem(
+                    request,
+                    response,
+                    user
+            );
 
-            case "applyVoucher":
-                applyVoucher(request, response, cartId, userId);
-                break;
+        } else if ("remove".equals(action)) {
 
-            case "removeVoucher":
-                removeVoucher(request, response);
-                break;
+            removeItem(
+                    request,
+                    response,
+                    user
+            );
 
-            default:
-                showCart(request, response, cartId, userId);
-                break;
+        } else if ("clear".equals(action)) {
+
+            clearCart(
+                    request,
+                    response,
+                    user
+            );
+
+        } else if ("applyVoucher".equals(action)) {
+
+            applyVoucher(
+                    request,
+                    response,
+                    user
+            );
+
+        } else if ("removeVoucher".equals(action)) {
+
+            removeVoucher(
+                    request,
+                    response,
+                    user
+            );
+
+        } else {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/cart"
+            );
         }
     }
 
+
+    // =====================================================
+    // SHOW CART
+    // =====================================================
     private void showCart(
             HttpServletRequest request,
             HttpServletResponse response,
-            int cartId,
-            int userId)
+            User user)
             throws ServletException, IOException {
 
-        List<CartItem> cartItems = cartDAO.getCartItems(cartId);
-        double total = cartDAO.getCartTotal(cartId);
+        HttpSession session
+                = request.getSession();
 
-        Voucher voucher = (Voucher) request.getSession().getAttribute("appliedVoucher");
+
+        int cartId
+                = cartDAO.getCartIdByUserId(
+                        user.getUserId()
+                );
+
+
+        List<CartItem> cartItems
+                = new ArrayList<>();
+
+
+        if (cartId > 0) {
+
+            cartItems
+                    = cartDAO.getCartItems(
+                            cartId
+                    );
+        }
+
+
+        double total = 0;
+
+        if (cartId > 0) {
+
+            total
+                    = cartDAO.getCartTotal(
+                            cartId
+                    );
+        }
+
+
+        // =================================================
+        // SELECTED ITEMS
+        // =================================================
+
+        List<Integer> selectedIds
+                = getSelectedIdsFromSession(
+                        session
+                );
+
+
+        selectedIds
+                = sanitizeSelectedIds(
+                        cartItems,
+                        selectedIds
+                );
+
+
+        /*
+         * Chưa có selection:
+         * mặc định tick tất cả item còn hàng.
+         */
+        if (selectedIds.isEmpty()
+                && !cartItems.isEmpty()) {
+
+            for (CartItem item : cartItems) {
+
+                if (item.getStockQuantity() > 0) {
+
+                    selectedIds.add(
+                            item.getCartItemId()
+                    );
+                }
+            }
+        }
+
+
+        session.setAttribute(
+                "checkoutSelectedItemIds",
+                selectedIds
+        );
+
+
+        // =================================================
+        // SELECTED TOTAL
+        // =================================================
+
+        double selectedTotal = 0;
+
+
+        if (cartId > 0
+                && !selectedIds.isEmpty()) {
+
+            selectedTotal
+                    = cartDAO.getCartTotalByIds(
+                            cartId,
+                            selectedIds
+                    );
+        }
+
+
+        // =================================================
+        // AVAILABLE VOUCHERS
+        // =================================================
+
+        List<Voucher> availableVouchers
+                = voucherDAO
+                        .getAvailableVouchers(
+                                selectedTotal,
+                                user.getUserId()
+                        );
+
+
+        // =================================================
+        // APPLIED VOUCHER
+        // =================================================
+
+        Voucher appliedVoucher
+                = (Voucher)
+                        session.getAttribute(
+                                "appliedVoucher"
+                        );
+
+
         double discount = 0;
 
-        if (voucher != null) {
-            Voucher validVoucher = voucherDAO.getValidVoucher(voucher.getCode(), total, userId);
 
-            if (validVoucher != null) {
-                voucher = validVoucher;
-                discount = voucherDAO.calculateDiscount(voucher, total);
-                request.getSession().setAttribute("appliedVoucher", voucher);
+        if (appliedVoucher != null) {
+
+            Voucher valid
+                    = voucherDAO.getValidVoucher(
+                            appliedVoucher.getCode(),
+                            selectedTotal,
+                            user.getUserId()
+                    );
+
+
+            if (valid == null) {
+
+                session.removeAttribute(
+                        "appliedVoucher"
+                );
+
+                appliedVoucher = null;
+
             } else {
-                request.getSession().removeAttribute("appliedVoucher");
-                voucher = null;
+
+                appliedVoucher
+                        = valid;
+
+
+                session.setAttribute(
+                        "appliedVoucher",
+                        valid
+                );
+
+
+                discount
+                        = voucherDAO
+                                .calculateDiscount(
+                                        valid,
+                                        selectedTotal
+                                );
             }
         }
 
-        double finalTotal = total - discount;
-        if (finalTotal < 0) {
-            finalTotal = 0;
-        }
 
-        request.setAttribute("cartItems", cartItems);
-        request.setAttribute("total", total);
-        request.setAttribute("discount", discount);
-        request.setAttribute("finalTotal", finalTotal);
-        request.setAttribute("voucher", voucher);
+        double finalSelectedTotal
+                = Math.max(
+                        0,
+                        selectedTotal
+                        - discount
+                );
 
-        request.getRequestDispatcher("/WEB-INF/cart/cart.jsp").forward(request, response);
+
+        // =================================================
+        // ATTRIBUTES
+        // =================================================
+
+        request.setAttribute(
+                "cartItems",
+                cartItems
+        );
+
+        request.setAttribute(
+                "total",
+                total
+        );
+
+        request.setAttribute(
+                "selectedItemIds",
+                selectedIds
+        );
+
+        request.setAttribute(
+                "selectedTotal",
+                selectedTotal
+        );
+
+        request.setAttribute(
+                "availableVouchers",
+                availableVouchers
+        );
+
+        request.setAttribute(
+                "voucher",
+                appliedVoucher
+        );
+
+        request.setAttribute(
+                "appliedVoucher",
+                appliedVoucher
+        );
+
+        request.setAttribute(
+                "discount",
+                discount
+        );
+
+        request.setAttribute(
+                "finalTotal",
+                finalSelectedTotal
+        );
+
+
+        request.getRequestDispatcher(
+                "/WEB-INF/cart/cart.jsp"
+        ).forward(
+                request,
+                response
+        );
     }
 
-    private void addToCart(
+
+    // =====================================================
+    // ADD ITEM
+    // =====================================================
+    private void addItem(
             HttpServletRequest request,
             HttpServletResponse response,
-            int cartId)
+            User user)
             throws IOException {
 
-        try {
-            int skuId = Integer.parseInt(request.getParameter("skuId"));
+        HttpSession session
+                = request.getSession();
 
-            int quantity = 1;
-            String raw = request.getParameter("quantity");
 
-            if (raw != null && !raw.trim().isEmpty()) {
-                quantity = Integer.parseInt(raw);
-            }
+        int skuId
+                = parsePositiveInt(
+                        request.getParameter(
+                                "skuId"
+                        )
+                );
 
-            if (quantity <= 0) {
-                quantity = 1;
-            }
 
-            boolean success = cartDAO.addToCart(cartId, skuId, quantity);
+        int quantity
+                = parsePositiveInt(
+                        request.getParameter(
+                                "quantity"
+                        )
+                );
 
-            if (success) {
-                request.getSession().setAttribute("successMessage", "Đã thêm sản phẩm vào giỏ hàng.");
-            } else {
-                request.getSession().setAttribute("errorMessage", "Không thể thêm sản phẩm hoặc vượt quá tồn kho.");
-            }
 
-        } catch (NumberFormatException e) {
-            request.getSession().setAttribute("errorMessage", "Dữ liệu sản phẩm không hợp lệ.");
+        if (quantity <= 0) {
+            quantity = 1;
         }
 
-        response.sendRedirect(request.getContextPath() + "/cart");
+
+        if (skuId <= 0) {
+
+            session.setAttribute(
+                    "errorMessage",
+                    "Sản phẩm không hợp lệ."
+            );
+
+            redirectCart(
+                    request,
+                    response
+            );
+
+            return;
+        }
+
+
+        int cartId
+                = cartDAO.getOrCreateCart(
+                        user.getUserId()
+                );
+
+
+        boolean success
+                = cartDAO.addToCart(
+                        cartId,
+                        skuId,
+                        quantity
+                );
+
+
+        if (success) {
+
+            session.setAttribute(
+                    "successMessage",
+                    "Đã thêm sản phẩm vào giỏ hàng."
+            );
+
+            /*
+             * Reset selection để lần vào cart sau
+             * mặc định tick tất cả.
+             */
+            session.removeAttribute(
+                    "checkoutSelectedItemIds"
+            );
+
+        } else {
+
+            session.setAttribute(
+                    "errorMessage",
+                    "Không thể thêm sản phẩm. "
+                    + "Vui lòng kiểm tra số lượng tồn kho."
+            );
+        }
+
+
+        redirectCart(
+                request,
+                response
+        );
     }
 
-    private void updateCart(
+
+    // =====================================================
+    // UPDATE ITEM
+    // =====================================================
+    private void updateItem(
             HttpServletRequest request,
-            HttpServletResponse response)
+            HttpServletResponse response,
+            User user)
             throws IOException {
 
-        try {
-            int cartItemId = Integer.parseInt(request.getParameter("cartItemId"));
-            int quantity = Integer.parseInt(request.getParameter("quantity"));
+        HttpSession session
+                = request.getSession();
 
-            boolean success = cartDAO.updateQuantity(cartItemId, quantity);
 
-            if (success) {
-                request.getSession().setAttribute("successMessage", "Cập nhật giỏ hàng thành công.");
-            } else {
-                request.getSession().setAttribute("errorMessage", "Số lượng không hợp lệ hoặc vượt quá tồn kho.");
-            }
+        int cartId
+                = cartDAO.getCartIdByUserId(
+                        user.getUserId()
+                );
 
-        } catch (NumberFormatException e) {
-            request.getSession().setAttribute("errorMessage", "Dữ liệu không hợp lệ.");
+
+        int cartItemId
+                = parsePositiveInt(
+                        request.getParameter(
+                                "cartItemId"
+                        )
+                );
+
+
+        int quantity
+                = parsePositiveInt(
+                        request.getParameter(
+                                "quantity"
+                        )
+                );
+
+
+        if (cartId <= 0
+                || cartItemId <= 0
+                || quantity <= 0) {
+
+            session.setAttribute(
+                    "errorMessage",
+                    "Thông tin cập nhật không hợp lệ."
+            );
+
+            redirectCart(
+                    request,
+                    response
+            );
+
+            return;
         }
 
-        response.sendRedirect(request.getContextPath() + "/cart");
+
+        boolean success
+                = cartDAO.updateQuantity(
+                        cartItemId,
+                        cartId,
+                        quantity
+                );
+
+
+        if (success) {
+
+            session.setAttribute(
+                    "successMessage",
+                    "Đã cập nhật số lượng."
+            );
+
+        } else {
+
+            session.setAttribute(
+                    "errorMessage",
+                    "Không thể cập nhật số lượng. "
+                    + "Có thể số lượng vượt quá tồn kho."
+            );
+        }
+
+
+        redirectCart(
+                request,
+                response
+        );
     }
 
+
+    // =====================================================
+    // REMOVE
+    // =====================================================
     private void removeItem(
             HttpServletRequest request,
-            HttpServletResponse response)
+            HttpServletResponse response,
+            User user)
             throws IOException {
 
-        try {
-            int cartItemId = Integer.parseInt(request.getParameter("cartItemId"));
-            cartDAO.deleteCartItem(cartItemId);
-        } catch (NumberFormatException e) {
-            request.getSession().setAttribute("errorMessage", "Dữ liệu không hợp lệ.");
+        HttpSession session
+                = request.getSession();
+
+
+        int cartId
+                = cartDAO.getCartIdByUserId(
+                        user.getUserId()
+                );
+
+
+        int cartItemId
+                = parsePositiveInt(
+                        request.getParameter(
+                                "cartItemId"
+                        )
+                );
+
+
+        if (cartId <= 0
+                || cartItemId <= 0) {
+
+            session.setAttribute(
+                    "errorMessage",
+                    "Sản phẩm không hợp lệ."
+            );
+
+            redirectCart(
+                    request,
+                    response
+            );
+
+            return;
         }
 
-        response.sendRedirect(request.getContextPath() + "/cart");
+
+        boolean success
+                = cartDAO.deleteCartItem(
+                        cartItemId,
+                        cartId
+                );
+
+
+        if (success) {
+
+            removeSelectedId(
+                    session,
+                    cartItemId
+            );
+
+            session.setAttribute(
+                    "successMessage",
+                    "Đã xóa sản phẩm khỏi giỏ hàng."
+            );
+
+        } else {
+
+            session.setAttribute(
+                    "errorMessage",
+                    "Không thể xóa sản phẩm."
+            );
+        }
+
+
+        redirectCart(
+                request,
+                response
+        );
     }
 
+
+    // =====================================================
+    // CLEAR
+    // =====================================================
     private void clearCart(
             HttpServletRequest request,
             HttpServletResponse response,
-            int cartId)
+            User user)
             throws IOException {
 
-        cartDAO.clearCart(cartId);
-        request.getSession().removeAttribute("appliedVoucher");
-        request.getSession().setAttribute("successMessage", "Đã xóa toàn bộ giỏ hàng.");
+        HttpSession session
+                = request.getSession();
 
-        response.sendRedirect(request.getContextPath() + "/cart");
+
+        int cartId
+                = cartDAO.getCartIdByUserId(
+                        user.getUserId()
+                );
+
+
+        if (cartId > 0) {
+
+            cartDAO.clearCart(
+                    cartId
+            );
+        }
+
+
+        session.removeAttribute(
+                "checkoutSelectedItemIds"
+        );
+
+        session.removeAttribute(
+                "appliedVoucher"
+        );
+
+
+        session.setAttribute(
+                "successMessage",
+                "Đã xóa toàn bộ giỏ hàng."
+        );
+
+
+        redirectCart(
+                request,
+                response
+        );
     }
 
+
+    // =====================================================
+    // APPLY VOUCHER
+    // =====================================================
     private void applyVoucher(
             HttpServletRequest request,
             HttpServletResponse response,
-            int cartId,
-            int userId)
+            User user)
             throws IOException {
 
-        String code = request.getParameter("voucherCode");
+        HttpSession session
+                = request.getSession();
 
-        if (code == null || code.trim().isEmpty()) {
-            request.getSession().setAttribute("errorMessage", "Vui lòng nhập mã Voucher.");
-            response.sendRedirect(request.getContextPath() + "/cart");
+
+        String code
+                = request.getParameter(
+                        "voucherCode"
+                );
+
+
+        List<Integer> selectedIds
+                = parseSelectedIds(
+                        request.getParameterValues(
+                                "selectedItems"
+                        )
+                );
+
+
+        if (selectedIds.isEmpty()) {
+
+            session.setAttribute(
+                    "errorMessage",
+                    "Vui lòng chọn ít nhất một sản phẩm."
+            );
+
+            redirectCart(
+                    request,
+                    response
+            );
+
             return;
         }
 
-        code = code.trim().toUpperCase();
-        double total = cartDAO.getCartTotal(cartId);
 
-        if (total <= 0) {
-            request.getSession().setAttribute("errorMessage", "Giỏ hàng đang trống.");
-            response.sendRedirect(request.getContextPath() + "/cart");
+        int cartId
+                = cartDAO.getCartIdByUserId(
+                        user.getUserId()
+                );
+
+
+        if (cartId <= 0) {
+
+            redirectCart(
+                    request,
+                    response
+            );
+
             return;
         }
 
-        Voucher voucher = voucherDAO.getValidVoucher(code, total, userId);
+
+        List<CartItem> selectedItems
+                = cartDAO.getCartItemsByIds(
+                        cartId,
+                        selectedIds
+                );
+
+
+        if (selectedItems.size()
+                != selectedIds.size()) {
+
+            session.setAttribute(
+                    "errorMessage",
+                    "Danh sách sản phẩm được chọn không hợp lệ."
+            );
+
+            redirectCart(
+                    request,
+                    response
+            );
+
+            return;
+        }
+
+
+        double subtotal
+                = calculateSubtotal(
+                        selectedItems
+                );
+
+
+        Voucher voucher
+                = voucherDAO.getValidVoucher(
+                        code,
+                        subtotal,
+                        user.getUserId()
+                );
+
 
         if (voucher == null) {
-            request.getSession().removeAttribute("appliedVoucher");
-            request.getSession().setAttribute("errorMessage", "Voucher không hợp lệ, hết hạn, chưa đủ điều kiện hoặc đã hết lượt.");
+
+            session.removeAttribute(
+                    "appliedVoucher"
+            );
+
+            session.setAttribute(
+                    "errorMessage",
+                    "Voucher không khả dụng cho các sản phẩm đã chọn."
+            );
+
         } else {
-            request.getSession().setAttribute("appliedVoucher", voucher);
-            request.getSession().setAttribute("successMessage", "Áp dụng Voucher " + voucher.getCode() + " thành công.");
+
+            session.setAttribute(
+                    "checkoutSelectedItemIds",
+                    selectedIds
+            );
+
+
+            session.setAttribute(
+                    "appliedVoucher",
+                    voucher
+            );
+
+
+            session.setAttribute(
+                    "successMessage",
+                    "Đã áp dụng Voucher "
+                    + voucher.getCode()
+                    + "."
+            );
         }
 
-        response.sendRedirect(request.getContextPath() + "/cart");
+
+        redirectCart(
+                request,
+                response
+        );
     }
 
+
+    // =====================================================
+    // REMOVE VOUCHER
+    // =====================================================
     private void removeVoucher(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            User user)
+            throws IOException {
+
+        HttpSession session
+                = request.getSession();
+
+
+        List<Integer> selectedIds
+                = parseSelectedIds(
+                        request.getParameterValues(
+                                "selectedItems"
+                        )
+                );
+
+
+        if (!selectedIds.isEmpty()) {
+
+            int cartId
+                    = cartDAO.getCartIdByUserId(
+                            user.getUserId()
+                    );
+
+
+            if (cartId > 0) {
+
+                List<CartItem> items
+                        = cartDAO.getCartItemsByIds(
+                                cartId,
+                                selectedIds
+                        );
+
+
+                if (items.size()
+                        == selectedIds.size()) {
+
+                    session.setAttribute(
+                            "checkoutSelectedItemIds",
+                            selectedIds
+                    );
+                }
+            }
+        }
+
+
+        session.removeAttribute(
+                "appliedVoucher"
+        );
+
+
+        session.setAttribute(
+                "successMessage",
+                "Đã gỡ Voucher."
+        );
+
+
+        redirectCart(
+                request,
+                response
+        );
+    }
+
+
+    // =====================================================
+    // SANITIZE SELECTION
+    // =====================================================
+    private List<Integer> sanitizeSelectedIds(
+            List<CartItem> cartItems,
+            List<Integer> selectedIds) {
+
+        List<Integer> result
+                = new ArrayList<>();
+
+
+        if (selectedIds == null) {
+
+            return result;
+        }
+
+
+        for (CartItem item : cartItems) {
+
+            if (item.getStockQuantity() > 0
+                    && selectedIds.contains(
+                            item.getCartItemId()
+                    )) {
+
+                result.add(
+                        item.getCartItemId()
+                );
+            }
+        }
+
+
+        return result;
+    }
+
+
+    // =====================================================
+    // SESSION IDS
+    // =====================================================
+    @SuppressWarnings("unchecked")
+    private List<Integer> getSelectedIdsFromSession(
+            HttpSession session) {
+
+        Object value
+                = session.getAttribute(
+                        "checkoutSelectedItemIds"
+                );
+
+
+        if (value instanceof List<?>) {
+
+            return new ArrayList<>(
+                    (List<Integer>) value
+            );
+        }
+
+
+        return new ArrayList<>();
+    }
+
+
+    // =====================================================
+    // REMOVE ID FROM SESSION
+    // =====================================================
+    private void removeSelectedId(
+            HttpSession session,
+            int cartItemId) {
+
+        List<Integer> selectedIds
+                = getSelectedIdsFromSession(
+                        session
+                );
+
+
+        selectedIds.remove(
+                Integer.valueOf(
+                        cartItemId
+                )
+        );
+
+
+        session.setAttribute(
+                "checkoutSelectedItemIds",
+                selectedIds
+        );
+    }
+
+
+    // =====================================================
+    // PARSE SELECTED IDS
+    // =====================================================
+    private List<Integer> parseSelectedIds(
+            String[] values) {
+
+        List<Integer> ids
+                = new ArrayList<>();
+
+
+        if (values == null) {
+            return ids;
+        }
+
+
+        for (String value : values) {
+
+            int id
+                    = parsePositiveInt(
+                            value
+                    );
+
+
+            if (id > 0
+                    && !ids.contains(id)) {
+
+                ids.add(id);
+            }
+        }
+
+
+        return ids;
+    }
+
+
+    // =====================================================
+    // TOTAL
+    // =====================================================
+    private double calculateSubtotal(
+            List<CartItem> items) {
+
+        double total = 0;
+
+
+        for (CartItem item : items) {
+
+            total
+                    += item.getPrice()
+                    * item.getQuantity();
+        }
+
+
+        return total;
+    }
+
+
+    // =====================================================
+    // USER
+    // =====================================================
+    private User getLoggedInUser(
+            HttpServletRequest request) {
+
+        HttpSession session
+                = request.getSession(false);
+
+
+        if (session == null) {
+            return null;
+        }
+
+
+        Object value
+                = session.getAttribute(
+                        "loggedInUser"
+                );
+
+
+        return value instanceof User
+                ? (User) value
+                : null;
+    }
+
+
+    // =====================================================
+    // PARSE
+    // =====================================================
+    private int parsePositiveInt(
+            String value) {
+
+        try {
+
+            int result
+                    = Integer.parseInt(
+                            value
+                    );
+
+            return result > 0
+                    ? result
+                    : -1;
+
+        } catch (Exception e) {
+
+            return -1;
+        }
+    }
+
+
+    // =====================================================
+    // REDIRECT
+    // =====================================================
+    private void redirectCart(
             HttpServletRequest request,
             HttpServletResponse response)
             throws IOException {
 
-        request.getSession().removeAttribute("appliedVoucher");
-        request.getSession().setAttribute("successMessage", "Đã bỏ Voucher.");
-
-        response.sendRedirect(request.getContextPath() + "/cart");
+        response.sendRedirect(
+                request.getContextPath()
+                + "/cart"
+        );
     }
 }
