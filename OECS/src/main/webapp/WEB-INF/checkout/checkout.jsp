@@ -115,17 +115,16 @@
 
     </div>
 
-
-    <a
-        href="${pageContext.request.contextPath}/cart"
-        class="btn btn-outline-secondary">
-
+    <div class="d-flex flex-wrap gap-2">
+    <a href="${pageContext.request.contextPath}/my-orders" class="btn btn-outline-primary">Đơn hàng của tôi</a>
+    <a href="${pageContext.request.contextPath}/cart"
+       class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left me-1"></i>
 
         Về giỏ hàng
 
     </a>
-
+    </div>
 </div>
 
 
@@ -268,14 +267,10 @@
 
                     </div>
 
-
-                    <span
-                        id="selectedDefaultBadge"
-                        class="badge bg-primary mt-2"
-                        style="${selectedAddress.defaultAddress ? '' : 'display:none;'}">
-
-                        Mặc định
-
+                    <span id="selectedDefaultBadge"
+                          class="badge bg-primary mt-2"
+                          style="${selectedAddress.defaultAddress ? '' : 'display:none;'}">
+                        Đã lưu cho lần mua sau
                     </span>
 
                 </div>

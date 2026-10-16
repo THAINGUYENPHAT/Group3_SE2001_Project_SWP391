@@ -65,9 +65,8 @@ public class CheckoutServlet extends HttpServlet {
             HttpServletResponse response
     ) throws ServletException, IOException {
 
-        User user =
-                getLoggedInUser(request);
-
+        response.setHeader("Cache-Control", "no-store");
+        User user = getLoggedInUser(request);
 
         if (user == null) {
 
@@ -766,13 +765,17 @@ public class CheckoutServlet extends HttpServlet {
 
 
         if (newId > 0) {
-
-            session.setAttribute(
-                    "selectedAddressId",
-                    newId
-            );
-
-
+            session.setAttribute("selectedAddressId", newId);
+            try {
+                if (!addressDAO.setDefaultAddress(newId, user.getUserId())) {
+                    throw new SQLException("Khong luu duoc dia chi mac dinh.");
+                }
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "Cannot remember new checkout address", e);
+                session.setAttribute("checkoutError", "Đã thêm địa chỉ nhưng chưa lưu được địa chỉ mặc định. Vui lòng chọn lại địa chỉ.");
+                redirectToCheckout(request, response);
+                return;
+            }
             session.setAttribute(
                     "checkoutMessage",
                     "Đã thêm địa chỉ thành công."
@@ -862,18 +865,18 @@ public class CheckoutServlet extends HttpServlet {
                 return;
             }
 
-
-            session.setAttribute(
-                    "selectedAddressId",
-                    addressId
-            );
-
-
-            sendSelectedAddressJson(
-                    response,
-                    addressId,
-                    address
-            );
+            try {
+                if (!addressDAO.setDefaultAddress(addressId, user.getUserId())) {
+                    sendJsonError(response, 404, "Địa chỉ không còn khả dụng.");
+                    return;
+                }
+                session.setAttribute("selectedAddressId", addressId);
+                address.setDefaultAddress(true);
+                sendSelectedAddressJson(response, addressId, address);
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "Cannot remember checkout address", e);
+                sendJsonError(response, 500, "Chưa lưu được địa chỉ đã chọn. Vui lòng thử lại.");
+            }
         }
     }
 

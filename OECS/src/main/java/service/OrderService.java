@@ -2,7 +2,7 @@ package service;
 
 import dao.OrderDAO;
 import db.DBContext;
-
+import db.CheckoutConnectionFactory;
 import model.Order;
 
 import java.math.BigDecimal;
@@ -15,11 +15,25 @@ import java.sql.SQLException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Arrays;
+import java.util.Collections;
 
 public class OrderService {
 
-    private final OrderDAO orderDAO =
-            new OrderDAO();
+    private final OrderDAO orderDAO;
+    private final CheckoutConnectionFactory connections;
+
+    public OrderService() {
+        this(() -> new DBContext().getConnection());
+    }
+
+    public OrderService(CheckoutConnectionFactory connections) {
+        this.connections = connections;
+        this.orderDAO = new OrderDAO(connections);
+    }
 
 
     // =====================================================
@@ -243,11 +257,7 @@ public class OrderService {
         }
 
 
-        try (
-            Connection conn =
-                    new DBContext()
-                            .getConnection()
-        ) {
+        try (Connection conn = connections.open()) {
 
             if (conn == null) {
 
@@ -1246,5 +1256,173 @@ public class OrderService {
                 voucherId,
                 discount
         );
+    }
+
+    /** Returns false for an already cancelled order. Stock and history change exactly once. */
+    public boolean cancelOrderByCustomer(int userId, int orderId) throws SQLException {
+        if (userId <= 0 || orderId <= 0) throw new IllegalArgumentException("Mã đơn hàng không hợp lệ.");
+        try (Connection conn = connections.open()) {
+            if (conn == null) throw new SQLException("Khong ket noi duoc database.");
+            conn.setAutoCommit(false);
+            try {
+                String sql = "SELECT order_status, payment_method, payment_status, total_amount, stock_restored_at "
+                        + "FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) WHERE order_id = ? AND user_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, orderId);
+                    ps.setInt(2, userId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new IllegalArgumentException("Không tìm thấy đơn hàng.");
+                        String status = normalizeStatus(rs.getString("order_status"));
+                        if ("CANCELLED".equals(status)) {
+                            conn.commit();
+                            return false;
+                        }
+                        if (!"PENDING_CONFIRMATION".equals(status)) {
+                            throw new IllegalArgumentException("Chỉ được hủy đơn trước khi nhân viên xác nhận.");
+                        }
+                        if (!"COD".equalsIgnoreCase(rs.getString("payment_method"))
+                                || ("PAID".equalsIgnoreCase(rs.getString("payment_status"))
+                                && rs.getBigDecimal("total_amount").signum() > 0)) {
+                            throw new IllegalArgumentException("Đơn này cần được hỗ trợ xử lý thanh toán trước khi hủy.");
+                        }
+                        if (rs.getTimestamp("stock_restored_at") != null) {
+                            throw new IllegalArgumentException("Đơn đã được hoàn kho. Vui lòng liên hệ hỗ trợ.");
+                        }
+                    }
+                }
+
+                // Aggregate duplicate SKU lines and lock stock in a stable order.
+                List<int[]> quantities = new ArrayList<>();
+                sql = "SELECT sku_id, SUM(quantity) AS quantity FROM dbo.ORDER_ITEM "
+                        + "WHERE order_id = ? GROUP BY sku_id ORDER BY sku_id";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, orderId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            int quantity = rs.getInt("quantity");
+                            if (quantity <= 0) throw new SQLException("So luong don hang khong hop le.");
+                            quantities.add(new int[]{rs.getInt("sku_id"), quantity});
+                        }
+                    }
+                }
+                if (quantities.isEmpty()) throw new SQLException("Don hang khong co chi tiet de hoan kho.");
+                sql = "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity + ? WHERE sku_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    for (int[] item : quantities) {
+                        ps.setInt(1, item[1]);
+                        ps.setInt(2, item[0]);
+                        if (ps.executeUpdate() != 1) throw new SQLException("Khong hoan duoc ton kho.");
+                    }
+                }
+                sql = "UPDATE dbo.[ORDER] SET order_status = 'CANCELLED', stock_restored_at = GETDATE() "
+                        + "WHERE order_id = ? AND user_id = ? AND stock_restored_at IS NULL "
+                        + "AND UPPER(order_status) IN ('PENDING_CONFIRMATION', 'PENDING')";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, orderId);
+                    ps.setInt(2, userId);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Trang thai don hang da thay doi.");
+                }
+                orderDAO.addHistory(conn, orderId, "CANCELLED");
+                conn.commit();
+                return true;
+            } catch (SQLException | RuntimeException ex) {
+                try { conn.rollback(); } catch (SQLException rollback) { ex.addSuppressed(rollback); }
+                throw ex;
+            }
+        }
+    }
+
+    public List<Map<String, Object>> findHistory(int orderId, int userId) throws SQLException {
+        List<Map<String, Object>> history = orderDAO.findHistory(orderId, userId);
+        for (Map<String, Object> entry : history) {
+            entry.put("label", statusLabel((String) entry.get("status")));
+        }
+        return history;
+    }
+
+    // Supports both checkout and staff history status formats.
+    public static String normalizeStatus(String status) {
+        if (status == null) return "";
+        String value = status.trim().toUpperCase(Locale.ROOT).replace(' ', '_');
+        return "PENDING".equals(value) ? "PENDING_CONFIRMATION" : value;
+    }
+
+    public static Map<String, String> statusLabels() {
+        Map<String, String> labels = new LinkedHashMap<>();
+        labels.put("PENDING_CONFIRMATION", "Chờ xác nhận");
+        labels.put("CONFIRMED", "Đã xác nhận");
+        labels.put("PACKING", "Đang đóng gói");
+        labels.put("SHIPPING", "Đang giao hàng");
+        labels.put("DELIVERED", "Đã giao hàng");
+        labels.put("COMPLETED", "Hoàn tất");
+        labels.put("CANCELLED", "Đã hủy");
+        return labels;
+    }
+
+    public static String statusLabel(String status) {
+        return statusLabels().getOrDefault(normalizeStatus(status), status);
+    }
+
+    public static Map<String, String> purchaseTabs() {
+        Map<String, String> tabs = new LinkedHashMap<>();
+        tabs.put("ALL", "Tất cả");
+        tabs.put("PENDING", "Chờ xác nhận");
+        tabs.put("PREPARING", "Chờ lấy hàng");
+        tabs.put("SHIPPING", "Đang giao");
+        tabs.put("COMPLETED", "Hoàn thành");
+        tabs.put("CANCELLED", "Đã hủy");
+        return tabs;
+    }
+
+    public static List<String> statusesForTab(String tab) {
+        switch (tab) {
+            case "PENDING": return Arrays.asList("PENDING", "PENDING_CONFIRMATION");
+            case "PREPARING": return Arrays.asList("CONFIRMED", "PACKING");
+            case "SHIPPING": return Collections.singletonList("SHIPPING");
+            case "COMPLETED": return Arrays.asList("DELIVERED", "COMPLETED");
+            case "CANCELLED": return Collections.singletonList("CANCELLED");
+            default: return Collections.emptyList();
+        }
+    }
+
+    public static Map<String, Long> purchaseTabCounts(Map<String, Long> statuses) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (String tab : purchaseTabs().keySet()) counts.put(tab, 0L);
+        for (Map.Entry<String, Long> entry : statuses.entrySet()) {
+            counts.put("ALL", counts.get("ALL") + entry.getValue());
+            for (String tab : purchaseTabs().keySet()) {
+                if (statusesForTab(tab).contains(normalizeStatus(entry.getKey()))) {
+                    counts.put(tab, counts.get(tab) + entry.getValue());
+                }
+            }
+        }
+        return counts;
+    }
+
+    public static List<Map<String, Object>> trackingSteps(Order order, List<Map<String, Object>> history) {
+        List<String> states = Arrays.asList("PENDING_CONFIRMATION", "CONFIRMED", "PACKING", "SHIPPING", "COMPLETED");
+        String status = normalizeStatus(order.getOrderStatus());
+        int current = states.indexOf("DELIVERED".equals(status) ? "COMPLETED" : status);
+        if (current < 0) return Collections.emptyList(); // Cancelled/unknown must not look delivered.
+        String[] labels = {"Đã đặt hàng", "Đã xác nhận", "Đang chuẩn bị", "Đang giao hàng", "Giao thành công"};
+        String[] icons = {"receipt", "check2-circle", "box-seam", "truck", "house-check"};
+        List<Map<String, Object>> steps = new ArrayList<>();
+        for (int i = 0; i < states.size(); i++) {
+            Map<String, Object> step = new LinkedHashMap<>();
+            step.put("label", labels[i]);
+            step.put("icon", icons[i]);
+            step.put("done", i <= current);
+            step.put("current", i == current);
+            Object timestamp = i == 0 ? order.getCreatedAt() : null;
+            for (Map<String, Object> entry : history) {
+                String recorded = normalizeStatus((String) entry.get("status"));
+                if (states.get(i).equals(recorded) || (i == 4 && "DELIVERED".equals(recorded))) {
+                    timestamp = entry.get("updatedAt");
+                }
+            }
+            step.put("at", i <= current ? timestamp : null);
+            steps.add(step);
+        }
+        return steps;
     }
 }
