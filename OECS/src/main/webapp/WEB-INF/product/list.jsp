@@ -95,10 +95,21 @@
 
     <!-- Toolbar -->
     <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-        <div class="search-box" style="min-width: 300px;">
-            <i class="bi bi-search"></i>
-            <input type="text" class="form-control" placeholder="Tìm kiếm sản phẩm...">
-        </div>
+        <!-- Đã chuyển div thành form, thêm method GET -->
+        <form action="${pageContext.request.contextPath}/product" method="GET" class="search-box mb-0 d-flex gap-2" style="min-width: 350px;">
+            <input type="hidden" name="view" value="list">
+            <div class="position-relative flex-grow-1">
+                <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                <!-- Bổ sung name="search" và value="${param.search}" để giữ lại từ khóa sau khi tìm -->
+                <input type="text" name="search" value="${param.search}" class="form-control ps-5" placeholder="Tìm tên sản phẩm, danh mục, hãng...">
+            </div>
+            <button type="submit" class="btn btn-primary">Tìm kiếm</button>
+            <c:if test="${not empty param.search}">
+                <a href="${pageContext.request.contextPath}/product?view=list" class="btn btn-light border" title="Xóa tìm kiếm">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </c:if>
+        </form>
     </div>
 
     <!-- Table -->
@@ -106,13 +117,13 @@
         <table class="table table-custom align-middle">
             <thead>
                 <tr>
-                    <th style="width: 50px;">#</th>
-                    <th>SẢN PHẨM</th>
-                    <th>DANH MỤC</th>
-                    <th>THƯƠNG HIỆU</th>
-                    <th>MÔ TẢ</th>
-                    <th>NGÀY TẠO</th>
-                    <th style="width: 120px;" class="text-end">THAO TÁC</th>
+                <th style="width: 50px;">#</th>
+                <th>SẢN PHẨM</th>
+                <th>DANH MỤC</th>
+                <th>THƯƠNG HIỆU</th>
+                <th>MÔ TẢ</th>
+                <th>NGÀY TẠO</th>
+                <th style="width: 120px;" class="text-end">THAO TÁC</th>
                 </tr>
             </thead>
 
@@ -122,96 +133,103 @@
                         <c:forEach items="${productList}" var="product">
                             <tr>
                                 <!-- ID -->
-                                <td>
-                                    <span class="badge bg-light text-secondary border">
-                                        #${product.productId}
+                            <td>
+                            <span class="badge bg-light text-secondary border">
+                                #${product.productId}
+                            </span>
+                            </td>
+
+                            <!-- Product -->
+                            <td>
+                                <div class="fw-bold text-dark">
+                                    ${product.productName}
+                                </div>
+                            </td>
+
+                            <!-- Category -->
+                            <td>
+                                <c:choose>
+                                    <c:when test="${product.category != null}">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                        <i class="bi bi-folder me-1"></i>
+                                        ${product.category.categoryName}
                                     </span>
-                                </td>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="text-muted">Không có</span>
+                                </c:otherwise>
+                            </c:choose>
+                            </td>
 
-                                <!-- Product -->
-                                <td>
-                                    <div class="fw-bold text-dark">
-                                        ${product.productName}
-                                    </div>
-                                </td>
+                            <!-- Brand -->
+                            <td>
+                                <c:choose>
+                                    <c:when test="${product.brand != null}">
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                        ${product.brand.brandName}
+                                    </span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="text-muted">Không có</span>
+                                </c:otherwise>
+                            </c:choose>
+                            </td>
 
-                                <!-- Category -->
-                                <td>
-                                    <c:choose>
-                                        <c:when test="${product.category != null}">
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
-                                                <i class="bi bi-folder me-1"></i>
-                                                ${product.category.categoryName}
-                                            </span>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="text-muted">Không có</span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </td>
-
-                                <!-- Brand -->
-                                <td>
-                                    <c:choose>
-                                        <c:when test="${product.brand != null}">
-                                            <span class="badge bg-info-subtle text-info border border-info-subtle">
-                                                ${product.brand.brandName}
-                                            </span>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="text-muted">Không có</span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </td>
-
-                                <!-- Description -->
-                                <td>
-                                    <c:choose>
-                                        <c:when test="${not empty product.description}">
-                                            <span class="text-muted">
-                                                ${product.description}
-                                            </span>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="text-muted">Không có mô tả</span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </td>
-
-                                <!-- Created At -->
-                                <td>
+                            <!-- Description -->
+                            <td>
+                                <c:choose>
+                                    <c:when test="${not empty product.description}">
                                     <span class="text-muted">
-                                        ${product.createdAt}
+                                        ${product.description}
                                     </span>
-                                </td>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="text-muted">Không có mô tả</span>
+                                </c:otherwise>
+                            </c:choose>
+                            </td>
 
-                                <!-- Actions -->
-                                <td class="text-end">
-                                    <div class="d-inline-flex gap-1">
-                                        <a href="${pageContext.request.contextPath}/product?view=edit&id=${product.productId}" class="btn btn-sm btn-light text-primary border rounded-2" title="Chỉnh sửa">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
+                            <!-- Created At -->
+                            <td>
+                            <span class="text-muted">
+                                ${product.createdAt}
+                            </span>
+                            </td>
 
-                                        <a href="${pageContext.request.contextPath}/product?view=delete&id=${product.productId}" class="btn btn-sm btn-light text-danger border rounded-2" title="Xóa">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
-                                    </div>
-                                </td>
+                            <!-- Actions -->
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <!-- Nút Quản lý SKU (Mới thêm) -->
+                                    <a href="${pageContext.request.contextPath}/product-sku?productId=${product.productId}" class="btn btn-sm btn-light text-success border rounded-2" title="Quản lý SKU (Giá & Tồn kho)">
+                                        <i class="bi bi-tags"></i>
+                                    </a>
+
+                                    <!-- Nút Chỉnh sửa -->
+                                    <a href="${pageContext.request.contextPath}/product?view=edit&id=${product.productId}" class="btn btn-sm btn-light text-primary border rounded-2" title="Chỉnh sửa">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+
+                                    <!-- Nút Xóa -->
+                                    <a href="${pageContext.request.contextPath}/product?view=delete&id=${product.productId}" class="btn btn-sm btn-light text-danger border rounded-2" title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
                             </tr>
                         </c:forEach>
                     </c:when>
 
                     <c:otherwise>
                         <tr>
-                            <td colspan="7" class="text-center py-5">
-                                <i class="bi bi-box-seam fs-1 text-secondary"></i>
-                                <p class="fw-medium mt-2 mb-1">
-                                    Chưa có sản phẩm nào
-                                </p>
-                                <small class="text-muted">
-                                    Nhấn "Thêm sản phẩm" để bắt đầu.
-                                </small>
-                            </td>
+                        <td colspan="7" class="text-center py-5">
+                            <i class="bi bi-box-seam fs-1 text-secondary"></i>
+                            <p class="fw-medium mt-2 mb-1">
+                                Chưa có sản phẩm nào
+                            </p>
+                            <small class="text-muted">
+                                Nhấn "Thêm sản phẩm" để bắt đầu.
+                            </small>
+                        </td>
                         </tr>
                     </c:otherwise>
                 </c:choose>
