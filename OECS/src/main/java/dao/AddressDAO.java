@@ -1,6 +1,7 @@
 package dao;
 
 import db.DBContext;
+import db.CheckoutConnectionFactory;
 import model.Address;
 
 import java.sql.Connection;
@@ -13,7 +14,22 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class AddressDAO extends DBContext {
+public class AddressDAO {
+    private final CheckoutConnectionFactory connections;
+
+    public AddressDAO() {
+        this(() -> new DBContext().getConnection());
+    }
+
+    public AddressDAO(CheckoutConnectionFactory connections) {
+        this.connections = connections;
+    }
+
+    private Connection getConnection() throws SQLException {
+        Connection conn = connections.open();
+        if (conn == null) throw new SQLException("Khong ket noi duoc database.");
+        return conn;
+    }
 
     private static final Logger LOGGER
             = Logger.getLogger(AddressDAO.class.getName());
@@ -193,7 +209,7 @@ public class AddressDAO extends DBContext {
     // CHI MOT DIA CHI HOAT DONG CUA USER DUOC DAT LAM MAC DINH
     public boolean setDefaultAddress(int addressId, int userId)
             throws SQLException {
-        String checkSql = "SELECT address_id FROM dbo.ADDRESSBOOK "
+        String checkSql = "SELECT address_id FROM dbo.ADDRESSBOOK WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE address_id = ? AND user_id = ? AND is_deleted = 0";
         String updateSql = "UPDATE dbo.ADDRESSBOOK "
                 + "SET is_default = CASE WHEN address_id = ? THEN 1 ELSE 0 END "
@@ -206,6 +222,14 @@ public class AddressDAO extends DBContext {
             conn.setAutoCommit(false);
             try (PreparedStatement check = conn.prepareStatement(checkSql);
                     PreparedStatement update = conn.prepareStatement(updateSql)) {
+                // Serialize selections for one account, including separate browser sessions.
+                try (PreparedStatement owner = conn.prepareStatement(
+                        "SELECT user_id FROM dbo.[USER] WITH (UPDLOCK, HOLDLOCK) WHERE user_id = ?")) {
+                    owner.setInt(1, userId);
+                    try (ResultSet rs = owner.executeQuery()) {
+                        if (!rs.next()) { conn.rollback(); return false; }
+                    }
+                }
                 check.setInt(1, addressId);
                 check.setInt(2, userId);
                 try (ResultSet rs = check.executeQuery()) {
