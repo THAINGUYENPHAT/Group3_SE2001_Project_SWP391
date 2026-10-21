@@ -25,14 +25,20 @@ public class UserDAO extends DBContext {
     // LOGIN
     // =========================================================
     public User login(String account, String rawPassword) {
+
         String sql
-                = "SELECT u.user_id, u.username, u.email, u.password_hash, u.phone, u.created_at, "
-                + "ISNULL(ur.role_id, 0) AS role_id, r.role_name, a.address_line AS default_address "
+                = "SELECT u.user_id, u.username, u.email, u.password_hash, "
+                + "u.phone, u.created_at, u.is_active, "
+                + "ISNULL(ur.role_id, 0) AS role_id, "
+                + "r.role_name, "
+                + "a.address_line AS default_address "
                 + "FROM [USER] u "
                 + "LEFT JOIN USER_ROLES ur ON u.user_id = ur.user_id "
                 + "LEFT JOIN ROLES r ON ur.role_id = r.role_id "
-                + "LEFT JOIN ADDRESSBOOK a ON u.user_id = a.user_id AND a.is_default = 1 "
-                + "WHERE (u.username = ? OR u.email = ?) AND u.password_hash = ?";
+                + "LEFT JOIN ADDRESSBOOK a "
+                + "ON u.user_id = a.user_id AND a.is_default = 1 "
+                + "WHERE (u.username = ? OR u.email = ?) "
+                + "AND u.password_hash = ?";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
@@ -41,13 +47,12 @@ public class UserDAO extends DBContext {
             statement.setString(3, hashMd5(rawPassword));
 
             try (ResultSet rs = statement.executeQuery()) {
+
                 if (rs.next()) {
+
                     int roleId = rs.getInt("role_id");
                     String roleName = rs.getString("role_name");
-
-                    if (roleId == 0 || roleName == null) {
-                        roleName = "LOCKED";
-                    }
+                    boolean active = rs.getBoolean("is_active");
 
                     User user = new User(
                             rs.getInt("user_id"),
@@ -58,15 +63,21 @@ public class UserDAO extends DBContext {
                             rs.getTimestamp("created_at"),
                             roleId,
                             roleName,
-                            true
+                            active
                     );
-                    user.setAddress(rs.getString("default_address")); // Lấy địa chỉ từ ADDRESSBOOK
+
+                    user.setAddress(
+                            rs.getString("default_address")
+                    );
+
                     return user;
                 }
             }
+
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE, "Lỗi đăng nhập!", ex);
         }
+
         return null;
     }
 
@@ -89,35 +100,6 @@ public class UserDAO extends DBContext {
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE,
                     "Lỗi kiểm tra sự tồn tại của người dùng!", ex);
-        }
-
-        return false;
-    }
-
-    public boolean checkUserExistForUpdate(
-            int userId,
-            String username,
-            String email) {
-
-        String sql
-                = "SELECT user_id "
-                + "FROM [USER] "
-                + "WHERE (username = ? OR email = ?) "
-                + "AND user_id <> ?";
-
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, username);
-            ps.setString(2, email);
-            ps.setInt(3, userId);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-
-        } catch (SQLException ex) {
-            LOGGER.log(Level.SEVERE,
-                    "Lỗi kiểm tra username/email!", ex);
         }
 
         return false;
@@ -181,7 +163,7 @@ public class UserDAO extends DBContext {
 
         String sql
                 = "SELECT u.user_id, u.username, u.email, "
-                + "u.password_hash, u.phone, u.created_at, "
+                + "u.password_hash, u.phone, u.created_at, u.is_active, "
                 + "ISNULL(ur.role_id, 0) AS role_id, "
                 + "r.role_name "
                 + "FROM [USER] u "
@@ -211,9 +193,10 @@ public class UserDAO extends DBContext {
 
                     int roleId = rs.getInt("role_id");
                     String roleName = rs.getString("role_name");
+                    boolean active = rs.getBoolean("is_active");
 
                     if (roleId == 0 || roleName == null) {
-                        roleName = "LOCKED";
+                        roleName = "NO_ROLE";
                     }
 
                     User user = new User(
@@ -225,7 +208,7 @@ public class UserDAO extends DBContext {
                             rs.getTimestamp("created_at"),
                             roleId,
                             roleName,
-                            true
+                            active
                     );
 
                     list.add(user);
@@ -233,8 +216,11 @@ public class UserDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
-            LOGGER.log(Level.SEVERE,
-                    "Lỗi lấy danh sách người dùng!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi lấy danh sách người dùng!",
+                    ex
+            );
         }
 
         return list;
@@ -244,7 +230,7 @@ public class UserDAO extends DBContext {
 
         String sql
                 = "SELECT u.user_id, u.username, u.email, "
-                + "u.password_hash, u.phone, u.created_at, "
+                + "u.password_hash, u.phone, u.created_at, u.is_active, "
                 + "ISNULL(ur.role_id, 0) AS role_id, "
                 + "r.role_name "
                 + "FROM [USER] u "
@@ -264,9 +250,10 @@ public class UserDAO extends DBContext {
 
                     int roleId = rs.getInt("role_id");
                     String roleName = rs.getString("role_name");
+                    boolean active = rs.getBoolean("is_active");
 
                     if (roleId == 0 || roleName == null) {
-                        roleName = "LOCKED";
+                        roleName = "NO_ROLE";
                     }
 
                     return new User(
@@ -278,14 +265,17 @@ public class UserDAO extends DBContext {
                             rs.getTimestamp("created_at"),
                             roleId,
                             roleName,
-                            true
+                            active
                     );
                 }
             }
 
         } catch (SQLException ex) {
-            LOGGER.log(Level.SEVERE,
-                    "Lỗi lấy user theo ID!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi lấy user theo ID!",
+                    ex
+            );
         }
 
         return null;
@@ -397,139 +387,6 @@ public class UserDAO extends DBContext {
                             "Lỗi đóng connection!", ex);
                 }
             }
-        }
-
-        return false;
-    }
-
-    public boolean updateUser(User user, String rawPassword) {
-
-        String updateWithPassword
-                = "UPDATE [USER] "
-                + "SET username = ?, "
-                + "email = ?, "
-                + "password_hash = ?, "
-                + "phone = ? "
-                + "WHERE user_id = ?";
-
-        String updateWithoutPassword
-                = "UPDATE [USER] "
-                + "SET username = ?, "
-                + "email = ?, "
-                + "phone = ? "
-                + "WHERE user_id = ?";
-
-        String deleteRoleSql
-                = "DELETE FROM USER_ROLES "
-                + "WHERE user_id = ?";
-
-        String insertRoleSql
-                = "INSERT INTO USER_ROLES "
-                + "(user_id, role_id) "
-                + "VALUES (?, ?)";
-
-        Connection conn = null;
-
-        try {
-
-            conn = getConnection();
-            conn.setAutoCommit(false);
-
-            if (rawPassword != null
-                    && !rawPassword.trim().isEmpty()) {
-
-                try (PreparedStatement ps
-                        = conn.prepareStatement(
-                                updateWithPassword)) {
-
-                    ps.setString(1, user.getUsername());
-                    ps.setString(2, user.getEmail());
-                    ps.setString(3, hashMd5(rawPassword));
-                    ps.setString(4, user.getPhone());
-                    ps.setInt(5, user.getUserId());
-
-                    ps.executeUpdate();
-                }
-
-            } else {
-
-                try (PreparedStatement ps
-                        = conn.prepareStatement(
-                                updateWithoutPassword)) {
-
-                    ps.setString(1, user.getUsername());
-                    ps.setString(2, user.getEmail());
-                    ps.setString(3, user.getPhone());
-                    ps.setInt(4, user.getUserId());
-
-                    ps.executeUpdate();
-                }
-            }
-
-            try (PreparedStatement ps
-                    = conn.prepareStatement(deleteRoleSql)) {
-
-                ps.setInt(1, user.getUserId());
-                ps.executeUpdate();
-            }
-
-            try (PreparedStatement ps
-                    = conn.prepareStatement(insertRoleSql)) {
-
-                ps.setInt(1, user.getUserId());
-                ps.setInt(2, user.getRoleId());
-                ps.executeUpdate();
-            }
-
-            conn.commit();
-            return true;
-
-        } catch (SQLException ex) {
-
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException rollbackEx) {
-                    LOGGER.log(Level.SEVERE,
-                            "Rollback lỗi!", rollbackEx);
-                }
-            }
-
-            LOGGER.log(Level.SEVERE,
-                    "Lỗi cập nhật user!", ex);
-
-        } finally {
-
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                    conn.close();
-                } catch (SQLException ex) {
-                    LOGGER.log(Level.SEVERE,
-                            "Lỗi đóng connection!", ex);
-                }
-            }
-        }
-
-        return false;
-    }
-
-    public boolean deleteUser(int userId) {
-
-        String sql
-                = "DELETE FROM [USER] "
-                + "WHERE user_id = ?";
-
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, userId);
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException ex) {
-
-            LOGGER.log(Level.SEVERE,
-                    "Lỗi xóa user!", ex);
         }
 
         return false;
@@ -671,7 +528,106 @@ public class UserDAO extends DBContext {
             int userId,
             boolean active) {
 
-        LOGGER.log(Level.WARNING, "DB hiện tại không hỗ trợ cột is_active!");
+        String sql
+                = "UPDATE [USER] "
+                + "SET is_active = ? "
+                + "WHERE user_id = ?";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setBoolean(1, active);
+            ps.setInt(2, userId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException ex) {
+
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi cập nhật trạng thái tài khoản!",
+                    ex
+            );
+        }
+
+        return false;
+    }
+
+    public boolean updateUserRole(
+            int userId,
+            int roleId) {
+
+        String deleteRoleSql
+                = "DELETE FROM USER_ROLES "
+                + "WHERE user_id = ?";
+
+        String insertRoleSql
+                = "INSERT INTO USER_ROLES "
+                + "(user_id, role_id) "
+                + "VALUES (?, ?)";
+
+        Connection conn = null;
+
+        try {
+
+            conn = getConnection();
+            conn.setAutoCommit(false);
+
+            // Xóa role hiện tại
+            try (PreparedStatement ps
+                    = conn.prepareStatement(deleteRoleSql)) {
+
+                ps.setInt(1, userId);
+                ps.executeUpdate();
+            }
+
+            // Gán role mới
+            try (PreparedStatement ps
+                    = conn.prepareStatement(insertRoleSql)) {
+
+                ps.setInt(1, userId);
+                ps.setInt(2, roleId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException ex) {
+
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    LOGGER.log(
+                            Level.SEVERE,
+                            "Rollback lỗi!",
+                            rollbackEx
+                    );
+                }
+            }
+
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi cập nhật role người dùng!",
+                    ex
+            );
+
+        } finally {
+
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ex) {
+                    LOGGER.log(
+                            Level.SEVERE,
+                            "Lỗi đóng connection!",
+                            ex
+                    );
+                }
+            }
+        }
+
         return false;
     }
 
@@ -707,15 +663,18 @@ public class UserDAO extends DBContext {
 
     public User findByEmail(String email) throws SQLException {
 
-        String sql = "SELECT u.user_id, u.username, u.email, "
+        String sql
+                = "SELECT u.user_id, u.username, u.email, "
                 + "u.password_hash, u.phone, u.created_at, "
-                + "r.role_id, r.role_name "
+                + "u.is_active, r.role_id, r.role_name "
                 + "FROM [USER] u "
-                + "LEFT JOIN USER_ROLES ur ON u.user_id = ur.user_id "
-                + "LEFT JOIN ROLES r ON ur.role_id = r.role_id "
+                + "LEFT JOIN USER_ROLES ur "
+                + "ON u.user_id = ur.user_id "
+                + "LEFT JOIN ROLES r "
+                + "ON ur.role_id = r.role_id "
                 + "WHERE u.email = ?";
 
-        try (Connection connection = new DBContext().getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
 
             ps.setString(1, email);
 
@@ -733,6 +692,7 @@ public class UserDAO extends DBContext {
                     user.setCreatedAt(rs.getTimestamp("created_at"));
                     user.setRoleId(rs.getInt("role_id"));
                     user.setRoleName(rs.getString("role_name"));
+                    user.setActive(rs.getBoolean("is_active"));
 
                     return user;
                 }

@@ -476,17 +476,6 @@
                         <c:choose>
 
                             <%-- =====================================================
-                                 GUEST + CUSTOMER -> HIỆN GIỎ HÀNG
-                                 ===================================================== --%>
-                            <c:when test="${empty sessionScope.loggedInUser
-                                            or sessionScope.loggedInUser.customer}">
-
-
-
-                            </c:when>
-
-
-                            <%-- =====================================================
                                  STAFF + ADMIN -> HIỆN PHÂN HỆ QUẢN TRỊ
                                  ===================================================== --%>
                             <c:when test="${sessionScope.loggedInUser.staff
@@ -667,9 +656,8 @@
 
                     <div class="d-flex align-items-center gap-2.5">
 
-                        <%-- Giỏ hàng: chỉ hiển thị cho Guest và Customer --%>
-                        <c:if test="${empty sessionScope.loggedInUser
-                                      or sessionScope.loggedInUser.customer}">
+                        <%-- Giỏ hàng: chỉ hiển thị cho Customer --%>
+                        <c:if test="${sessionScope.loggedInUser.customer}">
                               <a href="${pageContext.request.contextPath}/cart"
                                  class="header-icon-btn me-2"
                                  title="Giỏ hàng"
@@ -730,7 +718,6 @@
                                         </div>
                                         <div class="d-none d-sm-block text-start" style="line-height: 1.2;">
                                             <div class="fw-semibold fs-7">${loggedInUser.username}</div>
-                                            <div class="text-secondary" style="font-size: 0.72rem;">Administrator</div>
                                         </div>
                                         <i class="bi bi-chevron-down text-secondary fs-8 d-none d-sm-inline ms-1"></i>
                                     </a>
