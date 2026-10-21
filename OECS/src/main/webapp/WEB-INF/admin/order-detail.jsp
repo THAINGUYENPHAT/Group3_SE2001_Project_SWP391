@@ -606,336 +606,341 @@
     <!-- ================= PAGE ================= -->
 
 
-    <main class="page">
+<main class="page">
 
 
-        <!-- SUCCESS NOTIFICATION -->
-        <c:if test="${not empty sessionScope.successMessage}">
-            <div class="success-message notification" role="status">
-                <span class="notification-icon">✓</span>
-                <span>
-                    <c:out value="${sessionScope.successMessage}" />
-                </span>
-            </div>
-            <c:remove var="successMessage" scope="session" />
-        </c:if>
+    <!-- SUCCESS NOTIFICATION -->
+    <c:if test="${not empty sessionScope.successMessage}">
+        <div class="success-message notification" role="status">
+            <span class="notification-icon">✓</span>
+            <span>
+                <c:out value="${sessionScope.successMessage}" />
+            </span>
+        </div>
+        <c:remove var="successMessage" scope="session" />
+    </c:if>
 
-        <!-- ERROR NOTIFICATION -->
-        <c:if test="${not empty sessionScope.errorMessage}">
-            <div class="error-message notification" role="alert">
-                <span class="notification-icon">!</span>
-                <span>
-                    <c:out value="${sessionScope.errorMessage}" />
-                </span>
-            </div>
-            <c:remove var="errorMessage" scope="session" />
-        </c:if>
+    <!-- ERROR NOTIFICATION -->
+    <c:if test="${not empty sessionScope.errorMessage}">
+        <div class="error-message notification" role="alert">
+            <span class="notification-icon">!</span>
+            <span>
+                <c:out value="${sessionScope.errorMessage}" />
+            </span>
+        </div>
+        <c:remove var="errorMessage" scope="session" />
+    </c:if>
 
 
 
-        <!-- TITLE -->
+    <!-- TITLE -->
 
-        <div class="page-title">
-            <div>
-                <h1>Order #${order.orderId}</h1>
-                <p>Chi tiết và quản lý trạng thái đơn hàng</p>
-            </div>
-
-            <a class="back-btn" href="${pageContext.request.contextPath}/admin/orders">
-                ← Danh sách đơn hàng
-            </a>
+    <div class="page-title">
+        <div>
+            <h1>Order #${order.orderId}</h1>
+            <p>Chi tiết và quản lý trạng thái đơn hàng</p>
         </div>
 
-        <!-- ================= TOP ================= -->
+        <a class="back-btn" href="${pageContext.request.contextPath}/admin/orders">
+            ← Danh sách đơn hàng
+        </a>
+    </div>
 
-        <div class="main-grid">
+    <!-- ================= TOP ================= -->
 
-            <!-- ================= ORDER INFO ================= -->
+    <div class="main-grid">
 
-            <div class="card">
-                <div class="card-header">
-                    <h2>Thông tin đơn hàng</h2>
-                </div>
+        <!-- ================= ORDER INFO ================= -->
 
-                <div class="card-body">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="label">Order ID</span>
-                            <span class="value">#${order.orderId}</span>
-                        </div>
-
-                        <div class="info-item">
-                            <span class="label">User ID</span>
-                            <span class="value">${order.userId}</span>
-                        </div>
-
-                        <div class="info-item">
-                            <span class="label">Address ID</span>
-                            <span class="value">${order.addressId}</span>
-                        </div>
-
-                        <div class="info-item">
-                            <span class="label">Shipping Partner</span>
-                            <span class="value">
-                                <c:choose>
-                                    <c:when test="${not empty order.shippingPartnerId}">
-                                        #${order.shippingPartnerId}
-                                    </c:when>
-                                    <c:otherwise>
-                                        Chưa phân công
-                                    </c:otherwise>
-                                </c:choose>
-                            </span>
-                        </div>
-
-                        <div class="info-item">
-                            <span class="label">Phí giao hàng</span>
-                            <span class="value">
-                                <fmt:formatNumber value="${order.shippingFee}" type="number" groupingUsed="true"/> ₫
-                            </span>
-                        </div>
-
-                        <div class="info-item">
-                            <span class="label">Ngày tạo</span>
-                            <span class="value">${order.createdAt}</span>
-                        </div>
-                    </div>
-
-                    <div class="total-box">
-                        <span class="total-label">Tổng tiền đơn hàng</span>
-                        <span class="total-value">
-                            <fmt:formatNumber value="${order.totalAmount}" type="number" groupingUsed="true"/> ₫
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ================= MANAGEMENT ================= -->
-
-            <div class="card">
-                <div class="card-header">
-                    <h2>Quản lý đơn hàng</h2>
-                </div>
-
-                <div class="card-body">
-                    <div class="current-status">
-                        <span class="status-label">Trạng thái hiện tại</span>
-                        <span class="status-badge">
-                            <c:choose>
-                                <c:when test="${not empty status}">
-                                    ${status}
-                                </c:when>
-                                <c:otherwise>
-                                    Chưa có trạng thái
-                                </c:otherwise>
-                            </c:choose>
-                        </span>
-                    </div>
-
-                    <!-- CONFIRM -->
-                    <c:if test="${status == 'Pending'}">
-                        <div class="action-box">
-                            <p>Xác nhận đơn hàng để chuyển sang bước xử lý tiếp theo.</p>
-                            <form method="post" action="${pageContext.request.contextPath}/admin/orders">
-                                <input type="hidden" name="action" value="confirm">
-                                <input type="hidden" name="orderId" value="${order.orderId}">
-                                <button type="submit" class="btn btn-primary">
-                                    ✓ Xác nhận đơn hàng
-                                </button>
-                            </form>
-                        </div>
-                    </c:if>
-
-                    <!-- CHANGE STATUS -->
-                    <c:if test="${status != 'Completed' && status != 'Cancelled'}">
-                        <div class="action-box">
-                            <p>Cập nhật trạng thái</p>
-                            <form method="post" action="${pageContext.request.contextPath}/admin/orders" class="status-form">
-                                <input type="hidden" name="action" value="changeStatus">
-                                <input type="hidden" name="orderId" value="${order.orderId}">
-                                <select name="status">
-                                    <option value="Confirmed" ${status == 'Confirmed' ? 'selected' : ''}>Confirmed</option>
-                                    <option value="Packing" ${status == 'Packing' ? 'selected' : ''}>Packing</option>
-                                    <option value="Shipping" ${status == 'Shipping' ? 'selected' : ''}>Shipping</option>
-                                    <option value="Completed" ${status == 'Completed' ? 'selected' : ''}>Completed</option>
-                                </select>
-                                <button type="submit" class="btn btn-primary">
-                                    Cập nhật
-                                </button>
-                            </form>
-                        </div>
-                    </c:if>
-
-                    <!-- CANCEL -->
-                    <c:if test="${status != 'Completed' && status != 'Cancelled'}">
-                        <div class="cancel-area">
-                            <form method="post"
-                                  action="${pageContext.request.contextPath}/admin/orders"
-                                  onsubmit="return showCancelModal(event);">
-
-                                <input type="hidden" name="action" value="cancel">
-                                <input type="hidden" name="orderId" value="${order.orderId}">
-
-                                <button type="submit" class="btn btn-danger">
-                                    ✕ Hủy đơn hàng
-                                </button>
-                            </form>
-                        </div>
-                    </c:if>
-
-                </div>
-            </div>
-
-        </div>
-
-        <!-- ================= PRODUCTS ================= -->
-
-        <div class="card products-card">
+        <div class="card">
             <div class="card-header">
-                <h2>Sản phẩm trong đơn hàng</h2>
+                <h2>Thông tin đơn hàng</h2>
             </div>
 
-            <div class="products-body">
-                <table class="products-table">
-                    <thead>
-                        <tr>
-                            <th>Order Item</th>
-                            <th>SKU ID</th>
-                            <th>Số lượng</th>
-                            <th>Đơn giá</th>
-                            <th>Thành tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Order ID</span>
+                        <span class="value">#${order.orderId}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="label">User ID</span>
+                        <span class="value">${order.userId}</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="label">User Name</span>
+                        <span class="value">
+                            <c:out value="${order.recipientName}" default="Chưa cập nhật"/>
+                        </span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="label">Phone</span>
+                        <span class="value">
+                            <c:out value="${order.recipientPhone}" default="Chưa cập nhật"/>
+                        </span>
+                    </div>
+
+                    <div class="info-item" style="grid-column: 1 / -1;">
+                        <span class="label">Address</span>
+                        <span class="value">
+                            <c:out value="${order.shippingAddress}" default="Chưa cập nhật"/>
+                        </span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="label">Ngày tạo</span>
+                        <span class="value">
+                            <fmt:formatDate value="${order.createdAt}"
+                                            pattern="dd/MM/yyyy HH:mm:ss"/>
+                        </span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="label">Phí giao hàng</span>
+                        <span class="value">
+                            <fmt:formatNumber value="${order.shippingFee}" type="number" groupingUsed="true"/> ₫
+                        </span>
+                    </div>
+                </div>
+
+                <div class="total-box">
+                    <span class="total-label">Tổng tiền đơn hàng</span>
+                    <span class="total-value">
+                        <fmt:formatNumber value="${order.totalAmount}" type="number" groupingUsed="true"/> ₫
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MANAGEMENT ================= -->
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Quản lý đơn hàng</h2>
+            </div>
+
+            <div class="card-body">
+                <div class="current-status">
+                    <span class="status-label">Trạng thái hiện tại</span>
+                    <span class="status-badge">
                         <c:choose>
-                            <c:when test="${not empty items}">
-                                <c:forEach var="item" items="${items}">
-                                    <tr>
-                                        <td>#${item.orderItemId}</td>
-                                        <td>${item.skuId}</td>
-                                        <td>${item.quantity}</td>
-                                        <td class="price">
-                                            <fmt:formatNumber value="${item.price}" type="number" groupingUsed="true"/> ₫
-                                        </td>
-                                        <td class="price">
-                                            <fmt:formatNumber value="${item.price * item.quantity}" type="number" groupingUsed="true"/> ₫
-                                        </td>
-                                    </tr>
-                                </c:forEach>
+                            <c:when test="${not empty status}">
+                                ${status}
                             </c:when>
                             <c:otherwise>
-                                <tr>
-                                    <td colspan="5" class="empty">
-                                        Không có sản phẩm trong đơn hàng.
-                                    </td>
-                                </tr>
+                                Chưa có trạng thái
                             </c:otherwise>
                         </c:choose>
-                    </tbody>
-                </table>
+                    </span>
+                </div>
+
+                <!-- CONFIRM -->
+                <c:if test="${status == 'Pending'}">
+                    <div class="action-box">
+                        <p>Xác nhận đơn hàng để chuyển sang bước xử lý tiếp theo.</p>
+                        <form method="post" action="${pageContext.request.contextPath}/admin/orders">
+                            <input type="hidden" name="action" value="confirm">
+                            <input type="hidden" name="orderId" value="${order.orderId}">
+                            <button type="submit" class="btn btn-primary">
+                                ✓ Xác nhận đơn hàng
+                            </button>
+                        </form>
+                    </div>
+                </c:if>
+
+                <!-- CHANGE STATUS -->
+                <c:if test="${status != 'Completed' && status != 'Cancelled'}">
+                    <div class="action-box">
+                        <p>Cập nhật trạng thái</p>
+                        <form method="post" action="${pageContext.request.contextPath}/admin/orders" class="status-form">
+                            <input type="hidden" name="action" value="changeStatus">
+                            <input type="hidden" name="orderId" value="${order.orderId}">
+                            <select name="status">
+                                <option value="Confirmed" ${status == 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                <option value="Packing" ${status == 'Packing' ? 'selected' : ''}>Packing</option>
+                                <option value="Shipping" ${status == 'Shipping' ? 'selected' : ''}>Shipping</option>
+                                <option value="Completed" ${status == 'Completed' ? 'selected' : ''}>Completed</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary">
+                                Cập nhật
+                            </button>
+                        </form>
+                    </div>
+                </c:if>
+
+                <!-- CANCEL -->
+                <c:if test="${status != 'Completed' && status != 'Cancelled'}">
+                    <div class="cancel-area">
+                        <form method="post"
+                              action="${pageContext.request.contextPath}/admin/orders"
+                              onsubmit="return showCancelModal(event);">
+
+                            <input type="hidden" name="action" value="cancel">
+                            <input type="hidden" name="orderId" value="${order.orderId}">
+
+                            <button type="submit" class="btn btn-danger">
+                                ✕ Hủy đơn hàng
+                            </button>
+                        </form>
+                    </div>
+                </c:if>
+
             </div>
         </div>
 
-    </main>
+    </div>
 
+    <!-- ================= PRODUCTS ================= -->
 
-    <!-- CANCEL CONFIRMATION MODAL -->
-    <div id="cancelModal"
-         class="modal-overlay"
-         role="dialog"
-         aria-modal="true"
-         aria-labelledby="cancelModalTitle">
+    <div class="card products-card">
+        <div class="card-header">
+            <h2>Sản phẩm trong đơn hàng</h2>
+        </div>
 
-        <div class="modal-box">
-            <div class="modal-icon">!</div>
-
-            <h2 id="cancelModalTitle">Xác nhận hủy đơn hàng</h2>
-
-            <p>
-                Bạn có chắc chắn muốn hủy đơn hàng
-                <strong>#${order.orderId}</strong> không?
-                <br>
-                Vui lòng kiểm tra trước khi tiếp tục.
-            </p>
-
-            <div class="modal-actions">
-                <button type="button"
-                        class="modal-btn modal-btn-secondary"
-                        onclick="closeCancelModal()">
-                    Không, quay lại
-                </button>
-
-                <button type="button"
-                        class="modal-btn modal-btn-danger"
-                        onclick="confirmCancelOrder()">
-                    Xác nhận hủy
-                </button>
-            </div>
+        <div class="products-body">
+            <table class="products-table">
+                <thead>
+                    <tr>
+                    <th>Order Item</th>
+                    <th>SKU ID</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá</th>
+                    <th>Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <c:choose>
+                        <c:when test="${not empty items}">
+                            <c:forEach var="item" items="${items}">
+                                <tr>
+                                <td>#${item.orderItemId}</td>
+                                <td>${item.skuId}</td>
+                                <td>${item.quantity}</td>
+                                <td class="price">
+                                    <fmt:formatNumber value="${item.price}" type="number" groupingUsed="true"/> ₫
+                                </td>
+                                <td class="price">
+                                    <fmt:formatNumber value="${item.price * item.quantity}" type="number" groupingUsed="true"/> ₫
+                                </td>
+                                </tr>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <tr>
+                            <td colspan="5" class="empty">
+                                Không có sản phẩm trong đơn hàng.
+                            </td>
+                            </tr>
+                        </c:otherwise>
+                    </c:choose>
+                </tbody>
+            </table>
         </div>
     </div>
 
+</main>
 
 
-    <script>
-        document.querySelectorAll(".notification").forEach(function (message) {
+<!-- CANCEL CONFIRMATION MODAL -->
+<div id="cancelModal"
+     class="modal-overlay"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="cancelModalTitle">
+
+    <div class="modal-box">
+        <div class="modal-icon">!</div>
+
+        <h2 id="cancelModalTitle">Xác nhận hủy đơn hàng</h2>
+
+        <p>
+            Bạn có chắc chắn muốn hủy đơn hàng
+            <strong>#${order.orderId}</strong> không?
+            <br>
+            Vui lòng kiểm tra trước khi tiếp tục.
+        </p>
+
+        <div class="modal-actions">
+            <button type="button"
+                    class="modal-btn modal-btn-secondary"
+                    onclick="closeCancelModal()">
+                Không, quay lại
+            </button>
+
+            <button type="button"
+                    class="modal-btn modal-btn-danger"
+                    onclick="confirmCancelOrder()">
+                Xác nhận hủy
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    document.querySelectorAll(".notification").forEach(function (message) {
+        setTimeout(function () {
+            message.classList.add("notification-hide");
+
             setTimeout(function () {
-                message.classList.add("notification-hide");
-
-                setTimeout(function () {
-                    message.remove();
-                }, 300);
-            }, 3500);
-        });
+                message.remove();
+            }, 300);
+        }, 3500);
+    });
 
 
-        let cancelForm = null;
+    let cancelForm = null;
 
-        function showCancelModal(event) {
-            event.preventDefault();
+    function showCancelModal(event) {
+        event.preventDefault();
 
-            cancelForm = event.currentTarget;
+        cancelForm = event.currentTarget;
 
-            document.getElementById("cancelModal").classList.add("show");
+        document.getElementById("cancelModal").classList.add("show");
 
-            return false;
-        }
+        return false;
+    }
 
-        function closeCancelModal() {
-            document.getElementById("cancelModal").classList.remove("show");
+    function closeCancelModal() {
+        document.getElementById("cancelModal").classList.remove("show");
+
+        const button = document.querySelector(".modal-btn-danger");
+        button.disabled = false;
+        button.textContent = "Xác nhận hủy";
+
+        cancelForm = null;
+    }
+
+    function confirmCancelOrder() {
+        if (cancelForm) {
+            const form = cancelForm;
+            cancelForm = null;
 
             const button = document.querySelector(".modal-btn-danger");
-            button.disabled = false;
-            button.textContent = "Xác nhận hủy";
+            button.disabled = true;
+            button.textContent = "Đang xử lý...";
 
-            cancelForm = null;
+            form.submit();
         }
+    }
 
-        function confirmCancelOrder() {
-            if (cancelForm) {
-                const form = cancelForm;
-                cancelForm = null;
-
-                const button = document.querySelector(".modal-btn-danger");
-                button.disabled = true;
-                button.textContent = "Đang xử lý...";
-
-                form.submit();
-            }
+    document.getElementById("cancelModal").addEventListener("click", function (event) {
+        if (event.target === this) {
+            closeCancelModal();
         }
+    });
 
-        document.getElementById("cancelModal").addEventListener("click", function (event) {
-            if (event.target === this) {
-                closeCancelModal();
-            }
-        });
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            closeCancelModal();
+        }
+    });
 
-        document.addEventListener("keydown", function (event) {
-            if (event.key === "Escape") {
-                closeCancelModal();
-            }
-        });
-
-    </script>
+</script>
 
 
 </body>
