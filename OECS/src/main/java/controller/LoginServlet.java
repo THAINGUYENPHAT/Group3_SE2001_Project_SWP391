@@ -27,9 +27,13 @@ public class LoginServlet extends HttpServlet {
             // 1. KIỂM TRA TRẠNG THÁI ĐĂNG NHẬP TRƯỚC ĐÓ
             // =====================================================
             HttpSession session = request.getSession(false);
-            if (session != null && session.getAttribute("loggedInUser") != null) {
-                User user = (User) session.getAttribute("loggedInUser");
-                response.sendRedirect(request.getContextPath() + "/home");
+            if (session != null
+                    && session.getAttribute("loggedInUser") != null) {
+
+                response.sendRedirect(
+                        request.getContextPath() + "/home"
+                );
+
                 return;
             }
 
@@ -55,13 +59,19 @@ public class LoginServlet extends HttpServlet {
 
         try {
             // =====================================================
-            // 1. XÁC THỰC TÀI KHOẢN VÀ MẬT KHẨU
+            // 1. XÁC THỰC TÀI KHOẢN 
             // =====================================================
             UserDAO dao = new UserDAO();
             User user = dao.login(username, password);
 
             if (user == null) {
-                request.setAttribute("errorMessage", "Tên đăng nhập hoặc mật khẩu không chính xác!");
+                request.setAttribute("errorMessage", "Tên đăng nhập/email hoặc mật khẩu không chính xác!");
+                request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
+                return;
+            }
+
+            if (!user.isActive()) {
+                request.setAttribute("errorMessage", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên!");
                 request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
                 return;
             }

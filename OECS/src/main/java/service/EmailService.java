@@ -1,5 +1,6 @@
 package service;
 
+import dao.UserDAO;
 import jakarta.mail.Authenticator;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -12,6 +13,7 @@ import jakarta.mail.internet.MimeMessage;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import model.User;
 
 public class EmailService {
 
@@ -20,6 +22,15 @@ public class EmailService {
 
     private static final String FROM_EMAIL = "oecs.store@gmail.com";
     private static final String APP_PASSWORD = "hkyfaiketbxbotad";
+
+    public boolean emailExists(String email) throws Exception {
+
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        UserDAO dao = new UserDAO();
+        return dao.findByEmail(email.trim()) != null;
+    }
 
     public boolean sendResetPasswordEmail(String toEmail, String resetLink) {
 

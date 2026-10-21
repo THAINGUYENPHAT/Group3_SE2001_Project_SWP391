@@ -130,14 +130,14 @@
         <table class="table table-custom align-middle">
             <thead>
                 <tr>
-                    <th style="width: 50px;">#</th>
-                    <th>TÀI KHOẢN</th>
-                    <th>EMAIL</th>
-                    <th>SỐ ĐIỆN THOẠI</th>
-                    <th>VAI TRÒ</th>
-                    <th>TRẠNG THÁI</th>
-                    <th>NGÀY TẠO</th>
-                    <th style="width: 120px;" class="text-end">THAO TÁC</th>
+                <th style="width: 50px;">#</th>
+                <th>TÀI KHOẢN</th>
+                <th>EMAIL</th>
+                <th>SỐ ĐIỆN THOẠI</th>
+                <th>VAI TRÒ</th>
+                <th>TRẠNG THÁI</th>
+                <th>NGÀY TẠO</th>
+                <th style="width: 120px;" class="text-end">THAO TÁC</th>
                 </tr>
             </thead>
 
@@ -147,104 +147,165 @@
                         <c:forEach items="${userList}" var="user">
                             <tr>
                                 <!-- ID -->
-                                <td>
-                                    <span class="badge bg-light text-secondary border">
-                                        #${user.userId}
-                                    </span>
-                                </td>
+                            <td>
+                            <span class="badge bg-light text-secondary border">
+                                #${user.userId}
+                            </span>
+                            </td>
 
-                                <!-- Username -->
-                                <td>
-                                    <div class="fw-bold text-dark">
-                                        ${user.username}
-                                    </div>
-                                </td>
+                            <!-- Username -->
+                            <td>
+                                <div class="fw-bold text-dark">
+                                    ${user.username}
+                                </div>
+                            </td>
 
-                                <!-- Email -->
-                                <td>
+                            <!-- Email -->
+                            <td>
+                            <span class="text-muted">
+                                ${user.email}
+                            </span>
+                            </td>
+
+                            <!-- Phone -->
+                            <td>
+                                <c:choose>
+                                    <c:when test="${not empty user.phone}">
                                     <span class="text-muted">
-                                        ${user.email}
+                                        ${user.phone}
                                     </span>
-                                </td>
-
-                                <!-- Phone -->
-                                <td>
-                                    <c:choose>
-                                        <c:when test="${not empty user.phone}">
-                                            <span class="text-muted">
-                                                ${user.phone}
-                                            </span>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="text-muted">
-                                                Chưa cập nhật
-                                            </span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </td>
-
-                                <!-- Role -->
-                                <td>
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle">
-                                        <i class="bi bi-person-badge me-1"></i>
-                                        ${user.roleName}
-                                    </span>
-                                </td>
-
-                                <!-- Status -->
-                                <td>
-                                    <c:choose>
-                                        <c:when test="${user.active}">
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                                Active
-                                            </span>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
-                                                Locked
-                                            </span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </td>
-
-                                <!-- Created At -->
-                                <td>
+                                </c:when>
+                                <c:otherwise>
                                     <span class="text-muted">
-                                        ${user.createdAt}
+                                        Chưa cập nhật
                                     </span>
-                                </td>
+                                </c:otherwise>
+                            </c:choose>
+                            </td>
 
-                                <!-- Actions -->
-                                <td class="text-end">
+                            <!-- Role -->
+                            <td>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                <i class="bi bi-person-badge me-1"></i>
+                                ${user.roleName}
+                            </span>
+                            </td>
+
+                            <!-- Status -->
+                            <td>
+                                <c:choose>
+                                    <c:when test="${user.active}">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        Active
+                                    </span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                        Locked
+                                    </span>
+                                </c:otherwise>
+                            </c:choose>
+                            </td>
+
+                            <!-- Created At -->
+                            <td>
+                            <span class="text-muted">
+                                ${user.createdAt}
+                            </span>
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="text-end">
+
+                                <c:choose>
+
+                                    <c:when test="${user.userId eq sessionScope.loggedInUser.userId}">
+
+                                    <span class="text-muted small">
+                                        <i class="bi bi-person-check me-1"></i>
+                                        Tài khoản hiện tại
+                                    </span>
+
+                                </c:when>
+
+                                <c:otherwise>
                                     <div class="d-inline-flex gap-1">
-                                        <a href="${pageContext.request.contextPath}/user?view=edit&id=${user.userId}"
+                                        <a href="${pageContext.request.contextPath}/user?view=role&id=${user.userId}"
                                            class="btn btn-sm btn-light text-primary border rounded-2"
                                            title="Chỉnh sửa">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
 
-                                        <a href="${pageContext.request.contextPath}/user?view=delete&id=${user.userId}"
-                                           class="btn btn-sm btn-light text-danger border rounded-2"
-                                           title="Xóa">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
+                                        <form action="${pageContext.request.contextPath}/user"
+                                              method="post"
+                                              class="d-inline">
+
+                                            <input type="hidden"
+                                                   name="action"
+                                                   value="toggleStatus">
+
+                                            <input type="hidden"
+                                                   name="id"
+                                                   value="${user.userId}">
+
+                                            <c:choose>
+
+                                                <c:when test="${user.active}">
+
+                                                    <input type="hidden"
+                                                           name="active"
+                                                           value="false">
+
+                                                    <button type="submit"
+                                                            class="btn btn-sm btn-light text-danger border rounded-2"
+                                                            title="Khóa tài khoản">
+
+                                                        <i class="bi bi-lock"></i>
+
+                                                    </button>
+
+                                                </c:when>
+
+                                                <c:otherwise>
+
+                                                    <input type="hidden"
+                                                           name="active"
+                                                           value="true">
+
+                                                    <button type="submit"
+                                                            class="btn btn-sm btn-light text-success border rounded-2"
+                                                            title="Mở khóa tài khoản">
+
+                                                        <i class="bi bi-unlock"></i>
+
+                                                    </button>
+
+                                                </c:otherwise>
+
+                                            </c:choose>
+
+                                        </form>
                                     </div>
-                                </td>
+                                </c:otherwise>
+
+                            </c:choose>
+
+                            </td>
                             </tr>
                         </c:forEach>
                     </c:when>
 
                     <c:otherwise>
                         <tr>
-                            <td colspan="8" class="text-center py-5">
-                                <i class="bi bi-people fs-1 text-secondary"></i>
-                                <p class="fw-medium mt-2 mb-1">
-                                    Không tìm thấy người dùng nào
-                                </p>
-                                <small class="text-muted">
-                                    Nhấn "Thêm người dùng" để tạo mới.
-                                </small>
-                            </td>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="bi bi-people fs-1 text-secondary"></i>
+                            <p class="fw-medium mt-2 mb-1">
+                                Không tìm thấy người dùng nào
+                            </p>
+                            <small class="text-muted">
+                                Nhấn "Thêm người dùng" để tạo mới.
+                            </small>
+                        </td>
                         </tr>
                     </c:otherwise>
                 </c:choose>

@@ -66,72 +66,88 @@ public class ForgotPasswordServlet extends HttpServlet {
         email = email.trim();
 
         try {
-
-            // =================================================
-            // 1. TẠO RESET TOKEN
-            // =================================================
-            String token
-                    = passwordResetService.createResetToken(email);
-
-            /*
-             * Không thông báo trực tiếp email có tồn tại hay không
-             * để tránh người khác kiểm tra danh sách tài khoản.
-             */
-            if (token != null) {
-
-                // =============================================
-                // 2. TẠO LINK RESET PASSWORD
-                // =============================================
-                String resetLink = buildResetLink(
-                        request,
-                        token
+            // Kiểm tra email tồn tại trong hệ thống
+            if (!emailService.emailExists(email)) {
+                request.setAttribute(
+                        "errorMessage",
+                        "Email chưa được đăng ký trong hệ thống"
                 );
 
-                // =============================================
-                // 3. GỬI EMAIL
-                // =============================================
-                boolean sent
-                        = emailService.sendResetPasswordEmail(
-                                email,
-                                resetLink
-                        );
+                request.getRequestDispatcher("/WEB-INF/forgot-password.jsp")
+                        .forward(request, response);
+                return;
 
-                if (!sent) {
-                    LOGGER.log(
-                            Level.WARNING,
-                            "Không thể gửi email reset password tới: {0}",
-                            email
-                    );
-                }
             }
 
-            // =================================================
-            // 4. LUÔN TRẢ MESSAGE CHUNG
-            // =================================================
-            request.setAttribute(
-                    "successMessage",
-                    "Nếu email tồn tại trong hệ thống, "
-                    + "liên kết đặt lại mật khẩu đã được gửi."
-            );
+            try {
 
-            request.getRequestDispatcher("/WEB-INF/forgot-password.jsp")
-                    .forward(request, response);
+                // =================================================
+                // 1. TẠO RESET TOKEN
+                // =================================================
+                String token
+                        = passwordResetService.createResetToken(email);
 
+                if (token != null) {
+
+                    // =============================================
+                    // 2. TẠO LINK RESET PASSWORD
+                    // =============================================
+                    String resetLink = buildResetLink(
+                            request,
+                            token
+                    );
+
+                    // =============================================
+                    // 3. GỬI EMAIL
+                    // =============================================
+                    boolean sent
+                            = emailService.sendResetPasswordEmail(
+                                    email,
+                                    resetLink
+                            );
+
+                    if (!sent) {
+                        LOGGER.log(
+                                Level.WARNING,
+                                "Không thể gửi email reset password tới: {0}",
+                                email);
+                        request.getRequestDispatcher("/WEB-INF/forgot-password.jsp")
+                                .forward(request, response);
+
+                        return;
+                    }
+
+                }
+                // =============================================
+                // 4. GỬI EMAIL THÀNH CÔNG
+                // =============================================
+                request.setAttribute(
+                        "successMessage",
+                        "Nếu email tồn tại trong hệ thống, "
+                        + "Liên kết đặt lại mật khẩu đã được gửi đến email của bạn."
+                );
+
+                request.getRequestDispatcher("/WEB-INF/forgot-password.jsp")
+                        .forward(request, response);
+
+            } catch (Exception ex) {
+
+                LOGGER.log(
+                        Level.SEVERE,
+                        "Lỗi xử lý quên mật khẩu!",
+                        ex
+                );
+
+                request.setAttribute(
+                        "errorMessage",
+                        "Đã xảy ra lỗi. Vui lòng thử lại sau!"
+                );
+
+                request.getRequestDispatcher("/WEB-INF/forgot-password.jsp")
+                        .forward(request, response);
+            }
         } catch (Exception ex) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi xử lý quên mật khẩu!",
-                    ex
-            );
-
-            request.setAttribute(
-                    "errorMessage",
-                    "Đã xảy ra lỗi. Vui lòng thử lại sau!"
-            );
-
-            request.getRequestDispatcher("/WEB-INF/forgot-password.jsp")
-                    .forward(request, response);
+            Logger.getLogger(ForgotPasswordServlet.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
