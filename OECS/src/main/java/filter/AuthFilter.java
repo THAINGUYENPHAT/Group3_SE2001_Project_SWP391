@@ -41,8 +41,12 @@ public class AuthFilter implements Filter {
     // =====================================================
     private static final List<String> CUSTOMER_URLS = Arrays.asList(
             "/cart",
-            "/profile",
-            "/review"
+            "/review",
+            "/checkout",
+            "/my-orders",
+            "/my-orders/detail",
+            "/my-orders/cancel",
+            "/order-success"
     );
 
     // =====================================================
@@ -53,7 +57,8 @@ public class AuthFilter implements Filter {
             "/category",
             "/product",
             "/admin/orders",
-            "/staff/voucher"
+            "/staff/voucher",
+            "/product-sku"
     );
 
     // =====================================================
@@ -64,6 +69,14 @@ public class AuthFilter implements Filter {
             "/admin/report",
             "/admin/report/export",
             "/user"
+    );
+
+    // =====================================================
+    // AUTHENTICATED - Mọi user đã đăng nhập
+    // =====================================================
+    private static final List<String> AUTHENTICATED_URLS = Arrays.asList(
+            "/profile",
+            "/notification"
     );
 
     // =====================================================
@@ -157,6 +170,17 @@ public class AuthFilter implements Filter {
                     contextPath + "/login"
             );
 
+            return;
+        }
+
+        // =====================================================
+        // MỌI USER ĐÃ ĐĂNG NHẬP
+        // =====================================================
+        boolean isAuthenticatedUrl
+                = AUTHENTICATED_URLS.contains(relativePath);
+
+        if (isAuthenticatedUrl) {
+            chain.doFilter(request, response);
             return;
         }
 

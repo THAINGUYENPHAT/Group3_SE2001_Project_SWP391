@@ -34,20 +34,27 @@ public class ProductServlet extends HttpServlet {
         ProductDAO productDao = new ProductDAO();
 
         // =====================================================
-        // LIST
+        // LIST & SEARCH
         // =====================================================
         if (view == null || view.equals("list")) {
 
-            List<Product> productList = productDao.getList();
+            // 1. Lấy từ khóa tìm kiếm từ request
+            String searchKeyword = request.getParameter("search");
+            List<Product> productList;
+
+            // 2. Kiểm tra nếu có từ khóa thì gọi hàm search, ngược lại gọi getList
+            if (searchKeyword != null && !searchKeyword.trim().isEmpty()) {
+                productList = productDao.searchProducts(searchKeyword.trim());
+            } else {
+                productList = productDao.getList();
+            }
 
             request.setAttribute("productList", productList);
 
             request.getRequestDispatcher(
                     "/WEB-INF/product/list.jsp"
             ).forward(request, response);
-        }
-
-        // =====================================================
+        } // =====================================================
         // CREATE
         // =====================================================
         else if ("create".equals(view)) {
@@ -64,9 +71,7 @@ public class ProductServlet extends HttpServlet {
             request.getRequestDispatcher(
                     "/WEB-INF/product/create.jsp"
             ).forward(request, response);
-        }
-
-        // =====================================================
+        } // =====================================================
         // EDIT
         // =====================================================
         else if ("edit".equals(view)) {
@@ -113,9 +118,7 @@ public class ProductServlet extends HttpServlet {
                         + "/product?view=list"
                 );
             }
-        }
-
-        // =====================================================
+        } // =====================================================
         // DELETE
         // =====================================================
         else if ("delete".equals(view)) {
@@ -151,9 +154,7 @@ public class ProductServlet extends HttpServlet {
                         + "/product?view=list"
                 );
             }
-        }
-
-        // =====================================================
+        } // =====================================================
         // VIEW KHÔNG HỢP LỆ
         // =====================================================
         else {
@@ -188,8 +189,8 @@ public class ProductServlet extends HttpServlet {
             try {
 
                 String name = request.getParameter("name");
-                String description =
-                        request.getParameter("description");
+                String description
+                        = request.getParameter("description");
 
                 int categoryId = Integer.parseInt(
                         request.getParameter("categoryId")
@@ -232,9 +233,7 @@ public class ProductServlet extends HttpServlet {
                         + "/product?view=create&error=true"
                 );
             }
-        }
-
-        // =====================================================
+        } // =====================================================
         // EDIT
         // =====================================================
         else if ("edit".equals(action)) {
@@ -247,8 +246,8 @@ public class ProductServlet extends HttpServlet {
 
                 String name = request.getParameter("name");
 
-                String description =
-                        request.getParameter("description");
+                String description
+                        = request.getParameter("description");
 
                 int categoryId = Integer.parseInt(
                         request.getParameter("categoryId")
@@ -293,9 +292,7 @@ public class ProductServlet extends HttpServlet {
                         + "/product?view=list"
                 );
             }
-        }
-
-        // =====================================================
+        } // =====================================================
         // DELETE
         // =====================================================
         else if ("delete".equals(action)) {
@@ -332,9 +329,7 @@ public class ProductServlet extends HttpServlet {
                         + "/product?view=list"
                 );
             }
-        }
-
-        // =====================================================
+        } // =====================================================
         // ACTION KHÔNG HỢP LỆ
         // =====================================================
         else {
