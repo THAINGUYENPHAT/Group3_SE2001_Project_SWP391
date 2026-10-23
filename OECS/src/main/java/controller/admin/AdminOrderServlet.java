@@ -49,6 +49,10 @@ public class AdminOrderServlet extends HttpServlet {
                         = orderDAO.getItemsByOrderId(orderId);
                 String status = orderDAO.getCurrentStatus(orderId);
 
+                if (status == null && order != null) {
+                    status = order.getOrderStatus();
+                }
+
                 request.setAttribute("order", order);
                 request.setAttribute("items", items);
                 request.setAttribute("status", status);
@@ -112,90 +116,117 @@ public class AdminOrderServlet extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
+        int orderId;
+
+        try {
+            orderId = Integer.parseInt(request.getParameter("orderId"));
+        } catch (NumberFormatException e) {
+            response.sendRedirect(request.getContextPath() + "/admin/orders");
+            return;
+        }
+
         String action = request.getParameter("action");
 
         try {
-            int orderId = Integer.parseInt(
-                    request.getParameter("orderId")
-            );
+            String current = orderDAO.getCurrentStatus(orderId);
+            String nextStatus = null;
+            String successMessage = null;
+
+            if (current != null) {
+                current = current.trim().toUpperCase();
+            }
+
+            if ("PENDING".equals(current)) {
+                current = "PENDING_CONFIRMATION";
+            }
 
             if ("confirm".equals(action)) {
-                // 1. Xác nhận đơn hàng
-                orderDAO.updateStatus(orderId, "Confirmed");
 
-                // 2. Tạo thông báo cho khách hàng
-                boolean notified = notificationDAO
-                        .createOrderStatusNotification(orderId, "Confirmed");
-
-                if (!notified) {
-                    LOGGER.warning(
-                            "Không tạo được thông báo cho đơn hàng #" + orderId
-                    );
+                if ("PENDING_CONFIRMATION".equals(current)) {
+                    nextStatus = "CONFIRMED";
+                    successMessage = "Xác nhận đơn hàng thành công!";
                 }
 
-                // 3. Thông báo cho staff
-                request.getSession().setAttribute(
-                        "successMessage",
-                        "Xác nhận đơn hàng thành công!"
-                );
-            } else if ("cancel".equals(action)) {
-                // 2. HỦY ĐƠN HÀNG
-                orderDAO.cancelOrder(orderId);
-
-                request.getSession().setAttribute(
-                        "successMessage",
-                        "Hủy đơn hàng thành công!"
-                );
-
             } else if ("changeStatus".equals(action)) {
-                // 3. THAY ĐỔI TRẠNG THÁI ĐƠN HÀNG
-                String status = request.getParameter("status");
 
-                if (status == null || status.trim().isEmpty()) {
-                    request.getSession().setAttribute(
-                            "errorMessage",
-                            "Vui lòng chọn trạng thái đơn hàng!"
-                    );
-                } else {
-                    orderDAO.updateStatus(orderId, status);
+                String requested = request.getParameter("status");
 
+                if (requested != null) {
+                    requested = requested.trim().toUpperCase();
+                }
+
+                String expected = null;
+
+                if ("CONFIRMED".equals(current)) {
+                    expected = "PACKING";
+                } else if ("PACKING".equals(current)) {
+                    expected = "SHIPPING";
+                } else if ("SHIPPING".equals(current)) {
+                    expected = "COMPLETED";
+                }
+
+                if (expected != null && expected.equals(requested)) {
+                    nextStatus = expected;
+                    successMessage = "Cập nhật trạng thái đơn hàng thành công!";
+                }
+
+            } else if ("cancel".equals(action)) {
+
+                if ("PENDING_CONFIRMATION".equals(current)
+                        || "CONFIRMED".equals(current)
+                        || "PACKING".equals(current)
+                        || "SHIPPING".equals(current)) {
+
+                    nextStatus = "CANCELLED";
+                    successMessage = "Hủy đơn hàng thành công!";
+                }
+            }
+
+            if (nextStatus == null) {
+
+                request.getSession().setAttribute(
+                        "errorMessage",
+                        "Không thể cập nhật! Vui lòng thực hiện đúng trình tự: "
+                        + "Confirmed → Packing → Shipping → Completed."
+                );
+
+            } else if (orderDAO.transitionStatus(orderId, nextStatus)) {
+
+                request.getSession().setAttribute(
+                        "successMessage",
+                        successMessage
+                );
+
+                try {
                     boolean notified = notificationDAO
-                            .createOrderStatusNotification(orderId, status);
+                            .createOrderStatusNotification(orderId, nextStatus);
 
                     if (!notified) {
                         LOGGER.warning(
                                 "Không tạo được thông báo cho đơn hàng #" + orderId
                         );
                     }
-
-                    request.getSession().setAttribute(
-                            "successMessage",
-                            "Cập nhật trạng thái đơn hàng thành công!"
+                } catch (Exception notificationError) {
+                    LOGGER.log(
+                            Level.WARNING,
+                            "Lỗi tạo thông báo cho đơn hàng #" + orderId,
+                            notificationError
                     );
                 }
+
+            } else {
+
+                request.getSession().setAttribute(
+                        "errorMessage",
+                        "Không thể chuyển trạng thái. Vui lòng tải lại đơn hàng!"
+                );
             }
 
-            // Quay lại trang chi tiết đơn hàng
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/admin/orders/detail?id=" + orderId
-            );
-
-        } catch (NumberFormatException e) {
-            LOGGER.log(
-                    Level.WARNING,
-                    "Order ID không hợp lệ khi thực hiện action đơn hàng!",
-                    e
-            );
-
-            response.sendRedirect(
-                    request.getContextPath() + "/admin/orders"
-            );
-
         } catch (Exception e) {
+
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi khi cập nhật trạng thái đơn hàng!",
+                    "Lỗi cập nhật trạng thái đơn hàng #" + orderId,
                     e
             );
 
@@ -203,10 +234,11 @@ public class AdminOrderServlet extends HttpServlet {
                     "errorMessage",
                     "Thao tác thất bại! Vui lòng kiểm tra lại."
             );
-
-            response.sendRedirect(
-                    request.getContextPath() + "/admin/orders"
-            );
         }
+
+        response.sendRedirect(
+                request.getContextPath()
+                + "/admin/orders/detail?id=" + orderId
+        );
     }
 }

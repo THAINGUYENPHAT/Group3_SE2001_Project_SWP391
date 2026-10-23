@@ -35,14 +35,8 @@ public class AdminOrderDAO extends DBContext {
                 + "o.recipient_name, "
                 + "o.recipient_phone, "
                 + "o.shipping_address, "
-                + "h.status AS order_status "
+                + "o.order_status "
                 + "FROM dbo.[ORDER] o "
-                + "OUTER APPLY ( "
-                + "    SELECT TOP 1 status "
-                + "    FROM ORDER_STATUS_HISTORY "
-                + "    WHERE order_id = o.order_id "
-                + "    ORDER BY status_id DESC "
-                + ") h "
                 + "ORDER BY o.created_at DESC, o.order_id DESC";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
@@ -184,10 +178,14 @@ public class AdminOrderDAO extends DBContext {
         List<OrderItem> list = new ArrayList<>();
 
         String sql
-                = "SELECT order_item_id, order_id, sku_id, "
-                + "price, quantity "
-                + "FROM ORDER_ITEM "
-                + "WHERE order_id = ?";
+                = "SELECT oi.*, "
+                + "p.product_name, "
+                + "s.sku_code, "
+                + "s.stock_quantity "
+                + "FROM dbo.ORDER_ITEM oi "
+                + "JOIN dbo.PRODUCT_SKU s ON oi.sku_id = s.sku_id "
+                + "JOIN dbo.PRODUCT p ON s.product_id = p.product_id "
+                + "WHERE oi.order_id = ?";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
@@ -218,6 +216,9 @@ public class AdminOrderDAO extends DBContext {
                     item.setQuantity(
                             rs.getInt("quantity")
                     );
+                    item.setProductName(rs.getString("product_name"));
+                    item.setSkuCode(rs.getString("sku_code"));
+                    item.setStockQuantity(rs.getInt("stock_quantity"));
 
                     list.add(item);
                 }
@@ -241,10 +242,9 @@ public class AdminOrderDAO extends DBContext {
     public String getCurrentStatus(int orderId) {
 
         String sql
-                = "SELECT TOP 1 status "
-                + "FROM ORDER_STATUS_HISTORY "
-                + "WHERE order_id = ? "
-                + "ORDER BY updated_at DESC, status_id DESC";
+                = "SELECT order_status "
+                + "FROM dbo.[ORDER] "
+                + "WHERE order_id = ?";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
@@ -253,7 +253,7 @@ public class AdminOrderDAO extends DBContext {
             try (ResultSet rs = statement.executeQuery()) {
 
                 if (rs.next()) {
-                    return rs.getString("status");
+                    return rs.getString("order_status");
                 }
             }
 
@@ -269,61 +269,117 @@ public class AdminOrderDAO extends DBContext {
         return null;
     }
 
-    // =========================================================
-    // 5. CẬP NHẬT TRẠNG THÁI
-    // =========================================================
-    public int updateStatus(int orderId, String status) {
 
-        String sql
-                = "INSERT INTO ORDER_STATUS_HISTORY "
-                + "(order_id, status) "
-                + "VALUES (?, ?)";
-
-        try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
-
-            statement.setInt(1, orderId);
-            statement.setString(2, status);
-
-            return statement.executeUpdate();
-
-        } catch (SQLException ex) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi cập nhật trạng thái Order!",
-                    ex
-            );
+    private String normalizeStatus(String status) {
+        if (status == null) {
+            return null;
         }
 
-        return 0;
+        switch (status.trim().toUpperCase()) {
+            case "PENDING":
+            case "PENDING_CONFIRMATION":
+                return "PENDING_CONFIRMATION";
+            case "CONFIRMED":
+                return "CONFIRMED";
+            case "PACKING":
+                return "PACKING";
+            case "SHIPPING":
+                return "SHIPPING";
+            case "COMPLETED":
+                return "COMPLETED";
+            case "CANCELLED":
+                return "CANCELLED";
+            default:
+                return null;
+        }
     }
 
-    // =========================================================
-    // 6. HỦY ĐƠN
-    // =========================================================
-    public int cancelOrder(int orderId) {
+    public boolean transitionStatus(int orderId, String requestedStatus)
+            throws SQLException {
 
-        String sql
-                = "INSERT INTO ORDER_STATUS_HISTORY "
-                + "(order_id, status) "
-                + "VALUES (?, ?)";
+        String next = normalizeStatus(requestedStatus);
 
-        try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
-
-            statement.setInt(1, orderId);
-            statement.setString(2, "Cancelled");
-
-            return statement.executeUpdate();
-
-        } catch (SQLException ex) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi hủy Order!",
-                    ex
-            );
+        if (next == null || "PENDING_CONFIRMATION".equals(next)) {
+            return false;
         }
 
-        return 0;
+        String selectSql
+                = "SELECT order_status FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE order_id = ?";
+
+        String updateSql
+                = "UPDATE dbo.[ORDER] SET order_status = ? WHERE order_id = ?";
+
+        String historySql
+                = "INSERT INTO dbo.ORDER_STATUS_HISTORY (order_id, status) "
+                + "VALUES (?, ?)";
+
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+
+            try {
+                String current;
+
+                try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                    ps.setInt(1, orderId);
+
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            conn.rollback();
+                            return false;
+                        }
+                        current = normalizeStatus(rs.getString("order_status"));
+                    }
+                }
+
+                String expectedNext;
+
+                if ("PENDING_CONFIRMATION".equals(current)) {
+                    expectedNext = "CONFIRMED";
+                } else if ("CONFIRMED".equals(current)) {
+                    expectedNext = "PACKING";
+                } else if ("PACKING".equals(current)) {
+                    expectedNext = "SHIPPING";
+                } else if ("SHIPPING".equals(current)) {
+                    expectedNext = "COMPLETED";
+                } else {
+                    expectedNext = null;
+                }
+
+                boolean valid = next.equals(expectedNext)
+                        || ("CANCELLED".equals(next)
+                        && expectedNext != null);
+
+                if (!valid) {
+                    conn.rollback();
+                    return false;
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                    ps.setString(1, next);
+                    ps.setInt(2, orderId);
+
+                    if (ps.executeUpdate() != 1) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement(historySql)) {
+                    ps.setInt(1, orderId);
+                    ps.setString(2, next);
+                    ps.executeUpdate();
+                }
+
+                conn.commit();
+                return true;
+
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
     }
 }
