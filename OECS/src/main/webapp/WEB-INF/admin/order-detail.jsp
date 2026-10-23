@@ -738,12 +738,16 @@
                 </div>
 
                 <!-- CONFIRM -->
-                <c:if test="${status == 'Pending'}">
+                <c:if test="${status == 'Pending' || status == 'PENDING_CONFIRMATION'}">
                     <div class="action-box">
                         <p>Xác nhận đơn hàng để chuyển sang bước xử lý tiếp theo.</p>
-                        <form method="post" action="${pageContext.request.contextPath}/admin/orders">
+
+                        <form method="post"
+                              action="${pageContext.request.contextPath}/admin/orders">
+
                             <input type="hidden" name="action" value="confirm">
                             <input type="hidden" name="orderId" value="${order.orderId}">
+
                             <button type="submit" class="btn btn-primary">
                                 ✓ Xác nhận đơn hàng
                             </button>
@@ -752,46 +756,60 @@
                 </c:if>
 
                 <!-- CHANGE STATUS -->
-                <c:if test="${status != 'Completed' && status != 'Cancelled'}">
-                    <div class="action-box">
-                        <p>Cập nhật trạng thái</p>
-                        <form method="post" action="${pageContext.request.contextPath}/admin/orders" class="status-form">
-                            <input type="hidden" name="action" value="changeStatus">
-                            <input type="hidden" name="orderId" value="${order.orderId}">
-                            <select name="status">
-                                <option value="Confirmed" ${status == 'Confirmed' ? 'selected' : ''}>Confirmed</option>
-                                <option value="Packing" ${status == 'Packing' ? 'selected' : ''}>Packing</option>
-                                <option value="Shipping" ${status == 'Shipping' ? 'selected' : ''}>Shipping</option>
-                                <option value="Completed" ${status == 'Completed' ? 'selected' : ''}>Completed</option>
-                            </select>
-                            <button type="submit" class="btn btn-primary">
-                                Cập nhật
-                            </button>
-                        </form>
-                    </div>
+                <c:if test="${status != 'PENDING_CONFIRMATION'
+                              && status != 'PENDING'
+                              && status != 'COMPLETED'
+                              && status != 'CANCELLED'}">
+
+                      <div class="action-box">
+                          <p>Cập nhật trạng thái</p>
+
+                          <form method="post"
+                                action="${pageContext.request.contextPath}/admin/orders"
+                                class="status-form">
+
+                              <input type="hidden" name="action" value="changeStatus">
+                              <input type="hidden" name="orderId" value="${order.orderId}">
+
+                              <select name="status" required>
+                                  <option value="" selected disabled>-- Chọn trạng thái --</option>
+                                  <option value="PACKING">Packing</option>
+                                  <option value="SHIPPING">Shipping</option>
+                                  <option value="COMPLETED">Completed</option>
+                              </select>
+
+                              <button type="submit" class="btn btn-primary">
+                                  Cập nhật
+                              </button>
+                          </form>
+                      </div>
                 </c:if>
 
                 <!-- CANCEL -->
-                <c:if test="${status != 'Completed' && status != 'Cancelled'}">
-                    <div class="cancel-area">
-                        <form method="post"
-                              action="${pageContext.request.contextPath}/admin/orders"
-                              onsubmit="return showCancelModal(event);">
+                <c:if test="${status != 'Completed'
+                              && status != 'COMPLETED'
+                              && status != 'Cancelled'
+                              && status != 'CANCELLED'}">
+                      <div class="cancel-area">
+                          <form method="post"
+                                action="${pageContext.request.contextPath}/admin/orders"
+                                onsubmit="return showCancelModal(event);">
 
-                            <input type="hidden" name="action" value="cancel">
-                            <input type="hidden" name="orderId" value="${order.orderId}">
+                              <input type="hidden" name="action" value="cancel">
+                              <input type="hidden" name="orderId" value="${order.orderId}">
 
-                            <button type="submit" class="btn btn-danger">
-                                ✕ Hủy đơn hàng
-                            </button>
-                        </form>
-                    </div>
+                              <button type="submit" class="btn btn-danger">
+                                  ✕ Hủy đơn hàng
+                              </button>
+                          </form>
+                      </div>
                 </c:if>
 
             </div>
         </div>
 
     </div>
+
 
     <!-- ================= PRODUCTS ================= -->
 
@@ -805,32 +823,79 @@
                 <thead>
                     <tr>
                     <th>Order Item</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Mã SKU</th>
                     <th>SKU ID</th>
-                    <th>Số lượng</th>
+                    <th>SL đặt</th>
+                    <th>Tồn kho</th>
                     <th>Đơn giá</th>
                     <th>Thành tiền</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     <c:choose>
                         <c:when test="${not empty items}">
                             <c:forEach var="item" items="${items}">
                                 <tr>
                                 <td>#${item.orderItemId}</td>
-                                <td>${item.skuId}</td>
-                                <td>${item.quantity}</td>
-                                <td class="price">
-                                    <fmt:formatNumber value="${item.price}" type="number" groupingUsed="true"/> ₫
+
+                                <td>
+                                    <strong>
+                                        <c:out value="${item.productName}"/>
+                                    </strong>
                                 </td>
+
+                                <td>
+                                    <c:out value="${item.skuCode}"/>
+                                </td>
+
+                                <td>${item.skuId}</td>
+
+                                <td>${item.quantity}</td>
+
+                                <td>
+                                    <c:choose>
+                                        <c:when test="${item.stockQuantity == 0}">
+                                        <span style="color: #dc2626; font-weight: 600;">
+                                            ${item.stockQuantity} - Hết hàng
+                                        </span>
+                                    </c:when>
+
+                                    <c:when test="${item.stockQuantity < item.quantity}">
+                                        <span style="color: #d97706; font-weight: 600;">
+                                            ${item.stockQuantity} - Tồn thấp
+                                        </span>
+                                    </c:when>
+
+                                    <c:otherwise>
+                                        <span style="color: #16a34a; font-weight: 600;">
+                                            ${item.stockQuantity}
+                                        </span>
+                                    </c:otherwise>
+                                </c:choose>
+                                </td>
+
                                 <td class="price">
-                                    <fmt:formatNumber value="${item.price * item.quantity}" type="number" groupingUsed="true"/> ₫
+                                    <fmt:formatNumber
+                                        value="${item.price}"
+                                        type="number"
+                                        groupingUsed="true"/> ₫
+                                </td>
+
+                                <td class="price">
+                                    <fmt:formatNumber
+                                        value="${item.price * item.quantity}"
+                                        type="number"
+                                        groupingUsed="true"/> ₫
                                 </td>
                                 </tr>
                             </c:forEach>
                         </c:when>
+
                         <c:otherwise>
                             <tr>
-                            <td colspan="5" class="empty">
+                            <td colspan="8" class="empty">
                                 Không có sản phẩm trong đơn hàng.
                             </td>
                             </tr>

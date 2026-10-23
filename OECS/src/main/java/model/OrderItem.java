@@ -9,6 +9,9 @@ public class OrderItem {
     private int skuId;
     private BigDecimal price;
     private int quantity;
+    private String productName;
+    private String skuCode;
+    private int stockQuantity;
 
     public OrderItem() {
     }
@@ -59,5 +62,29 @@ public class OrderItem {
 
     public void setQuantity(int quantity) {
         this.quantity = quantity;
+    }
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
+    }
+
+    public String getSkuCode() {
+        return skuCode;
+    }
+
+    public void setSkuCode(String skuCode) {
+        this.skuCode = skuCode;
+    }
+
+    public int getStockQuantity() {
+        return stockQuantity;
+    }
+
+    public void setStockQuantity(int stockQuantity) {
+        this.stockQuantity = stockQuantity;
     }
 }
