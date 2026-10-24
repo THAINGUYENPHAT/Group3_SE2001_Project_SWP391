@@ -128,6 +128,24 @@ public class ReviewServlet extends HttpServlet {
             }
 
             int orderItemId = Integer.parseInt(orderItemIdParam);
+
+            ProductReview existingReview
+                    = reviewDAO.getReviewByOrderItemIdAndUserId(
+                            orderItemId,
+                            user.getUserId()
+                    );
+
+            if (existingReview != null) {
+
+                request.setAttribute("review", existingReview);
+
+                request.getRequestDispatcher(
+                        "/WEB-INF/review/detail.jsp"
+                ).forward(request, response);
+
+                return;
+            }
+
             int skuId = reviewDAO.getSkuIdByOrderItemId(orderItemId);
 
             if (skuId <= 0) {
@@ -223,7 +241,11 @@ public class ReviewServlet extends HttpServlet {
 
             saveReviewImages(request, reviewId);
             setSuccess(request, "Đánh giá sản phẩm thành công.");
-            redirectOrders(request, response);
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/review?view=create&orderItemId="
+                    + orderItemId
+            );
 
         } catch (NumberFormatException e) {
             setError(request, "Dữ liệu đánh giá không hợp lệ.");
@@ -520,6 +542,8 @@ public class ReviewServlet extends HttpServlet {
             HttpServletResponse response)
             throws IOException {
 
-        response.sendRedirect(request.getContextPath() + "/orders");
+        response.sendRedirect(
+                request.getContextPath() + "/my-orders"
+        );
     }
 }

@@ -160,6 +160,46 @@ public class DashboardDAO extends DBContext {
         return list;
     }
 
+    public List<Object[]> getRevenueByDateRange(
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate) {
+
+        List<Object[]> list = new ArrayList<>();
+
+        String sql = "SELECT "
+                + "CAST(o.created_at AS DATE) AS order_date, "
+                + "SUM(o.total_amount) AS revenue "
+                + "FROM dbo.[ORDER] o "
+                + "WHERE o.order_status = 'COMPLETED' "
+                + "AND o.created_at >= ? "
+                + "AND o.created_at < DATEADD(DAY, 1, ?) "
+                + "GROUP BY CAST(o.created_at AS DATE) "
+                + "ORDER BY order_date";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setDate(1, java.sql.Date.valueOf(startDate));
+            ps.setDate(2, java.sql.Date.valueOf(endDate));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Object[] row = new Object[2];
+
+                    row[0] = rs.getDate("order_date");
+                    row[1] = rs.getBigDecimal("revenue");
+
+                    list.add(row);
+                }
+            }
+
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE,
+                    "Error getting revenue by date range", ex);
+        }
+
+        return list;
+    }
+
     // =========================
     // 6. TOP SELLING PRODUCTS
     // =========================
