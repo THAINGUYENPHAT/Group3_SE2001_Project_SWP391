@@ -752,3 +752,61 @@
     }
 
 }
+
+/* =========================================
+   REVIEW BUTTON - CUSTOMER ORDER DETAIL
+   ========================================= */
+
+.purchase-review-action {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.purchase-review-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    padding: 9px 16px;
+
+    background: #eef5ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 9px;
+
+    color: #1677ff;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+
+    transition: all 0.2s ease;
+}
+
+.purchase-review-btn i {
+    color: #f5a623;
+    font-size: 15px;
+}
+
+.purchase-review-btn:hover {
+    background: #1677ff;
+    border-color: #1677ff;
+    color: white;
+    text-decoration: none;
+}
+
+.purchase-review-btn:hover i {
+    color: #ffd666;
+}
+
+@media (max-width: 576px) {
+    .purchase-review-action {
+        width: 100%;
+    }
+
+    .purchase-review-btn {
+        width: 100%;
+    }
+}
+

@@ -353,6 +353,7 @@ public class OrderDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("orderItemId", rs.getInt("order_item_id"));
                     item.put("skuId", rs.getInt("sku_id"));
                     item.put("skuCode", rs.getString("sku_code"));
                     item.put("productName", rs.getString("product_name"));
