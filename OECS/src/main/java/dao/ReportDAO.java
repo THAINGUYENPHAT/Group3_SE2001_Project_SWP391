@@ -3,6 +3,7 @@ package dao;
 import db.DBContext;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,19 +19,15 @@ public class ReportDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(ReportDAO.class.getName());
 
-    // =========================================================
-    // COMMON CONDITION
-    // Chỉ tính những đơn đang có trạng thái COMPLETED
-    // =========================================================
+    // Chỉ tính doanh thu từ đơn đã hoàn thành
     private static final String COMPLETED_CONDITION
             = " o.order_status = 'COMPLETED' ";
 
-    // =========================================================
-    // 1. TỔNG DOANH THU TRONG KHOẢNG NGÀY
-    // =========================================================
+    // =====================================================
+    // 1. TOTAL REVENUE
+    // =====================================================
     public BigDecimal getTotalRevenueByRange(
-            LocalDate startDate,
-            LocalDate endDate) {
+            LocalDate startDate, LocalDate endDate) {
 
         String sql
                 = "SELECT ISNULL(SUM(o.total_amount), 0) AS total_revenue "
@@ -39,19 +36,33 @@ public class ReportDAO extends DBContext {
                 + "AND o.created_at < ? "
                 + "AND " + COMPLETED_CONDITION;
 
-        return getRevenueByRange(
-                sql,
-                startDate,
-                endDate.plusDays(1)
-        );
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            setDateRange(ps, startDate, endDate);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal result
+                            = rs.getBigDecimal("total_revenue");
+
+                    return result != null
+                            ? result : BigDecimal.ZERO;
+                }
+            }
+
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE,
+                    "Error getting total revenue", e);
+        }
+
+        return BigDecimal.ZERO;
     }
 
-    // =========================================================
-    // 2. ĐẾM ĐƠN HOÀN THÀNH TRONG KHOẢNG NGÀY
-    // =========================================================
+    // =====================================================
+    // 2. COMPLETED ORDERS
+    // =====================================================
     public int getCompletedOrdersByRange(
-            LocalDate startDate,
-            LocalDate endDate) {
+            LocalDate startDate, LocalDate endDate) {
 
         String sql
                 = "SELECT COUNT(*) AS total_orders "
@@ -60,206 +71,222 @@ public class ReportDAO extends DBContext {
                 + "AND o.created_at < ? "
                 + "AND " + COMPLETED_CONDITION;
 
-        return getCountByRange(
-                sql,
-                startDate,
-                endDate.plusDays(1)
-        );
-    }
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
-    // =========================================================
-    // 3. TỔNG SẢN PHẨM ĐÃ BÁN TRONG KHOẢNG NGÀY
-    // =========================================================
-    public int getTotalProductsSoldByRange(
-            LocalDate startDate,
-            LocalDate endDate) {
-
-        String sql
-                = "SELECT ISNULL(SUM(oi.quantity), 0) AS total_products "
-                + "FROM ORDER_ITEM oi "
-                + "INNER JOIN dbo.[ORDER] o "
-                + "    ON oi.order_id = o.order_id "
-                + "WHERE o.created_at >= ? "
-                + "AND o.created_at < ? "
-                + "AND " + COMPLETED_CONDITION;
-
-        return getProductsByRange(
-                sql,
-                startDate,
-                endDate.plusDays(1)
-        );
-    }
-
-    // =========================================================
-    // 4. DOANH THU THEO TỪNG NGÀY TRONG KHOẢNG
-    // =========================================================
-    public List<Object[]> getRevenueByDateRange(
-            LocalDate startDate,
-            LocalDate endDate) {
-
-        return getRevenueReport(
-                startDate,
-                endDate.plusDays(1),
-                "CAST(o.created_at AS DATE)"
-        );
-    }
-
-    // =========================================================
-    // 5. HELPER - DOANH THU
-    // =========================================================
-    private BigDecimal getRevenueByRange(
-            String sql,
-            LocalDate startDate,
-            LocalDate endDate) {
-
-        try (
-                Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setObject(1, startDate);
-            ps.setObject(2, endDate);
+            setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
-
-                if (rs.next()) {
-
-                    BigDecimal result
-                            = rs.getBigDecimal("total_revenue");
-
-                    return result != null
-                            ? result
-                            : BigDecimal.ZERO;
-                }
-            }
-
-        } catch (SQLException e) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi lấy doanh thu theo khoảng thời gian!",
-                    e
-            );
-        }
-
-        return BigDecimal.ZERO;
-    }
-
-    // =========================================================
-    // 6. HELPER - ĐẾM ĐƠN
-    // =========================================================
-    private int getCountByRange(
-            String sql,
-            LocalDate startDate,
-            LocalDate endDate) {
-
-        try (
-                Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setObject(1, startDate);
-            ps.setObject(2, endDate);
-
-            try (ResultSet rs = ps.executeQuery()) {
-
                 if (rs.next()) {
                     return rs.getInt("total_orders");
                 }
             }
 
         } catch (SQLException e) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi đếm đơn hàng theo khoảng thời gian!",
-                    e
-            );
+            LOGGER.log(Level.SEVERE,
+                    "Error getting completed orders", e);
         }
 
         return 0;
     }
 
-    // =========================================================
-    // 7. HELPER - SẢN PHẨM ĐÃ BÁN
-    // =========================================================
-    private int getProductsByRange(
-            String sql,
-            LocalDate startDate,
-            LocalDate endDate) {
+    // =====================================================
+    // 3. TOTAL PRODUCTS SOLD
+    // =====================================================
+    public int getTotalProductsSoldByRange(
+            LocalDate startDate, LocalDate endDate) {
 
-        try (
-                Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sql
+                = "SELECT ISNULL(SUM(oi.quantity), 0) AS total_products "
+                + "FROM ORDER_ITEM oi "
+                + "INNER JOIN dbo.[ORDER] o "
+                + "ON oi.order_id = o.order_id "
+                + "WHERE o.created_at >= ? "
+                + "AND o.created_at < ? "
+                + "AND " + COMPLETED_CONDITION;
 
-            ps.setObject(1, startDate);
-            ps.setObject(2, endDate);
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
-
                 if (rs.next()) {
                     return rs.getInt("total_products");
                 }
             }
 
         } catch (SQLException e) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi lấy sản phẩm đã bán theo khoảng thời gian!",
-                    e
-            );
+            LOGGER.log(Level.SEVERE,
+                    "Error getting products sold", e);
         }
 
         return 0;
     }
 
-    // =========================================================
-    // 8. REPORT THEO NGÀY
-    // =========================================================
-    private List<Object[]> getRevenueReport(
-            LocalDate startDate,
-            LocalDate endDate,
-            String groupExpression) {
+    // =====================================================
+    // 4. REVENUE BY DATE
+    // Object[]: [date, revenue, orderCount]
+    // =====================================================
+    public List<Object[]> getRevenueByDateRange(
+            LocalDate startDate, LocalDate endDate) {
 
         List<Object[]> list = new ArrayList<>();
 
         String sql
-                = "SELECT "
-                + groupExpression + " AS report_date, "
+                = "SELECT CAST(o.created_at AS DATE) AS report_date, "
                 + "SUM(o.total_amount) AS revenue, "
                 + "COUNT(*) AS order_count "
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND " + COMPLETED_CONDITION + " "
-                + "GROUP BY " + groupExpression + " "
+                + "AND " + COMPLETED_CONDITION
+                + " GROUP BY CAST(o.created_at AS DATE) "
                 + "ORDER BY report_date DESC";
 
-        try (
-                Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setObject(1, startDate);
-            ps.setObject(2, endDate);
+            setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                        rs.getDate("report_date"),
+                        rs.getBigDecimal("revenue"),
+                        rs.getInt("order_count")
+                    });
+                }
+            }
 
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE,
+                    "Error getting revenue by date", e);
+        }
+
+        return list;
+    }
+
+    // =====================================================
+    // 5. AVERAGE ORDER VALUE (AOV)
+    // =====================================================
+    public BigDecimal getAverageOrderValueByRange(
+            LocalDate startDate, LocalDate endDate) {
+
+        BigDecimal revenue
+                = getTotalRevenueByRange(startDate, endDate);
+
+        int orders
+                = getCompletedOrdersByRange(startDate, endDate);
+
+        if (orders == 0) {
+            return BigDecimal.ZERO;
+        }
+
+        return revenue.divide(
+                BigDecimal.valueOf(orders),
+                2,
+                RoundingMode.HALF_UP
+        );
+    }
+
+    // =====================================================
+    // 6. ORDER STATUS STATISTICS
+    // Object[]: [status, count]
+    // =====================================================
+    public List<Object[]> getOrderStatusByRange(
+            LocalDate startDate, LocalDate endDate) {
+
+        List<Object[]> list = new ArrayList<>();
+
+        String sql
+                = "SELECT o.order_status, COUNT(*) AS total "
+                + "FROM dbo.[ORDER] o "
+                + "WHERE o.created_at >= ? "
+                + "AND o.created_at < ? "
+                + "GROUP BY o.order_status "
+                + "ORDER BY total DESC";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            setDateRange(ps, startDate, endDate);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                        rs.getString("order_status"),
+                        rs.getInt("total")
+                    });
+                }
+            }
+
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE,
+                    "Error getting order statuses", e);
+        }
+
+        return list;
+    }
+
+    // =====================================================
+    // 7. TOP 5 BEST SELLING PRODUCTS
+    // Object[]: [productName, quantity]
+    // =====================================================
+    public List<Object[]> getTopSellingProductsByRange(
+            LocalDate startDate, LocalDate endDate) {
+
+        List<Object[]> list = new ArrayList<>();
+
+        String sql
+                = "SELECT TOP 5 "
+                + "p.product_name, "
+                + "SUM(oi.quantity) AS total_sold "
+                + "FROM dbo.ORDER_ITEM oi "
+                + "INNER JOIN dbo.[ORDER] o "
+                + "ON oi.order_id = o.order_id "
+                + "INNER JOIN dbo.PRODUCT_SKU ps "
+                + "ON oi.sku_id = ps.sku_id "
+                + "INNER JOIN dbo.PRODUCT p "
+                + "ON ps.product_id = p.product_id "
+                + "WHERE o.created_at >= ? "
+                + "AND o.created_at < ? "
+                + "AND o.order_status = 'COMPLETED' "
+                + "GROUP BY p.product_id, p.product_name "
+                + "ORDER BY total_sold DESC, p.product_name ASC";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            setDateRange(ps, startDate, endDate);
+
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
 
-                    Object[] row = new Object[3];
+                    Object[] row = new Object[2];
 
-                    row[0] = rs.getObject("report_date");
-                    row[1] = rs.getBigDecimal("revenue");
-                    row[2] = rs.getInt("order_count");
+                    row[0] = rs.getString("product_name");
+                    row[1] = rs.getInt("total_sold");
 
                     list.add(row);
                 }
             }
 
         } catch (SQLException e) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi lấy báo cáo doanh thu!",
-                    e
-            );
+            LOGGER.log(Level.SEVERE,
+                    "Error getting top selling products", e);
         }
 
         return list;
+    }
+
+    // =====================================================
+    // HELPER: DATE RANGE
+    // Bao gồm toàn bộ ngày kết thúc
+    // =====================================================
+    private void setDateRange(
+            PreparedStatement ps,
+            LocalDate startDate,
+            LocalDate endDate) throws SQLException {
+
+        ps.setDate(1, java.sql.Date.valueOf(startDate));
+
+        ps.setDate(2,
+                java.sql.Date.valueOf(endDate.plusDays(1)));
     }
 }
