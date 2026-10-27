@@ -4,6 +4,8 @@ import dao.ProductDAO;
 import dao.ProductSkuDAO;
 import model.Product;
 import model.ProductSku;
+import model.User;
+import service.AuditLogService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -16,6 +18,9 @@ import java.util.List;
 
 @WebServlet(name = "ProductSkuServlet", urlPatterns = {"/product-sku"})
 public class ProductSkuServlet extends HttpServlet {
+
+    private final AuditLogService auditLogService
+            = new AuditLogService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -64,11 +69,37 @@ public class ProductSkuServlet extends HttpServlet {
                 ProductSku sku = new ProductSku(0, productId, skuCode, price, stock);
                 skuDao.insert(sku);
 
+                User loggedInUser
+                        = (User) request.getSession()
+                                .getAttribute("loggedInUser");
+
+                auditLogService.log(
+                        loggedInUser,
+                        "CREATE_SKU",
+                        "PRODUCT_SKU",
+                        null,
+                        "Created SKU: " + skuCode,
+                        request
+                );
+
                 response.sendRedirect(request.getContextPath() + "/product-sku?productId=" + productId);
 
             } else if ("delete".equals(action)) {
                 int skuId = Integer.parseInt(request.getParameter("skuId"));
                 skuDao.delete(skuId);
+
+                User loggedInUser
+                        = (User) request.getSession()
+                                .getAttribute("loggedInUser");
+
+                auditLogService.log(
+                        loggedInUser,
+                        "DELETE_SKU",
+                        "PRODUCT_SKU",
+                        (long) skuId,
+                        "Deleted product SKU",
+                        request
+                );
 
                 response.sendRedirect(request.getContextPath() + "/product-sku?productId=" + productId);
             }
