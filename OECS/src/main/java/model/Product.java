@@ -10,15 +10,43 @@ public class Product {
     private String productName;
     private String description;
     private Timestamp createdAt;
+    private String imageUrl; // Đã thêm
 
     private double minPrice;
 
+    // Các đối tượng mapping
     private Category category;
     private Brand brand;
 
+    // Constructor mặc định
     public Product() {
     }
 
+    // Constructor đầy đủ (dùng khi getList / getById từ DB)
+    public Product(int productId, int categoryId, int brandId, String productName,
+            String description, Timestamp createdAt, String imageUrl,
+            Category category, Brand brand) {
+        this.productId = productId;
+        this.categoryId = categoryId;
+        this.brandId = brandId;
+        this.productName = productName;
+        this.description = description;
+        this.createdAt = createdAt;
+        this.imageUrl = imageUrl;
+        this.category = category;
+        this.brand = brand;
+    }
+
+    // Constructor dùng cho lúc Insert (không có ID, createdAt, brand, category)
+    public Product(int categoryId, int brandId, String productName, String description, String imageUrl) {
+        this.categoryId = categoryId;
+        this.brandId = brandId;
+        this.productName = productName;
+        this.description = description;
+        this.imageUrl = imageUrl;
+    }
+
+    // Constructor cũ (Giữ lại để tương thích ngược nếu các chức năng khác chưa kịp sửa)
     public Product(int productId, int categoryId, int brandId, String productName, String description, Timestamp createdAt) {
         this.productId = productId;
         this.categoryId = categoryId;
@@ -39,6 +67,9 @@ public class Product {
         this.brand = brand;
     }
 
+    // ==========================================
+    // GETTERS & SETTERS
+    // ==========================================
     public int getProductId() {
         return productId;
     }
@@ -85,6 +116,14 @@ public class Product {
 
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public double getMinPrice() {

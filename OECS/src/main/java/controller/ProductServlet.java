@@ -3,51 +3,51 @@ package controller;
 import dao.BrandDAO;
 import dao.CategoryDAO;
 import dao.ProductDAO;
-import model.User;
-import service.AuditLogService;
-
 import model.Brand;
 import model.Category;
 import model.Product;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 @WebServlet(name = "ProductServlet", urlPatterns = {"/product"})
+@MultipartConfig(
+        fileSizeThreshold = 1024 * 1024 * 2, // 2MB
+        maxFileSize = 1024 * 1024 * 10, // 10MB
+        maxRequestSize = 1024 * 1024 * 50 // 50MB
+)
 public class ProductServlet extends HttpServlet {
 
     private final AuditLogService auditLogService
             = new AuditLogService();
 
     // =========================================================
-    // GET
+    // GET (Hiển thị giao diện)
     // =========================================================
     @Override
-    protected void doGet(
-            HttpServletRequest request,
-            HttpServletResponse response)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         String view = request.getParameter("view");
-
         ProductDAO productDao = new ProductDAO();
 
         // =====================================================
-        // LIST & SEARCH
+        // VIEW: LIST & SEARCH
         // =====================================================
         if (view == null || view.equals("list")) {
-
-            // 1. Lấy từ khóa tìm kiếm từ request
             String searchKeyword = request.getParameter("search");
             List<Product> productList;
 
-            // 2. Kiểm tra nếu có từ khóa thì gọi hàm search, ngược lại gọi getList
             if (searchKeyword != null && !searchKeyword.trim().isEmpty()) {
                 productList = productDao.searchProducts(searchKeyword.trim());
             } else {
@@ -55,47 +55,28 @@ public class ProductServlet extends HttpServlet {
             }
 
             request.setAttribute("productList", productList);
-
-            request.getRequestDispatcher(
-                    "/WEB-INF/product/list.jsp"
-            ).forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/product/list.jsp").forward(request, response);
         } // =====================================================
-        // CREATE
+        // VIEW: CREATE
         // =====================================================
         else if ("create".equals(view)) {
-
             BrandDAO brandDao = new BrandDAO();
             CategoryDAO categoryDao = new CategoryDAO();
 
-            List<Brand> brandList = brandDao.getList();
-            List<Category> categoryList = categoryDao.getList();
+            request.setAttribute("brandList", brandDao.getList());
+            request.setAttribute("categoryList", categoryDao.getList());
 
-            request.setAttribute("brandList", brandList);
-            request.setAttribute("categoryList", categoryList);
-
-            request.getRequestDispatcher(
-                    "/WEB-INF/product/create.jsp"
-            ).forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/product/create.jsp").forward(request, response);
         } // =====================================================
-        // EDIT
+        // VIEW: EDIT
         // =====================================================
         else if ("edit".equals(view)) {
-
             try {
-
-                int id = Integer.parseInt(
-                        request.getParameter("id")
-                );
-
+                int id = Integer.parseInt(request.getParameter("id"));
                 Product product = productDao.getById(id);
 
                 if (product == null) {
-
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/product?view=list"
-                    );
-
+                    response.sendRedirect(request.getContextPath() + "/product?view=list");
                     return;
                 }
 
@@ -103,284 +84,153 @@ public class ProductServlet extends HttpServlet {
                 CategoryDAO categoryDao = new CategoryDAO();
 
                 request.setAttribute("product", product);
-                request.setAttribute(
-                        "brandList",
-                        brandDao.getList()
-                );
-                request.setAttribute(
-                        "categoryList",
-                        categoryDao.getList()
-                );
+                request.setAttribute("brandList", brandDao.getList());
+                request.setAttribute("categoryList", categoryDao.getList());
 
-                request.getRequestDispatcher(
-                        "/WEB-INF/product/edit.jsp"
-                ).forward(request, response);
+                request.getRequestDispatcher("/WEB-INF/product/edit.jsp").forward(request, response);
 
             } catch (NumberFormatException e) {
-
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/product?view=list"
-                );
+                response.sendRedirect(request.getContextPath() + "/product?view=list");
             }
         } // =====================================================
-        // DELETE
+        // VIEW: DELETE
         // =====================================================
         else if ("delete".equals(view)) {
-
             try {
-
-                int id = Integer.parseInt(
-                        request.getParameter("id")
-                );
-
+                int id = Integer.parseInt(request.getParameter("id"));
                 Product product = productDao.getById(id);
 
                 if (product == null) {
-
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/product?view=list"
-                    );
-
+                    response.sendRedirect(request.getContextPath() + "/product?view=list");
                     return;
                 }
 
                 request.setAttribute("product", product);
-
-                request.getRequestDispatcher(
-                        "/WEB-INF/product/delete.jsp"
-                ).forward(request, response);
+                request.getRequestDispatcher("/WEB-INF/product/delete.jsp").forward(request, response);
 
             } catch (NumberFormatException e) {
-
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/product?view=list"
-                );
+                response.sendRedirect(request.getContextPath() + "/product?view=list");
             }
         } // =====================================================
         // VIEW KHÔNG HỢP LỆ
         // =====================================================
         else {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/product?view=list"
-            );
+            response.sendRedirect(request.getContextPath() + "/product?view=list");
         }
     }
 
     // =========================================================
-    // POST
+    // POST (Xử lý dữ liệu form)
     // =========================================================
     @Override
-    protected void doPost(
-            HttpServletRequest request,
-            HttpServletResponse response)
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         request.setCharacterEncoding("UTF-8");
-
         String action = request.getParameter("action");
-
         ProductDAO productDao = new ProductDAO();
 
-        // =====================================================
-        // CREATE
-        // =====================================================
-        if ("create".equals(action)) {
-
-            try {
-
+        try {
+            // =====================================================
+            // ACTION: CREATE
+            // =====================================================
+            if ("create".equals(action)) {
                 String name = request.getParameter("name");
-                String description
-                        = request.getParameter("description");
+                int categoryId = Integer.parseInt(request.getParameter("categoryId"));
+                int brandId = Integer.parseInt(request.getParameter("brandId"));
+                String description = request.getParameter("description");
 
-                int categoryId = Integer.parseInt(
-                        request.getParameter("categoryId")
-                );
+                // Xử lý upload ảnh
+                String imageUrl = uploadImage(request);
 
-                int brandId = Integer.parseInt(
-                        request.getParameter("brandId")
-                );
-
-                Product product = new Product(
-                        0,
-                        categoryId,
-                        brandId,
-                        name,
-                        description,
-                        null
-                );
-
-                int result = productDao.insert(product);
+                Product newProduct = new Product(categoryId, brandId, name, description, imageUrl);
+                int result = productDao.insert(newProduct);
 
                 if (result > 0) {
-
-                    User loggedInUser
-                            = (User) request.getSession()
-                                    .getAttribute("loggedInUser");
-
-                    auditLogService.log(
-                            loggedInUser,
-                            "CREATE_PRODUCT",
-                            "PRODUCT",
-                            null,
-                            "Created product: " + name,
-                            request
-                    );
-
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/product?view=list"
-                    );
-
+                    response.sendRedirect(request.getContextPath() + "/product?view=list");
                 } else {
-
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/product?view=create&error=true"
-                    );
+                    response.sendRedirect(request.getContextPath() + "/product?view=create&error=true");
                 }
-
-            } catch (NumberFormatException e) {
-
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/product?view=create&error=true"
-                );
-            }
-        } // =====================================================
-        // EDIT
-        // =====================================================
-        else if ("edit".equals(action)) {
-
-            try {
-
-                int id = Integer.parseInt(
-                        request.getParameter("id")
-                );
-
+            } // =====================================================
+            // ACTION: EDIT
+            // =====================================================
+            else if ("edit".equals(action)) {
+                int id = Integer.parseInt(request.getParameter("id"));
                 String name = request.getParameter("name");
+                int categoryId = Integer.parseInt(request.getParameter("categoryId"));
+                int brandId = Integer.parseInt(request.getParameter("brandId"));
+                String description = request.getParameter("description");
 
-                String description
-                        = request.getParameter("description");
+                // Xử lý upload ảnh (Sẽ trả về null nếu không chọn ảnh mới)
+                String imageUrl = uploadImage(request);
 
-                int categoryId = Integer.parseInt(
-                        request.getParameter("categoryId")
-                );
-
-                int brandId = Integer.parseInt(
-                        request.getParameter("brandId")
-                );
-
-                Product product = new Product(
-                        id,
-                        categoryId,
-                        brandId,
-                        name,
-                        description,
-                        null
-                );
+                Product product = new Product();
+                product.setProductId(id);
+                product.setProductName(name);
+                product.setCategoryId(categoryId);
+                product.setBrandId(brandId);
+                product.setDescription(description);
+                product.setImageUrl(imageUrl); // DAO sẽ tự giữ nguyên ảnh cũ nếu imageUrl = null do dùng COALESCE
 
                 int result = productDao.update(product);
 
                 if (result > 0) {
-
-                    User loggedInUser
-                            = (User) request.getSession()
-                                    .getAttribute("loggedInUser");
-
-                    auditLogService.log(
-                            loggedInUser,
-                            "UPDATE_PRODUCT",
-                            "PRODUCT",
-                            null,
-                            "Updated product: " + name,
-                            request
-                    );
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/product?view=list"
-                    );
-
+                    response.sendRedirect(request.getContextPath() + "/product?view=list");
                 } else {
-
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/product?view=edit&id="
-                            + id
-                            + "&error=true"
-                    );
+                    response.sendRedirect(request.getContextPath() + "/product?view=edit&id=" + id + "&error=true");
                 }
-
-            } catch (NumberFormatException e) {
-
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/product?view=list"
-                );
-            }
-        } // =====================================================
-        // DELETE
-        // =====================================================
-        else if ("delete".equals(action)) {
-
-            try {
-
-                int id = Integer.parseInt(
-                        request.getParameter("id")
-                );
-
+            } // =====================================================
+            // ACTION: DELETE
+            // =====================================================
+            else if ("delete".equals(action)) {
+                int id = Integer.parseInt(request.getParameter("id"));
                 int result = productDao.delete(id);
 
                 if (result > 0) {
-
-                    User loggedInUser
-                            = (User) request.getSession()
-                                    .getAttribute("loggedInUser");
-
-                    auditLogService.log(
-                            loggedInUser,
-                            "DELETE_PRODUCT",
-                            "PRODUCT",
-                            null,
-                            "Deleted product: " + productDao.getById(id).getProductName(),
-                            request
-                    );
-
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/product?view=list"
-                    );
-
+                    response.sendRedirect(request.getContextPath() + "/product?view=list");
                 } else {
+                    response.sendRedirect(request.getContextPath() + "/product?view=delete&id=" + id + "&error=true");
+                }
+            } // =====================================================
+            // ACTION KHÔNG HỢP LỆ
+            // =====================================================
+            else {
+                response.sendRedirect(request.getContextPath() + "/product?view=list");
+            }
 
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/product?view=delete&id="
-                            + id
-                            + "&error=true"
-                    );
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.sendRedirect(request.getContextPath() + "/product?view=list");
+        }
+    }
+
+    // =========================================================
+    // HÀM HỖ TRỢ UPLOAD ẢNH
+    // =========================================================
+    private String uploadImage(HttpServletRequest request) throws IOException, ServletException {
+        Part filePart = request.getPart("imageFile"); // Phải khớp với name="imageFile" trong form JSP
+
+        if (filePart != null && filePart.getSize() > 0) {
+            String fileName = filePart.getSubmittedFileName();
+
+            if (fileName != null && !fileName.trim().isEmpty()) {
+                // Thêm UUID để tránh trùng lặp tên file
+                String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
+
+                // Đường dẫn thư mục lưu ảnh (nằm trong root project)
+                String uploadPath = request.getServletContext().getRealPath("") + File.separator + "uploads" + File.separator + "products";
+                File uploadDir = new File(uploadPath);
+                if (!uploadDir.exists()) {
+                    uploadDir.mkdirs(); // Tạo thư mục nếu chưa tồn tại
                 }
 
-            } catch (NumberFormatException e) {
+                // Lưu file vật lý
+                filePart.write(uploadPath + File.separator + uniqueFileName);
 
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/product?view=list"
-                );
+                // Trả về đường dẫn tương đối để lưu vào CSDL
+                return "uploads/products/" + uniqueFileName;
             }
-        } // =====================================================
-        // ACTION KHÔNG HỢP LỆ
-        // =====================================================
-        else {
-
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/product?view=list"
-            );
         }
+        return null; // Trả về null nếu người dùng không chọn file ảnh nào
     }
 }

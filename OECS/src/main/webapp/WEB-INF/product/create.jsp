@@ -22,12 +22,8 @@
                         <i class="bi bi-box-seam fs-4"></i>
                     </div>
                     <div>
-                        <h4 class="fw-bold mb-0">
-                            Thêm Sản Phẩm Mới
-                        </h4>
-                        <span class="text-muted fs-7">
-                            Nhập thông tin sản phẩm
-                        </span>
+                        <h4 class="fw-bold mb-0">Thêm Sản Phẩm Mới</h4>
+                        <span class="text-muted fs-7">Nhập thông tin sản phẩm</span>
                     </div>
                 </div>
 
@@ -39,8 +35,8 @@
                     </div>
                 </c:if>
 
-                <form action="${pageContext.request.contextPath}/product" method="POST">
-
+                <!-- Bắt buộc phải có enctype="multipart/form-data" -->
+                <form action="${pageContext.request.contextPath}/product" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="create">
 
                     <!-- Product Name -->
@@ -59,9 +55,7 @@
                         <select name="categoryId" class="form-select form-select-lg" required>
                             <option value="">-- Chọn danh mục --</option>
                             <c:forEach items="${categoryList}" var="category">
-                                <option value="${category.categoryId}">
-                                    ${category.categoryName}
-                                </option>
+                                <option value="${category.categoryId}">${category.categoryName}</option>
                             </c:forEach>
                         </select>
                     </div>
@@ -74,38 +68,37 @@
                         <select name="brandId" class="form-select form-select-lg" required>
                             <option value="">-- Chọn thương hiệu --</option>
                             <c:forEach items="${brandList}" var="brand">
-                                <option value="${brand.brandId}">
-                                    ${brand.brandName}
-                                </option>
+                                <option value="${brand.brandId}">${brand.brandName}</option>
                             </c:forEach>
                         </select>
                     </div>
 
+                    <!-- Hình Ảnh -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Hình ảnh Sản Phẩm</label>
+                        <input type="file" name="imageFile" class="form-control form-control-lg" accept="image/png, image/jpeg, image/jpg, image/webp">
+                        <div class="form-text">Định dạng hỗ trợ: JPG, PNG, WEBP. Tối đa 10MB.</div>
+                    </div>
+
                     <!-- Description -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">
-                            Mô Tả
-                        </label>
+                        <label class="form-label fw-semibold">Mô Tả</label>
                         <textarea name="description" class="form-control" rows="5" placeholder="Nhập mô tả sản phẩm..."></textarea>
                     </div>
 
                     <!-- Buttons -->
                     <div class="d-flex gap-2 pt-3 mt-4 border-top">
                         <button type="submit" class="btn btn-primary btn-lg px-4">
-                            <i class="bi bi-check-lg me-1"></i>
-                            Lưu Sản Phẩm
+                            <i class="bi bi-check-lg me-1"></i> Lưu Sản Phẩm
                         </button>
-
                         <a href="${pageContext.request.contextPath}/product?view=list" class="btn btn-light btn-lg px-4 border">
                             Hủy
                         </a>
                     </div>
-
                 </form>
 
             </div>
         </div>
-
     </div>
 </div>
 
