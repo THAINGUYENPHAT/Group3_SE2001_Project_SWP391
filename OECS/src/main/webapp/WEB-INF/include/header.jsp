@@ -542,6 +542,14 @@
                                                     </a>
                                                 </li>
 
+                                                <li>
+                                                    <a class="dropdown-item rounded-2 py-2"
+                                                       href="${pageContext.request.contextPath}/admin/audit-log">
+                                                        <i class="bi bi-journal-text text-warning me-2"></i>
+                                                        Audit Log
+                                                    </a>
+                                                </li>
+
                                             </c:if>
 
 
@@ -668,12 +676,12 @@
 
                         <%-- Giỏ hàng: chỉ hiển thị cho Customer --%>
                         <c:if test="${sessionScope.loggedInUser.customer}">
-                              <a href="${pageContext.request.contextPath}/cart"
-                                 class="header-icon-btn me-2"
-                                 title="Giỏ hàng"
-                                 aria-label="Giỏ hàng">
-                                  <i class="bi bi-cart3 fs-5"></i>
-                              </a>
+                            <a href="${pageContext.request.contextPath}/cart"
+                               class="header-icon-btn me-2"
+                               title="Giỏ hàng"
+                               aria-label="Giỏ hàng">
+                                <i class="bi bi-cart3 fs-5"></i>
+                            </a>
                         </c:if>
 
                         <c:if test="${not empty sessionScope.loggedInUser

@@ -3,6 +3,8 @@ package controller;
 import dao.BrandDAO;
 import dao.CategoryDAO;
 import dao.ProductDAO;
+import model.User;
+import service.AuditLogService;
 
 import model.Brand;
 import model.Category;
@@ -19,6 +21,9 @@ import java.util.List;
 
 @WebServlet(name = "ProductServlet", urlPatterns = {"/product"})
 public class ProductServlet extends HttpServlet {
+
+    private final AuditLogService auditLogService
+            = new AuditLogService();
 
     // =========================================================
     // GET
@@ -213,6 +218,19 @@ public class ProductServlet extends HttpServlet {
 
                 if (result > 0) {
 
+                    User loggedInUser
+                            = (User) request.getSession()
+                                    .getAttribute("loggedInUser");
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "CREATE_PRODUCT",
+                            "PRODUCT",
+                            null,
+                            "Created product: " + name,
+                            request
+                    );
+
                     response.sendRedirect(
                             request.getContextPath()
                             + "/product?view=list"
@@ -270,6 +288,18 @@ public class ProductServlet extends HttpServlet {
 
                 if (result > 0) {
 
+                    User loggedInUser
+                            = (User) request.getSession()
+                                    .getAttribute("loggedInUser");
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "UPDATE_PRODUCT",
+                            "PRODUCT",
+                            null,
+                            "Updated product: " + name,
+                            request
+                    );
                     response.sendRedirect(
                             request.getContextPath()
                             + "/product?view=list"
@@ -306,6 +336,19 @@ public class ProductServlet extends HttpServlet {
                 int result = productDao.delete(id);
 
                 if (result > 0) {
+
+                    User loggedInUser
+                            = (User) request.getSession()
+                                    .getAttribute("loggedInUser");
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "DELETE_PRODUCT",
+                            "PRODUCT",
+                            null,
+                            "Deleted product: " + productDao.getById(id).getProductName(),
+                            request
+                    );
 
                     response.sendRedirect(
                             request.getContextPath()
