@@ -4,6 +4,8 @@ import dao.AdminOrderDAO;
 import model.Order;
 import model.OrderItem;
 import dao.NotificationDAO;
+import model.User;
+import service.AuditLogService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -23,6 +25,9 @@ public class AdminOrderServlet extends HttpServlet {
 
     private AdminOrderDAO orderDAO;
     private NotificationDAO notificationDAO;
+
+    private final AuditLogService auditLogService
+            = new AuditLogService();
 
     @Override
     public void init() {
@@ -196,6 +201,38 @@ public class AdminOrderServlet extends HttpServlet {
                         "successMessage",
                         successMessage
                 );
+
+                User loggedInUser
+                        = (User) request.getSession()
+                                .getAttribute("loggedInUser");
+
+                if ("CANCELLED".equals(nextStatus)) {
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "CANCEL_ORDER",
+                            "ORDER",
+                            (long) orderId,
+                            "Cancelled order #" + orderId
+                            + " from status " + current,
+                            request
+                    );
+
+                } else {
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "UPDATE_ORDER_STATUS",
+                            "ORDER",
+                            (long) orderId,
+                            "Changed order #" + orderId
+                            + " status from "
+                            + current
+                            + " to "
+                            + nextStatus,
+                            request
+                    );
+                }
 
                 try {
                     boolean notified = notificationDAO

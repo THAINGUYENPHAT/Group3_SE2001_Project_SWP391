@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import service.AuditLogService;
 
 @WebServlet(name = "ProfileServlet", urlPatterns = {"/profile"})
 public class ProfileServlet extends HttpServlet {
@@ -23,6 +24,9 @@ public class ProfileServlet extends HttpServlet {
     private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
 
     private static final String PHONE_REGEX = "^0\\d{8,9}$";
+    
+    private final AuditLogService auditLogService
+        = new AuditLogService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -128,6 +132,16 @@ public class ProfileServlet extends HttpServlet {
 
                     if (isPwdChanged) {
                         request.setAttribute("pwdSuccess", "Đổi mật khẩu thành công!");
+                        
+                        User loggedInUser
+                            = (User) request.getSession().getAttribute("loggedInUser");
+                        
+                        auditLogService.log(loggedInUser,
+                                "CHANGE_PASSWORD",
+                                "USER",
+                                (long) loggedInUser.getUserId(),
+                                "Changed account password",
+                                request);
                     } else {
                         request.setAttribute("pwdError", "Mật khẩu hiện tại không chính xác!");
                     }

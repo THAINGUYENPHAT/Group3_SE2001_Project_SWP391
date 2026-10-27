@@ -230,11 +230,6 @@
 
                                 <c:otherwise>
                                     <div class="d-inline-flex gap-1">
-                                        <a href="${pageContext.request.contextPath}/user?view=role&id=${user.userId}"
-                                           class="btn btn-sm btn-light text-primary border rounded-2"
-                                           title="Chỉnh sửa">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
 
                                         <form action="${pageContext.request.contextPath}/user"
                                               method="post"
