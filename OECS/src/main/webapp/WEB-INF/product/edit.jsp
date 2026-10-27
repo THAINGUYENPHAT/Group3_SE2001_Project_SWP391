@@ -8,8 +8,7 @@
 
         <div class="mb-3">
             <a href="${pageContext.request.contextPath}/product?view=list" class="text-decoration-none text-muted fw-medium">
-                <i class="bi bi-arrow-left me-1"></i>
-                Quay lại danh sách
+                <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
             </a>
         </div>
 
@@ -22,47 +21,34 @@
                         <i class="bi bi-pencil-square fs-4"></i>
                     </div>
                     <div>
-                        <h4 class="fw-bold mb-0">
-                            Chỉnh Sửa Sản Phẩm
-                        </h4>
-                        <span class="text-muted fs-7">
-                            Cập nhật thông tin sản phẩm
-                        </span>
+                        <h4 class="fw-bold mb-0">Chỉnh Sửa Sản Phẩm</h4>
+                        <span class="text-muted fs-7">Cập nhật thông tin sản phẩm</span>
                     </div>
                 </div>
 
                 <!-- Error -->
                 <c:if test="${param.error == 'true'}">
-                    <div class="alert alert-danger">
-                        Không thể cập nhật sản phẩm.
-                    </div>
+                    <div class="alert alert-danger">Không thể cập nhật sản phẩm.</div>
                 </c:if>
 
-                <form action="${pageContext.request.contextPath}/product" method="POST">
-
+                <form action="${pageContext.request.contextPath}/product" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="edit">
 
                     <!-- ID -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">
-                            Mã Sản Phẩm
-                        </label>
+                        <label class="form-label fw-semibold">Mã Sản Phẩm</label>
                         <input type="text" name="id" class="form-control form-control-lg bg-light" value="${product.productId}" readonly>
                     </div>
 
                     <!-- Name -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">
-                            Tên Sản Phẩm <span class="text-danger">*</span>
-                        </label>
+                        <label class="form-label fw-semibold">Tên Sản Phẩm <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control form-control-lg" value="${product.productName}" required>
                     </div>
 
                     <!-- Category -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">
-                            Danh Mục <span class="text-danger">*</span>
-                        </label>
+                        <label class="form-label fw-semibold">Danh Mục <span class="text-danger">*</span></label>
                         <select name="categoryId" class="form-select form-select-lg" required>
                             <c:forEach items="${categoryList}" var="category">
                                 <option value="${category.categoryId}" ${category.categoryId == product.categoryId ? 'selected' : ''}>
@@ -74,9 +60,7 @@
 
                     <!-- Brand -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">
-                            Thương Hiệu <span class="text-danger">*</span>
-                        </label>
+                        <label class="form-label fw-semibold">Thương Hiệu <span class="text-danger">*</span></label>
                         <select name="brandId" class="form-select form-select-lg" required>
                             <c:forEach items="${brandList}" var="brand">
                                 <option value="${brand.brandId}" ${brand.brandId == product.brandId ? 'selected' : ''}>
@@ -86,31 +70,35 @@
                         </select>
                     </div>
 
+                    <!-- Hình ảnh -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Hình ảnh Sản Phẩm</label>
+                        <c:if test="${not empty product.imageUrl}">
+                            <div class="mb-2">
+                                <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="Ảnh sản phẩm" class="img-thumbnail" style="height: 100px; width: 100px; object-fit: cover;">
+                            </div>
+                        </c:if>
+                        <input type="file" name="imageFile" class="form-control form-control-lg" accept="image/png, image/jpeg, image/jpg, image/webp">
+                        <div class="form-text">Để trống nếu không muốn thay đổi ảnh. Định dạng hỗ trợ: JPG, PNG, WEBP.</div>
+                    </div>
+
                     <!-- Description -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">
-                            Mô Tả
-                        </label>
+                        <label class="form-label fw-semibold">Mô Tả</label>
                         <textarea name="description" class="form-control" rows="5">${product.description}</textarea>
                     </div>
 
                     <!-- Buttons -->
                     <div class="d-flex gap-2 pt-3 mt-4 border-top">
                         <button type="submit" class="btn btn-primary btn-lg px-4">
-                            <i class="bi bi-check-lg me-1"></i>
-                            Lưu Thay Đổi
+                            <i class="bi bi-check-lg me-1"></i> Lưu Thay Đổi
                         </button>
-
-                        <a href="${pageContext.request.contextPath}/product?view=list" class="btn btn-light btn-lg px-4 border">
-                            Hủy
-                        </a>
+                        <a href="${pageContext.request.contextPath}/product?view=list" class="btn btn-light btn-lg px-4 border">Hủy</a>
                     </div>
-
                 </form>
 
             </div>
         </div>
-
     </div>
 </div>
 

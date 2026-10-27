@@ -7,17 +7,12 @@
 <!-- Page Header -->
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
     <div>
-        <h3 class="fw-bold text-dark mb-1">
-            Quản lý Sản Phẩm
-        </h3>
-        <p class="text-muted fs-7 mb-0">
-            Hiển thị và quản lý toàn bộ sản phẩm trong hệ thống.
-        </p>
+        <h3 class="fw-bold text-dark mb-1">Quản lý Sản Phẩm</h3>
+        <p class="text-muted fs-7 mb-0">Hiển thị và quản lý toàn bộ sản phẩm trong hệ thống.</p>
     </div>
 
     <a href="${pageContext.request.contextPath}/product?view=create" class="btn btn-primary btn-md fw-semibold px-3 py-2 shadow-sm rounded-3">
-        <i class="bi bi-plus-lg me-1"></i>
-        Thêm sản phẩm
+        <i class="bi bi-plus-lg me-1"></i> Thêm sản phẩm
     </a>
 </div>
 
@@ -26,21 +21,14 @@
     <div class="col-12 col-md-4">
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-center">
-                <span class="text-muted fs-7 fw-medium">
-                    Tổng sản phẩm
-                </span>
+                <span class="text-muted fs-7 fw-medium">Tổng sản phẩm</span>
                 <span class="badge bg-primary-subtle text-primary rounded-pill">
                     <i class="bi bi-box-seam"></i>
                 </span>
             </div>
-
             <div class="mt-2">
-                <span class="fs-3 fw-bold text-dark">
-                    ${not empty productList ? fn:length(productList) : 0}
-                </span>
-                <span class="text-success fs-7 ms-2">
-                    Đang hoạt động
-                </span>
+                <span class="fs-3 fw-bold text-dark">${not empty productList ? fn:length(productList) : 0}</span>
+                <span class="text-success fs-7 ms-2">Đang hoạt động</span>
             </div>
         </div>
     </div>
@@ -48,21 +36,14 @@
     <div class="col-12 col-md-4">
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-center">
-                <span class="text-muted fs-7 fw-medium">
-                    Danh mục
-                </span>
+                <span class="text-muted fs-7 fw-medium">Danh mục</span>
                 <span class="badge bg-success-subtle text-success rounded-pill">
                     <i class="bi bi-grid"></i>
                 </span>
             </div>
-
             <div class="mt-2">
-                <span class="fs-3 fw-bold text-dark">
-                    Product
-                </span>
-                <span class="text-muted fs-7 ms-2">
-                    Category
-                </span>
+                <span class="fs-3 fw-bold text-dark">Product</span>
+                <span class="text-muted fs-7 ms-2">Category</span>
             </div>
         </div>
     </div>
@@ -70,21 +51,14 @@
     <div class="col-12 col-md-4">
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-center">
-                <span class="text-muted fs-7 fw-medium">
-                    Quản lý
-                </span>
+                <span class="text-muted fs-7 fw-medium">Quản lý</span>
                 <span class="badge bg-info-subtle text-info rounded-pill">
                     <i class="bi bi-shield-lock"></i>
                 </span>
             </div>
-
             <div class="mt-2">
-                <span class="fs-3 fw-bold text-dark">
-                    Admin
-                </span>
-                <span class="text-muted fs-7 ms-2">
-                    Toàn quyền
-                </span>
+                <span class="fs-3 fw-bold text-dark">Admin</span>
+                <span class="text-muted fs-7 ms-2">Toàn quyền</span>
             </div>
         </div>
     </div>
@@ -93,14 +67,12 @@
 <!-- Main Card -->
 <div class="card-custom overflow-hidden">
 
-    <!-- Toolbar -->
+    <!-- Toolbar: Đã sửa thành Form GET cho phép tìm kiếm -->
     <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-        <!-- Đã chuyển div thành form, thêm method GET -->
         <form action="${pageContext.request.contextPath}/product" method="GET" class="search-box mb-0 d-flex gap-2" style="min-width: 350px;">
             <input type="hidden" name="view" value="list">
             <div class="position-relative flex-grow-1">
                 <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                <!-- Bổ sung name="search" và value="${param.search}" để giữ lại từ khóa sau khi tìm -->
                 <input type="text" name="search" value="${param.search}" class="form-control ps-5" placeholder="Tìm tên sản phẩm, danh mục, hãng...">
             </div>
             <button type="submit" class="btn btn-primary">Tìm kiếm</button>
@@ -118,12 +90,12 @@
             <thead>
                 <tr>
                 <th style="width: 50px;">#</th>
+                <th>HÌNH ẢNH</th>
                 <th>SẢN PHẨM</th>
                 <th>DANH MỤC</th>
                 <th>THƯƠNG HIỆU</th>
                 <th>MÔ TẢ</th>
-                <th>NGÀY TẠO</th>
-                <th style="width: 120px;" class="text-end">THAO TÁC</th>
+                <th style="width: 130px;" class="text-end">THAO TÁC</th>
                 </tr>
             </thead>
 
@@ -134,16 +106,27 @@
                             <tr>
                                 <!-- ID -->
                             <td>
-                            <span class="badge bg-light text-secondary border">
-                                #${product.productId}
-                            </span>
+                            <span class="badge bg-light text-secondary border">#${product.productId}</span>
                             </td>
 
-                            <!-- Product -->
+                            <!-- HÌNH ẢNH -->
                             <td>
-                                <div class="fw-bold text-dark">
-                                    ${product.productName}
-                                </div>
+                                <c:choose>
+                                    <c:when test="${not empty product.imageUrl}">
+                                        <img src="${pageContext.request.contextPath}/${product.imageUrl}" class="img-thumbnail rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                                    </c:when>
+                                    <c:otherwise>
+                                        <div class="bg-light text-secondary d-flex align-items-center justify-content-center rounded border" style="width: 50px; height: 50px;">
+                                            <i class="bi bi-image fs-5"></i>
+                                        </div>
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
+
+                            <!-- Product Name -->
+                            <td>
+                                <div class="fw-bold text-dark">${product.productName}</div>
+                                <small class="text-muted">Ngày: ${product.createdAt}</small>
                             </td>
 
                             <!-- Category -->
@@ -151,13 +134,10 @@
                                 <c:choose>
                                     <c:when test="${product.category != null}">
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
-                                        <i class="bi bi-folder me-1"></i>
-                                        ${product.category.categoryName}
+                                        <i class="bi bi-folder me-1"></i> ${product.category.categoryName}
                                     </span>
                                 </c:when>
-                                <c:otherwise>
-                                    <span class="text-muted">Không có</span>
-                                </c:otherwise>
+                                <c:otherwise><span class="text-muted">Không có</span></c:otherwise>
                             </c:choose>
                             </td>
 
@@ -169,9 +149,7 @@
                                         ${product.brand.brandName}
                                     </span>
                                 </c:when>
-                                <c:otherwise>
-                                    <span class="text-muted">Không có</span>
-                                </c:otherwise>
+                                <c:otherwise><span class="text-muted">Không có</span></c:otherwise>
                             </c:choose>
                             </td>
 
@@ -179,37 +157,23 @@
                             <td>
                                 <c:choose>
                                     <c:when test="${not empty product.description}">
-                                    <span class="text-muted">
+                                    <span class="text-muted" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                                         ${product.description}
                                     </span>
                                 </c:when>
-                                <c:otherwise>
-                                    <span class="text-muted">Không có mô tả</span>
-                                </c:otherwise>
+                                <c:otherwise><span class="text-muted">Không có</span></c:otherwise>
                             </c:choose>
-                            </td>
-
-                            <!-- Created At -->
-                            <td>
-                            <span class="text-muted">
-                                ${product.createdAt}
-                            </span>
                             </td>
 
                             <!-- Actions -->
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1">
-                                    <!-- Nút Quản lý SKU (Mới thêm) -->
                                     <a href="${pageContext.request.contextPath}/product-sku?productId=${product.productId}" class="btn btn-sm btn-light text-success border rounded-2" title="Quản lý SKU (Giá & Tồn kho)">
                                         <i class="bi bi-tags"></i>
                                     </a>
-
-                                    <!-- Nút Chỉnh sửa -->
                                     <a href="${pageContext.request.contextPath}/product?view=edit&id=${product.productId}" class="btn btn-sm btn-light text-primary border rounded-2" title="Chỉnh sửa">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
-
-                                    <!-- Nút Xóa -->
                                     <a href="${pageContext.request.contextPath}/product?view=delete&id=${product.productId}" class="btn btn-sm btn-light text-danger border rounded-2" title="Xóa">
                                         <i class="bi bi-trash"></i>
                                     </a>
@@ -223,12 +187,8 @@
                         <tr>
                         <td colspan="7" class="text-center py-5">
                             <i class="bi bi-box-seam fs-1 text-secondary"></i>
-                            <p class="fw-medium mt-2 mb-1">
-                                Chưa có sản phẩm nào
-                            </p>
-                            <small class="text-muted">
-                                Nhấn "Thêm sản phẩm" để bắt đầu.
-                            </small>
+                            <p class="fw-medium mt-2 mb-1">Chưa có sản phẩm nào</p>
+                            <small class="text-muted">Nhấn "Thêm sản phẩm" để bắt đầu.</small>
                         </td>
                         </tr>
                     </c:otherwise>
