@@ -1,6 +1,8 @@
 package controller;
 
 import dao.ReportDAO;
+import model.User;
+import service.AuditLogService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -51,6 +53,9 @@ public class ReportExportServlet extends HttpServlet {
             = "/WEB-INF/fonts/NotoSans-Bold.ttf";
 
     private ReportDAO reportDAO;
+
+    private final AuditLogService auditLogService
+            = new AuditLogService();
 
     @Override
     public void init() {
@@ -130,7 +135,7 @@ public class ReportExportServlet extends HttpServlet {
             ReportData data = loadReportData(
                     startDate, endDate
             );
-
+            String exportFormat;
             if (format.equalsIgnoreCase("pdf")) {
 
                 exportPdf(
@@ -139,6 +144,7 @@ public class ReportExportServlet extends HttpServlet {
                         endDate,
                         data
                 );
+                exportFormat = "PDF";
 
             } else {
 
@@ -148,7 +154,25 @@ public class ReportExportServlet extends HttpServlet {
                         endDate,
                         data
                 );
+                exportFormat = "EXCEL";
             }
+            User loggedInUser
+                    = (User) request.getSession()
+                            .getAttribute("loggedInUser");
+
+            auditLogService.log(
+                    loggedInUser,
+                    "EXPORT_REPORT",
+                    "REPORT",
+                    null,
+                    "Exported revenue report as "
+                    + exportFormat
+                    + " from "
+                    + startDate
+                    + " to "
+                    + endDate,
+                    request
+            );
 
         } catch (Exception e) {
 
@@ -168,7 +192,9 @@ public class ReportExportServlet extends HttpServlet {
             throw new IOException(
                     "Lỗi khi xuất báo cáo.", e
             );
+
         }
+
     }
 
     // =====================================================

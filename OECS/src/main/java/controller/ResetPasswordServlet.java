@@ -1,5 +1,6 @@
 package controller;
 
+import dao.UserDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -10,6 +11,8 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.PasswordResetToken;
+import model.User;
+import service.AuditLogService;
 import service.PasswordResetService;
 
 @WebServlet(name = "ResetPasswordServlet", urlPatterns = {"/reset-password"})
@@ -20,6 +23,9 @@ public class ResetPasswordServlet extends HttpServlet {
 
     private final PasswordResetService passwordResetService
             = new PasswordResetService();
+
+    private final AuditLogService auditLogService
+            = new AuditLogService();
 
     // =====================================================
     // GET - USER BẤM LINK TRONG EMAIL
@@ -180,6 +186,24 @@ public class ResetPasswordServlet extends HttpServlet {
             // =================================================
             // 5. RESET PASSWORD
             // =================================================
+            PasswordResetToken resetToken
+                    = passwordResetService.validateToken(token);
+
+            if (resetToken == null) {
+
+                request.setAttribute(
+                        "errorMessage",
+                        "Liên kết đặt lại mật khẩu không hợp lệ "
+                        + "hoặc đã hết hạn!"
+                );
+
+                request.getRequestDispatcher(
+                        "/WEB-INF/reset-password.jsp"
+                ).forward(request, response);
+
+                return;
+            }
+
             boolean success
                     = passwordResetService.resetPassword(
                             token,
@@ -209,6 +233,20 @@ public class ResetPasswordServlet extends HttpServlet {
                     "resetPasswordMessage",
                     "Đặt lại mật khẩu thành công. "
                     + "Bạn có thể đăng nhập bằng mật khẩu mới."
+            );
+
+            UserDAO userDAO = new UserDAO();
+            User user = userDAO.getUserById(
+                    resetToken.getUserId()
+            );
+
+            auditLogService.log(
+                    user,
+                    "RESET_PASSWORD",
+                    "USER",
+                    (long) user.getUserId(),
+                    "Reset account password successfully",
+                    request
             );
 
             response.sendRedirect(

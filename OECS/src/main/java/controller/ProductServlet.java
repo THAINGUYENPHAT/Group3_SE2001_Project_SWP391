@@ -28,6 +28,9 @@ import java.util.UUID;
 )
 public class ProductServlet extends HttpServlet {
 
+    private final AuditLogService auditLogService
+            = new AuditLogService();
+
     // =========================================================
     // GET (Hiển thị giao diện)
     // =========================================================

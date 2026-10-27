@@ -1,8 +1,9 @@
-
 package controller;
 
 import dao.CategoryDAO;
 import model.Category;
+import model.User;
+import service.AuditLogService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -24,12 +25,15 @@ import java.util.logging.Logger;
 @WebServlet(name = "CategoryServlet", urlPatterns = {"/category"})
 public class CategoryServlet extends HttpServlet {
 
-    private static final Logger LOGGER =
-            Logger.getLogger(CategoryServlet.class.getName());
+    private static final Logger LOGGER
+            = Logger.getLogger(CategoryServlet.class.getName());
+
+    private final AuditLogService auditLogService
+            = new AuditLogService();
 
     @Override
     protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         String view = request.getParameter("view");
@@ -133,8 +137,8 @@ public class CategoryServlet extends HttpServlet {
             }
 
             // Gom danh muc theo tung danh muc goc
-            Map<Integer, List<Category>> categoryGroups =
-                    new HashMap<>();
+            Map<Integer, List<Category>> categoryGroups
+                    = new HashMap<>();
 
             for (Category root : rootCategories) {
                 List<Category> group = new ArrayList<>();
@@ -217,15 +221,15 @@ public class CategoryServlet extends HttpServlet {
             }
 
             // Lay so san pham va so danh muc con
-            Map<Integer, Integer> productCounts =
-                    dao.getProductCounts(categoryList);
+            Map<Integer, Integer> productCounts
+                    = dao.getProductCounts(categoryList);
 
-            Map<Integer, Integer> childCounts =
-                    dao.getChildCounts(categoryList);
+            Map<Integer, Integer> childCounts
+                    = dao.getChildCounts(categoryList);
 
             // Lay ten danh muc de hien thi danh muc cha
-            Map<Integer, String> categoryNames =
-                    dao.getCategoryNames();
+            Map<Integer, String> categoryNames
+                    = dao.getCategoryNames();
 
             // Tinh vi tri danh muc hien thi
             int startItem = categoryList.isEmpty()
@@ -256,7 +260,7 @@ public class CategoryServlet extends HttpServlet {
                     "/WEB-INF/category/list.jsp"
             ).forward(request, response);
 
-        // CREATE
+            // CREATE
         } else if ("create".equals(view)) {
 
             request.setAttribute("categoryList", dao.getList());
@@ -265,7 +269,7 @@ public class CategoryServlet extends HttpServlet {
                     "/WEB-INF/category/create.jsp"
             ).forward(request, response);
 
-        // EDIT
+            // EDIT
         } else if ("edit".equals(view)) {
 
             try {
@@ -297,7 +301,7 @@ public class CategoryServlet extends HttpServlet {
                 );
             }
 
-        // DELETE
+            // DELETE
         } else if ("delete".equals(view)) {
 
             try {
@@ -319,11 +323,11 @@ public class CategoryServlet extends HttpServlet {
                     return;
                 }
 
-                int productCount =
-                        dao.countProductsByCategoryId(id);
+                int productCount
+                        = dao.countProductsByCategoryId(id);
 
-                int childCount =
-                        dao.countChildCategories(id);
+                int childCount
+                        = dao.countChildCategories(id);
 
                 request.setAttribute("category", category);
                 request.setAttribute("productCount", productCount);
@@ -356,7 +360,7 @@ public class CategoryServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         request.setCharacterEncoding("UTF-8");
@@ -370,8 +374,8 @@ public class CategoryServlet extends HttpServlet {
 
             try {
                 String name = request.getParameter("name");
-                String parentIdText =
-                        request.getParameter("parentId");
+                String parentIdText
+                        = request.getParameter("parentId");
 
                 // Kiem tra ten danh muc rong
                 if (name == null || name.trim().isEmpty()) {
@@ -440,6 +444,20 @@ public class CategoryServlet extends HttpServlet {
                 int result = dao.insert(category);
 
                 if (result > 0) {
+
+                    User loggedInUser
+                            = (User) request.getSession()
+                                    .getAttribute("loggedInUser");
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "CREATE_CATEGORY",
+                            "CATEGORY",
+                            null,
+                            "Created category: " + name,
+                            request
+                    );
+
                     response.sendRedirect(
                             request.getContextPath()
                             + "/category?view=list"
@@ -478,7 +496,7 @@ public class CategoryServlet extends HttpServlet {
                 ).forward(request, response);
             }
 
-        // EDIT
+            // EDIT
         } else if ("edit".equals(action)) {
 
             int id = 0;
@@ -489,8 +507,8 @@ public class CategoryServlet extends HttpServlet {
                 );
 
                 String name = request.getParameter("name");
-                String parentIdText =
-                        request.getParameter("parentId");
+                String parentIdText
+                        = request.getParameter("parentId");
 
                 Category currentCategory = dao.getById(id);
 
@@ -599,6 +617,19 @@ public class CategoryServlet extends HttpServlet {
                 int result = dao.edit(category);
 
                 if (result > 0) {
+                    User loggedInUser
+                            = (User) request.getSession()
+                                    .getAttribute("loggedInUser");
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "UPDATE_CATEGORY",
+                            "CATEGORY",
+                            null,
+                            "Updated category: " + name,
+                            request
+                    );
+
                     response.sendRedirect(
                             request.getContextPath()
                             + "/category?view=list"
@@ -660,7 +691,7 @@ public class CategoryServlet extends HttpServlet {
                 }
             }
 
-        // DELETE
+            // DELETE
         } else if ("delete".equals(action)) {
 
             String idText = request.getParameter("id");
@@ -691,11 +722,11 @@ public class CategoryServlet extends HttpServlet {
                     return;
                 }
 
-                int productCount =
-                        dao.countProductsByCategoryId(id);
+                int productCount
+                        = dao.countProductsByCategoryId(id);
 
-                int childCount =
-                        dao.countChildCategories(id);
+                int childCount
+                        = dao.countChildCategories(id);
 
                 if (productCount > 0 || childCount > 0) {
                     response.sendRedirect(
@@ -709,6 +740,20 @@ public class CategoryServlet extends HttpServlet {
                 int result = dao.delete(existing);
 
                 if (result == 1) {
+
+                    User loggedInUser
+                            = (User) request.getSession()
+                                    .getAttribute("loggedInUser");
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "DELETE_CATEGORY",
+                            "CATEGORY",
+                            null,
+                            "Deleted category: " + existing.getCategoryName(),
+                            request
+                    );
+
                     response.sendRedirect(
                             contextPath
                             + "/category?view=list&success=delete"
@@ -923,8 +968,8 @@ public class CategoryServlet extends HttpServlet {
         int count = 0;
 
         for (int i = 0; i < endIndex; i++) {
-            List<Category> group =
-                    categoryGroups.get(rootIds.get(i));
+            List<Category> group
+                    = categoryGroups.get(rootIds.get(i));
 
             if (group != null) {
                 count += group.size();

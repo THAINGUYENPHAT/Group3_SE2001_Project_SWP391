@@ -12,11 +12,13 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import service.AuditLogService;
 
 @WebServlet(name = "LoginServlet", urlPatterns = {"/login"})
 public class LoginServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(LoginServlet.class.getName());
+    private final AuditLogService auditLogService = new AuditLogService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -65,14 +67,36 @@ public class LoginServlet extends HttpServlet {
             User user = dao.login(username, password);
 
             if (user == null) {
-                request.setAttribute("errorMessage", "Tên đăng nhập/email hoặc mật khẩu không chính xác!");
-                request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
+
+                auditLogService.log(
+                        username,
+                        "LOGIN_FAILED",
+                        "USER",
+                        null,
+                        "Invalid username/email or password",
+                        request
+                );
+
+                request.setAttribute("errorMessage", "Sai tài khoản hoặc mật khẩu.");
+                request.getRequestDispatcher("/WEB-INF/login.jsp")
+                        .forward(request, response);
                 return;
             }
 
             if (!user.isActive()) {
-                request.setAttribute("errorMessage", "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên!");
-                request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
+
+                auditLogService.log(
+                        user,
+                        "LOGIN_FAILED",
+                        "USER",
+                        (long) user.getUserId(),
+                        "Login attempt on locked account",
+                        request
+                );
+
+                request.setAttribute("errorMessage", "Tài khoản đã bị khóa.");
+                request.getRequestDispatcher("/WEB-INF/login.jsp")
+                        .forward(request, response);
                 return;
             }
 
@@ -81,6 +105,14 @@ public class LoginServlet extends HttpServlet {
             // =====================================================
             HttpSession session = request.getSession();
             session.setAttribute("loggedInUser", user);
+            auditLogService.log(
+                    user,
+                    "LOGIN_SUCCESS",
+                    "USER",
+                    (long) user.getUserId(),
+                    "User logged in successfully",
+                    request
+            );
 
             String redirectUrl = (String) session.getAttribute("redirectUrl");
             if (redirectUrl != null) {
