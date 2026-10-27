@@ -116,14 +116,14 @@
     </div>
 
     <div class="d-flex flex-wrap gap-2">
-    <a href="${pageContext.request.contextPath}/my-orders" class="btn btn-outline-primary">Đơn hàng của tôi</a>
-    <a href="${pageContext.request.contextPath}/cart"
-       class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>
+        <a href="${pageContext.request.contextPath}/my-orders" class="btn btn-outline-primary">Đơn hàng của tôi</a>
+        <a href="${pageContext.request.contextPath}/cart"
+           class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>
 
-        Về giỏ hàng
+            Về giỏ hàng
 
-    </a>
+        </a>
     </div>
 </div>
 
@@ -307,21 +307,21 @@
 
                             <tr>
 
-                                <th>
-                                    Sản phẩm
-                                </th>
+                            <th>
+                                Sản phẩm
+                            </th>
 
-                                <th class="text-end">
-                                    Đơn giá
-                                </th>
+                            <th class="text-end">
+                                Đơn giá
+                            </th>
 
-                                <th class="text-center">
-                                    Số lượng
-                                </th>
+                            <th class="text-center">
+                                Số lượng
+                            </th>
 
-                                <th class="text-end">
-                                    Thành tiền
-                                </th>
+                            <th class="text-end">
+                                Thành tiền
+                            </th>
 
                             </tr>
 
@@ -336,59 +336,59 @@
 
                                 <tr>
 
-                                    <td>
+                                <td>
 
-                                        <div class="fw-semibold">
+                                    <div class="fw-semibold">
 
-                                            <c:out
-                                                value="${item.productName}"/>
+                                        <c:out
+                                            value="${item.productName}"/>
 
-                                        </div>
-
-
-                                        <small class="text-muted">
-
-                                            SKU:
-
-                                            <c:out
-                                                value="${item.skuCode}"/>
-
-                                        </small>
-
-                                    </td>
+                                    </div>
 
 
-                                    <td class="text-end">
+                                    <small class="text-muted">
 
-                                        <fmt:formatNumber
-                                            value="${item.price}"
-                                            type="number"
-                                            groupingUsed="true"
-                                            maxFractionDigits="0"/>
+                                        SKU:
 
-                                        đ
+                                        <c:out
+                                            value="${item.skuCode}"/>
 
-                                    </td>
+                                    </small>
 
-
-                                    <td class="text-center">
-
-                                        ${item.quantity}
-
-                                    </td>
+                                </td>
 
 
-                                    <td class="text-end fw-semibold">
+                                <td class="text-end">
 
-                                        <fmt:formatNumber
-                                            value="${item.price * item.quantity}"
-                                            type="number"
-                                            groupingUsed="true"
-                                            maxFractionDigits="0"/>
+                                <fmt:formatNumber
+                                    value="${item.price}"
+                                    type="number"
+                                    groupingUsed="true"
+                                    maxFractionDigits="0"/>
 
-                                        đ
+                                đ
 
-                                    </td>
+                                </td>
+
+
+                                <td class="text-center">
+
+                                    ${item.quantity}
+
+                                </td>
+
+
+                                <td class="text-end fw-semibold">
+
+                                <fmt:formatNumber
+                                    value="${item.price * item.quantity}"
+                                    type="number"
+                                    groupingUsed="true"
+                                    maxFractionDigits="0"/>
+
+                                đ
+
+                                </td>
 
                                 </tr>
 
@@ -640,7 +640,7 @@
 
 
                                             <c:if test="${voucher.discountType == 'PERCENT'
-                                                        && not empty voucher.maxDiscount}">
+                                                          && not empty voucher.maxDiscount}">
 
                                                 · Giảm tối đa:
 
@@ -708,8 +708,7 @@
                 </h5>
 
 
-                <label class="d-block border border-primary rounded-3 p-3 mb-3">
-
+                <label class="d-block border rounded-3 p-3 mb-3">
                     <input
                         type="radio"
                         name="paymentMethod"
@@ -717,50 +716,63 @@
                         form="orderForm"
                         checked>
 
-
                     <span class="fw-semibold ms-2">
-
                         Thanh toán khi nhận hàng (COD)
-
                     </span>
-
 
                     <div class="text-muted small ms-4 mt-1">
-
                         Thanh toán khi nhận được sản phẩm.
-
                     </div>
-
                 </label>
 
-
-                <label class="d-block border rounded-3 p-3 mb-3 text-muted">
-
+                <label class="d-block border rounded-3 p-3 mb-3">
                     <input
                         type="radio"
-                        disabled>
+                        name="paymentMethod"
+                        value="VNPAY"
+                        form="orderForm"
+                        ${vnpayAvailable ? '' : 'disabled'}>
 
-                    <span class="ms-2">
-
-                        VNPay — Đang phát triển
-
+                    <span class="fw-semibold ms-2">
+                        VNPay — Thử nghiệm
                     </span>
 
+                    <div class="text-muted small ms-4 mt-1">
+                        <c:choose>
+                            <c:when test="${vnpayAvailable}">
+                                Thanh toán qua VNPay Sandbox.
+                                Đơn hàng được giữ trong 15 phút.
+                            </c:when>
+                            <c:otherwise>
+                                Chưa cấu hình tài khoản VNPay Sandbox.
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
                 </label>
 
-
-                <label class="d-block border rounded-3 p-3 text-muted">
-
+                <label class="d-block border rounded-3 p-3">
                     <input
                         type="radio"
-                        disabled>
+                        name="paymentMethod"
+                        value="MOMO"
+                        form="orderForm"
+                        ${momoAvailable ? '' : 'disabled'}>
 
-                    <span class="ms-2">
-
-                        MoMo — Đang phát triển
-
+                    <span class="fw-semibold ms-2">
+                        MoMo — Thử nghiệm
                     </span>
 
+                    <div class="text-muted small ms-4 mt-1">
+                        <c:choose>
+                            <c:when test="${momoAvailable}">
+                                Thanh toán qua MoMo Test.
+                                Đơn hàng được giữ trong 15 phút.
+                            </c:when>
+                            <c:otherwise>
+                                Chưa cấu hình tài khoản MoMo Test.
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
                 </label>
 
 
@@ -913,7 +925,7 @@
 
                         <i class="bi bi-bag-check me-1"></i>
 
-                        Đặt hàng COD
+                        Đặt hàng
 
                     </button>
 
@@ -1463,1165 +1475,1165 @@
 
 <script>
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
+    document.addEventListener(
+            "DOMContentLoaded",
+            function () {
 
-        const checkoutUrl =
-                "${pageContext.request.contextPath}/checkout";
+                const checkoutUrl =
+                        "${pageContext.request.contextPath}/checkout";
 
 
-        const addressActionToken =
-                "${sessionScope.addressActionToken}";
+                const addressActionToken =
+                        "${sessionScope.addressActionToken}";
 
 
-        // =================================================
-        // MAIN ELEMENTS
-        // =================================================
+                // =================================================
+                // MAIN ELEMENTS
+                // =================================================
 
-        const addressInput =
-                document.getElementById(
-                    "orderAddressId"
-                );
+                const addressInput =
+                        document.getElementById(
+                                "orderAddressId"
+                                );
 
 
-        const selectedCard =
-                document.getElementById(
-                    "selectedAddressCard"
-                );
+                const selectedCard =
+                        document.getElementById(
+                                "selectedAddressCard"
+                                );
 
 
-        const selectedName =
-                document.getElementById(
-                    "selectedAddressName"
-                );
+                const selectedName =
+                        document.getElementById(
+                                "selectedAddressName"
+                                );
 
 
-        const selectedLine =
-                document.getElementById(
-                    "selectedAddressLine"
-                );
+                const selectedLine =
+                        document.getElementById(
+                                "selectedAddressLine"
+                                );
 
 
-        const selectedDefaultBadge =
-                document.getElementById(
-                    "selectedDefaultBadge"
-                );
+                const selectedDefaultBadge =
+                        document.getElementById(
+                                "selectedDefaultBadge"
+                                );
 
 
-        const noAddressMessage =
-                document.getElementById(
-                    "noAddressMessage"
-                );
+                const noAddressMessage =
+                        document.getElementById(
+                                "noAddressMessage"
+                                );
 
 
-        const needAddressMessage =
-                document.getElementById(
-                    "needAddressMessage"
-                );
+                const needAddressMessage =
+                        document.getElementById(
+                                "needAddressMessage"
+                                );
 
 
-        const addressList =
-                document.getElementById(
-                    "addressList"
-                );
+                const addressList =
+                        document.getElementById(
+                                "addressList"
+                                );
 
 
-        const addressListEmpty =
-                document.getElementById(
-                    "addressListEmpty"
-                );
+                const addressListEmpty =
+                        document.getElementById(
+                                "addressListEmpty"
+                                );
 
 
-        const openAddressModalButton =
-                document.getElementById(
-                    "openAddressModalButton"
-                );
+                const openAddressModalButton =
+                        document.getElementById(
+                                "openAddressModalButton"
+                                );
 
 
-        const confirmAddressButton =
-                document.getElementById(
-                    "confirmAddressButton"
-                );
+                const confirmAddressButton =
+                        document.getElementById(
+                                "confirmAddressButton"
+                                );
 
 
-        const placeOrderButton =
-                document.getElementById(
-                    "placeOrderButton"
-                );
+                const placeOrderButton =
+                        document.getElementById(
+                                "placeOrderButton"
+                                );
 
 
-        const modalMessage =
-                document.getElementById(
-                    "addressModalMessage"
-                );
+                const modalMessage =
+                        document.getElementById(
+                                "addressModalMessage"
+                                );
 
 
-        const addressModal =
-                document.getElementById(
-                    "addressModal"
-                );
+                const addressModal =
+                        document.getElementById(
+                                "addressModal"
+                                );
 
 
-        const addressListFooter =
-                document.getElementById(
-                    "addressListFooter"
-                );
+                const addressListFooter =
+                        document.getElementById(
+                                "addressListFooter"
+                                );
 
 
-        // =================================================
-        // EDIT ELEMENTS
-        // =================================================
+                // =================================================
+                // EDIT ELEMENTS
+                // =================================================
 
-        const editAddressForm =
-                document.getElementById(
-                    "editAddressForm"
-                );
+                const editAddressForm =
+                        document.getElementById(
+                                "editAddressForm"
+                                );
 
 
-        const editAddressId =
-                document.getElementById(
-                    "editAddressId"
-                );
+                const editAddressId =
+                        document.getElementById(
+                                "editAddressId"
+                                );
 
 
-        const editRecipientName =
-                document.getElementById(
-                    "editRecipientName"
-                );
+                const editRecipientName =
+                        document.getElementById(
+                                "editRecipientName"
+                                );
 
 
-        const editPhoneNumber =
-                document.getElementById(
-                    "editPhoneNumber"
-                );
+                const editPhoneNumber =
+                        document.getElementById(
+                                "editPhoneNumber"
+                                );
 
 
-        const editAddressLine =
-                document.getElementById(
-                    "editAddressLine"
-                );
+                const editAddressLine =
+                        document.getElementById(
+                                "editAddressLine"
+                                );
 
 
-        const saveEditAddressButton =
-                document.getElementById(
-                    "saveEditAddressButton"
-                );
+                const saveEditAddressButton =
+                        document.getElementById(
+                                "saveEditAddressButton"
+                                );
 
 
-        const cancelEditAddressButton =
-                document.getElementById(
-                    "cancelEditAddressButton"
-                );
+                const cancelEditAddressButton =
+                        document.getElementById(
+                                "cancelEditAddressButton"
+                                );
 
 
-        let committedAddressId =
-                addressInput
-                ? addressInput.value
-                : "";
+                let committedAddressId =
+                        addressInput
+                        ? addressInput.value
+                        : "";
 
 
-        let addressRequestBusy =
-                false;
-
-
-        let editingOption =
-                null;
-
-
-        // =================================================
-        // MESSAGE
-        // =================================================
-
-        function showModalMessage(
-            message,
-            success
-        ) {
-
-            if (!modalMessage) {
-                return;
-            }
-
-
-            modalMessage.textContent =
-                    message;
-
-
-            modalMessage.className =
-                    success
-                    ? "alert alert-success mx-3 mt-3 mb-0"
-                    : "alert alert-danger mx-3 mt-3 mb-0";
-        }
-
-
-        // =================================================
-        // POST AJAX
-        // =================================================
-
-        async function postAddressAction(
-            data
-        ) {
-
-            const response =
-                    await fetch(
-                        checkoutUrl,
-                        {
-                            method: "POST",
-
-                            credentials:
-                                "same-origin",
-
-                            headers: {
-
-                                "Accept":
-                                    "application/json",
-
-                                "Content-Type":
-                                    "application/x-www-form-urlencoded;charset=UTF-8"
-                            },
-
-                            body:
-                                new URLSearchParams(
-                                    data
-                                ).toString()
-                        }
-                    );
-
-
-            let result;
-
-
-            try {
-
-                result =
-                        await response.json();
-
-            } catch (e) {
-
-                throw new Error(
-                    "Phản hồi từ server không hợp lệ."
-                );
-            }
-
-
-            if (!response.ok
-                    || !result.success) {
-
-                throw new Error(
-                    result.message
-                    || "Không thể thực hiện thao tác."
-                );
-            }
-
-
-            return result;
-        }
-
-
-        // =================================================
-        // ADDRESS LIST STATE
-        // =================================================
-
-        function getOptions() {
-
-            if (!addressList) {
-                return [];
-            }
-
-
-            return Array.from(
-                addressList.querySelectorAll(
-                    ".address-option"
-                )
-            );
-        }
-
-
-        function updateAddressListState() {
-
-            const options =
-                    getOptions();
-
-
-            if (addressListEmpty) {
-
-                addressListEmpty.style.display =
-                        options.length === 0
-                        ? ""
-                        : "none";
-            }
-
-
-            if (openAddressModalButton) {
-
-                openAddressModalButton.disabled =
-                        options.length === 0;
-            }
-
-
-            if (confirmAddressButton) {
-
-                confirmAddressButton.disabled =
-                        options.length === 0;
-            }
-        }
-
-
-        // =================================================
-        // DELETE BUTTON STATE
-        // =================================================
-
-        function updateDeleteButtons() {
-
-            getOptions().forEach(
-                function (option) {
-
-                    const id =
-                            option.dataset
-                                .addressId;
-
-
-                    const button =
-                            option.querySelector(
-                                ".delete-address-button"
-                            );
-
-
-                    if (!button) {
-                        return;
-                    }
-
-
-                    button.disabled =
-                            addressRequestBusy
-                            || id === committedAddressId;
-                }
-            );
-        }
-
-
-        // =================================================
-        // UPDATE CURRENT ADDRESS CARD
-        // =================================================
-
-        function updateSelectedAddress(
-            address,
-            setDefaultBadge
-        ) {
-
-            if (!address) {
-                return;
-            }
-
-
-            committedAddressId =
-                    String(
-                        address.addressId
-                    );
-
-
-            if (addressInput) {
-
-                addressInput.value =
-                        committedAddressId;
-            }
-
-
-            if (selectedName) {
-
-                selectedName.textContent =
-                        address.recipientName
-                        + " | "
-                        + address.phoneNumber;
-            }
-
-
-            if (selectedLine) {
-
-                selectedLine.textContent =
-                        address.addressLine;
-            }
-
-
-            if (selectedCard) {
-
-                selectedCard.style.display =
-                        "";
-            }
-
-
-            if (noAddressMessage) {
-
-                noAddressMessage.style.display =
-                        "none";
-            }
-
-
-            if (needAddressMessage) {
-
-                needAddressMessage.style.display =
-                        "none";
-            }
-
-
-            if (placeOrderButton) {
-
-                placeOrderButton.disabled =
+                let addressRequestBusy =
                         false;
-            }
 
 
-            if (selectedDefaultBadge) {
-
-                selectedDefaultBadge.style.display =
-                        setDefaultBadge
-                        && address.defaultAddress
-                        ? ""
-                        : "none";
-            }
+                let editingOption =
+                        null;
 
 
-            updateDeleteButtons();
-        }
+                // =================================================
+                // MESSAGE
+                // =================================================
+
+                function showModalMessage(
+                        message,
+                        success
+                        ) {
+
+                    if (!modalMessage) {
+                        return;
+                    }
 
 
-        // =================================================
-        // CANCEL EDIT
-        // =================================================
-
-        function closeEditMode() {
-
-            editingOption =
-                    null;
+                    modalMessage.textContent =
+                            message;
 
 
-            if (editAddressForm) {
-
-                editAddressForm.reset();
-
-                editAddressForm.classList.add(
-                    "d-none"
-                );
-            }
+                    modalMessage.className =
+                            success
+                            ? "alert alert-success mx-3 mt-3 mb-0"
+                            : "alert alert-danger mx-3 mt-3 mb-0";
+                }
 
 
-            if (addressList) {
+                // =================================================
+                // POST AJAX
+                // =================================================
 
-                addressList.classList.remove(
-                    "d-none"
-                );
-            }
+                async function postAddressAction(
+                        data
+                        ) {
 
+                    const response =
+                            await fetch(
+                                    checkoutUrl,
+                                    {
+                                        method: "POST",
 
-            if (addressListFooter) {
+                                        credentials:
+                                                "same-origin",
 
-                addressListFooter.classList.remove(
-                    "d-none"
-                );
-            }
+                                        headers: {
 
+                                            "Accept":
+                                                    "application/json",
 
-            if (modalMessage) {
+                                            "Content-Type":
+                                                    "application/x-www-form-urlencoded;charset=UTF-8"
+                                        },
 
-                modalMessage.className =
-                        "alert mx-3 mt-3 mb-0 d-none";
-            }
-        }
-
-
-        // =================================================
-        // OPEN EDIT
-        // =================================================
-
-        if (addressList) {
-
-            addressList.addEventListener(
-                "click",
-                function (event) {
-
-                    const button =
-                            event.target.closest(
-                                ".edit-address-button"
+                                        body:
+                                                new URLSearchParams(
+                                                        data
+                                                        ).toString()
+                                    }
                             );
 
 
-                    if (!button
-                            || addressRequestBusy) {
-
-                        return;
-                    }
-
-
-                    editingOption =
-                            button.closest(
-                                ".address-option"
-                            );
-
-
-                    if (!editingOption) {
-
-                        return;
-                    }
-
-
-                    editAddressId.value =
-                            editingOption.dataset
-                                .addressId;
-
-
-                    editRecipientName.value =
-                            editingOption
-                                .querySelector(
-                                    ".address-recipient"
-                                )
-                                .textContent
-                                .trim();
-
-
-                    editPhoneNumber.value =
-                            editingOption
-                                .querySelector(
-                                    ".address-phone"
-                                )
-                                .textContent
-                                .trim();
-
-
-                    editAddressLine.value =
-                            editingOption
-                                .querySelector(
-                                    ".address-line"
-                                )
-                                .textContent
-                                .trim();
-
-
-                    addressList.classList.add(
-                        "d-none"
-                    );
-
-
-                    addressListFooter.classList.add(
-                        "d-none"
-                    );
-
-
-                    editAddressForm.classList.remove(
-                        "d-none"
-                    );
-                }
-            );
-        }
-
-
-        // =================================================
-        // CANCEL EDIT BUTTON
-        // =================================================
-
-        if (cancelEditAddressButton) {
-
-            cancelEditAddressButton.addEventListener(
-                "click",
-                function () {
-
-                    closeEditMode();
-                }
-            );
-        }
-
-
-        // =================================================
-        // SAVE EDIT AJAX
-        // =================================================
-
-        if (editAddressForm) {
-
-            editAddressForm.addEventListener(
-                "submit",
-                async function (event) {
-
-                    event.preventDefault();
-
-
-                    if (addressRequestBusy) {
-                        return;
-                    }
-
-
-                    editRecipientName.value =
-                            editRecipientName.value
-                                .trim();
-
-
-                    editPhoneNumber.value =
-                            editPhoneNumber.value
-                                .trim();
-
-
-                    editAddressLine.value =
-                            editAddressLine.value
-                                .trim();
-
-
-                    if (!editAddressForm
-                            .reportValidity()) {
-
-                        return;
-                    }
-
-
-                    addressRequestBusy =
-                            true;
-
-
-                    saveEditAddressButton.disabled =
-                            true;
-
-
-                    saveEditAddressButton.textContent =
-                            "Đang lưu...";
-
-
-                    updateDeleteButtons();
+                    let result;
 
 
                     try {
 
-                        const result =
-                                await postAddressAction(
-                                    {
-                                        action:
-                                            "editAddress",
+                        result =
+                                await response.json();
 
-                                        addressId:
-                                            editAddressId.value,
+                    } catch (e) {
 
-                                        recipientName:
-                                            editRecipientName.value,
-
-                                        phoneNumber:
-                                            editPhoneNumber.value,
-
-                                        addressLine:
-                                            editAddressLine.value,
-
-                                        addressActionToken:
-                                            addressActionToken
-                                    }
+                        throw new Error(
+                                "Phản hồi từ server không hợp lệ."
                                 );
-
-
-                        const address =
-                                result.address;
-
-
-                        editingOption
-                            .querySelector(
-                                ".address-recipient"
-                            )
-                            .textContent =
-                                address.recipientName;
-
-
-                        editingOption
-                            .querySelector(
-                                ".address-phone"
-                            )
-                            .textContent =
-                                address.phoneNumber;
-
-
-                        editingOption
-                            .querySelector(
-                                ".address-line"
-                            )
-                            .textContent =
-                                address.addressLine;
-
-
-                        /*
-                         * Nếu đang sửa chính địa chỉ Checkout
-                         * hiện tại thì cập nhật luôn card phía ngoài.
-                         */
-                        if (String(
-                                address.addressId
-                        ) === committedAddressId) {
-
-                            updateSelectedAddress(
-                                address,
-                                false
-                            );
-                        }
-
-
-                        closeEditMode();
-
-
-                        showModalMessage(
-                            "Đã cập nhật địa chỉ.",
-                            true
-                        );
-
-
-                    } catch (error) {
-
-                        showModalMessage(
-                            error.message,
-                            false
-                        );
-
-
-                    } finally {
-
-                        addressRequestBusy =
-                                false;
-
-
-                        saveEditAddressButton.disabled =
-                                false;
-
-
-                        saveEditAddressButton.textContent =
-                                "Lưu thay đổi";
-
-
-                        updateDeleteButtons();
                     }
-                }
-            );
-        }
 
 
-        // =================================================
-        // RESET MODAL
-        // =================================================
+                    if (!response.ok
+                            || !result.success) {
 
-        if (addressModal) {
-
-            addressModal.addEventListener(
-                "show.bs.modal",
-                function () {
-
-                    closeEditMode();
-
-
-                    if (addressList) {
-
-                        addressList
-                            .querySelectorAll(
-                                'input[name="modalAddressId"]'
-                            )
-                            .forEach(
-                                function (radio) {
-
-                                    radio.checked =
-                                        radio.value
-                                        === committedAddressId;
-                                }
-                            );
-
-
-                        const currentOption =
-                                getOptions()
-                                .find(
-                                    function (option) {
-
-                                        return option.dataset
-                                            .addressId
-                                            === committedAddressId;
-                                    }
+                        throw new Error(
+                                result.message
+                                || "Không thể thực hiện thao tác."
                                 );
-
-
-                        if (currentOption) {
-
-                            addressList.prepend(
-                                currentOption
-                            );
-                        }
                     }
 
 
-                    updateDeleteButtons();
+                    return result;
                 }
-            );
-        }
 
 
-        // =================================================
-        // SELECT RADIO
-        // =================================================
+                // =================================================
+                // ADDRESS LIST STATE
+                // =================================================
 
-        if (addressList) {
+                function getOptions() {
 
-            addressList.addEventListener(
-                "change",
-                function (event) {
-
-                    if (event.target.matches(
-                        'input[name="modalAddressId"]'
-                    )) {
-
-                        updateDeleteButtons();
-                    }
-                }
-            );
-        }
-
-
-        // =================================================
-        // CONFIRM ADDRESS
-        // =================================================
-
-        if (confirmAddressButton) {
-
-            confirmAddressButton.addEventListener(
-                "click",
-                async function () {
-
-                    if (addressRequestBusy
-                            || !addressList) {
-
-                        return;
+                    if (!addressList) {
+                        return [];
                     }
 
 
-                    const selectedRadio =
-                            addressList
-                            .querySelector(
-                                'input[name="modalAddressId"]:checked'
-                            );
-
-
-                    if (!selectedRadio) {
-
-                        showModalMessage(
-                            "Vui lòng chọn địa chỉ giao hàng.",
-                            false
-                        );
-
-                        return;
-                    }
-
-
-                    const id =
-                            selectedRadio.value;
-
-
-                    addressRequestBusy =
-                            true;
-
-
-                    updateDeleteButtons();
-
-
-                    try {
-
-                        const result =
-                                await postAddressAction(
-                                    {
-                                        action:
-                                            "selectAddress",
-
-                                        addressId:
-                                            id,
-
-                                        addressActionToken:
-                                            addressActionToken
-                                    }
-                                );
-
-
-                        const option =
-                                selectedRadio
-                                .closest(
+                    return Array.from(
+                            addressList.querySelectorAll(
                                     ".address-option"
-                                );
-
-
-                        updateSelectedAddress(
-                            result.selectedAddress,
-                            true
-                        );
-
-
-                        if (option) {
-
-                            addressList.prepend(
-                                option
+                                    )
                             );
-                        }
+                }
 
 
-                        bootstrap.Modal
-                            .getOrCreateInstance(
-                                addressModal
-                            )
-                            .hide();
+                function updateAddressListState() {
+
+                    const options =
+                            getOptions();
 
 
-                    } catch (error) {
+                    if (addressListEmpty) {
 
-                        showModalMessage(
-                            error.message,
-                            false
-                        );
-
-
-                    } finally {
-
-                        addressRequestBusy =
-                                false;
+                        addressListEmpty.style.display =
+                                options.length === 0
+                                ? ""
+                                : "none";
+                    }
 
 
-                        updateDeleteButtons();
+                    if (openAddressModalButton) {
+
+                        openAddressModalButton.disabled =
+                                options.length === 0;
+                    }
+
+
+                    if (confirmAddressButton) {
+
+                        confirmAddressButton.disabled =
+                                options.length === 0;
                     }
                 }
-            );
-        }
 
 
-        // =================================================
-        // DELETE ADDRESS AJAX
-        // =================================================
+                // =================================================
+                // DELETE BUTTON STATE
+                // =================================================
 
-        if (addressList) {
+                function updateDeleteButtons() {
 
-            addressList.addEventListener(
-                "submit",
-                async function (event) {
+                    getOptions().forEach(
+                            function (option) {
 
-                    const form =
-                            event.target.closest(
-                                ".delete-address-form"
-                            );
+                                const id =
+                                        option.dataset
+                                        .addressId;
 
 
-                    if (!form) {
-                        return;
-                    }
+                                const button =
+                                        option.querySelector(
+                                                ".delete-address-button"
+                                                );
 
 
-                    event.preventDefault();
+                                if (!button) {
+                                    return;
+                                }
 
 
-                    if (addressRequestBusy) {
-                        return;
-                    }
-
-
-                    const option =
-                            form.closest(
-                                ".address-option"
-                            );
-
-
-                    if (!option) {
-                        return;
-                    }
-
-
-                    const id =
-                            option.dataset
-                                .addressId;
-
-
-                    if (id === committedAddressId) {
-
-                        showModalMessage(
-                            "Không thể xóa địa chỉ đang sử dụng. "
-                            + "Vui lòng xác nhận địa chỉ khác trước.",
-                            false
-                        );
-
-                        return;
-                    }
-
-
-                    if (!window.confirm(
-                        "Bạn chắc chắn muốn xóa địa chỉ này?"
-                    )) {
-
-                        return;
-                    }
-
-
-                    addressRequestBusy =
-                            true;
-
-
-                    updateDeleteButtons();
-
-
-                    try {
-
-                        await postAddressAction(
-                            {
-                                action:
-                                    "deleteAddress",
-
-                                addressId:
-                                    id,
-
-                                addressActionToken:
-                                    addressActionToken
+                                button.disabled =
+                                        addressRequestBusy
+                                        || id === committedAddressId;
                             }
-                        );
-
-
-                        option.remove();
-
-
-                        updateAddressListState();
-
-
-                        showModalMessage(
-                            "Đã xóa địa chỉ thành công.",
-                            true
-                        );
-
-
-                    } catch (error) {
-
-                        showModalMessage(
-                            error.message,
-                            false
-                        );
-
-
-                    } finally {
-
-                        addressRequestBusy =
-                                false;
-
-
-                        updateDeleteButtons();
-                    }
+                    );
                 }
-            );
-        }
 
 
-        // =================================================
-        // ADD ADDRESS ANTI DOUBLE SUBMIT
-        // =================================================
+                // =================================================
+                // UPDATE CURRENT ADDRESS CARD
+                // =================================================
 
-        const addAddressForm =
-                document.getElementById(
-                    "addAddressForm"
-                );
+                function updateSelectedAddress(
+                        address,
+                        setDefaultBadge
+                        ) {
 
-
-        const saveAddressButton =
-                document.getElementById(
-                    "saveAddressButton"
-                );
-
-
-        if (addAddressForm) {
-
-            addAddressForm.addEventListener(
-                "submit",
-                function (event) {
-
-                    if (addAddressForm
-                            .dataset
-                            .submitting
-                            === "true") {
-
-                        event.preventDefault();
-
+                    if (!address) {
                         return;
                     }
 
 
-                    if (!addAddressForm
-                            .checkValidity()) {
+                    committedAddressId =
+                            String(
+                                    address.addressId
+                                    );
 
-                        return;
+
+                    if (addressInput) {
+
+                        addressInput.value =
+                                committedAddressId;
                     }
 
 
-                    addAddressForm
-                        .dataset
-                        .submitting =
-                            "true";
+                    if (selectedName) {
 
-
-                    if (saveAddressButton) {
-
-                        saveAddressButton.disabled =
-                                true;
-
-
-                        saveAddressButton.textContent =
-                                "Đang lưu...";
-                    }
-                }
-            );
-        }
-
-
-        // =================================================
-        // PLACE ORDER ANTI DOUBLE SUBMIT
-        // =================================================
-
-        const orderForm =
-                document.getElementById(
-                    "orderForm"
-                );
-
-
-        if (orderForm) {
-
-            orderForm.addEventListener(
-                "submit",
-                function (event) {
-
-                    if (orderForm
-                            .dataset
-                            .submitting
-                            === "true") {
-
-                        event.preventDefault();
-
-                        return;
+                        selectedName.textContent =
+                                address.recipientName
+                                + " | "
+                                + address.phoneNumber;
                     }
 
 
-                    if (!orderForm
-                            .checkValidity()) {
+                    if (selectedLine) {
 
-                        return;
+                        selectedLine.textContent =
+                                address.addressLine;
                     }
 
 
-                    orderForm
-                        .dataset
-                        .submitting =
-                            "true";
+                    if (selectedCard) {
+
+                        selectedCard.style.display =
+                                "";
+                    }
+
+
+                    if (noAddressMessage) {
+
+                        noAddressMessage.style.display =
+                                "none";
+                    }
+
+
+                    if (needAddressMessage) {
+
+                        needAddressMessage.style.display =
+                                "none";
+                    }
 
 
                     if (placeOrderButton) {
 
                         placeOrderButton.disabled =
-                                true;
+                                false;
+                    }
 
 
-                        placeOrderButton.textContent =
-                                "Đang xử lý đơn hàng...";
+                    if (selectedDefaultBadge) {
+
+                        selectedDefaultBadge.style.display =
+                                setDefaultBadge
+                                && address.defaultAddress
+                                ? ""
+                                : "none";
+                    }
+
+
+                    updateDeleteButtons();
+                }
+
+
+                // =================================================
+                // CANCEL EDIT
+                // =================================================
+
+                function closeEditMode() {
+
+                    editingOption =
+                            null;
+
+
+                    if (editAddressForm) {
+
+                        editAddressForm.reset();
+
+                        editAddressForm.classList.add(
+                                "d-none"
+                                );
+                    }
+
+
+                    if (addressList) {
+
+                        addressList.classList.remove(
+                                "d-none"
+                                );
+                    }
+
+
+                    if (addressListFooter) {
+
+                        addressListFooter.classList.remove(
+                                "d-none"
+                                );
+                    }
+
+
+                    if (modalMessage) {
+
+                        modalMessage.className =
+                                "alert mx-3 mt-3 mb-0 d-none";
                     }
                 }
-            );
-        }
 
 
-        updateAddressListState();
+                // =================================================
+                // OPEN EDIT
+                // =================================================
 
-        updateDeleteButtons();
+                if (addressList) {
 
-    }
-);
+                    addressList.addEventListener(
+                            "click",
+                            function (event) {
+
+                                const button =
+                                        event.target.closest(
+                                                ".edit-address-button"
+                                                );
+
+
+                                if (!button
+                                        || addressRequestBusy) {
+
+                                    return;
+                                }
+
+
+                                editingOption =
+                                        button.closest(
+                                                ".address-option"
+                                                );
+
+
+                                if (!editingOption) {
+
+                                    return;
+                                }
+
+
+                                editAddressId.value =
+                                        editingOption.dataset
+                                        .addressId;
+
+
+                                editRecipientName.value =
+                                        editingOption
+                                        .querySelector(
+                                                ".address-recipient"
+                                                )
+                                        .textContent
+                                        .trim();
+
+
+                                editPhoneNumber.value =
+                                        editingOption
+                                        .querySelector(
+                                                ".address-phone"
+                                                )
+                                        .textContent
+                                        .trim();
+
+
+                                editAddressLine.value =
+                                        editingOption
+                                        .querySelector(
+                                                ".address-line"
+                                                )
+                                        .textContent
+                                        .trim();
+
+
+                                addressList.classList.add(
+                                        "d-none"
+                                        );
+
+
+                                addressListFooter.classList.add(
+                                        "d-none"
+                                        );
+
+
+                                editAddressForm.classList.remove(
+                                        "d-none"
+                                        );
+                            }
+                    );
+                }
+
+
+                // =================================================
+                // CANCEL EDIT BUTTON
+                // =================================================
+
+                if (cancelEditAddressButton) {
+
+                    cancelEditAddressButton.addEventListener(
+                            "click",
+                            function () {
+
+                                closeEditMode();
+                            }
+                    );
+                }
+
+
+                // =================================================
+                // SAVE EDIT AJAX
+                // =================================================
+
+                if (editAddressForm) {
+
+                    editAddressForm.addEventListener(
+                            "submit",
+                            async function (event) {
+
+                                event.preventDefault();
+
+
+                                if (addressRequestBusy) {
+                                    return;
+                                }
+
+
+                                editRecipientName.value =
+                                        editRecipientName.value
+                                        .trim();
+
+
+                                editPhoneNumber.value =
+                                        editPhoneNumber.value
+                                        .trim();
+
+
+                                editAddressLine.value =
+                                        editAddressLine.value
+                                        .trim();
+
+
+                                if (!editAddressForm
+                                        .reportValidity()) {
+
+                                    return;
+                                }
+
+
+                                addressRequestBusy =
+                                        true;
+
+
+                                saveEditAddressButton.disabled =
+                                        true;
+
+
+                                saveEditAddressButton.textContent =
+                                        "Đang lưu...";
+
+
+                                updateDeleteButtons();
+
+
+                                try {
+
+                                    const result =
+                                            await postAddressAction(
+                                                    {
+                                                        action:
+                                                                "editAddress",
+
+                                                        addressId:
+                                                                editAddressId.value,
+
+                                                        recipientName:
+                                                                editRecipientName.value,
+
+                                                        phoneNumber:
+                                                                editPhoneNumber.value,
+
+                                                        addressLine:
+                                                                editAddressLine.value,
+
+                                                        addressActionToken:
+                                                                addressActionToken
+                                                    }
+                                            );
+
+
+                                    const address =
+                                            result.address;
+
+
+                                    editingOption
+                                            .querySelector(
+                                                    ".address-recipient"
+                                                    )
+                                            .textContent =
+                                            address.recipientName;
+
+
+                                    editingOption
+                                            .querySelector(
+                                                    ".address-phone"
+                                                    )
+                                            .textContent =
+                                            address.phoneNumber;
+
+
+                                    editingOption
+                                            .querySelector(
+                                                    ".address-line"
+                                                    )
+                                            .textContent =
+                                            address.addressLine;
+
+
+                                    /*
+                                     * Nếu đang sửa chính địa chỉ Checkout
+                                     * hiện tại thì cập nhật luôn card phía ngoài.
+                                     */
+                                    if (String(
+                                            address.addressId
+                                            ) === committedAddressId) {
+
+                                        updateSelectedAddress(
+                                                address,
+                                                false
+                                                );
+                                    }
+
+
+                                    closeEditMode();
+
+
+                                    showModalMessage(
+                                            "Đã cập nhật địa chỉ.",
+                                            true
+                                            );
+
+
+                                } catch (error) {
+
+                                    showModalMessage(
+                                            error.message,
+                                            false
+                                            );
+
+
+                                } finally {
+
+                                    addressRequestBusy =
+                                            false;
+
+
+                                    saveEditAddressButton.disabled =
+                                            false;
+
+
+                                    saveEditAddressButton.textContent =
+                                            "Lưu thay đổi";
+
+
+                                    updateDeleteButtons();
+                                }
+                            }
+                    );
+                }
+
+
+                // =================================================
+                // RESET MODAL
+                // =================================================
+
+                if (addressModal) {
+
+                    addressModal.addEventListener(
+                            "show.bs.modal",
+                            function () {
+
+                                closeEditMode();
+
+
+                                if (addressList) {
+
+                                    addressList
+                                            .querySelectorAll(
+                                                    'input[name="modalAddressId"]'
+                                                    )
+                                            .forEach(
+                                                    function (radio) {
+
+                                                        radio.checked =
+                                                                radio.value
+                                                                === committedAddressId;
+                                                    }
+                                            );
+
+
+                                    const currentOption =
+                                            getOptions()
+                                            .find(
+                                                    function (option) {
+
+                                                        return option.dataset
+                                                                .addressId
+                                                                === committedAddressId;
+                                                    }
+                                            );
+
+
+                                    if (currentOption) {
+
+                                        addressList.prepend(
+                                                currentOption
+                                                );
+                                    }
+                                }
+
+
+                                updateDeleteButtons();
+                            }
+                    );
+                }
+
+
+                // =================================================
+                // SELECT RADIO
+                // =================================================
+
+                if (addressList) {
+
+                    addressList.addEventListener(
+                            "change",
+                            function (event) {
+
+                                if (event.target.matches(
+                                        'input[name="modalAddressId"]'
+                                        )) {
+
+                                    updateDeleteButtons();
+                                }
+                            }
+                    );
+                }
+
+
+                // =================================================
+                // CONFIRM ADDRESS
+                // =================================================
+
+                if (confirmAddressButton) {
+
+                    confirmAddressButton.addEventListener(
+                            "click",
+                            async function () {
+
+                                if (addressRequestBusy
+                                        || !addressList) {
+
+                                    return;
+                                }
+
+
+                                const selectedRadio =
+                                        addressList
+                                        .querySelector(
+                                                'input[name="modalAddressId"]:checked'
+                                                );
+
+
+                                if (!selectedRadio) {
+
+                                    showModalMessage(
+                                            "Vui lòng chọn địa chỉ giao hàng.",
+                                            false
+                                            );
+
+                                    return;
+                                }
+
+
+                                const id =
+                                        selectedRadio.value;
+
+
+                                addressRequestBusy =
+                                        true;
+
+
+                                updateDeleteButtons();
+
+
+                                try {
+
+                                    const result =
+                                            await postAddressAction(
+                                                    {
+                                                        action:
+                                                                "selectAddress",
+
+                                                        addressId:
+                                                                id,
+
+                                                        addressActionToken:
+                                                                addressActionToken
+                                                    }
+                                            );
+
+
+                                    const option =
+                                            selectedRadio
+                                            .closest(
+                                                    ".address-option"
+                                                    );
+
+
+                                    updateSelectedAddress(
+                                            result.selectedAddress,
+                                            true
+                                            );
+
+
+                                    if (option) {
+
+                                        addressList.prepend(
+                                                option
+                                                );
+                                    }
+
+
+                                    bootstrap.Modal
+                                            .getOrCreateInstance(
+                                                    addressModal
+                                                    )
+                                            .hide();
+
+
+                                } catch (error) {
+
+                                    showModalMessage(
+                                            error.message,
+                                            false
+                                            );
+
+
+                                } finally {
+
+                                    addressRequestBusy =
+                                            false;
+
+
+                                    updateDeleteButtons();
+                                }
+                            }
+                    );
+                }
+
+
+                // =================================================
+                // DELETE ADDRESS AJAX
+                // =================================================
+
+                if (addressList) {
+
+                    addressList.addEventListener(
+                            "submit",
+                            async function (event) {
+
+                                const form =
+                                        event.target.closest(
+                                                ".delete-address-form"
+                                                );
+
+
+                                if (!form) {
+                                    return;
+                                }
+
+
+                                event.preventDefault();
+
+
+                                if (addressRequestBusy) {
+                                    return;
+                                }
+
+
+                                const option =
+                                        form.closest(
+                                                ".address-option"
+                                                );
+
+
+                                if (!option) {
+                                    return;
+                                }
+
+
+                                const id =
+                                        option.dataset
+                                        .addressId;
+
+
+                                if (id === committedAddressId) {
+
+                                    showModalMessage(
+                                            "Không thể xóa địa chỉ đang sử dụng. "
+                                            + "Vui lòng xác nhận địa chỉ khác trước.",
+                                            false
+                                            );
+
+                                    return;
+                                }
+
+
+                                if (!window.confirm(
+                                        "Bạn chắc chắn muốn xóa địa chỉ này?"
+                                        )) {
+
+                                    return;
+                                }
+
+
+                                addressRequestBusy =
+                                        true;
+
+
+                                updateDeleteButtons();
+
+
+                                try {
+
+                                    await postAddressAction(
+                                            {
+                                                action:
+                                                        "deleteAddress",
+
+                                                addressId:
+                                                        id,
+
+                                                addressActionToken:
+                                                        addressActionToken
+                                            }
+                                    );
+
+
+                                    option.remove();
+
+
+                                    updateAddressListState();
+
+
+                                    showModalMessage(
+                                            "Đã xóa địa chỉ thành công.",
+                                            true
+                                            );
+
+
+                                } catch (error) {
+
+                                    showModalMessage(
+                                            error.message,
+                                            false
+                                            );
+
+
+                                } finally {
+
+                                    addressRequestBusy =
+                                            false;
+
+
+                                    updateDeleteButtons();
+                                }
+                            }
+                    );
+                }
+
+
+                // =================================================
+                // ADD ADDRESS ANTI DOUBLE SUBMIT
+                // =================================================
+
+                const addAddressForm =
+                        document.getElementById(
+                                "addAddressForm"
+                                );
+
+
+                const saveAddressButton =
+                        document.getElementById(
+                                "saveAddressButton"
+                                );
+
+
+                if (addAddressForm) {
+
+                    addAddressForm.addEventListener(
+                            "submit",
+                            function (event) {
+
+                                if (addAddressForm
+                                        .dataset
+                                        .submitting
+                                        === "true") {
+
+                                    event.preventDefault();
+
+                                    return;
+                                }
+
+
+                                if (!addAddressForm
+                                        .checkValidity()) {
+
+                                    return;
+                                }
+
+
+                                addAddressForm
+                                        .dataset
+                                        .submitting =
+                                        "true";
+
+
+                                if (saveAddressButton) {
+
+                                    saveAddressButton.disabled =
+                                            true;
+
+
+                                    saveAddressButton.textContent =
+                                            "Đang lưu...";
+                                }
+                            }
+                    );
+                }
+
+
+                // =================================================
+                // PLACE ORDER ANTI DOUBLE SUBMIT
+                // =================================================
+
+                const orderForm =
+                        document.getElementById(
+                                "orderForm"
+                                );
+
+
+                if (orderForm) {
+
+                    orderForm.addEventListener(
+                            "submit",
+                            function (event) {
+
+                                if (orderForm
+                                        .dataset
+                                        .submitting
+                                        === "true") {
+
+                                    event.preventDefault();
+
+                                    return;
+                                }
+
+
+                                if (!orderForm
+                                        .checkValidity()) {
+
+                                    return;
+                                }
+
+
+                                orderForm
+                                        .dataset
+                                        .submitting =
+                                        "true";
+
+
+                                if (placeOrderButton) {
+
+                                    placeOrderButton.disabled =
+                                            true;
+
+
+                                    placeOrderButton.textContent =
+                                            "Đang xử lý đơn hàng...";
+                                }
+                            }
+                    );
+                }
+
+
+                updateAddressListState();
+
+                updateDeleteButtons();
+
+            }
+    );
 
 </script>
 
