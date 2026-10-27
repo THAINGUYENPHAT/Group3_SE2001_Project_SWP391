@@ -1,6 +1,8 @@
 package controller;
 
 import dao.VoucherDAO;
+import model.User;
+import service.AuditLogService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -25,6 +27,9 @@ import java.time.format.DateTimeFormatter;
         urlPatterns = {"/staff/voucher"}
 )
 public class VoucherServlet extends HttpServlet {
+
+    private final AuditLogService auditLogService
+            = new AuditLogService();
 
     private VoucherDAO voucherDAO;
 
@@ -392,6 +397,19 @@ public class VoucherServlet extends HttpServlet {
                         "Tạo Voucher thành công."
                 );
 
+                User loggedInUser
+                        = (User) request.getSession()
+                                .getAttribute("loggedInUser");
+
+                auditLogService.log(
+                        loggedInUser,
+                        "CREATE_VOUCHER",
+                        "VOUCHER",
+                        null,
+                        "Created voucher: " + voucher.getCode(),
+                        request
+                );
+
                 redirectList(
                         request,
                         response
@@ -602,6 +620,19 @@ public class VoucherServlet extends HttpServlet {
                         "Cập nhật Voucher thành công."
                 );
 
+                User loggedInUser
+                        = (User) request.getSession()
+                                .getAttribute("loggedInUser");
+
+                auditLogService.log(
+                        loggedInUser,
+                        "UPDATE_VOUCHER",
+                        "VOUCHER",
+                        null,
+                        "Updated voucher: " + voucher.getCode(),
+                        request
+                );
+
                 redirectList(
                         request,
                         response
@@ -761,6 +792,19 @@ public class VoucherServlet extends HttpServlet {
                 setSuccessMessage(
                         request,
                         "Xóa Voucher thành công."
+                );
+
+                User loggedInUser
+                        = (User) request.getSession()
+                                .getAttribute("loggedInUser");
+
+                auditLogService.log(
+                        loggedInUser,
+                        "DELETE_VOUCHER",
+                        "VOUCHER",
+                        null,
+                        "Deleted voucher: " + voucher.getCode(),
+                        request
                 );
 
             } else {

@@ -68,7 +68,8 @@ public class AuthFilter implements Filter {
             "/admin/dashboard",
             "/admin/report",
             "/admin/report/export",
-            "/user"
+            "/user",
+            "/admin/audit-log"
     );
 
     // =====================================================
