@@ -606,6 +606,16 @@
                                                     </a>
                                                 </li>
 
+                                                
+                                                <li>
+                                                    <a class="dropdown-item rounded-2 py-2"
+                                                       href="${pageContext.request.contextPath}/staff/reviews">
+                                                        <i class="bi bi-chat-square-text text-info me-2"></i>
+                                                        Quản lý đánh giá &amp; bình luận
+                                                    </a>
+                                                </li>
+
+
                                             </c:if>
 
                                             <li>

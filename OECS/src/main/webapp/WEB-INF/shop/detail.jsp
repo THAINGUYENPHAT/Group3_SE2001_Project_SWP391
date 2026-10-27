@@ -149,8 +149,8 @@
                             <tbody>
                                 <c:forEach items="${specs}" var="spec">
                                     <tr>
-                                        <th>${spec.attributeName}</th>
-                                        <td>${spec.value}</td>
+                                    <th>${spec.attributeName}</th>
+                                    <td>${spec.value}</td>
                                     </tr>
                                 </c:forEach>
                             </tbody>
@@ -162,6 +162,153 @@
                 </c:choose>
             </div>
         </div>
+        <!-- Section: Đánh giá và bình luận -->
+        <div class="row mt-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="border-bottom pb-3 mb-4">
+                    <h3 class="fw-bold mb-2">Đánh giá &amp; bình luận</h3>
+
+                    <c:choose>
+                        <c:when test="${totalReviews > 0}">
+                            <p class="mb-0 text-muted">
+                                Điểm trung bình:
+                                <strong class="text-warning">
+                                    <fmt:formatNumber value="${averageRating}"
+                                                      minFractionDigits="1"
+                                                      maxFractionDigits="1"/>/5
+                                </strong>
+                                · ${totalReviews} đánh giá
+                            </p>
+                        </c:when>
+                        <c:otherwise>
+                            <p class="text-muted mb-0">
+                                Sản phẩm chưa có đánh giá.
+                            </p>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+
+                <c:choose>
+                    <c:when test="${not empty reviews}">
+                        <c:forEach items="${reviews}" var="review">
+                            <div class="border rounded-3 p-4 mb-3">
+                                <div class="d-flex justify-content-between
+                                     align-items-start flex-wrap gap-2 mb-3">
+                                    <div>
+                                        <div class="fw-bold">Khách hàng</div>
+
+                                        <div class="text-warning">
+                                            <c:forEach begin="1" end="5" var="star">
+                                                <c:choose>
+                                                    <c:when test="${star <= review.rating}">
+                                                        <i class="bi bi-star-fill"></i>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <i class="bi bi-star"></i>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </c:forEach>
+                                            <span class="text-muted ms-1">
+                                                (${review.rating}/5)
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <small class="text-muted">
+                                        <fmt:formatDate value="${review.createdAt}"
+                                                        pattern="dd/MM/yyyy HH:mm"/>
+                                    </small>
+                                </div>
+
+                                <p class="mb-3" style="white-space: pre-line;"><c:out value="${review.comment}"/></p>
+
+                                <!-- Ảnh đính kèm đánh giá -->
+                                <c:if test="${not empty review.images}">
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <c:forEach items="${review.images}" var="image">
+                                            <img src="${image}"
+                                                 alt="Ảnh đánh giá sản phẩm"
+                                                 loading="lazy"
+                                                 style="width: 90px; height: 90px;
+                                                 object-fit: cover;
+                                                 border-radius: 8px;
+                                                 border: 1px solid #dee2e6;">
+                                        </c:forEach>
+                                    </div>
+                                </c:if>
+                                <c:if test="${sessionScope.loggedInUser.customer
+                                              and sessionScope.loggedInUser.userId ne review.userId}">
+
+                                      <form action="${pageContext.request.contextPath}/review/report"
+                                            method="POST"
+                                            class="mt-3">
+
+                                          <input type="hidden"
+                                                 name="csrfToken"
+                                                 value="${sessionScope.reviewCsrfToken}">
+
+                                          <input type="hidden"
+                                                 name="reviewId"
+                                                 value="${review.reviewId}">
+
+                                          <input type="hidden"
+                                                 name="productId"
+                                                 value="${product.productId}">
+
+                                          <div class="input-group">
+                                              <input type="text"
+                                                     name="reason"
+                                                     class="form-control"
+                                                     maxlength="500"
+                                                     required
+                                                     placeholder="Nhập lý do báo cáo...">
+
+                                              <button type="submit"
+                                                      class="btn btn-outline-danger">
+                                                  <i class="bi bi-flag me-1"></i>
+                                                  Báo cáo
+                                              </button>
+                                          </div>
+                                      </form>
+                                </c:if>
+                            </div>
+                        </c:forEach>
+                    </c:when>
+
+                    <c:otherwise>
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-chat-square-text fs-1"></i>
+                            <p class="mt-2 mb-0">
+                                Chưa có bình luận nào cho sản phẩm này.
+                            </p>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+        </div>
+        <c:if test="${param.report eq 'SUCCESS'}">
+            <div class="alert alert-success">
+                Báo cáo của bạn đã được gửi để nhân viên xem xét.
+            </div>
+        </c:if>
+
+        <c:if test="${param.report eq 'DUPLICATE'}">
+            <div class="alert alert-warning">
+                Bạn đã có báo cáo đang chờ xử lý cho đánh giá này.
+            </div>
+        </c:if>
+
+        <c:if test="${param.report eq 'OWN_REVIEW'}">
+            <div class="alert alert-warning">
+                Bạn không thể báo cáo đánh giá của chính mình.
+            </div>
+        </c:if>
+
+        <c:if test="${param.report eq 'INVALID'}">
+            <div class="alert alert-danger">
+                Vui lòng nhập lý do báo cáo hợp lệ.
+            </div>
+        </c:if>
     </div>
 </div>
 
