@@ -28,18 +28,20 @@
     }
     .product-image {
         height: 240px;
-        background: #f8f9fa;
+        background: #fff; /* Đổi thành trắng để ảnh nổi bật hơn */
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 50px;
         color: #adb5bd;
+        padding: 15px; /* Thêm padding cho ảnh */
     }
     .product-info {
         padding: 20px;
         display: flex;
         flex-direction: column;
         flex: 1;
+        border-top: 1px solid #f0f2f5;
     }
     .product-brand {
         font-size: 13px;
@@ -76,7 +78,6 @@
             </ol>
         </nav>
 
-        <!-- ĐÃ ĐỔI div THÀNH form Ở ĐÂY ĐỂ TRUYỀN DỮ LIỆU LỌC -->
         <form action="${pageContext.request.contextPath}/shop" method="GET" class="row">
 
             <!-- Giữ lại từ khóa tìm kiếm nếu có -->
@@ -131,7 +132,6 @@
                         </c:if>
                     </div>
 
-                    <!-- Đã thêm name="sort" và onchange để tự động submit khi chọn -->
                     <select name="sort" class="form-select w-auto border-0 shadow-sm" onchange="this.form.submit()">
                         <option value="newest" ${selectedSort == 'newest' ? 'selected' : ''}>Mới nhất</option>
                         <option value="priceAsc" ${selectedSort == 'priceAsc' ? 'selected' : ''}>Giá thấp đến cao</option>
@@ -146,7 +146,15 @@
                                 <div class="col-6 col-md-4">
                                     <a href="${pageContext.request.contextPath}/shop?action=detail&id=${item.productId}" class="product-card">
                                         <div class="product-image">
-                                            <i class="bi bi-laptop"></i>
+                                            <!-- HIỂN THỊ HÌNH ẢNH NẾU CÓ -->
+                                            <c:choose>
+                                                <c:when test="${not empty item.imageUrl}">
+                                                    <img src="${pageContext.request.contextPath}/${item.imageUrl}" alt="${item.productName}" class="img-fluid" style="max-height: 100%; object-fit: contain;">
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <i class="bi bi-image text-muted"></i>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                         <div class="product-info">
                                             <div class="product-brand">${item.brand.brandName}</div>
@@ -175,7 +183,7 @@
                     </c:choose>
                 </div>
             </div>
-        </form> <!-- ĐÃ ĐÓNG form Ở ĐÂY THAY VÌ div -->
+        </form>
     </div>
 </div>
 

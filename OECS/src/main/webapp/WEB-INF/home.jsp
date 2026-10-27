@@ -3,15 +3,16 @@
 <%@taglib prefix="fn" uri="jakarta.tags.functions"%>
 
 <%@include file="/WEB-INF/include/header.jsp"%>
+
 <script>
     document.querySelector(".page-main")
             ?.classList.add("home-main");
 </script>
+
 <style>
     /* =========================================================
        HOME PAGE
        ========================================================= */
-
     .home-page {
         background: #f5f7fb;
         min-height: 100vh;
@@ -21,8 +22,6 @@
     /* =========================================================
        HERO
        ========================================================= */
-
-
     .home-hero {
         position: relative;
         width: 100%;
@@ -47,7 +46,6 @@
         align-items: center;
     }
 
-
     .home-hero-content {
         position: relative;
         z-index: 2;
@@ -56,7 +54,6 @@
         width: 100%;
         max-width: 680px;
 
-        /* Căn nội dung gọn, đều */
         padding: 40px 60px;
     }
 
@@ -124,10 +121,10 @@
         transform: translateY(-2px);
         box-shadow: 0 10px 26px rgba(13, 110, 253, 0.38);
     }
+
     /* =========================================================
        SERVICE BAR
        ========================================================= */
-
     .service-bar {
         background: white;
         border-radius: 14px;
@@ -187,7 +184,6 @@
     /* =========================================================
        SECTION
        ========================================================= */
-
     .home-section {
         margin-top: 55px;
     }
@@ -230,7 +226,6 @@
     /* =========================================================
        CATEGORY
        ========================================================= */
-
     .category-card {
         position: relative;
         height: 145px;
@@ -248,6 +243,7 @@
 
         transition: all 0.2s ease;
     }
+
     .category-card:hover {
         transform: translateY(-6px);
         box-shadow: 0 12px 30px rgba(20, 40, 70, 0.12);
@@ -256,7 +252,6 @@
 
     .category-card::after {
         content: "";
-
         position: absolute;
         inset: 0;
 
@@ -345,7 +340,6 @@
     /* =========================================================
        PRODUCT
        ========================================================= */
-
     .product-card {
         background: white;
         border-radius: 14px;
@@ -444,64 +438,9 @@
         margin-bottom: 14px;
     }
 
-    .product-bottom {
-        margin-top: auto;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        padding-top: 12px;
-
-        border-top: 1px solid #f0f2f5;
-    }
-
-    .product-price {
-        font-size: 17px;
-        font-weight: 800;
-
-        color: #e53935;
-    }
-
-    .product-stock {
-        font-size: 12px;
-
-        color: #198754;
-
-        margin-top: 3px;
-    }
-
-    .product-stock i {
-        margin-right: 3px;
-    }
-
-    .product-detail-btn {
-        width: 36px;
-        height: 36px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 9px;
-
-        background: #0d6efd;
-        color: white;
-
-        text-decoration: none;
-
-        transition: 0.2s ease;
-    }
-
-    .product-detail-btn:hover {
-        background: #0b5ed7;
-        color: white;
-    }
-
     /* =========================================================
        PROMOTION BANNER
        ========================================================= */
-
     .promo-banner {
         position: relative;
 
@@ -543,83 +482,11 @@
         color: rgba(255,255,255,0.78);
         margin-bottom: 20px;
     }
-    /* =========================================================
-   ADMIN SHORTCUT
-   ========================================================= */
-
-    .admin-shortcut {
-        margin-top: 28px;
-    }
-
-    .admin-voucher-card {
-        display: inline-flex;
-        align-items: center;
-        gap: 14px;
-
-        padding: 15px 20px;
-
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-
-        text-decoration: none;
-        color: #142b4a;
-
-        box-shadow: 0 4px 15px rgba(20, 40, 70, 0.06);
-
-        transition: all 0.2s ease;
-    }
-
-    .admin-voucher-card:hover {
-        transform: translateY(-3px);
-        border-color: #bfdbfe;
-
-        box-shadow:
-            0 8px 22px rgba(37, 99, 235, 0.12);
-
-        color: #142b4a;
-    }
-
-    .admin-voucher-icon {
-        width: 46px;
-        height: 46px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 12px;
-
-        background: #dbeafe;
-        color: #2563eb;
-
-        font-size: 21px;
-    }
-
-    .admin-voucher-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: #142b4a;
-    }
-
-    .admin-voucher-description {
-        margin-top: 2px;
-
-        font-size: 12px;
-        color: #8997aa;
-    }
-
-    .admin-voucher-arrow {
-        margin-left: 15px;
-        color: #94a3b8;
-    }
 
     /* =========================================================
        RESPONSIVE
        ========================================================= */
-
     @media (max-width: 992px) {
-
         .home-hero {
             min-height: 430px;
         }
@@ -638,10 +505,8 @@
     }
 
     @media (max-width: 768px) {
-
         .home-hero {
             min-height: 500px;
-
             background-position: 65% center;
         }
 
@@ -675,7 +540,6 @@
     /* =========================================================
        HOME SLIDESHOW
        ========================================================= */
-
     .home-slider {
         position: relative;
         width: 100%;
@@ -785,7 +649,6 @@
             right: 8px;
         }
     }
-
 </style>
 
 <div class="home-page">
@@ -793,14 +656,10 @@
     <%-- Thông báo --%>
     <div class="container">
         <c:if test="${not empty sessionScope.toastMessage}">
-            <div class="alert alert-danger alert-dismissible fade show mt-3"
-                 role="alert">
+            <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
                 ${sessionScope.toastMessage}
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-
             <c:remove var="toastMessage" scope="session"/>
             <c:remove var="toastType" scope="session"/>
         </c:if>
@@ -809,439 +668,239 @@
     <%-- HERO tràn toàn bộ chiều rộng màn hình --%>
     <section class="home-hero">
         <div class="home-hero-content">
-
             <div class="home-hero-badge">
-                <i class="bi bi-lightning-charge-fill"></i>
-                DEAL CÔNG NGHỆ THÁNG 10
+                <i class="bi bi-lightning-charge-fill"></i> DEAL CÔNG NGHỆ THÁNG 10
             </div>
-
             <h1 class="home-hero-title">
-                Công nghệ chính hãng.
-                <br>
-                Giá tốt mỗi ngày.
+                Công nghệ chính hãng.<br>Giá tốt mỗi ngày.
             </h1>
-
             <p class="home-hero-description">
-                Khám phá smartphone, laptop và phụ kiện chính hãng
-                với nhiều lựa chọn phù hợp cho bạn.
+                Khám phá smartphone, laptop và phụ kiện chính hãng với nhiều lựa chọn phù hợp cho bạn.
             </p>
-
             <a href="#recommended-products" class="home-hero-button">
                 Xem sản phẩm nổi bật
             </a>
-
         </div>
     </section>
 
-    <%-- Nội dung còn lại vẫn nằm trong container --%>
+    <%-- Nội dung còn lại nằm trong container --%>
     <div class="container">
-        <c:if test="${not empty sessionScope.toastMessage}">
-            <div class="container mt-3">
-                <div class="alert alert-danger alert-dismissible fade show"
-                     role="alert">
-
-                    ${sessionScope.toastMessage}
-
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="alert">
-                    </button>
-                </div>
-            </div>
-
-            <c:remove var="toastMessage" scope="session"/>
-            <c:remove var="toastType" scope="session"/>
-        </c:if>
-
-        <!-- =====================================================
-             HERO
-             ===================================================== -->
-
-
-
-
         <!-- =====================================================
              SERVICE BAR
              ===================================================== -->
-
         <section class="service-bar">
-
             <div class="row g-0">
-
                 <div class="col-lg-3 col-md-6 px-3 service-divider">
                     <div class="service-item">
-
                         <div class="service-icon">
                             <i class="bi bi-truck"></i>
                         </div>
-
                         <div>
-                            <div class="service-title">
-                                Giao hàng nhanh
-                            </div>
-
-                            <p class="service-description">
-                                Toàn quốc, đúng hẹn
-                            </p>
+                            <div class="service-title">Giao hàng nhanh</div>
+                            <p class="service-description">Toàn quốc, đúng hẹn</p>
                         </div>
-
                     </div>
                 </div>
 
-
                 <div class="col-lg-3 col-md-6 px-3 service-divider">
                     <div class="service-item">
-
                         <div class="service-icon">
                             <i class="bi bi-shield-check"></i>
                         </div>
-
                         <div>
-                            <div class="service-title">
-                                Sản phẩm chính hãng
-                            </div>
-
-                            <p class="service-description">
-                                100% chính hãng
-                            </p>
+                            <div class="service-title">Sản phẩm chính hãng</div>
+                            <p class="service-description">100% chính hãng</p>
                         </div>
-
                     </div>
                 </div>
-
 
                 <div class="col-lg-3 col-md-6 px-3 service-divider">
                     <div class="service-item">
-
                         <div class="service-icon">
                             <i class="bi bi-headset"></i>
                         </div>
-
                         <div>
-                            <div class="service-title">
-                                Hỗ trợ 24/7
-                            </div>
-
-                            <p class="service-description">
-                                Luôn sẵn sàng
-                            </p>
+                            <div class="service-title">Hỗ trợ 24/7</div>
+                            <p class="service-description">Luôn sẵn sàng</p>
                         </div>
-
                     </div>
                 </div>
-
 
                 <div class="col-lg-3 col-md-6 px-3">
                     <div class="service-item">
-
                         <div class="service-icon">
                             <i class="bi bi-patch-check"></i>
                         </div>
-
                         <div>
-                            <div class="service-title">
-                                Bảo hành uy tín
-                            </div>
-
-                            <p class="service-description">
-                                Đồng hành cùng bạn
-                            </p>
+                            <div class="service-title">Bảo hành uy tín</div>
+                            <p class="service-description">Đồng hành cùng bạn</p>
                         </div>
-
                     </div>
                 </div>
-
             </div>
-
         </section>
-
-
 
         <!-- =====================================================
              PROMOTION SLIDESHOW
-             NẰM TRÊN CATEGORY
              ===================================================== -->
-
         <section class="home-section">
             <div class="home-slider" id="homeSlider">
-
                 <div class="slider-track">
-
-                    <a href="${pageContext.request.contextPath}/shop"
-                       class="slide active">
-                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-1.jpg"
-                             alt="Khuyến mãi công nghệ">
+                    <a href="${pageContext.request.contextPath}/shop" class="slide active">
+                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-1.jpg" alt="Khuyến mãi công nghệ">
                     </a>
-
-                    <a href="${pageContext.request.contextPath}/shop"
-                       class="slide">
-                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-2.jpg"
-                             alt="Ưu đãi laptop">
+                    <a href="${pageContext.request.contextPath}/shop" class="slide">
+                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-2.jpg" alt="Ưu đãi laptop">
                     </a>
-
-                    <a href="${pageContext.request.contextPath}/shop"
-                       class="slide">
-                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-3.jpg"
-                             alt="Ưu đãi phụ kiện">
+                    <a href="${pageContext.request.contextPath}/shop" class="slide">
+                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-3.jpg" alt="Ưu đãi phụ kiện">
                     </a>
-
                 </div>
 
-                <button type="button"
-                        class="slider-arrow prev"
-                        aria-label="Ảnh trước">
-                    &#10094;
-                </button>
-
-                <button type="button"
-                        class="slider-arrow next"
-                        aria-label="Ảnh tiếp theo">
-                    &#10095;
-                </button>
+                <button type="button" class="slider-arrow prev" aria-label="Ảnh trước">&#10094;</button>
+                <button type="button" class="slider-arrow next" aria-label="Ảnh tiếp theo">&#10095;</button>
 
                 <div class="slider-dots">
-                    <button type="button"
-                            class="slider-dot active"
-                            aria-label="Ảnh 1"></button>
-                    <button type="button"
-                            class="slider-dot"
-                            aria-label="Ảnh 2"></button>
-                    <button type="button"
-                            class="slider-dot"
-                            aria-label="Ảnh 3"></button>
+                    <button type="button" class="slider-dot active" aria-label="Ảnh 1"></button>
+                    <button type="button" class="slider-dot" aria-label="Ảnh 2"></button>
+                    <button type="button" class="slider-dot" aria-label="Ảnh 3"></button>
                 </div>
-
             </div>
         </section>
 
         <!-- =====================================================
              CATEGORY
              ===================================================== -->
-
         <section class="home-section">
-
             <div class="row g-3">
-
-                <!-- 1. Điện thoại -->
                 <div class="col-6 col-lg-2">
                     <a href="${pageContext.request.contextPath}/shop?categoryId=1" class="category-card category-phone">
                         <div class="category-content">
-                            <div class="category-name">
-                                Điện thoại
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
+                            <div class="category-name">Điện thoại</div>
+                            <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
                         </div>
                     </a>
                 </div>
 
-                <!-- 2. Laptop -->
                 <div class="col-6 col-lg-2">
                     <a href="${pageContext.request.contextPath}/shop?categoryId=2" class="category-card category-laptop">
                         <div class="category-content">
-                            <div class="category-name">
-                                Laptop
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
+                            <div class="category-name">Laptop</div>
+                            <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
                         </div>
                     </a>
                 </div>
 
-                <!-- 3. Phụ kiện -->
                 <div class="col-6 col-lg-2">
                     <a href="${pageContext.request.contextPath}/shop?categoryId=3" class="category-card category-accessory">
                         <div class="category-content">
-                            <div class="category-name">
-                                Phụ kiện
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
+                            <div class="category-name">Phụ kiện</div>
+                            <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
                         </div>
                     </a>
                 </div>
 
-                <!-- 4. Đồng hồ thông minh -->
                 <div class="col-6 col-lg-2">
                     <a href="${pageContext.request.contextPath}/shop?keyword=Dong%20ho" class="category-card category-watch">
                         <div class="category-content">
-                            <div class="category-name">
-                                Đồng hồ thông minh
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
+                            <div class="category-name">Đồng hồ thông minh</div>
+                            <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
                         </div>
                     </a>
                 </div>
 
-                <!-- 5. Tai nghe -->
                 <div class="col-6 col-lg-2">
                     <a href="${pageContext.request.contextPath}/shop?keyword=Tai%20nghe" class="category-card category-headphone">
                         <div class="category-content">
-                            <div class="category-name">
-                                Tai nghe
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
+                            <div class="category-name">Tai nghe</div>
+                            <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
                         </div>
                     </a>
                 </div>
 
-                <!-- 6. Máy ảnh -->
                 <div class="col-6 col-lg-2">
                     <a href="${pageContext.request.contextPath}/shop?keyword=May%20anh" class="category-card category-camera">
                         <div class="category-content">
-                            <div class="category-name">
-                                Máy ảnh
-                            </div>
-                            <div class="category-arrow">
-                                <i class="bi bi-arrow-right"></i>
-                            </div>
+                            <div class="category-name">Máy ảnh</div>
+                            <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
                         </div>
                     </a>
                 </div>
-
             </div>
-
         </section>
-
-
         <!-- =====================================================
-PROMOTION
-===================================================== -->
-
+             PROMOTION
+             ===================================================== -->
         <section class="home-section">
-
             <div class="promo-banner">
-
                 <div class="promo-content">
-
-                    <h3>
-                        Nâng cấp công nghệ của bạn
-                    </h3>
-
-                    <p>
-                        Khám phá những thiết bị mới và lựa chọn
-                        sản phẩm phù hợp với nhu cầu của bạn.
-                    </p>
-
-
+                    <h3>Nâng cấp công nghệ của bạn</h3>
+                    <p>Khám phá những thiết bị mới và lựa chọn sản phẩm phù hợp với nhu cầu của bạn.</p>
                 </div>
-
             </div>
-
         </section>
 
         <!-- =====================================================
-         PRODUCT
-         ===================================================== -->
-
-        <section class="home-section"
-                 id="recommended-products">
-
+             PRODUCT
+             ===================================================== -->
+        <section class="home-section" id="recommended-products">
             <div class="section-header">
-
                 <div>
-                    <h2 class="section-title">
-                        Sản phẩm nổi bật
-                    </h2>
-
-                    <p class="section-description">
-                        Những sản phẩm công nghệ đáng chú ý tại OECS
-                    </p>
+                    <h2 class="section-title">Sản phẩm nổi bật</h2>
+                    <p class="section-description">Những sản phẩm công nghệ đáng chú ý tại OECS</p>
                 </div>
-
-                <a href="${pageContext.request.contextPath}/shop"
-                   class="section-link">
-
-                    Xem tất cả
-
-                    <i class="bi bi-arrow-right"></i>
-
+                <a href="${pageContext.request.contextPath}/shop" class="section-link">
+                    Xem tất cả <i class="bi bi-arrow-right"></i>
                 </a>
-
             </div>
-
 
             <div class="row g-4">
-
                 <c:choose>
-
                     <c:when test="${not empty productList}">
-
-                        <c:forEach var="product"
-                                   items="${productList}"
-                                   begin="0"
-                                   end="7">
-
+                        <c:forEach var="product" items="${productList}" begin="0" end="7">
                             <div class="col-12 col-sm-6 col-lg-3">
-                                <!-- ĐỔI div THÀNH thẻ a VÀ THÊM href, text-decoration-none -->
                                 <a href="${pageContext.request.contextPath}/shop?action=detail&id=${product.productId}" class="product-card text-decoration-none">
 
+                                    <!-- HIỂN THỊ HÌNH ẢNH SẢN PHẨM -->
                                     <div class="product-image text-dark">
-                                        <i class="bi bi-box-seam"></i>
+                                        <c:choose>
+                                            <c:when test="${not empty product.imageUrl}">
+                                                <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="${product.productName}">
+                                            </c:when>
+                                            <c:otherwise>
+                                                <i class="bi bi-box-seam"></i>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </div>
 
                                     <div class="product-info">
-                                        <div class="product-brand">
-                                            ${product.brand.brandName}
-                                        </div>
-                                        <div class="product-name text-dark">
-                                            ${product.productName}
-                                        </div>
-                                        <div class="product-description">
-                                            ${product.description}
-                                        </div>
+                                        <div class="product-brand">${product.brand.brandName}</div>
+                                        <div class="product-name text-dark">${product.productName}</div>
+                                        <div class="product-description">${product.description}</div>
                                     </div>
-
-                                </a> <!-- KẾT THÚC THẺ a TẠI ĐÂY -->
+                                </a>
                             </div>
-
                         </c:forEach>
-
                     </c:when>
 
-
                     <c:otherwise>
-
                         <div class="col-12">
-
                             <div class="alert alert-light text-center py-5">
-
                                 <i class="bi bi-box-seam fs-1 d-block mb-3"></i>
-
-                                <h5>
-                                    Chưa có sản phẩm
-                                </h5>
-
-                                <p class="text-muted mb-0">
-                                    Hiện tại OECS chưa có sản phẩm để hiển thị.
-                                </p>
-
+                                <h5>Chưa có sản phẩm</h5>
+                                <p class="text-muted mb-0">Hiện tại OECS chưa có sản phẩm để hiển thị.</p>
                             </div>
-
                         </div>
-
                     </c:otherwise>
-
                 </c:choose>
-
             </div>
-
         </section>
     </div>
-
 </div>
 
 <script>
     (function () {
         const slider = document.getElementById("homeSlider");
-
         if (!slider)
             return;
 
@@ -1255,11 +914,9 @@ PROMOTION
 
         function showSlide(index) {
             currentIndex = (index + slides.length) % slides.length;
-
             slides.forEach(function (slide, i) {
                 slide.classList.toggle("active", i === currentIndex);
             });
-
             dots.forEach(function (dot, i) {
                 dot.classList.toggle("active", i === currentIndex);
             });
@@ -1274,7 +931,6 @@ PROMOTION
 
         function startAutoPlay() {
             stopAutoPlay();
-
             timer = setInterval(function () {
                 showSlide(currentIndex + 1);
             }, 4000);

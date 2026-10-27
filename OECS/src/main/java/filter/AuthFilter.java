@@ -10,17 +10,20 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
 import model.User;
 
-@WebFilter(filterName = "AuthFilter", urlPatterns = {"/*"})
+@WebFilter(
+        filterName = "AuthFilter",
+        urlPatterns = {"/*"}
+)
 public class AuthFilter implements Filter {
 
-    // =====================================================
-    // PUBLIC - Guest và tất cả role đều có thể truy cập
-    // =====================================================
+    // Cac duong dan khong yeu cau dang nhap
     private static final List<String> PUBLIC_URLS = Arrays.asList(
             "",
             "/",
@@ -33,12 +36,16 @@ public class AuthFilter implements Filter {
             "/forgot-password",
             "/reset-password",
             "/favicon.ico",
-            "/guide"
+            "/guide",
+
+            // Callback thanh toan tu cong sandbox
+            "/payment/vnpay/ipn",
+            "/payment/momo/ipn",
+            "/payment/vnpay/return",
+            "/payment/momo/return"
     );
 
-    // =====================================================
-    // CUSTOMER - Chỉ Customer đã đăng nhập
-    // =====================================================
+    // Chi Customer duoc truy cap
     private static final List<String> CUSTOMER_URLS = Arrays.asList(
             "/cart",
             "/review",
@@ -46,12 +53,12 @@ public class AuthFilter implements Filter {
             "/my-orders",
             "/my-orders/detail",
             "/my-orders/cancel",
-            "/order-success"
+            "/order-success",
+            "/payment",
+            "/payment/action"
     );
 
-    // =====================================================
-    // STAFF - Chỉ Staff
-    // =====================================================
+    // Chi Staff duoc truy cap
     private static final List<String> STAFF_URLS = Arrays.asList(
             "/brand",
             "/category",
@@ -61,9 +68,7 @@ public class AuthFilter implements Filter {
             "/product-sku"
     );
 
-    // =====================================================
-    // ADMIN - Chỉ Admin
-    // =====================================================
+    // Chi Admin duoc truy cap
     private static final List<String> ADMIN_URLS = Arrays.asList(
             "/admin/dashboard",
             "/admin/report",
@@ -72,92 +77,74 @@ public class AuthFilter implements Filter {
             "/admin/audit-log"
     );
 
-    // =====================================================
-    // AUTHENTICATED - Mọi user đã đăng nhập
-    // =====================================================
-    private static final List<String> AUTHENTICATED_URLS = Arrays.asList(
-            "/profile",
-            "/notification"
-    );
+    // Moi user da dang nhap deu duoc truy cap
+    private static final List<String> AUTHENTICATED_URLS =
+            Arrays.asList(
+                    "/profile",
+                    "/notification"
+            );
 
-    // =====================================================
-    // Static resources - ai cũng có thể truy cập
-    // =====================================================
-    private static final List<String> PUBLIC_PREFIXES = Arrays.asList(
-            "/assets/",
-            "/css/",
-            "/js/",
-            "/images/",
-            "/uploads/"
-    );
+    // Tai nguyen tinh
+    private static final List<String> PUBLIC_PREFIXES =
+            Arrays.asList(
+                    "/assets/",
+                    "/css/",
+                    "/js/",
+                    "/images/",
+                    "/uploads/"
+            );
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig)
+            throws ServletException {
     }
 
     @Override
-    public void doFilter(ServletRequest request,
+    public void doFilter(
+            ServletRequest request,
             ServletResponse response,
-            FilterChain chain)
-            throws IOException, ServletException {
+            FilterChain chain
+    ) throws IOException, ServletException {
 
-        HttpServletRequest httpRequest
-                = (HttpServletRequest) request;
+        HttpServletRequest httpRequest =
+                (HttpServletRequest) request;
 
-        HttpServletResponse httpResponse
-                = (HttpServletResponse) response;
+        HttpServletResponse httpResponse =
+                (HttpServletResponse) response;
 
-        HttpSession session
-                = httpRequest.getSession(false);
+        HttpSession session = httpRequest.getSession(false);
 
-        // =====================================================
-        // Lấy đường dẫn request
-        // =====================================================
-        String requestURI
-                = httpRequest.getRequestURI();
+        String requestURI = httpRequest.getRequestURI();
+        String contextPath = httpRequest.getContextPath();
 
-        String contextPath
-                = httpRequest.getContextPath();
+        String relativePath = requestURI.substring(
+                contextPath.length()
+        );
 
-        String relativePath
-                = requestURI.substring(contextPath.length());
+        User user = session == null
+                ? null
+                : (User) session.getAttribute("loggedInUser");
 
-        // =====================================================
-        // Lấy user đã đăng nhập trong session
-        // =====================================================
-        User user = (session != null)
-                ? (User) session.getAttribute("loggedInUser")
-                : null;
+        // 1. Cho phep trang cong khai va tai nguyen tinh
+        boolean isPublicUrl = PUBLIC_URLS.contains(relativePath);
 
-        // =====================================================
-        // 1. KIỂM TRA PUBLIC
-        // =====================================================
-        boolean isPublicUrl
-                = PUBLIC_URLS.contains(relativePath);
-
-        boolean isStaticResource
-                = PUBLIC_PREFIXES.stream()
-                        .anyMatch(relativePath::startsWith);
+        boolean isStaticResource = PUBLIC_PREFIXES.stream()
+                .anyMatch(relativePath::startsWith);
 
         if (isPublicUrl || isStaticResource) {
             chain.doFilter(request, response);
             return;
         }
 
-        // =====================================================
-        // 2. CHƯA ĐĂNG NHẬP
-        // =====================================================
+        // 2. Chua dang nhap thi chuyen den Login
         if (user == null) {
-
             if (session == null) {
                 session = httpRequest.getSession(true);
             }
 
-            String queryString
-                    = httpRequest.getQueryString();
+            String queryString = httpRequest.getQueryString();
 
-            String fullRedirectUrl
-                    = requestURI
+            String fullRedirectUrl = requestURI
                     + (queryString != null
                             ? "?" + queryString
                             : "");
@@ -174,34 +161,24 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // =====================================================
-        // MỌI USER ĐÃ ĐĂNG NHẬP
-        // =====================================================
-        boolean isAuthenticatedUrl
-                = AUTHENTICATED_URLS.contains(relativePath);
-
-        if (isAuthenticatedUrl) {
+        // 3. Duong dan danh cho moi user da dang nhap
+        if (AUTHENTICATED_URLS.contains(relativePath)) {
             chain.doFilter(request, response);
             return;
         }
 
-        // =====================================================
-        // 3. KIỂM TRA CUSTOMER
-        // =====================================================
-        boolean isCustomerUrl
-                = CUSTOMER_URLS.contains(relativePath);
+        // 4. Kiem tra quyen Customer
+        boolean isCustomerUrl =
+                CUSTOMER_URLS.contains(relativePath);
 
         if (isCustomerUrl && !user.isCustomer()) {
-
             session.setAttribute(
                     "toastMessage",
-                    "Bạn không có quyền truy cập chức năng dành cho khách hàng!"
+                    "Bạn không có quyền truy cập "
+                    + "chức năng dành cho khách hàng!"
             );
 
-            session.setAttribute(
-                    "toastType",
-                    "error"
-            );
+            session.setAttribute("toastType", "error");
 
             httpResponse.sendRedirect(
                     contextPath + "/home"
@@ -210,25 +187,20 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // =====================================================
-        // 4. KIỂM TRA STAFF
-        // =====================================================
-        boolean isStaffUrl
-                = STAFF_URLS.contains(relativePath)
+        // 5. Kiem tra quyen Staff
+        boolean isStaffUrl =
+                STAFF_URLS.contains(relativePath)
                 || relativePath.startsWith("/admin/orders/")
                 || relativePath.startsWith("/staff/voucher/");
 
         if (isStaffUrl && !user.isStaff()) {
-
             session.setAttribute(
                     "toastMessage",
-                    "Bạn không có quyền truy cập khu vực dành cho nhân viên!"
+                    "Bạn không có quyền truy cập "
+                    + "khu vực dành cho nhân viên!"
             );
 
-            session.setAttribute(
-                    "toastType",
-                    "error"
-            );
+            session.setAttribute("toastType", "error");
 
             httpResponse.sendRedirect(
                     contextPath + "/home"
@@ -237,23 +209,18 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // =====================================================
-        // 5. KIỂM TRA ADMIN
-        // =====================================================
-        boolean isAdminUrl
-                = ADMIN_URLS.contains(relativePath);
+        // 6. Kiem tra quyen Admin
+        boolean isAdminUrl =
+                ADMIN_URLS.contains(relativePath);
 
         if (isAdminUrl && !user.isAdmin()) {
-
             session.setAttribute(
                     "toastMessage",
-                    "Bạn không có quyền truy cập khu vực quản trị!"
+                    "Bạn không có quyền truy cập "
+                    + "khu vực quản trị!"
             );
 
-            session.setAttribute(
-                    "toastType",
-                    "error"
-            );
+            session.setAttribute("toastType", "error");
 
             httpResponse.sendRedirect(
                     contextPath + "/home"
@@ -262,9 +229,7 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // =====================================================
-        // 6. CHO REQUEST ĐI TIẾP
-        // =====================================================
+        // 7. Cho request di tiep
         chain.doFilter(request, response);
     }
 

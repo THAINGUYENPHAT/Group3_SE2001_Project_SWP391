@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,7 +32,7 @@ public class ShopServlet extends HttpServlet {
         ShopDAO shopDao = new ShopDAO();
 
         if ("detail".equals(action)) {
-            // (Aganay a code para iti panid a Detail - saan a nasukatan)
+            // Xử lý xem chi tiết sản phẩm
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
                 Product product = shopDao.getProductDetail(id);
@@ -111,14 +112,14 @@ public class ShopServlet extends HttpServlet {
             String priceRange = request.getParameter("priceRange");
             String sort = request.getParameter("sort");
 
-            // Alaen dagiti data babaen ti baro a function iti DAO
+            // Lấy dữ liệu qua hàm tìm kiếm / lọc trong DAO
             List<Product> catalog = shopDao.getFilteredCatalog(keyword, categoryIds, priceRange, sort);
 
-            // Ipatulod dagiti data iti JSP
+            // Gửi dữ liệu danh sách sản phẩm sang JSP
             request.setAttribute("catalog", catalog);
             request.setAttribute("searchKeyword", keyword);
 
-            // Ipatulod dagiti state ti filter tapno agtalinaed a "checked" iti UI
+            // Gửi trạng thái filter để giữ nguyên nút "checked" trên UI
             if (categoryIds != null) {
                 request.setAttribute("selectedCats", Arrays.asList(categoryIds));
             }
