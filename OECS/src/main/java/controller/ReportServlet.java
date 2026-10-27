@@ -1,3 +1,4 @@
+
 package controller;
 
 import dao.ReportDAO;
@@ -11,6 +12,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,8 +24,8 @@ import java.util.logging.Logger;
 )
 public class ReportServlet extends HttpServlet {
 
-    private static final Logger LOGGER
-            = Logger.getLogger(ReportServlet.class.getName());
+    private static final Logger LOGGER =
+            Logger.getLogger(ReportServlet.class.getName());
 
     private ReportDAO reportDAO;
 
@@ -39,166 +42,183 @@ public class ReportServlet extends HttpServlet {
 
         try {
 
-            // =====================================================
-            // 1. Láº¤Y NGÃ€Y Báº®T Äáº¦U VÃ€ NGÃ€Y Káº¾T THÃšC
-            // =====================================================
-            String startDateParam
-                    = request.getParameter("startDate");
+            // ==============================================
+            // 1. GET DATE PARAMETERS
+            // ==============================================
+            String startDateParam =
+                    request.getParameter("startDate");
 
-            String endDateParam
-                    = request.getParameter("endDate");
+            String endDateParam =
+                    request.getParameter("endDate");
 
-            // =====================================================
-            // 2. GIÃ TRá»Š Máº¶C Äá»ŠNH
-            // =====================================================
+            // Default: today
+            String today = LocalDate.now().toString();
+
             if (startDateParam == null
                     || startDateParam.trim().isEmpty()) {
-
-                startDateParam
-                        = LocalDate.now().toString();
+                startDateParam = today;
             }
 
             if (endDateParam == null
                     || endDateParam.trim().isEmpty()) {
-
-                endDateParam
-                        = LocalDate.now().toString();
+                endDateParam = today;
             }
 
-            // =====================================================
-            // 3. PARSE DATE
-            // =====================================================
-            LocalDate startDate;
-            LocalDate endDate;
+            // ==============================================
+            // 2. VALIDATE DATE RANGE
+            // ==============================================
+            LocalDate startDate = null;
+            LocalDate endDate = null;
+            String filterError = null;
 
             try {
+                startDate = LocalDate.parse(startDateParam);
+                endDate = LocalDate.parse(endDateParam);
 
-                startDate
-                        = LocalDate.parse(startDateParam);
+                if (startDate.isAfter(endDate)) {
+                    filterError =
+                            "Start date cannot be after end date.";
+                }
 
-                endDate
-                        = LocalDate.parse(endDateParam);
-
-            } catch (Exception e) {
-
-                startDate
-                        = LocalDate.now();
-
-                endDate
-                        = LocalDate.now();
-
-                startDateParam
-                        = startDate.toString();
-
-                endDateParam
-                        = endDate.toString();
+            } catch (DateTimeParseException e) {
+                filterError =
+                        "Invalid date format. Please select valid dates.";
             }
 
-            // =====================================================
-            // 4. KIá»‚M TRA KHOáº¢NG NGÃ€Y
-            // =====================================================
-            if (endDate.isBefore(startDate)) {
+            // ==============================================
+            // 3. INITIALIZE REPORT DATA
+            // ==============================================
+            BigDecimal totalRevenue = BigDecimal.ZERO;
 
-                LocalDate temp
-                        = startDate;
+            int completedOrders = 0;
 
-                startDate
-                        = endDate;
+            int totalProductsSold = 0;
 
-                endDate
-                        = temp;
+            BigDecimal averageOrderValue = BigDecimal.ZERO;
 
-                // Äá»•i láº¡i giÃ¡ trá»‹ hiá»ƒn thá»‹
-                startDateParam
-                        = startDate.toString();
+            List<Object[]> revenueByDate =
+                    new ArrayList<>();
 
-                endDateParam
-                        = endDate.toString();
+            List<Object[]> orderStatusStats =
+                    new ArrayList<>();
+
+            List<Object[]> topSellingProducts =
+                    new ArrayList<>();
+
+            // ==============================================
+            // 4. LOAD DATA WHEN DATE RANGE IS VALID
+            // ==============================================
+            if (filterError == null) {
+
+                // Total revenue from COMPLETED orders
+                totalRevenue =
+                        reportDAO.getTotalRevenueByRange(
+                                startDate, endDate
+                        );
+
+                // Completed orders
+                completedOrders =
+                        reportDAO.getCompletedOrdersByRange(
+                                startDate, endDate
+                        );
+
+                // Total products sold
+                totalProductsSold =
+                        reportDAO.getTotalProductsSoldByRange(
+                                startDate, endDate
+                        );
+
+                // Revenue grouped by date
+                revenueByDate =
+                        reportDAO.getRevenueByDateRange(
+                                startDate, endDate
+                        );
+
+                // Average order value
+                averageOrderValue =
+                        reportDAO.getAverageOrderValueByRange(
+                                startDate, endDate
+                        );
+
+                // Orders grouped by status
+                orderStatusStats =
+                        reportDAO.getOrderStatusByRange(
+                                startDate, endDate
+                        );
+
+                // Top 5 products by quantity sold
+                topSellingProducts =
+                        reportDAO.getTopSellingProductsByRange(
+                                startDate, endDate
+                        );
             }
 
-            // =====================================================
-            // 5. Láº¤Y Dá»® LIá»†U REPORT
-            // =====================================================
-            BigDecimal totalRevenue
-                    = reportDAO.getTotalRevenueByRange(
-                            startDate,
-                            endDate
-                    );
-
-            int completedOrders
-                    = reportDAO.getCompletedOrdersByRange(
-                            startDate,
-                            endDate
-                    );
-
-            int totalProductsSold
-                    = reportDAO.getTotalProductsSoldByRange(
-                            startDate,
-                            endDate
-                    );
-
-            List<Object[]> revenueByDate
-                    = reportDAO.getRevenueByDateRange(
-                            startDate,
-                            endDate
-                    );
-
-            // =====================================================
-            // 6. Gá»¬I Dá»® LIá»†U SANG JSP
-            // =====================================================
+            // ==============================================
+            // 5. SEND KPI DATA TO JSP
+            // ==============================================
             request.setAttribute(
-                    "totalRevenue",
-                    totalRevenue
+                    "totalRevenue", totalRevenue
             );
 
             request.setAttribute(
-                    "completedOrders",
-                    completedOrders
+                    "completedOrders", completedOrders
             );
 
             request.setAttribute(
-                    "totalProductsSold",
-                    totalProductsSold
+                    "totalProductsSold", totalProductsSold
             );
 
             request.setAttribute(
-                    "revenueByDate",
-                    revenueByDate
+                    "averageOrderValue", averageOrderValue
             );
 
-            // NgÃ y báº¯t Ä‘áº§u
+            // ==============================================
+            // 6. SEND TABLE DATA TO JSP
+            // ==============================================
             request.setAttribute(
-                    "startDate",
-                    startDateParam
+                    "revenueByDate", revenueByDate
             );
 
-            // NgÃ y káº¿t thÃºc
             request.setAttribute(
-                    "endDate",
-                    endDateParam
+                    "orderStatusStats", orderStatusStats
             );
 
-            // =====================================================
-            // 7. FORWARD SANG JSP
-            // =====================================================
+            request.setAttribute(
+                    "topSellingProducts", topSellingProducts
+            );
+
+            // ==============================================
+            // 7. SEND FILTER INFORMATION
+            // ==============================================
+            request.setAttribute(
+                    "startDate", startDateParam
+            );
+
+            request.setAttribute(
+                    "endDate", endDateParam
+            );
+
+            request.setAttribute(
+                    "filterError", filterError
+            );
+
+            // ==============================================
+            // 8. FORWARD TO REPORT JSP
+            // ==============================================
             request.getRequestDispatcher(
                     "/WEB-INF/admin/report.jsp"
-            ).forward(
-                    request,
-                    response
-            );
+            ).forward(request, response);
 
         } catch (Exception e) {
 
             LOGGER.log(
                     Level.SEVERE,
-                    "Lá»—i khi táº£i Reporting System!",
+                    "Error loading Report page",
                     e
             );
 
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/admin/dashboard"
+            throw new ServletException(
+                    "Cannot load Report page.", e
             );
         }
     }
