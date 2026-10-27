@@ -18,6 +18,8 @@
         justify-content: center;
         font-size: 100px;
         color: #dee2e6;
+        border: 1px solid #e9edf3;
+        overflow: hidden;
     }
     .product-title {
         font-size: 28px;
@@ -80,7 +82,15 @@
             <!-- Left: Hình ảnh -->
             <div class="col-lg-5">
                 <div class="gallery-placeholder sticky-top" style="top: 20px;">
-                    <i class="bi bi-display"></i>
+                    <!-- HIỂN THỊ ẢNH CHI TIẾT SẢN PHẨM -->
+                    <c:choose>
+                        <c:when test="${not empty product.imageUrl}">
+                            <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="${product.productName}" class="img-fluid w-100 h-100" style="object-fit: cover;">
+                        </c:when>
+                        <c:otherwise>
+                            <i class="bi bi-image text-muted"></i>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
             </div>
 
@@ -149,8 +159,8 @@
                             <tbody>
                                 <c:forEach items="${specs}" var="spec">
                                     <tr>
-                                        <th>${spec.attributeName}</th>
-                                        <td>${spec.value}</td>
+                                    <th>${spec.attributeName}</th>
+                                    <td>${spec.value}</td>
                                     </tr>
                                 </c:forEach>
                             </tbody>
