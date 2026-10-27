@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.User;
+import service.AuditLogService;
 
 import java.io.IOException;
 import java.util.List;
@@ -19,6 +20,7 @@ public class UserServlet extends HttpServlet {
 
     private static final Logger LOGGER
             = Logger.getLogger(UserServlet.class.getName());
+    private final AuditLogService auditLogService = new AuditLogService();
 
     // =====================================================
     // CHECK PERMISSION - ADMIN ONLY
@@ -114,9 +116,9 @@ public class UserServlet extends HttpServlet {
                     "/WEB-INF/user/list.jsp"
             ).forward(request, response);
 
-        // =================================================
-        // CREATE USER
-        // =================================================
+            // =================================================
+            // CREATE USER
+            // =================================================
         } else if ("create".equals(view)) {
 
             request.setAttribute(
@@ -127,68 +129,6 @@ public class UserServlet extends HttpServlet {
             request.getRequestDispatcher(
                     "/WEB-INF/user/create.jsp"
             ).forward(request, response);
-
-        // =================================================
-        // MANAGE ROLE
-        // =================================================
-        } else if ("role".equals(view)) {
-
-            try {
-
-                int id = Integer.parseInt(
-                        request.getParameter("id")
-                );
-
-                User selectedUser
-                        = dao.getUserById(id);
-
-                if (selectedUser == null) {
-
-                    session.setAttribute(
-                            "error",
-                            "Không tìm thấy tài khoản!"
-                    );
-
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/user?view=list"
-                    );
-
-                    return;
-                }
-
-                request.setAttribute(
-                        "user",
-                        selectedUser
-                );
-
-                request.setAttribute(
-                        "roleList",
-                        dao.getAllRoles()
-                );
-
-                request.getRequestDispatcher(
-                        "/WEB-INF/user/role.jsp"
-                ).forward(request, response);
-
-            } catch (NumberFormatException e) {
-
-                LOGGER.log(
-                        Level.WARNING,
-                        "ID User không hợp lệ!",
-                        e
-                );
-
-                session.setAttribute(
-                        "error",
-                        "ID tài khoản không hợp lệ!"
-                );
-
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/user?view=list"
-                );
-            }
 
         } else {
 
@@ -313,6 +253,18 @@ public class UserServlet extends HttpServlet {
                             "Tạo tài khoản thành công!"
                     );
 
+                    User loggedInUser
+                            = (User) request.getSession().getAttribute("loggedInUser");
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "CREATE_USER",
+                            "USER",
+                            null,
+                            "Created new user account: " + username,
+                            request
+                    );
+
                     response.sendRedirect(
                             request.getContextPath()
                             + "/user?view=list"
@@ -350,110 +302,6 @@ public class UserServlet extends HttpServlet {
                 );
             }
 
-        // =================================================
-        // UPDATE ROLE
-        // =================================================
-        } else if ("updateRole".equals(action)) {
-
-            try {
-
-                int id = Integer.parseInt(
-                        request.getParameter("id")
-                );
-
-                int roleId = Integer.parseInt(
-                        request.getParameter("roleId")
-                );
-
-                User loggedInUser
-                        = (User) session.getAttribute(
-                                "loggedInUser"
-                        );
-
-                // Không cho Admin tự đổi role của mình
-                if (loggedInUser != null
-                        && loggedInUser.getUserId() == id) {
-
-                    session.setAttribute(
-                            "error",
-                            "Không thể thay đổi quyền "
-                            + "của tài khoản đang đăng nhập!"
-                    );
-
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/user?view=list"
-                    );
-
-                    return;
-                }
-
-                User selectedUser
-                        = dao.getUserById(id);
-
-                if (selectedUser == null) {
-
-                    session.setAttribute(
-                            "error",
-                            "Không tìm thấy tài khoản!"
-                    );
-
-                    response.sendRedirect(
-                            request.getContextPath()
-                            + "/user?view=list"
-                    );
-
-                    return;
-                }
-
-                boolean success
-                        = dao.updateUserRole(
-                                id,
-                                roleId
-                        );
-
-                if (success) {
-
-                    session.setAttribute(
-                            "message",
-                            "Cập nhật quyền tài khoản thành công!"
-                    );
-
-                } else {
-
-                    session.setAttribute(
-                            "error",
-                            "Cập nhật quyền tài khoản thất bại!"
-                    );
-                }
-
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/user?view=list"
-                );
-
-            } catch (Exception e) {
-
-                LOGGER.log(
-                        Level.SEVERE,
-                        "Lỗi cập nhật Role!",
-                        e
-                );
-
-                session.setAttribute(
-                        "error",
-                        "Lỗi khi cập nhật quyền tài khoản!"
-                );
-
-                response.sendRedirect(
-                        request.getContextPath()
-                        + "/user?view=list"
-                );
-            }
-
-        // =================================================
-        // LOCK / UNLOCK ACCOUNT
-        // =================================================
         } else if ("toggleStatus".equals(action)) {
 
             try {
@@ -523,11 +371,31 @@ public class UserServlet extends HttpServlet {
                                 "Mở khóa tài khoản thành công!"
                         );
 
+                        auditLogService.log(
+                                loggedInUser,
+                                "UNLOCK_USER",
+                                "USER",
+                                (long) id,
+                                "Unlocked user account: "
+                                + selectedUser.getUsername(),
+                                request
+                        );
+
                     } else {
 
                         session.setAttribute(
                                 "message",
                                 "Khóa tài khoản thành công!"
+                        );
+
+                        auditLogService.log(
+                                loggedInUser,
+                                "LOCK_USER",
+                                "USER",
+                                (long) id,
+                                "Locked user account: "
+                                + selectedUser.getUsername(),
+                                request
                         );
                     }
 

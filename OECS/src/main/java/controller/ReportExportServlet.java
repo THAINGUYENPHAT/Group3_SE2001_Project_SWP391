@@ -1,6 +1,8 @@
 package controller;
 
 import dao.ReportDAO;
+import model.User;
+import service.AuditLogService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -30,6 +32,9 @@ import java.util.List;
 public class ReportExportServlet extends HttpServlet {
 
     private ReportDAO reportDAO;
+
+    private final AuditLogService auditLogService
+            = new AuditLogService();
 
     @Override
     public void init() {
@@ -148,6 +153,8 @@ public class ReportExportServlet extends HttpServlet {
         // =====================================================
         // 7. EXPORT
         // =====================================================
+        String exportFormat;
+
         if ("pdf".equalsIgnoreCase(format)) {
 
             exportPdf(
@@ -160,6 +167,8 @@ public class ReportExportServlet extends HttpServlet {
                     revenueByDate
             );
 
+            exportFormat = "PDF";
+
         } else {
 
             exportExcel(
@@ -171,7 +180,28 @@ public class ReportExportServlet extends HttpServlet {
                     totalProductsSold,
                     revenueByDate
             );
+
+            exportFormat = "EXCEL";
         }
+
+        User loggedInUser
+                = (User) request.getSession()
+                        .getAttribute("loggedInUser");
+
+        auditLogService.log(
+                loggedInUser,
+                "EXPORT_REPORT",
+                "REPORT",
+                null,
+                "Exported revenue report as "
+                + exportFormat
+                + " from "
+                + startDate
+                + " to "
+                + endDate,
+                request
+        );
+
     }
 
     // ============================================================

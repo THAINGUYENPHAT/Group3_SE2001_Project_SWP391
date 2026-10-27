@@ -2,6 +2,8 @@ package controller;
 
 import dao.BrandDAO;
 import model.Brand;
+import service.AuditLogService;
+import model.User;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -18,12 +20,15 @@ import java.util.logging.Logger;
 @WebServlet(name = "BrandServlet", urlPatterns = {"/brand"})
 public class BrandServlet extends HttpServlet {
 
-    private static final Logger LOGGER =
-            Logger.getLogger(BrandServlet.class.getName());
+    private static final Logger LOGGER
+            = Logger.getLogger(BrandServlet.class.getName());
+
+    private final AuditLogService auditLogService
+            = new AuditLogService();
 
     @Override
     protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         String view = request.getParameter("view");
@@ -80,8 +85,8 @@ public class BrandServlet extends HttpServlet {
                 );
             }
 
-            Map<Integer, Integer> productCounts =
-                    dao.getProductCounts(brandList);
+            Map<Integer, Integer> productCounts
+                    = dao.getProductCounts(brandList);
 
             int startItem = totalBrands == 0
                     ? 0
@@ -197,7 +202,7 @@ public class BrandServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         request.setCharacterEncoding("UTF-8");
@@ -246,6 +251,19 @@ public class BrandServlet extends HttpServlet {
                 int result = dao.insert(brand);
 
                 if (result == 1) {
+                    User loggedInUser
+                            = (User) request.getSession()
+                                    .getAttribute("loggedInUser");
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "CREATE_BRAND",
+                            "BRAND",
+                            null,
+                            "Created brand: " + name,
+                            request
+                    );
+
                     response.sendRedirect(contextPath
                             + "/brand?view=list&success=create");
                 } else {
@@ -324,6 +342,19 @@ public class BrandServlet extends HttpServlet {
                 int result = dao.edit(brand);
 
                 if (result == 1) {
+                    User loggedInUser
+                            = (User) request.getSession()
+                                    .getAttribute("loggedInUser");
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "UPDATE_BRAND",
+                            "BRAND",
+                            null,
+                            "Updated brand: " + name,
+                            request
+                    );
+                    
                     response.sendRedirect(contextPath
                             + "/brand?view=list&success=edit");
                 } else {
@@ -379,6 +410,20 @@ public class BrandServlet extends HttpServlet {
                 int result = dao.delete(existing);
 
                 if (result == 1) {
+                    
+                    User loggedInUser
+                            = (User) request.getSession()
+                                    .getAttribute("loggedInUser");
+
+                    auditLogService.log(
+                            loggedInUser,
+                            "DELETE_BRAND",
+                            "BRAND",
+                            null,
+                            "Deleted brand: " + existing.getBrandName(),
+                            request
+                    );
+                    
                     response.sendRedirect(contextPath
                             + "/brand?view=list&success=delete");
                 } else {
