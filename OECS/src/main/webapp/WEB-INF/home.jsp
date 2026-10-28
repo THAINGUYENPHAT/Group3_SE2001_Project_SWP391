@@ -774,7 +774,7 @@
         <section class="home-section">
             <div class="row g-3">
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?categoryId=1" class="category-card category-phone">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=4" class="category-card category-phone">
                         <div class="category-content">
                             <div class="category-name">Điện thoại</div>
                             <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
@@ -801,7 +801,7 @@
                 </div>
 
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Dong%20ho" class="category-card category-watch">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=14" class="category-card category-watch">
                         <div class="category-content">
                             <div class="category-name">Đồng hồ thông minh</div>
                             <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
@@ -810,7 +810,7 @@
                 </div>
 
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Tai%20nghe" class="category-card category-headphone">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=5" class="category-card category-headphone">
                         <div class="category-content">
                             <div class="category-name">Tai nghe</div>
                             <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
@@ -819,7 +819,7 @@
                 </div>
 
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=May%20anh" class="category-card category-camera">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=16" class="category-card category-camera">
                         <div class="category-content">
                             <div class="category-name">Máy ảnh</div>
                             <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>

@@ -4,11 +4,33 @@
 <%@include file="/WEB-INF/include/header.jsp"%>
 
 <style>
+    body, html, .catalog-page, .container, .row {
+        overflow: visible !important;
+    }
+
     .catalog-page {
         background: #f5f7fb;
         min-height: 100vh;
         padding: 40px 0;
     }
+
+    .custom-sticky-sidebar {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 90px;
+        z-index: 1020;
+        max-height: calc(100vh - 110px);
+        overflow-y: auto;
+    }
+
+    .custom-sticky-sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-sticky-sidebar::-webkit-scrollbar-thumb {
+        background-color: #dee2e6;
+        border-radius: 10px;
+    }
+
     .product-card {
         background: white;
         border-radius: 14px;
@@ -28,13 +50,13 @@
     }
     .product-image {
         height: 240px;
-        background: #fff; /* Đổi thành trắng để ảnh nổi bật hơn */
+        background: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 50px;
         color: #adb5bd;
-        padding: 15px; /* Thêm padding cho ảnh */
+        padding: 15px;
     }
     .product-info {
         padding: 20px;
@@ -70,7 +92,6 @@
 
 <div class="catalog-page">
     <div class="container">
-        <!-- Breadcrumb -->
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="${pageContext.request.contextPath}/home" class="text-decoration-none">Trang chủ</a></li>
@@ -80,28 +101,50 @@
 
         <form action="${pageContext.request.contextPath}/shop" method="GET" class="row">
 
-            <!-- Giữ lại từ khóa tìm kiếm nếu có -->
             <c:if test="${not empty searchKeyword}">
                 <input type="hidden" name="keyword" value="<c:out value='${searchKeyword}'/>">
             </c:if>
 
             <!-- Sidebar Lọc -->
             <div class="col-lg-3 d-none d-lg-block">
-                <div class="card border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 20px;">
+                <div class="card border-0 shadow-sm rounded-4 p-4 custom-sticky-sidebar">
                     <h5 class="fw-bold mb-3">Danh mục</h5>
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" name="categoryId" value="1" id="cat1" ${not empty selectedCats and selectedCats.contains("1") ? 'checked' : ''}>
-                        <label class="form-check-label" for="cat1">Điện thoại</label>
+                        <input class="form-check-input" type="checkbox" name="categoryId" value="4" id="cat4" ${not empty selectedCats and selectedCats.contains("4") ? 'checked' : ''}>
+                        <label class="form-check-label" for="cat4">Điện thoại</label>
                     </div>
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" name="categoryId" value="2" id="cat2" ${not empty selectedCats and selectedCats.contains("2") ? 'checked' : ''}>
                         <label class="form-check-label" for="cat2">Laptop</label>
                     </div>
-                    <div class="form-check mb-4">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="categoryId" value="7" id="cat7" ${not empty selectedCats and selectedCats.contains("7") ? 'checked' : ''}>
+                        <label class="form-check-label" for="cat7">Dây sạc</label>
+                    </div> 
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="categoryId" value="6" id="cat6" ${not empty selectedCats and selectedCats.contains("6") ? 'checked' : ''}>
+                        <label class="form-check-label" for="cat6">Cục sạc</label>
+                    </div> 
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="categoryId" value="14" id="cat14" ${not empty selectedCats and selectedCats.contains("14") ? 'checked' : ''}>
+                        <label class="form-check-label" for="cat14">Smartwatch</label>
+                    </div>
+                    <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" name="categoryId" value="3" id="cat3" ${not empty selectedCats and selectedCats.contains("3") ? 'checked' : ''}>
                         <label class="form-check-label" for="cat3">Phụ kiện</label>
                     </div>
-
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="categoryId" value="16" id="cat16" ${not empty selectedCats and selectedCats.contains("16") ? 'checked' : ''}>
+                        <label class="form-check-label" for="cat16">Máy ảnh</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="categoryId" value="5" id="cat5" ${not empty selectedCats and selectedCats.contains("5") ? 'checked' : ''}>
+                        <label class="form-check-label" for="cat5">Tai nghe</label>
+                    </div>
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" name="categoryId" value="11" id="cat11" ${not empty selectedCats and selectedCats.contains("11") ? 'checked' : ''}>
+                        <label class="form-check-label" for="cat11">Bàn phím</label>
+                    </div>
                     <h5 class="fw-bold mb-3">Mức giá</h5>
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="checkbox" name="priceRange" value="under5" id="price1" ${selectedPrice == 'under5' ? 'checked' : ''}>
@@ -146,7 +189,7 @@
                                 <div class="col-6 col-md-4">
                                     <a href="${pageContext.request.contextPath}/shop?action=detail&id=${item.productId}" class="product-card">
                                         <div class="product-image">
-                                            <!-- HIỂN THỊ HÌNH ẢNH NẾU CÓ -->
+                                            <!-- IPALITA TI LADAWAN NO ADDA -->
                                             <c:choose>
                                                 <c:when test="${not empty item.imageUrl}">
                                                     <img src="${pageContext.request.contextPath}/${item.imageUrl}" alt="${item.productName}" class="img-fluid" style="max-height: 100%; object-fit: contain;">
@@ -183,7 +226,7 @@
                     </c:choose>
                 </div>
             </div>
-        </form>
+        </form> 
     </div>
 </div>
 
