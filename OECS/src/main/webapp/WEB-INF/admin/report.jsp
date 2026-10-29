@@ -1,8 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ include file="/WEB-INF/include/header.jsp" %>
-
-
-<%-- Export URLs --%>
 <c:url var="excelReportUrl" value="/admin/report/export">
     <c:param name="startDate" value="${startDate}" />
     <c:param name="endDate" value="${endDate}" />
@@ -27,7 +24,6 @@
        OECS REPORT
        Scope CSS to avoid header/footer conflicts
        ===================================== */
-
     .oecs-report {
         --rp-primary: #2563eb;
         --rp-dark: #0f172a;
@@ -1985,5 +1981,4 @@
 
     })();
 </script>
-
 <%@ include file="/WEB-INF/include/footer.jsp" %>
