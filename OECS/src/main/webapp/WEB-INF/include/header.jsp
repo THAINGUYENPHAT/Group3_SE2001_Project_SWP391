@@ -627,6 +627,16 @@
                                                 </li>
 
 
+                                                <li>
+                                                    <a class="dropdown-item rounded-2 py-2"
+                                                       href="${pageContext.request.contextPath}/staff/return-exchange">
+                                                        <i class="bi bi-arrow-left-right text-warning me-2"></i>
+                                                        Quản lý yêu cầu trả hàng
+                                                    </a>
+                                                </li>
+
+
+
                                             </c:if>
 
                                             <li>
@@ -951,7 +961,7 @@
                                           // thực tế của OECS sau khi xác nhận route.
                                           if (n.orderId != null) {
                                               window.location.href =
-                                                      contextPath + '/order/detail?id='
+                                                      contextPath + '/my-orders/detail?id='
                                                       + encodeURIComponent(n.orderId);
                                           } else {
                                               await loadList();

@@ -308,7 +308,13 @@ public class AdminOrderDAO extends DBContext {
                 + "WHERE order_id = ?";
 
         String updateSql
-                = "UPDATE dbo.[ORDER] SET order_status = ? WHERE order_id = ?";
+        = "UPDATE dbo.[ORDER] "
+        + "SET order_status = ?, "
+        + "delivered_at = CASE "
+        + "WHEN ? = 'COMPLETED' "
+        + "THEN COALESCE(delivered_at, SYSDATETIME()) "
+        + "ELSE delivered_at END "
+        + "WHERE order_id = ?";
 
         String historySql
                 = "INSERT INTO dbo.ORDER_STATUS_HISTORY (order_id, status) "
@@ -356,14 +362,15 @@ public class AdminOrderDAO extends DBContext {
                 }
 
                 try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                    ps.setString(1, next);
-                    ps.setInt(2, orderId);
+    ps.setString(1, next);
+    ps.setString(2, next);
+    ps.setInt(3, orderId);
 
-                    if (ps.executeUpdate() != 1) {
-                        conn.rollback();
-                        return false;
-                    }
-                }
+    if (ps.executeUpdate() != 1) {
+        conn.rollback();
+        return false;
+    }
+}
 
                 try (PreparedStatement ps = conn.prepareStatement(historySql)) {
                     ps.setInt(1, orderId);
