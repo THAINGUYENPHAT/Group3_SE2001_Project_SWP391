@@ -12,6 +12,7 @@ import jakarta.servlet.http.Part;
 import model.Banner;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,6 +30,18 @@ public class BannerServlet extends HttpServlet {
 
     private final BannerDAO bannerDAO = new BannerDAO();
 
+    private Path getUploadDirectory() throws IOException {
+        Path uploadDirectory = Paths.get(
+                System.getProperty("user.home"),
+                "OECS-uploads",
+                "banners"
+        ).toAbsolutePath().normalize();
+
+        Files.createDirectories(uploadDirectory);
+
+        return uploadDirectory;
+    }
+
     @Override
     protected void doGet(HttpServletRequest request,
             HttpServletResponse response)
@@ -39,37 +52,55 @@ public class BannerServlet extends HttpServlet {
         String action = request.getParameter("action");
 
         if ("delete".equals(action)) {
-            int bannerId = Integer.parseInt(
-                    request.getParameter("id"));
+            String idValue = request.getParameter("id");
 
-            bannerDAO.delete(bannerId);
+            try {
+                int bannerId = Integer.parseInt(idValue);
+                bannerDAO.delete(bannerId);
+            } catch (NumberFormatException e) {
+                response.sendError(
+                        HttpServletResponse.SC_BAD_REQUEST,
+                        "ID banner không hợp lệ."
+                );
+                return;
+            }
 
             response.sendRedirect(
-                    request.getContextPath() + "/staff/banner");
+                    request.getContextPath() + "/staff/banner"
+            );
             return;
         }
 
         if ("toggle".equals(action)) {
-            int bannerId = Integer.parseInt(
-                    request.getParameter("id"));
+            String idValue = request.getParameter("id");
 
-            boolean active = "1".equals(
-                    request.getParameter("active"));
+            try {
+                int bannerId = Integer.parseInt(idValue);
+                boolean active = "1".equals(
+                        request.getParameter("active")
+                );
 
-            bannerDAO.updateActive(bannerId, active);
+                bannerDAO.updateActive(bannerId, active);
+            } catch (NumberFormatException e) {
+                response.sendError(
+                        HttpServletResponse.SC_BAD_REQUEST,
+                        "ID banner không hợp lệ."
+                );
+                return;
+            }
 
             response.sendRedirect(
-                    request.getContextPath() + "/staff/banner");
+                    request.getContextPath() + "/staff/banner"
+            );
             return;
         }
 
         List<Banner> banners = bannerDAO.getAll();
-
         request.setAttribute("banners", banners);
 
         request.getRequestDispatcher(
-                "/WEB-INF/banner/list.jsp")
-                .forward(request, response);
+                "/WEB-INF/banner/list.jsp"
+        ).forward(request, response);
     }
 
     @Override
@@ -93,7 +124,8 @@ public class BannerServlet extends HttpServlet {
         } catch (NumberFormatException e) {
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST,
-                    "Thứ tự banner không hợp lệ.");
+                    "Thứ tự banner không hợp lệ."
+            );
             return;
         }
 
@@ -102,7 +134,8 @@ public class BannerServlet extends HttpServlet {
         if (imagePart == null || imagePart.getSize() == 0) {
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST,
-                    "Vui lòng chọn ảnh banner.");
+                    "Vui lòng chọn ảnh banner."
+            );
             return;
         }
 
@@ -116,28 +149,32 @@ public class BannerServlet extends HttpServlet {
 
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST,
-                    "Chỉ chấp nhận ảnh JPG, PNG, GIF hoặc WEBP.");
+                    "Chỉ chấp nhận ảnh JPG, PNG, GIF hoặc WEBP."
+            );
             return;
         }
 
         String originalName = imagePart.getSubmittedFileName();
 
-        if (originalName == null) {
+        if (originalName == null || originalName.trim().isEmpty()) {
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST,
-                    "Tên file ảnh không hợp lệ.");
+                    "Tên file ảnh không hợp lệ."
+            );
             return;
         }
 
         originalName = Paths.get(originalName)
-                .getFileName().toString();
+                .getFileName()
+                .toString();
 
         int dotIndex = originalName.lastIndexOf('.');
 
         if (dotIndex < 0) {
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST,
-                    "File ảnh không có phần mở rộng.");
+                    "File ảnh không có phần mở rộng."
+            );
             return;
         }
 
@@ -152,25 +189,31 @@ public class BannerServlet extends HttpServlet {
 
             response.sendError(
                     HttpServletResponse.SC_BAD_REQUEST,
-                    "Định dạng file ảnh không hợp lệ.");
+                    "Định dạng file ảnh không hợp lệ."
+            );
             return;
         }
 
-        String fileName = UUID.randomUUID().toString()
-                + extension;
+        String fileName = UUID.randomUUID() + extension;
 
-        Path webappPath = findWebappPath();
-        Path uploadDirectory = webappPath
-                .resolve("uploads")
-                .resolve("banners");
+        Path uploadDirectory = getUploadDirectory();
+        Path destination = uploadDirectory.resolve(fileName)
+                .normalize();
 
-        Files.createDirectories(uploadDirectory);
+        if (!destination.startsWith(uploadDirectory)) {
+            response.sendError(
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "Đường dẫn file không hợp lệ."
+            );
+            return;
+        }
 
-        Path destination = uploadDirectory.resolve(fileName);
-
-        try (java.io.InputStream input = imagePart.getInputStream()) {
-            Files.copy(input, destination,
-                    StandardCopyOption.REPLACE_EXISTING);
+        try (InputStream input = imagePart.getInputStream()) {
+            Files.copy(
+                    input,
+                    destination,
+                    StandardCopyOption.REPLACE_EXISTING
+            );
         }
 
         Banner banner = new Banner();
@@ -184,32 +227,12 @@ public class BannerServlet extends HttpServlet {
             Files.deleteIfExists(destination);
 
             throw new ServletException(
-                    "Không thể lưu banner vào database.");
+                    "Không thể lưu banner vào database."
+            );
         }
 
         response.sendRedirect(
-                request.getContextPath() + "/staff/banner");
+                request.getContextPath() + "/staff/banner"
+        );
     }
-
-    
-private Path findWebappPath() throws ServletException {
-    String projectPath = getServletContext()
-            .getInitParameter("projectWebappPath");
-
-    if (projectPath == null || projectPath.trim().isEmpty()) {
-        throw new ServletException(
-                "Chưa cấu hình projectWebappPath trong web.xml.");
-    }
-
-    Path webappPath = Paths.get(projectPath)
-            .toAbsolutePath().normalize();
-
-    if (!Files.isDirectory(webappPath)) {
-        throw new ServletException(
-                "Thư mục webapp không tồn tại: " + webappPath);
-    }
-
-    return webappPath;
-}
-
 }

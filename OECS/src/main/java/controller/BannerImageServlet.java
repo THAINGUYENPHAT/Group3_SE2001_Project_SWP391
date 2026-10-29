@@ -1,8 +1,6 @@
 
 package controller;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -10,14 +8,24 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 
-@WebServlet(name = "BannerImageServlet",
-        urlPatterns = {"/uploads/banners/*"})
+@WebServlet(
+        name = "BannerImageServlet",
+        urlPatterns = {"/uploads/banners/*"}
+)
 public class BannerImageServlet extends HttpServlet {
+
+    private Path getUploadDirectory() {
+        return Paths.get(
+                System.getProperty("user.home"),
+                "OECS-uploads",
+                "banners"
+        ).toAbsolutePath().normalize();
+    }
 
     @Override
     protected void doGet(HttpServletRequest request,
@@ -40,26 +48,31 @@ public class BannerImageServlet extends HttpServlet {
             return;
         }
 
-        Path webappPath = findWebappPath();
-        Path imagePath = webappPath.resolve("uploads")
-                .resolve("banners")
-                .resolve(fileName)
+        Path uploadDirectory = getUploadDirectory();
+        Path imagePath = uploadDirectory.resolve(fileName)
                 .normalize();
 
-        Path uploadPath = webappPath.resolve("uploads")
-                .resolve("banners")
-                .normalize();
-
-        if (!imagePath.startsWith(uploadPath)
+        if (!imagePath.startsWith(uploadDirectory)
                 || !Files.isRegularFile(imagePath)) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
 
-        String contentType = Files.probeContentType(imagePath);
+        String extension = fileName.substring(
+                fileName.lastIndexOf('.') + 1
+        ).toLowerCase();
 
-        if (contentType == null
-                || !contentType.startsWith("image/")) {
+        String contentType;
+
+        if (extension.equals("jpg") || extension.equals("jpeg")) {
+            contentType = "image/jpeg";
+        } else if (extension.equals("png")) {
+            contentType = "image/png";
+        } else if (extension.equals("gif")) {
+            contentType = "image/gif";
+        } else if (extension.equals("webp")) {
+            contentType = "image/webp";
+        } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
@@ -67,30 +80,10 @@ public class BannerImageServlet extends HttpServlet {
         response.setContentType(contentType);
         response.setContentLengthLong(Files.size(imagePath));
         response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("Cache-Control", "no-cache");
 
-        try (java.io.OutputStream output = response.getOutputStream()) {
+        try (OutputStream output = response.getOutputStream()) {
             Files.copy(imagePath, output);
         }
     }
-
-    private Path findWebappPath() throws ServletException {
-    String projectPath = getServletContext()
-            .getInitParameter("projectWebappPath");
-
-    if (projectPath == null || projectPath.trim().isEmpty()) {
-        throw new ServletException(
-                "Chưa cấu hình projectWebappPath trong web.xml.");
-    }
-
-    Path webappPath = Paths.get(projectPath)
-            .toAbsolutePath()
-            .normalize();
-
-    if (!Files.isDirectory(webappPath)) {
-        throw new ServletException(
-                "Thư mục webapp không tồn tại: " + webappPath);
-    }
-
-    return webappPath;
-}
 }

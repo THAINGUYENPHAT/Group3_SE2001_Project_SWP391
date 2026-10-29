@@ -9,9 +9,6 @@
         </session-timeout>
     </session-config>
     
-    <context-param>
-    <param-name>projectWebappPath</param-name>
-    <param-value>D:\a HK5 FPTU\SWP391\Project\Group3_SE2001_Project_SWP391\OECS\src\main\webapp</param-value>
-</context-param>
+    
 
 </web-app>
