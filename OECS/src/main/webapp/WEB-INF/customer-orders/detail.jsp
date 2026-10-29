@@ -230,10 +230,49 @@
                         </p>
                     </c:if>
                 </div>
+            
             </section>
+
+            <%-- Thao tac tra hang --%>
+            <c:if test="${order.orderStatus eq 'COMPLETED'
+                          or order.orderStatus eq 'Completed'
+                          or order.orderStatus eq 'DELIVERED'
+                          or order.orderStatus eq 'Delivered'}">
+                <div class="purchase-panel" style="margin-top: 20px;">
+                    <h2>
+                        <i class="bi bi-box-arrow-in-left me-2"
+                           aria-hidden="true"></i>
+                        Trả hàng
+                    </h2>
+
+                    <p class="purchase-muted">
+                        Nếu sản phẩm có vấn đề, bạn có thể gửi yêu cầu
+                        trả hàng để cửa hàng xem xét.
+                    </p>
+
+                    <c:url var="returnExchangeUrl" value="/return-exchange">
+                        <c:param name="orderId" value="${order.orderId}" />
+                    </c:url>
+
+                    <a href="${returnExchangeUrl}"
+                       class="purchase-button-secondary"
+                       style="display: flex;
+                              align-items: center;
+                              justify-content: center;
+                              gap: 8px;
+                              width: 100%;
+                              box-sizing: border-box;
+                              margin-top: 12px;">
+                        <i class="bi bi-arrow-return-left"
+                           aria-hidden="true"></i>
+                        Yêu cầu trả hàng
+                    </a>
+                </div>
+            </c:if>
         </div>
 
         <%-- Cot thong tin thanh toan --%>
+
         <aside class="purchase-panel"
                aria-labelledby="purchase-payment-title">
 

@@ -685,6 +685,8 @@
 
     <%-- Nội dung còn lại nằm trong container --%>
     <div class="container">
+
+
         <!-- =====================================================
              SERVICE BAR
              ===================================================== -->
@@ -741,10 +743,23 @@
         </section>
 
 
+
         <!-- =====================================================
              PROMOTION SLIDESHOW
              ===================================================== -->
         <section class="home-section">
+
+            <%-- Chỉ Staff mới nhìn thấy nút quản lý banner --%>
+            <c:if test="${not empty sessionScope.loggedInUser and sessionScope.loggedInUser.staff}">
+                <div class="d-flex justify-content-end mb-3">
+                    <a href="${pageContext.request.contextPath}/staff/banner"
+                       class="btn btn-primary fw-semibold rounded-3 px-4 py-2">
+                        <i class="bi bi-images me-2"></i>
+                        Quản lý banner
+                    </a>
+                </div>
+            </c:if>
+
             <div class="home-slider" id="homeSlider">
                 <div class="slider-track">
 

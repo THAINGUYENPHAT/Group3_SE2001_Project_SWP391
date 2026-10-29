@@ -440,7 +440,10 @@
                         <i class="bi bi-hdd-network text-secondary"></i> Server Node: <strong class="text-light">VN-CTO-01</strong><!-- VN-CTO-01 có nghĩa là: "Máy chủ số 01 đặt tại cụm Cần Thơ, Việt Nam". -->
                     </div>
                     <div class="d-flex align-items-center gap-3">
-                        <a href="#"><i class="bi bi-geo-alt-fill text-primary me-1"></i>Khu vực: <strong>Cần Thơ HQ</strong></a><!--Headquarters => trụ sở chính-->
+                        <span class="text-secondary">
+                            <i class="bi bi-geo-alt-fill text-primary me-1"></i>
+                            Khu vực: <strong class="text-light">Cần Thơ HQ</strong>
+                        </span><!--Headquarters => trụ sở chính-->
                         <span class="text-secondary">|</span>
 
                         <a href="${pageContext.request.contextPath}/guide">
@@ -614,7 +617,7 @@
                                                     </a>
                                                 </li>
 
-                                                
+
                                                 <li>
                                                     <a class="dropdown-item rounded-2 py-2"
                                                        href="${pageContext.request.contextPath}/staff/reviews">
@@ -622,6 +625,16 @@
                                                         Quản lý đánh giá &amp; bình luận
                                                     </a>
                                                 </li>
+
+
+                                                <li>
+                                                    <a class="dropdown-item rounded-2 py-2"
+                                                       href="${pageContext.request.contextPath}/staff/return-exchange">
+                                                        <i class="bi bi-arrow-left-right text-warning me-2"></i>
+                                                        Quản lý yêu cầu trả hàng
+                                                    </a>
+                                                </li>
+
 
 
                                             </c:if>
@@ -749,7 +762,6 @@
                                                 </a>
                                             </li>
                                         </c:if>
-                                        <li><a class="dropdown-item py-2" href="#"><i class="bi bi-gear me-2"></i>Cài đặt hệ thống</a></li>
                                         <li><hr class="dropdown-divider border-secondary"></li>
                                         <li><a class="dropdown-item py-2 text-danger" href="${pageContext.request.contextPath}/logout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
                                     </ul>
@@ -949,7 +961,7 @@
                                           // thực tế của OECS sau khi xác nhận route.
                                           if (n.orderId != null) {
                                               window.location.href =
-                                                      contextPath + '/order/detail?id='
+                                                      contextPath + '/my-orders/detail?id='
                                                       + encodeURIComponent(n.orderId);
                                           } else {
                                               await loadList();
