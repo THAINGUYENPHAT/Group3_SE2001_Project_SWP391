@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.Collections;
 
 public class OrderDAO {
+
     private final CheckoutConnectionFactory connections;
 
     public OrderDAO() {
@@ -30,7 +31,9 @@ public class OrderDAO {
     // Servlet instances are shared across requests; never share a JDBC connection.
     private Connection getConnection() throws SQLException {
         Connection conn = connections.open();
-        if (conn == null) throw new SQLException("Khong ket noi duoc database.");
+        if (conn == null) {
+            throw new SQLException("Khong ket noi duoc database.");
+        }
         return conn;
     }
 
@@ -64,7 +67,9 @@ public class OrderDAO {
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             bindPurchaseSearch(ps, userId, query);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) counts.put(rs.getString("order_status"), rs.getLong("total"));
+                while (rs.next()) {
+                    counts.put(rs.getString("order_status"), rs.getLong("total"));
+                }
             }
         }
         return counts;
@@ -72,7 +77,9 @@ public class OrderDAO {
 
     public List<Order> findPurchasePage(int userId, String query, List<String> statuses,
             long offset, int pageSize) throws SQLException {
-        if (offset < 0 || pageSize < 1 || pageSize > 50) throw new IllegalArgumentException("Invalid page");
+        if (offset < 0 || pageSize < 1 || pageSize > 50) {
+            throw new IllegalArgumentException("Invalid page");
+        }
         String statusFilter = statuses.isEmpty() ? "" : "AND UPPER(LTRIM(RTRIM(o.order_status))) IN ("
                 + String.join(",", Collections.nCopies(statuses.size(), "?")) + ") ";
         String sql = "SELECT o.*" + PURCHASE_SEARCH + statusFilter
@@ -80,11 +87,15 @@ public class OrderDAO {
         List<Order> result = new ArrayList<>();
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             int index = bindPurchaseSearch(ps, userId, query);
-            for (String status : statuses) ps.setString(index++, status);
+            for (String status : statuses) {
+                ps.setString(index++, status);
+            }
             ps.setLong(index++, offset);
             ps.setInt(index, pageSize);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) result.add(mapOrder(rs));
+                while (rs.next()) {
+                    result.add(mapOrder(rs));
+                }
             }
         }
         return result;
@@ -93,8 +104,12 @@ public class OrderDAO {
     // One query for all visible cards; ownership is checked even for supplied IDs.
     public Map<Integer, List<Map<String, Object>>> findItemsForOrders(int userId, List<Integer> ids) throws SQLException {
         Map<Integer, List<Map<String, Object>>> result = new LinkedHashMap<>();
-        if (ids.isEmpty()) return result;
-        if (ids.size() > 50) throw new IllegalArgumentException("Too many orders");
+        if (ids.isEmpty()) {
+            return result;
+        }
+        if (ids.size() > 50) {
+            throw new IllegalArgumentException("Too many orders");
+        }
         String sql = "SELECT i.order_id, i.sku_id, i.price, i.quantity, s.sku_code, p.product_name "
                 + "FROM dbo.ORDER_ITEM i JOIN dbo.[ORDER] o ON o.order_id = i.order_id "
                 + "LEFT JOIN dbo.PRODUCT_SKU s ON s.sku_id = i.sku_id "
@@ -103,7 +118,9 @@ public class OrderDAO {
                 + ") ORDER BY i.order_id, i.order_item_id";
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
-            for (int i = 0; i < ids.size(); i++) ps.setInt(i + 2, ids.get(i));
+            for (int i = 0; i < ids.size(); i++) {
+                ps.setInt(i + 2, ids.get(i));
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> item = new LinkedHashMap<>();
@@ -333,7 +350,12 @@ public class OrderDAO {
 
         order.setCreatedAt(rs.getTimestamp("created_at"));
         order.setPaymentExpiresAt(
-                rs.getTimestamp("payment_expires_at")
+                rs.getTimestamp(
+                        "payment_expires_at",
+                        java.util.Calendar.getInstance(
+                                java.util.TimeZone.getTimeZone("UTC")
+                        )
+                )
         );
 
         return order;

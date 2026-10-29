@@ -322,6 +322,7 @@ public class ProductReviewDAO extends DBContext {
                 + "rating, comment, created_at "
                 + "FROM PRODUCT_REVIEWS "
                 + "WHERE sku_id = ? "
+                + "AND is_hidden = 0 "
                 + "ORDER BY created_at DESC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -350,7 +351,8 @@ public class ProductReviewDAO extends DBContext {
 
         String sql = "SELECT AVG(CAST(rating AS FLOAT)) AS average_rating "
                 + "FROM PRODUCT_REVIEWS "
-                + "WHERE sku_id = ?";
+                + "WHERE sku_id = ?"
+                + "AND is_hidden = 0";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -376,7 +378,8 @@ public class ProductReviewDAO extends DBContext {
 
         String sql = "SELECT COUNT(*) AS total "
                 + "FROM PRODUCT_REVIEWS "
-                + "WHERE sku_id = ?";
+                + "WHERE sku_id = ?"
+                + "AND is_hidden = 0";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -458,5 +461,4 @@ public class ProductReviewDAO extends DBContext {
 
         return review;
     }
-
 }

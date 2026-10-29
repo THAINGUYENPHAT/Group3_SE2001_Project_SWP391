@@ -740,33 +740,78 @@
             </div>
         </section>
 
+
         <!-- =====================================================
              PROMOTION SLIDESHOW
              ===================================================== -->
         <section class="home-section">
             <div class="home-slider" id="homeSlider">
                 <div class="slider-track">
-                    <a href="${pageContext.request.contextPath}/shop" class="slide active">
-                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-1.jpg" alt="Khuyến mãi công nghệ">
-                    </a>
-                    <a href="${pageContext.request.contextPath}/shop" class="slide">
-                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-2.jpg" alt="Ưu đãi laptop">
-                    </a>
-                    <a href="${pageContext.request.contextPath}/shop" class="slide">
-                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-3.jpg" alt="Ưu đãi phụ kiện">
-                    </a>
+
+                    <c:choose>
+                        <c:when test="${not empty bannerList}">
+                            <c:forEach items="${bannerList}" var="banner" varStatus="status">
+                                <a href="${pageContext.request.contextPath}${empty banner.targetUrl ? '/shop' : banner.targetUrl}"
+                                   class="slide ${status.first ? 'active' : ''}">
+                                    <img
+                                        src="${pageContext.request.contextPath}/${banner.imageUrl}"
+                                        alt="${banner.altText}">
+                                </a>
+                            </c:forEach>
+                        </c:when>
+
+                        <c:otherwise>
+                            <a href="${pageContext.request.contextPath}/shop"
+                               class="slide active">
+                                <img src="${pageContext.request.contextPath}/assets/images/banners/banner-1.jpg"
+                                     alt="Khuyến mãi công nghệ">
+                            </a>
+
+                            <a href="${pageContext.request.contextPath}/shop"
+                               class="slide">
+                                <img src="${pageContext.request.contextPath}/assets/images/banners/banner-2.jpg"
+                                     alt="Ưu đãi laptop">
+                            </a>
+
+                            <a href="${pageContext.request.contextPath}/shop"
+                               class="slide">
+                                <img src="${pageContext.request.contextPath}/assets/images/banners/banner-3.jpg"
+                                     alt="Ưu đãi phụ kiện">
+                            </a>
+                        </c:otherwise>
+                    </c:choose>
+
                 </div>
 
-                <button type="button" class="slider-arrow prev" aria-label="Ảnh trước">&#10094;</button>
-                <button type="button" class="slider-arrow next" aria-label="Ảnh tiếp theo">&#10095;</button>
+                <button type="button" class="slider-arrow prev"
+                        aria-label="Ảnh trước">&#10094;</button>
+
+                <button type="button" class="slider-arrow next"
+                        aria-label="Ảnh tiếp theo">&#10095;</button>
 
                 <div class="slider-dots">
-                    <button type="button" class="slider-dot active" aria-label="Ảnh 1"></button>
-                    <button type="button" class="slider-dot" aria-label="Ảnh 2"></button>
-                    <button type="button" class="slider-dot" aria-label="Ảnh 3"></button>
+                    <c:choose>
+                        <c:when test="${not empty bannerList}">
+                            <c:forEach items="${bannerList}" var="banner" varStatus="status">
+                                <button type="button"
+                                        class="slider-dot ${status.first ? 'active' : ''}"
+                                        aria-label="Ảnh ${status.index + 1}"></button>
+                            </c:forEach>
+                        </c:when>
+
+                        <c:otherwise>
+                            <button type="button" class="slider-dot active"
+                                    aria-label="Ảnh 1"></button>
+                            <button type="button" class="slider-dot"
+                                    aria-label="Ảnh 2"></button>
+                            <button type="button" class="slider-dot"
+                                    aria-label="Ảnh 3"></button>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
             </div>
         </section>
+
 
         <!-- =====================================================
              CATEGORY
@@ -774,7 +819,7 @@
         <section class="home-section">
             <div class="row g-3">
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?categoryId=1" class="category-card category-phone">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=4" class="category-card category-phone">
                         <div class="category-content">
                             <div class="category-name">Điện thoại</div>
                             <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
@@ -801,7 +846,7 @@
                 </div>
 
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Dong%20ho" class="category-card category-watch">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=14" class="category-card category-watch">
                         <div class="category-content">
                             <div class="category-name">Đồng hồ thông minh</div>
                             <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
@@ -810,7 +855,7 @@
                 </div>
 
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=Tai%20nghe" class="category-card category-headphone">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=5" class="category-card category-headphone">
                         <div class="category-content">
                             <div class="category-name">Tai nghe</div>
                             <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
@@ -819,7 +864,7 @@
                 </div>
 
                 <div class="col-6 col-lg-2">
-                    <a href="${pageContext.request.contextPath}/shop?keyword=May%20anh" class="category-card category-camera">
+                    <a href="${pageContext.request.contextPath}/shop?categoryId=16" class="category-card category-camera">
                         <div class="category-content">
                             <div class="category-name">Máy ảnh</div>
                             <div class="category-arrow"><i class="bi bi-arrow-right"></i></div>
@@ -828,7 +873,6 @@
                 </div>
             </div>
         </section>
-
         <!-- =====================================================
              PROMOTION
              ===================================================== -->
