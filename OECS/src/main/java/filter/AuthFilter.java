@@ -65,7 +65,8 @@ public class AuthFilter implements Filter {
             "/product",
             "/admin/orders",
             "/staff/voucher",
-            "/product-sku"
+            "/product-sku",
+            "/staff/banner"
     );
 
     // Chi Admin duoc truy cap

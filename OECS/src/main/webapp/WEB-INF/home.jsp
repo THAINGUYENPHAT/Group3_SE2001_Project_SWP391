@@ -740,33 +740,78 @@
             </div>
         </section>
 
+
         <!-- =====================================================
              PROMOTION SLIDESHOW
              ===================================================== -->
         <section class="home-section">
             <div class="home-slider" id="homeSlider">
                 <div class="slider-track">
-                    <a href="${pageContext.request.contextPath}/shop" class="slide active">
-                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-1.jpg" alt="Khuyến mãi công nghệ">
-                    </a>
-                    <a href="${pageContext.request.contextPath}/shop" class="slide">
-                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-2.jpg" alt="Ưu đãi laptop">
-                    </a>
-                    <a href="${pageContext.request.contextPath}/shop" class="slide">
-                        <img src="${pageContext.request.contextPath}/assets/images/banners/banner-3.jpg" alt="Ưu đãi phụ kiện">
-                    </a>
+
+                    <c:choose>
+                        <c:when test="${not empty bannerList}">
+                            <c:forEach items="${bannerList}" var="banner" varStatus="status">
+                                <a href="${pageContext.request.contextPath}${empty banner.targetUrl ? '/shop' : banner.targetUrl}"
+                                   class="slide ${status.first ? 'active' : ''}">
+                                    <img
+                                        src="${pageContext.request.contextPath}/${banner.imageUrl}"
+                                        alt="${banner.altText}">
+                                </a>
+                            </c:forEach>
+                        </c:when>
+
+                        <c:otherwise>
+                            <a href="${pageContext.request.contextPath}/shop"
+                               class="slide active">
+                                <img src="${pageContext.request.contextPath}/assets/images/banners/banner-1.jpg"
+                                     alt="Khuyến mãi công nghệ">
+                            </a>
+
+                            <a href="${pageContext.request.contextPath}/shop"
+                               class="slide">
+                                <img src="${pageContext.request.contextPath}/assets/images/banners/banner-2.jpg"
+                                     alt="Ưu đãi laptop">
+                            </a>
+
+                            <a href="${pageContext.request.contextPath}/shop"
+                               class="slide">
+                                <img src="${pageContext.request.contextPath}/assets/images/banners/banner-3.jpg"
+                                     alt="Ưu đãi phụ kiện">
+                            </a>
+                        </c:otherwise>
+                    </c:choose>
+
                 </div>
 
-                <button type="button" class="slider-arrow prev" aria-label="Ảnh trước">&#10094;</button>
-                <button type="button" class="slider-arrow next" aria-label="Ảnh tiếp theo">&#10095;</button>
+                <button type="button" class="slider-arrow prev"
+                        aria-label="Ảnh trước">&#10094;</button>
+
+                <button type="button" class="slider-arrow next"
+                        aria-label="Ảnh tiếp theo">&#10095;</button>
 
                 <div class="slider-dots">
-                    <button type="button" class="slider-dot active" aria-label="Ảnh 1"></button>
-                    <button type="button" class="slider-dot" aria-label="Ảnh 2"></button>
-                    <button type="button" class="slider-dot" aria-label="Ảnh 3"></button>
+                    <c:choose>
+                        <c:when test="${not empty bannerList}">
+                            <c:forEach items="${bannerList}" var="banner" varStatus="status">
+                                <button type="button"
+                                        class="slider-dot ${status.first ? 'active' : ''}"
+                                        aria-label="Ảnh ${status.index + 1}"></button>
+                            </c:forEach>
+                        </c:when>
+
+                        <c:otherwise>
+                            <button type="button" class="slider-dot active"
+                                    aria-label="Ảnh 1"></button>
+                            <button type="button" class="slider-dot"
+                                    aria-label="Ảnh 2"></button>
+                            <button type="button" class="slider-dot"
+                                    aria-label="Ảnh 3"></button>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
             </div>
         </section>
+
 
         <!-- =====================================================
              CATEGORY
