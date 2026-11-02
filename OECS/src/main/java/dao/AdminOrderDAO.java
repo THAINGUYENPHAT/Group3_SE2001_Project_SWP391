@@ -91,7 +91,8 @@ public class AdminOrderDAO extends DBContext {
     // =========================================================
     public Order getById(int id) {
 
-        String sql = "SELECT o.order_id, "
+        String sql
+                = "SELECT o.order_id, "
                 + "o.user_id, "
                 + "o.address_id, "
                 + "o.shipping_partner_id, "
@@ -101,14 +102,10 @@ public class AdminOrderDAO extends DBContext {
                 + "o.recipient_name, "
                 + "o.recipient_phone, "
                 + "o.shipping_address, "
-                + "h.status AS order_status "
+                + "o.order_status, "
+                + "o.payment_method, "
+                + "o.payment_status "
                 + "FROM dbo.[ORDER] o "
-                + "OUTER APPLY ( "
-                + "    SELECT TOP 1 status "
-                + "    FROM ORDER_STATUS_HISTORY "
-                + "    WHERE order_id = o.order_id "
-                + "    ORDER BY status_id DESC "
-                + ") h "
                 + "WHERE o.order_id = ?";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
@@ -152,6 +149,10 @@ public class AdminOrderDAO extends DBContext {
                     order.setOrderStatus(
                             rs.getString("order_status")
                     );
+
+                    order.setPaymentMethod(rs.getString("payment_method"));
+                    order.setPaymentStatus(rs.getString("payment_status"));
+
                     order.setRecipientName(rs.getString("recipient_name"));
                     order.setRecipientPhone(rs.getString("recipient_phone"));
                     order.setShippingAddress(rs.getString("shipping_address"));
@@ -269,7 +270,6 @@ public class AdminOrderDAO extends DBContext {
         return null;
     }
 
-
     private String normalizeStatus(String status) {
         if (status == null) {
             return null;
@@ -304,89 +304,214 @@ public class AdminOrderDAO extends DBContext {
         }
 
         String selectSql
-                = "SELECT order_status FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
+                = "SELECT order_status, payment_method, payment_status, "
+                + "stock_restored_at "
+                + "FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE order_id = ?";
 
         String updateSql
-        = "UPDATE dbo.[ORDER] "
-        + "SET order_status = ?, "
-        + "delivered_at = CASE "
-        + "WHEN ? = 'COMPLETED' "
-        + "THEN COALESCE(delivered_at, SYSDATETIME()) "
-        + "ELSE delivered_at END "
-        + "WHERE order_id = ?";
+                = "UPDATE dbo.[ORDER] "
+                + "SET order_status = ?, "
+                + "delivered_at = CASE "
+                + "WHEN ? = 'COMPLETED' "
+                + "THEN COALESCE(delivered_at, SYSDATETIME()) "
+                + "ELSE delivered_at END, "
+                + "stock_restored_at = CASE "
+                + "WHEN ? = 'CANCELLED' "
+                + "THEN SYSDATETIME() "
+                + "ELSE stock_restored_at END "
+                + "WHERE order_id = ?";
 
         String historySql
-                = "INSERT INTO dbo.ORDER_STATUS_HISTORY (order_id, status) "
-                + "VALUES (?, ?)";
+                = "INSERT INTO dbo.ORDER_STATUS_HISTORY "
+                + "(order_id, status) VALUES (?, ?)";
 
         try (Connection conn = getConnection()) {
+
             conn.setAutoCommit(false);
 
             try {
                 String current;
+                String paymentMethod;
+                String paymentStatus;
+                boolean alreadyRestored;
 
-                try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                // Lock đơn hàng trong suốt transaction
+                try (PreparedStatement ps
+                        = conn.prepareStatement(selectSql)) {
+
                     ps.setInt(1, orderId);
 
                     try (ResultSet rs = ps.executeQuery()) {
+
                         if (!rs.next()) {
                             conn.rollback();
                             return false;
                         }
-                        current = normalizeStatus(rs.getString("order_status"));
+
+                        current = normalizeStatus(
+                                rs.getString("order_status")
+                        );
+
+                        paymentMethod
+                                = rs.getString("payment_method");
+
+                        paymentStatus
+                                = rs.getString("payment_status");
+
+                        alreadyRestored
+                                = rs.getTimestamp("stock_restored_at") != null;
                     }
                 }
 
-                String expectedNext;
+                String expectedNext = null;
 
                 if ("PENDING_CONFIRMATION".equals(current)) {
                     expectedNext = "CONFIRMED";
+
                 } else if ("CONFIRMED".equals(current)) {
                     expectedNext = "PACKING";
+
                 } else if ("PACKING".equals(current)) {
                     expectedNext = "SHIPPING";
+
                 } else if ("SHIPPING".equals(current)) {
                     expectedNext = "COMPLETED";
-                } else {
-                    expectedNext = null;
                 }
 
-                boolean valid = next.equals(expectedNext)
-                        || ("CANCELLED".equals(next)
-                        && expectedNext != null);
+                boolean isCancel = "CANCELLED".equals(next);
 
-                if (!valid) {
+                // Chuyển bước thông thường
+                boolean validNext
+                        = next.equals(expectedNext);
+
+                // Hủy chỉ khi chưa xác nhận
+                boolean validCancel
+                        = isCancel
+                        && "PENDING_CONFIRMATION".equals(current)
+                        && "COD".equalsIgnoreCase(paymentMethod)
+                        && !"PAID".equalsIgnoreCase(paymentStatus)
+                        && !alreadyRestored;
+
+                if (!validNext && !validCancel) {
                     conn.rollback();
                     return false;
                 }
 
-                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-    ps.setString(1, next);
-    ps.setString(2, next);
-    ps.setInt(3, orderId);
+                // Hoàn kho khi hủy đơn hợp lệ
+                if (validCancel) {
 
-    if (ps.executeUpdate() != 1) {
-        conn.rollback();
-        return false;
-    }
-}
+                    String itemsSql
+                            = "SELECT sku_id, SUM(quantity) AS total_qty "
+                            + "FROM dbo.ORDER_ITEM "
+                            + "WHERE order_id = ? "
+                            + "GROUP BY sku_id "
+                            + "ORDER BY sku_id";
 
-                try (PreparedStatement ps = conn.prepareStatement(historySql)) {
+                    List<int[]> items = new ArrayList<>();
+
+                    try (PreparedStatement ps
+                            = conn.prepareStatement(itemsSql)) {
+
+                        ps.setInt(1, orderId);
+
+                        try (ResultSet rs = ps.executeQuery()) {
+
+                            while (rs.next()) {
+
+                                int quantity
+                                        = rs.getInt("total_qty");
+
+                                if (quantity <= 0) {
+                                    throw new SQLException(
+                                            "Số lượng hoàn kho không hợp lệ."
+                                    );
+                                }
+
+                                items.add(new int[]{
+                                    rs.getInt("sku_id"),
+                                    quantity
+                                });
+                            }
+                        }
+                    }
+
+                    if (items.isEmpty()) {
+                        throw new SQLException(
+                                "Đơn hàng không có sản phẩm để hoàn kho."
+                        );
+                    }
+
+                    String restoreSql
+                            = "UPDATE dbo.PRODUCT_SKU "
+                            + "SET stock_quantity = stock_quantity + ? "
+                            + "WHERE sku_id = ?";
+
+                    try (PreparedStatement ps
+                            = conn.prepareStatement(restoreSql)) {
+
+                        for (int[] item : items) {
+
+                            ps.setInt(1, item[1]);
+                            ps.setInt(2, item[0]);
+
+                            if (ps.executeUpdate() != 1) {
+                                throw new SQLException(
+                                        "Không thể hoàn kho SKU #"
+                                        + item[0]
+                                );
+                            }
+                        }
+                    }
+                }
+
+                // Cập nhật trạng thái + thời điểm
+                try (PreparedStatement ps
+                        = conn.prepareStatement(updateSql)) {
+
+                    ps.setString(1, next);
+                    ps.setString(2, next);
+                    ps.setString(3, next);
+                    ps.setInt(4, orderId);
+
+                    if (ps.executeUpdate() != 1) {
+                        throw new SQLException(
+                                "Không thể cập nhật đơn hàng."
+                        );
+                    }
+                }
+
+                // Ghi lịch sử cùng transaction
+                try (PreparedStatement ps
+                        = conn.prepareStatement(historySql)) {
+
                     ps.setInt(1, orderId);
                     ps.setString(2, next);
-                    ps.executeUpdate();
+
+                    if (ps.executeUpdate() != 1) {
+                        throw new SQLException(
+                                "Không thể ghi lịch sử đơn hàng."
+                        );
+                    }
                 }
 
                 conn.commit();
                 return true;
 
-            } catch (SQLException | RuntimeException ex) {
-                conn.rollback();
-                throw ex;
+            } catch (SQLException | RuntimeException e) {
+
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackError) {
+                    e.addSuppressed(rollbackError);
+                }
+
+                throw e;
+
             } finally {
                 conn.setAutoCommit(true);
             }
         }
     }
+
 }
