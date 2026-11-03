@@ -1,4 +1,3 @@
-
 package controller;
 
 import jakarta.servlet.ServletException;
@@ -164,8 +163,8 @@ public class StaffReturnExchangeServlet extends HttpServlet {
             }
 
             String message = "APPROVED".equals(newStatus)
-                    ? "Đã chấp nhận yêu cầu."
-                    : "Đã từ chối yêu cầu.";
+                    ? "approved"
+                    : "rejected";
 
             response.sendRedirect(contextPath
                     + "/staff/return-exchange?view=detail&id="
@@ -180,8 +179,10 @@ public class StaffReturnExchangeServlet extends HttpServlet {
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE,
                     "Cannot review return/exchange request", ex);
-            throw new ServletException(
-                    "Không thể xử lý yêu cầu đổi/trả hàng.", ex);
+
+            response.sendRedirect(contextPath
+                    + "/staff/return-exchange?view=detail&id="
+                    + requestId + "&error=system");
         }
     }
 

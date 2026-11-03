@@ -1,4 +1,3 @@
-
 package dao;
 
 import db.DBContext;
@@ -36,18 +35,25 @@ public class ReturnExchangeDAO {
         return conn;
     }
 
-    // Kiểm tra đơn đã giao thành công và còn trong thời hạn 7 ngày.
+// Kiểm tra đơn đã giao thành công, còn trong thời hạn 7 ngày
+// và chưa có yêu cầu trả/đổi hàng đang chờ hoặc đã được duyệt.
     public boolean canRequest(int orderId, int userId) throws SQLException {
-        String sql =
-                "SELECT 1 FROM dbo.[ORDER] "
-                + "WHERE order_id = ? AND user_id = ? "
-                + "AND UPPER(LTRIM(RTRIM(order_status))) = 'COMPLETED' "
-                + "AND delivered_at IS NOT NULL "
-                + "AND delivered_at <= SYSDATETIME() "
-                + "AND delivered_at >= DATEADD(DAY, -7, SYSDATETIME())";
+        String sql
+                = "SELECT 1 FROM dbo.[ORDER] o "
+                + "WHERE o.order_id = ? AND o.user_id = ? "
+                + "AND UPPER(LTRIM(RTRIM(o.order_status))) = 'COMPLETED' "
+                + "AND o.delivered_at IS NOT NULL "
+                + "AND o.delivered_at <= SYSDATETIME() "
+                + "AND o.delivered_at >= DATEADD(DAY, -7, SYSDATETIME()) "
+                + "AND NOT EXISTS ("
+                + "    SELECT 1 FROM dbo.RETURN_REQUEST r "
+                + "    WHERE r.order_id = o.order_id "
+                + "    AND r.user_id = o.user_id "
+                + "    AND UPPER(LTRIM(RTRIM(r.request_status))) "
+                + "        IN ('PENDING', 'APPROVED')"
+                + ")";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderId);
             ps.setInt(2, userId);
@@ -64,8 +70,8 @@ public class ReturnExchangeDAO {
 
         List<Map<String, Object>> items = new ArrayList<>();
 
-        String sql =
-                "SELECT oi.order_item_id, oi.sku_id, oi.quantity, "
+        String sql
+                = "SELECT oi.order_item_id, oi.sku_id, oi.quantity, "
                 + "oi.price, s.sku_code, s.product_id, p.product_name "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "JOIN dbo.[ORDER] o ON o.order_id = oi.order_id "
@@ -74,8 +80,7 @@ public class ReturnExchangeDAO {
                 + "WHERE o.order_id = ? AND o.user_id = ? "
                 + "ORDER BY oi.order_item_id";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderId);
             ps.setInt(2, userId);
@@ -104,8 +109,8 @@ public class ReturnExchangeDAO {
 
         List<Map<String, Object>> skus = new ArrayList<>();
 
-        String sql =
-                "SELECT target.sku_id, target.sku_code, "
+        String sql
+                = "SELECT target.sku_id, target.sku_code, "
                 + "target.price, target.stock_quantity "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "JOIN dbo.[ORDER] o ON o.order_id = oi.order_id "
@@ -120,8 +125,7 @@ public class ReturnExchangeDAO {
                 + "AND target.stock_quantity > 0 "
                 + "ORDER BY target.sku_code";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderItemId);
             ps.setInt(2, userId);
@@ -164,37 +168,37 @@ public class ReturnExchangeDAO {
             throw new IllegalArgumentException("Vui lòng chọn sản phẩm.");
         }
 
-        String orderSql =
-                "SELECT order_id FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
+        String orderSql
+                = "SELECT order_id FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE order_id = ? AND user_id = ? "
                 + "AND UPPER(LTRIM(RTRIM(order_status))) = 'COMPLETED' "
                 + "AND delivered_at IS NOT NULL "
                 + "AND delivered_at <= SYSDATETIME() "
                 + "AND delivered_at >= DATEADD(DAY, -7, SYSDATETIME())";
 
-        String itemSql =
-                "SELECT oi.quantity, oi.sku_id, original.product_id "
+        String itemSql
+                = "SELECT oi.quantity, oi.sku_id, original.product_id "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "JOIN dbo.PRODUCT_SKU original "
                 + "ON original.sku_id = oi.sku_id "
                 + "WHERE oi.order_item_id = ? AND oi.order_id = ?";
 
-        String exchangeSql =
-                "SELECT product_id, stock_quantity FROM dbo.PRODUCT_SKU "
+        String exchangeSql
+                = "SELECT product_id, stock_quantity FROM dbo.PRODUCT_SKU "
                 + "WHERE sku_id = ?";
 
-        String insertRequestSql =
-                "INSERT INTO dbo.RETURN_REQUEST "
+        String insertRequestSql
+                = "INSERT INTO dbo.RETURN_REQUEST "
                 + "(order_id, user_id, request_type, reason, request_status) "
                 + "VALUES (?, ?, ?, ?, 'PENDING')";
 
-        String insertItemSql =
-                "INSERT INTO dbo.RETURN_REQUEST_ITEM "
+        String insertItemSql
+                = "INSERT INTO dbo.RETURN_REQUEST_ITEM "
                 + "(request_id, order_item_id, quantity, exchange_sku_id) "
                 + "VALUES (?, ?, ?, ?)";
 
-        String historySql =
-                "INSERT INTO dbo.RETURN_REQUEST_HISTORY "
+        String historySql
+                = "INSERT INTO dbo.RETURN_REQUEST_HISTORY "
                 + "(request_id, status, updated_by, note) "
                 + "VALUES (?, 'PENDING', ?, ?)";
 
@@ -276,8 +280,8 @@ public class ReturnExchangeDAO {
                     }
 
                     // Không cho tạo nhiều yêu cầu làm vượt số lượng đã mua.
-                    String usedSql =
-                            "SELECT COALESCE(SUM(ri.quantity), 0) "
+                    String usedSql
+                            = "SELECT COALESCE(SUM(ri.quantity), 0) "
                             + "FROM dbo.RETURN_REQUEST_ITEM ri "
                             + "JOIN dbo.RETURN_REQUEST r "
                             + "ON r.request_id = ri.request_id "
@@ -302,8 +306,8 @@ public class ReturnExchangeDAO {
                                     "Vui lòng chọn SKU muốn đổi.");
                         }
 
-                        try (PreparedStatement ps =
-                                conn.prepareStatement(exchangeSql)) {
+                        try (PreparedStatement ps
+                                = conn.prepareStatement(exchangeSql)) {
                             ps.setInt(1, exchangeSkuId);
 
                             try (ResultSet rs = ps.executeQuery()) {
@@ -363,8 +367,8 @@ public class ReturnExchangeDAO {
     private int getOriginalSkuId(
             Connection conn, int orderItemId) throws SQLException {
 
-        String sql =
-                "SELECT sku_id FROM dbo.ORDER_ITEM WHERE order_item_id = ?";
+        String sql
+                = "SELECT sku_id FROM dbo.ORDER_ITEM WHERE order_item_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, orderItemId);
@@ -378,13 +382,13 @@ public class ReturnExchangeDAO {
             }
         }
     }
-    
+
     // Lấy danh sách yêu cầu đổi/trả cho Staff.
     public List<Map<String, Object>> getAllRequests() throws SQLException {
         List<Map<String, Object>> requests = new ArrayList<>();
 
-        String sql =
-                "SELECT r.request_id, r.order_id, r.user_id, "
+        String sql
+                = "SELECT r.request_id, r.order_id, r.user_id, "
                 + "u.username, r.request_type, r.reason, "
                 + "r.request_status, r.created_at, "
                 + "r.reviewed_at, r.staff_note "
@@ -393,9 +397,7 @@ public class ReturnExchangeDAO {
                 + "ORDER BY CASE WHEN r.request_status = 'PENDING' "
                 + "THEN 0 ELSE 1 END, r.created_at DESC";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 Map<String, Object> item = new LinkedHashMap<>();
@@ -422,8 +424,8 @@ public class ReturnExchangeDAO {
 
         List<Map<String, Object>> items = new ArrayList<>();
 
-        String sql =
-                "SELECT ri.request_item_id, ri.order_item_id, "
+        String sql
+                = "SELECT ri.request_item_id, ri.order_item_id, "
                 + "ri.quantity, ri.exchange_sku_id, "
                 + "p.product_name, original.sku_code AS original_sku_code, "
                 + "target.sku_code AS exchange_sku_code "
@@ -439,8 +441,7 @@ public class ReturnExchangeDAO {
                 + "WHERE ri.request_id = ? "
                 + "ORDER BY ri.request_item_id";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, requestId);
 
@@ -464,8 +465,6 @@ public class ReturnExchangeDAO {
         return items;
     }
 
-    // Staff duyệt hoặc từ chối yêu cầu đang chờ xử lý.
-    
     // Staff duyệt hoặc từ chối yêu cầu và cập nhật tồn kho trong cùng transaction.
     public boolean reviewRequest(
             int requestId,
@@ -479,13 +478,13 @@ public class ReturnExchangeDAO {
                     "Trạng thái duyệt không hợp lệ.");
         }
 
-        String lockRequestSql =
-                "SELECT request_type, request_status "
+        String lockRequestSql
+                = "SELECT request_type, request_status, user_id, order_id "
                 + "FROM dbo.RETURN_REQUEST WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE request_id = ?";
 
-        String getItemsSql =
-                "SELECT ri.quantity, ri.exchange_sku_id, "
+        String getItemsSql
+                = "SELECT ri.quantity, ri.exchange_sku_id, "
                 + "oi.sku_id AS original_sku_id, "
                 + "original.product_id AS original_product_id "
                 + "FROM dbo.RETURN_REQUEST_ITEM ri "
@@ -496,29 +495,29 @@ public class ReturnExchangeDAO {
                 + "WHERE ri.request_id = ? "
                 + "ORDER BY ri.request_item_id";
 
-        String getTargetSql =
-                "SELECT product_id "
+        String getTargetSql
+                = "SELECT product_id "
                 + "FROM dbo.PRODUCT_SKU WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE sku_id = ?";
 
-        String addStockSql =
-                "UPDATE dbo.PRODUCT_SKU "
+        String addStockSql
+                = "UPDATE dbo.PRODUCT_SKU "
                 + "SET stock_quantity = stock_quantity + ? "
                 + "WHERE sku_id = ?";
 
-        String subtractStockSql =
-                "UPDATE dbo.PRODUCT_SKU "
+        String subtractStockSql
+                = "UPDATE dbo.PRODUCT_SKU "
                 + "SET stock_quantity = stock_quantity - ? "
                 + "WHERE sku_id = ? AND stock_quantity >= ?";
 
-        String updateRequestSql =
-                "UPDATE dbo.RETURN_REQUEST "
+        String updateRequestSql
+                = "UPDATE dbo.RETURN_REQUEST "
                 + "SET request_status = ?, reviewed_by = ?, "
                 + "reviewed_at = SYSDATETIME(), staff_note = ? "
                 + "WHERE request_id = ? AND request_status = 'PENDING'";
 
-        String historySql =
-                "INSERT INTO dbo.RETURN_REQUEST_HISTORY "
+        String historySql
+                = "INSERT INTO dbo.RETURN_REQUEST_HISTORY "
                 + "(request_id, status, updated_by, note) "
                 + "VALUES (?, ?, ?, ?)";
 
@@ -528,10 +527,12 @@ public class ReturnExchangeDAO {
             try {
                 String requestType;
                 String currentStatus;
+                int customerId;
+                int orderId;
 
                 // Khóa yêu cầu để ngăn hai nhân viên xử lý đồng thời.
-                try (PreparedStatement ps =
-                        conn.prepareStatement(lockRequestSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(lockRequestSql)) {
                     ps.setInt(1, requestId);
 
                     try (ResultSet rs = ps.executeQuery()) {
@@ -542,6 +543,8 @@ public class ReturnExchangeDAO {
 
                         requestType = rs.getString("request_type");
                         currentStatus = rs.getString("request_status");
+                        customerId = rs.getInt("user_id");
+                        orderId = rs.getInt("order_id");
                     }
                 }
 
@@ -558,17 +561,17 @@ public class ReturnExchangeDAO {
                                 "Loại yêu cầu không hợp lệ.");
                     }
 
-                    List<Map<String, Object>> items =
-                            new ArrayList<>();
+                    List<Map<String, Object>> items
+                            = new ArrayList<>();
 
-                    try (PreparedStatement ps =
-                            conn.prepareStatement(getItemsSql)) {
+                    try (PreparedStatement ps
+                            = conn.prepareStatement(getItemsSql)) {
                         ps.setInt(1, requestId);
 
                         try (ResultSet rs = ps.executeQuery()) {
                             while (rs.next()) {
-                                Map<String, Object> item =
-                                        new LinkedHashMap<>();
+                                Map<String, Object> item
+                                        = new LinkedHashMap<>();
 
                                 item.put("quantity",
                                         rs.getInt("quantity"));
@@ -592,10 +595,10 @@ public class ReturnExchangeDAO {
 
                     for (Map<String, Object> item : items) {
                         int quantity = (Integer) item.get("quantity");
-                        int originalSkuId =
-                                (Integer) item.get("originalSkuId");
-                        int originalProductId =
-                                (Integer) item.get("originalProductId");
+                        int originalSkuId
+                                = (Integer) item.get("originalSkuId");
+                        int originalProductId
+                                = (Integer) item.get("originalProductId");
 
                         if (quantity <= 0) {
                             throw new SQLException(
@@ -604,8 +607,8 @@ public class ReturnExchangeDAO {
 
                         if ("RETURN".equals(requestType)) {
                             // Trả hàng: cộng hàng cũ vào kho.
-                            try (PreparedStatement ps =
-                                    conn.prepareStatement(addStockSql)) {
+                            try (PreparedStatement ps
+                                    = conn.prepareStatement(addStockSql)) {
                                 ps.setInt(1, quantity);
                                 ps.setInt(2, originalSkuId);
 
@@ -615,8 +618,8 @@ public class ReturnExchangeDAO {
                                 }
                             }
                         } else {
-                            Integer exchangeSkuId =
-                                    (Integer) item.get("exchangeSkuId");
+                            Integer exchangeSkuId
+                                    = (Integer) item.get("exchangeSkuId");
 
                             if (exchangeSkuId == null
                                     || exchangeSkuId == originalSkuId) {
@@ -625,8 +628,8 @@ public class ReturnExchangeDAO {
                             }
 
                             // Đảm bảo SKU mới thuộc cùng sản phẩm.
-                            try (PreparedStatement ps =
-                                    conn.prepareStatement(getTargetSql)) {
+                            try (PreparedStatement ps
+                                    = conn.prepareStatement(getTargetSql)) {
                                 ps.setInt(1, exchangeSkuId);
 
                                 try (ResultSet rs = ps.executeQuery()) {
@@ -640,8 +643,8 @@ public class ReturnExchangeDAO {
                             }
 
                             // Trừ SKU mới trước, chỉ khi kho đủ số lượng.
-                            try (PreparedStatement ps =
-                                    conn.prepareStatement(subtractStockSql)) {
+                            try (PreparedStatement ps
+                                    = conn.prepareStatement(subtractStockSql)) {
                                 ps.setInt(1, quantity);
                                 ps.setInt(2, exchangeSkuId);
                                 ps.setInt(3, quantity);
@@ -653,8 +656,8 @@ public class ReturnExchangeDAO {
                             }
 
                             // Cộng SKU cũ trở lại kho.
-                            try (PreparedStatement ps =
-                                    conn.prepareStatement(addStockSql)) {
+                            try (PreparedStatement ps
+                                    = conn.prepareStatement(addStockSql)) {
                                 ps.setInt(1, quantity);
                                 ps.setInt(2, originalSkuId);
 
@@ -668,8 +671,8 @@ public class ReturnExchangeDAO {
                 }
 
                 // Cập nhật trạng thái sau khi cập nhật tồn kho thành công.
-                try (PreparedStatement ps =
-                        conn.prepareStatement(updateRequestSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(updateRequestSql)) {
                     ps.setString(1, newStatus);
                     ps.setInt(2, staffId);
                     ps.setString(3, staffNote == null
@@ -683,8 +686,8 @@ public class ReturnExchangeDAO {
                 }
 
                 // Ghi lịch sử trong cùng transaction.
-                try (PreparedStatement ps =
-                        conn.prepareStatement(historySql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(historySql)) {
                     ps.setInt(1, requestId);
                     ps.setString(2, newStatus);
                     ps.setInt(3, staffId);
@@ -692,6 +695,17 @@ public class ReturnExchangeDAO {
                             ? "" : staffNote.trim());
                     ps.executeUpdate();
                 }
+
+                // Tạo thông báo cho khách hàng trong cùng transaction.
+                NotificationDAO notificationDAO = new NotificationDAO();
+
+                notificationDAO.createReturnExchangeNotification(
+                        conn,
+                        customerId,
+                        orderId,
+                        requestType,
+                        newStatus
+                );
 
                 conn.commit();
                 return true;
@@ -704,6 +718,5 @@ public class ReturnExchangeDAO {
             }
         }
     }
-
 
 }

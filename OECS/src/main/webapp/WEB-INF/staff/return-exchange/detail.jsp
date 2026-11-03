@@ -147,30 +147,53 @@
         </a>
     </div>
 
+    <!-- SUCCESS MESSAGE -->
     <c:if test="${not empty param.message}">
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i>
-            <c:out value="${param.message}"/>
+            <c:choose>
+                <c:when test="${param.message == 'approved'}">
+                    Yêu cầu đã được chấp nhận thành công. Khách hàng có thể theo dõi kết quả xử lý.
+                </c:when>
+                <c:when test="${param.message == 'rejected'}">
+                    Yêu cầu đã được từ chối thành công. Lý do từ chối đã được lưu lại.
+                </c:when>
+                <c:otherwise>
+                    Thao tác đã được thực hiện thành công.
+                </c:otherwise>
+            </c:choose>
             <button type="button" class="btn-close"
                     data-bs-dismiss="alert" aria-label="Đóng"></button>
         </div>
     </c:if>
 
+    <!-- ERROR MESSAGE -->
     <c:if test="${not empty param.error}">
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <c:choose>
                 <c:when test="${param.error == 'noteRequired'}">
-                    Vui lòng nhập lý do từ chối.
+                    <strong>Chưa thể từ chối yêu cầu.</strong>
+                    Vui lòng nhập lý do từ chối để khách hàng hiểu quyết định của Staff.
                 </c:when>
                 <c:when test="${param.error == 'alreadyReviewed'}">
-                    Yêu cầu này đã được xử lý trước đó.
+                    <strong>Yêu cầu đã được xử lý.</strong>
+                    Trạng thái yêu cầu có thể đã được một nhân viên khác cập nhật. Vui lòng tải lại trang để xem kết quả mới nhất.
                 </c:when>
                 <c:when test="${param.error == 'invalidId'}">
-                    Mã yêu cầu không hợp lệ.
+                    Mã yêu cầu không hợp lệ. Vui lòng kiểm tra lại.
+                </c:when>
+                <c:when test="${param.error == 'invalidAction'}">
+                    Thao tác không hợp lệ. Vui lòng chọn Chấp nhận hoặc Từ chối.
+                </c:when>
+                <c:when test="${param.error == 'invalid'}">
+                    Không thể cập nhật yêu cầu vì dữ liệu không hợp lệ. Vui lòng tải lại trang và thử lại.
+                </c:when>
+                <c:when test="${param.error == 'system'}">
+                    Hệ thống đang gặp sự cố khi xử lý yêu cầu. Dữ liệu có thể chưa được cập nhật. Vui lòng thử lại sau.
                 </c:when>
                 <c:otherwise>
-                    Không thể xử lý yêu cầu. Vui lòng kiểm tra lại.
+                    Đã xảy ra lỗi khi xử lý yêu cầu. Vui lòng tải lại trang hoặc liên hệ quản trị viên.
                 </c:otherwise>
             </c:choose>
             <button type="button" class="btn-close"
@@ -356,7 +379,7 @@
 
                             <c:if test="${empty requestItems}">
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted py-4">
+                                    <td colspan="3" class="text-center text-muted py-4">
                                         <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                                         Không có sản phẩm trong yêu cầu.
                                     </td>
@@ -444,10 +467,39 @@
                     </c:when>
 
                     <c:otherwise>
-                        <div class="alert alert-secondary border-0 rounded-3 mb-3">
-                            <i class="bi bi-lock-fill me-2"></i>
-                            Yêu cầu này đã được xử lý. Bạn không thể duyệt lại.
-                        </div>
+                        <c:choose>
+                            <c:when test="${selectedRequest.requestStatus == 'APPROVED'}">
+                                <div class="alert alert-success border-0 rounded-3 mb-3">
+                                    <div class="fw-bold mb-1">
+                                        <i class="bi bi-check-circle-fill me-2"></i>
+                                        Yêu cầu đã được chấp nhận
+                                    </div>
+                                    Yêu cầu này đã được Staff chấp nhận trước đó.
+                                    Khách hàng có thể xem trạng thái và ghi chú xử lý.
+                                    Bạn không cần thực hiện thêm thao tác duyệt.
+                                </div>
+                            </c:when>
+
+                            <c:when test="${selectedRequest.requestStatus == 'REJECTED'}">
+                                <div class="alert alert-danger border-0 rounded-3 mb-3">
+                                    <div class="fw-bold mb-1">
+                                        <i class="bi bi-x-circle-fill me-2"></i>
+                                        Yêu cầu đã bị từ chối
+                                    </div>
+                                    Yêu cầu này đã được Staff từ chối trước đó.
+                                    Vui lòng xem ghi chú của Staff ở phần thông tin yêu cầu
+                                    nếu cần kiểm tra lý do.
+                                </div>
+                            </c:when>
+
+                            <c:otherwise>
+                                <div class="alert alert-secondary border-0 rounded-3 mb-3">
+                                    <i class="bi bi-lock-fill me-2"></i>
+                                    Yêu cầu hiện không ở trạng thái có thể xử lý.
+                                    Vui lòng tải lại trang hoặc liên hệ quản trị viên.
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
 
                         <a class="btn btn-outline-secondary rounded-3 px-4 py-2"
                            href="${pageContext.request.contextPath}/staff/return-exchange">
