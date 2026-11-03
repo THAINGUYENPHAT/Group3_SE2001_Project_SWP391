@@ -13,12 +13,15 @@ import model.Banner;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @WebServlet(name = "BannerServlet", urlPatterns = {"/staff/banner"})
 @MultipartConfig(
@@ -29,6 +32,11 @@ import java.util.UUID;
 public class BannerServlet extends HttpServlet {
 
     private final BannerDAO bannerDAO = new BannerDAO();
+
+    // Cho phep chu tieng Viet, chu cai, so, khoang trang va dau cau thong dung.
+    private static final Pattern ALT_TEXT_PATTERN = Pattern.compile(
+            "^[\\p{L}\\p{M}\\p{N}\\s.,!?()'’:;-]*$"
+    );
 
     private Path getUploadDirectory() throws IOException {
         Path uploadDirectory = Paths.get(
@@ -42,10 +50,81 @@ public class BannerServlet extends HttpServlet {
         return uploadDirectory;
     }
 
+    // Kiem tra mo ta banner
+    private boolean isValidAltText(String altText) {
+        if (altText == null) {
+            return true;
+        }
+
+        altText = altText.trim();
+
+        return altText.length() <= 255
+                && ALT_TEXT_PATTERN.matcher(altText).matches();
+    }
+
+    // Kiem tra lien ket banner
+    private boolean isValidTargetUrl(String targetUrl) {
+        if (targetUrl == null || targetUrl.trim().isEmpty()) {
+            return true;
+        }
+
+        targetUrl = targetUrl.trim();
+
+        if (targetUrl.length() > 2048
+                || targetUrl.startsWith("//")
+                || targetUrl.contains("\\")
+                || targetUrl.matches("(?i).*%(0[0-9a-f]|1[0-9a-f]|7f).*")) {
+            return false;
+        }
+
+        // Khong cho phep khoang trang va ky tu dieu khien
+        if (targetUrl.chars().anyMatch(
+                c -> Character.isWhitespace(c)
+                || Character.isISOControl(c))) {
+            return false;
+        }
+
+        try {
+            URI uri = URI.create(targetUrl);
+
+            // Chi chap nhan duong dan noi bo bat dau bang /
+            if (targetUrl.startsWith("/")) {
+                return !uri.isAbsolute()
+                        && uri.getRawAuthority() == null
+                        && uri.getRawPath() != null
+                        && uri.getRawPath().startsWith("/");
+            }
+
+            // URL ben ngoai chi chap nhan HTTPS
+            return "https".equalsIgnoreCase(uri.getScheme())
+                    && uri.getHost() != null
+                    && !uri.getHost().isEmpty()
+                    && uri.getUserInfo() == null;
+
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    // Chuyen huong khi du lieu khong hop le
+    private void redirectError(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            String error
+    ) throws IOException {
+
+        response.sendRedirect(
+                request.getContextPath()
+                + "/staff/banner?error="
+                + error
+        );
+    }
+
     @Override
-    protected void doGet(HttpServletRequest request,
-            HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws ServletException, IOException {
 
         request.setCharacterEncoding("UTF-8");
 
@@ -56,7 +135,13 @@ public class BannerServlet extends HttpServlet {
 
             try {
                 int bannerId = Integer.parseInt(idValue);
+
+                if (bannerId <= 0) {
+                    throw new NumberFormatException();
+                }
+
                 bannerDAO.delete(bannerId);
+
             } catch (NumberFormatException e) {
                 response.sendError(
                         HttpServletResponse.SC_BAD_REQUEST,
@@ -76,11 +161,17 @@ public class BannerServlet extends HttpServlet {
 
             try {
                 int bannerId = Integer.parseInt(idValue);
+
+                if (bannerId <= 0) {
+                    throw new NumberFormatException();
+                }
+
                 boolean active = "1".equals(
                         request.getParameter("active")
                 );
 
                 bannerDAO.updateActive(bannerId, active);
+
             } catch (NumberFormatException e) {
                 response.sendError(
                         HttpServletResponse.SC_BAD_REQUEST,
@@ -104,9 +195,10 @@ public class BannerServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest request,
-            HttpServletResponse response)
-            throws ServletException, IOException {
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws ServletException, IOException {
 
         request.setCharacterEncoding("UTF-8");
 
@@ -114,28 +206,45 @@ public class BannerServlet extends HttpServlet {
         String targetUrl = request.getParameter("targetUrl");
         String orderValue = request.getParameter("displayOrder");
 
-        int displayOrder = 0;
-
-        try {
-            if (orderValue != null
-                    && !orderValue.trim().isEmpty()) {
-                displayOrder = Integer.parseInt(orderValue);
-            }
-        } catch (NumberFormatException e) {
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Thứ tự banner không hợp lệ."
-            );
+        // 1. Kiem tra mo ta
+        if (!isValidAltText(altText)) {
+            redirectError(request, response, "invalidAlt");
             return;
         }
 
+        // 2. Kiem tra lien ket
+        if (!isValidTargetUrl(targetUrl)) {
+            redirectError(request, response, "invalidUrl");
+            return;
+        }
+
+        // 3. Kiem tra thu tu hien thi
+        int displayOrder = 0;
+
+        try {
+            if (orderValue == null
+                    || orderValue.trim().isEmpty()) {
+                redirectError(request, response, "invalidOrder");
+                return;
+            }
+
+            displayOrder = Integer.parseInt(orderValue.trim());
+
+            if (displayOrder < 0) {
+                redirectError(request, response, "invalidOrder");
+                return;
+            }
+
+        } catch (NumberFormatException e) {
+            redirectError(request, response, "invalidOrder");
+            return;
+        }
+
+        // 4. Kiem tra file anh
         Part imagePart = request.getPart("imageFile");
 
         if (imagePart == null || imagePart.getSize() == 0) {
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Vui lòng chọn ảnh banner."
-            );
+            redirectError(request, response, "upload");
             return;
         }
 
@@ -147,20 +256,14 @@ public class BannerServlet extends HttpServlet {
                 || contentType.equals("image/gif")
                 || contentType.equals("image/webp"))) {
 
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Chỉ chấp nhận ảnh JPG, PNG, GIF hoặc WEBP."
-            );
+            redirectError(request, response, "upload");
             return;
         }
 
         String originalName = imagePart.getSubmittedFileName();
 
         if (originalName == null || originalName.trim().isEmpty()) {
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Tên file ảnh không hợp lệ."
-            );
+            redirectError(request, response, "upload");
             return;
         }
 
@@ -171,15 +274,12 @@ public class BannerServlet extends HttpServlet {
         int dotIndex = originalName.lastIndexOf('.');
 
         if (dotIndex < 0) {
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "File ảnh không có phần mở rộng."
-            );
+            redirectError(request, response, "upload");
             return;
         }
 
         String extension = originalName.substring(dotIndex)
-                .toLowerCase();
+                .toLowerCase(Locale.ROOT);
 
         if (!(extension.equals(".jpg")
                 || extension.equals(".jpeg")
@@ -187,16 +287,15 @@ public class BannerServlet extends HttpServlet {
                 || extension.equals(".gif")
                 || extension.equals(".webp"))) {
 
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Định dạng file ảnh không hợp lệ."
-            );
+            redirectError(request, response, "upload");
             return;
         }
 
+        // 5. Luu file anh
         String fileName = UUID.randomUUID() + extension;
 
         Path uploadDirectory = getUploadDirectory();
+
         Path destination = uploadDirectory.resolve(fileName)
                 .normalize();
 
@@ -216,23 +315,30 @@ public class BannerServlet extends HttpServlet {
             );
         }
 
+        // 6. Luu thong tin banner vao database
         Banner banner = new Banner();
+
         banner.setImageUrl("uploads/banners/" + fileName);
-        banner.setAltText(altText);
-        banner.setTargetUrl(targetUrl);
+        banner.setAltText(
+                altText == null || altText.trim().isEmpty()
+                ? null : altText.trim()
+        );
+        banner.setTargetUrl(
+                targetUrl == null || targetUrl.trim().isEmpty()
+                ? null : targetUrl.trim()
+        );
         banner.setActive(true);
         banner.setDisplayOrder(displayOrder);
 
         if (!bannerDAO.insert(banner)) {
             Files.deleteIfExists(destination);
 
-            throw new ServletException(
-                    "Không thể lưu banner vào database."
-            );
+            redirectError(request, response, "database");
+            return;
         }
 
         response.sendRedirect(
-                request.getContextPath() + "/staff/banner"
+                request.getContextPath() + "/staff/banner?success=create"
         );
     }
 }

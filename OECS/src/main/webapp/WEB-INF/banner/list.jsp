@@ -31,23 +31,34 @@
     </div>
 </c:if>
 
+
 <c:if test="${not empty param.error}">
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <c:choose>
             <c:when test="${param.error == 'upload'}">
-                Không thể tải ảnh lên. Vui lòng thử lại.
+                File ảnh không hợp lệ. Vui lòng chọn JPG, PNG, GIF hoặc WEBP.
             </c:when>
             <c:when test="${param.error == 'database'}">
                 Không thể lưu dữ liệu banner vào cơ sở dữ liệu.
+            </c:when>
+            <c:when test="${param.error == 'invalidAlt'}">
+                Mô tả chỉ được chứa chữ, số, khoảng trắng và dấu câu thông dụng.
+            </c:when>
+            <c:when test="${param.error == 'invalidUrl'}">
+                Liên kết không hợp lệ. Chỉ chấp nhận đường dẫn nội bộ hoặc URL HTTPS.
+            </c:when>
+            <c:when test="${param.error == 'invalidOrder'}">
+                Thứ tự hiển thị phải là số nguyên không âm.
             </c:when>
             <c:otherwise>
                 Có lỗi xảy ra khi xử lý banner.
             </c:otherwise>
         </c:choose>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"
-                aria-label="Đóng"></button>
+        <button type="button" class="btn-close"
+                data-bs-dismiss="alert" aria-label="Đóng"></button>
     </div>
 </c:if>
+
 
 <div class="row g-3 mb-4">
     <div class="col-12 col-sm-6 col-lg-4">
@@ -131,18 +142,29 @@
                 <label for="altText" class="form-label fw-semibold">
                     Mô tả hình ảnh
                 </label>
+
                 <input type="text"
                        id="altText"
                        name="altText"
                        class="form-control"
                        maxlength="255"
-                       placeholder="Ví dụ: Bộ sưu tập mùa hè">
+                       placeholder="Ví dụ: Bộ sưu tập mùa hè"
+                       pattern="[\p{L}\p{M}\p{N}\s.,!?()'’:;-]*"
+                       title="Chỉ nhập chữ, số, khoảng trắng và dấu câu thông dụng.">
+                <div class="form-text">
+                    Chỉ cho phép chữ, số, khoảng trắng và dấu câu thông dụng.
+                </div>
+                <div class="invalid-feedback">
+                    Mô tả chứa ký tự không được phép.
+                </div>
+
             </div>
 
             <div class="col-12 col-md-8">
                 <label for="targetUrl" class="form-label fw-semibold">
                     Liên kết khi nhấn vào banner
                 </label>
+
                 <input type="text"
                        id="targetUrl"
                        name="targetUrl"
@@ -150,24 +172,32 @@
                        maxlength="2048"
                        placeholder="/shop hoặc để trống">
                 <div class="form-text">
-                    Có thể để trống nếu banner không dẫn đến trang khác.
+                    Chấp nhận đường dẫn nội bộ hoặc URL HTTPS hợp lệ.
                 </div>
+                <div class="invalid-feedback">
+                    Liên kết không hợp lệ.
+                </div>
+
             </div>
 
             <div class="col-12 col-md-4">
                 <label for="displayOrder" class="form-label fw-semibold">
                     Thứ tự hiển thị
                 </label>
+
                 <input type="number"
                        id="displayOrder"
                        name="displayOrder"
                        class="form-control"
                        min="0"
+                       max="2147483647"
+                       step="1"
                        value="0"
                        required>
                 <div class="form-text">
-                    Số nhỏ hơn sẽ hiển thị trước.
+                    Chỉ nhập số nguyên không âm. Số nhỏ hơn sẽ hiển thị trước.
                 </div>
+
             </div>
         </div>
 
@@ -293,5 +323,119 @@
         </table>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.querySelector(
+                'form[action$="/staff/banner"]'
+                );
+
+        const altText = document.getElementById("altText");
+        const targetUrl = document.getElementById("targetUrl");
+        const displayOrder = document.getElementById("displayOrder");
+
+        const altTextPattern =
+                /^[\p{L}\p{M}\p{N}\s.,!?()'’:;-]*$/u;
+
+        function validateAltText() {
+            const value = altText.value.trim();
+
+            const valid = value.length <= 255
+                    && altTextPattern.test(value);
+
+            altText.setCustomValidity(
+                    valid ? "" : "Mô tả chứa ký tự không được phép."
+                    );
+
+            altText.classList.toggle("is-invalid", !valid);
+
+            return valid;
+        }
+
+        function validateTargetUrl() {
+            const value = targetUrl.value.trim();
+
+            if (value === "") {
+                targetUrl.setCustomValidity("");
+                targetUrl.classList.remove("is-invalid");
+                return true;
+            }
+
+            let valid = false;
+
+            if (!value.startsWith("//")
+                    && !value.includes("\\")
+                    && !/[\s\u0000-\u001F\u007F]/.test(value)
+                    && !/%(?:0[0-9a-f]|1[0-9a-f]|7f)/i.test(value)) {
+
+                if (value.startsWith("/")) {
+                    try {
+                        const parsed = new URL(
+                                value,
+                                window.location.origin
+                                );
+
+                        valid = parsed.origin === window.location.origin;
+                    } catch (e) {
+                        valid = false;
+                    }
+                } else {
+                    try {
+                        const parsed = new URL(value);
+
+                        valid = parsed.protocol === "https:"
+                                && parsed.hostname !== ""
+                                && parsed.username === ""
+                                && parsed.password === "";
+                    } catch (e) {
+                        valid = false;
+                    }
+                }
+            }
+
+            targetUrl.setCustomValidity(
+                    valid ? "" : "Liên kết không hợp lệ."
+                    );
+
+            targetUrl.classList.toggle("is-invalid", !valid);
+
+            return valid;
+        }
+
+        function validateDisplayOrder() {
+            const value = displayOrder.value.trim();
+            const number = Number(value);
+
+            const valid = value !== ""
+                    && Number.isSafeInteger(number)
+                    && number >= 0
+                    && number <= 2147483647;
+
+            displayOrder.setCustomValidity(
+                    valid ? "" : "Thứ tự phải là số nguyên không âm."
+                    );
+
+            displayOrder.classList.toggle("is-invalid", !valid);
+
+            return valid;
+        }
+
+        altText.addEventListener("input", validateAltText);
+        targetUrl.addEventListener("input", validateTargetUrl);
+        displayOrder.addEventListener("input", validateDisplayOrder);
+
+        form.addEventListener("submit", function (event) {
+            const valid =
+                    validateAltText()
+                    && validateTargetUrl()
+                    && validateDisplayOrder();
+
+            if (!valid) {
+                event.preventDefault();
+                form.reportValidity();
+            }
+        });
+    });
+</script>
 
 <%@include file="/WEB-INF/include/footer.jsp" %>
