@@ -68,4 +68,49 @@ public class ProductSkuDAO extends DBContext {
             return 0;
         }
     }
+    // Thêm vào trong class ProductSkuDAO
+
+    // Kiểm tra SKU Code đã tồn tại chưa (dùng khi Thêm mới)
+    public boolean checkSkuCodeExists(String skuCode) {
+        String sql = "SELECT 1 FROM PRODUCT_SKU WHERE sku_code = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, skuCode);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next(); // Trả về true nếu đã tồn tại
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductSkuDAO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+
+    // Kiểm tra SKU Code đã tồn tại chưa (dùng khi Cập nhật - bỏ qua chính nó)
+    public boolean checkSkuCodeExistsForUpdate(String skuCode, int excludeSkuId) {
+        String sql = "SELECT 1 FROM PRODUCT_SKU WHERE sku_code = ? AND sku_id != ?";
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, skuCode);
+            ps.setInt(2, excludeSkuId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductSkuDAO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+
+    // Cập nhật SKU
+    public int update(ProductSku sku) {
+        String sql = "UPDATE PRODUCT_SKU SET sku_code = ?, price = ?, stock_quantity = ? WHERE sku_id = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, sku.getSkuCode());
+            ps.setDouble(2, sku.getPrice());
+            ps.setInt(3, sku.getStockQuantity());
+            ps.setInt(4, sku.getSkuId());
+            return ps.executeUpdate();
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductSkuDAO.class.getName()).log(Level.SEVERE, null, ex);
+            return 0;
+        }
+    }
 }

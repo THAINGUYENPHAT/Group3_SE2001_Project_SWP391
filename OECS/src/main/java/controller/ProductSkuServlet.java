@@ -60,50 +60,60 @@ public class ProductSkuServlet extends HttpServlet {
 
         try {
             int productId = Integer.parseInt(request.getParameter("productId"));
+            User loggedInUser = (User) request.getSession().getAttribute("loggedInUser");
 
             if ("create".equals(action)) {
-                String skuCode = request.getParameter("skuCode");
-                double price = Double.parseDouble(request.getParameter("price"));
+                String skuCode = request.getParameter("skuCode").trim();
+                // Xóa dấu chấm phân cách hàng nghìn trước khi parse
+                String priceStr = request.getParameter("priceStr").replace(".", "");
+                double price = Double.parseDouble(priceStr);
                 int stock = Integer.parseInt(request.getParameter("stock"));
+
+                // Kiểm tra trùng mã SKU
+                if (skuDao.checkSkuCodeExists(skuCode)) {
+                    request.getSession().setAttribute("errorMsg", "Mã SKU '" + skuCode + "' đã tồn tại! Vui lòng nhập mã khác.");
+                    response.sendRedirect(request.getContextPath() + "/product-sku?productId=" + productId);
+                    return;
+                }
 
                 ProductSku sku = new ProductSku(0, productId, skuCode, price, stock);
                 skuDao.insert(sku);
+                request.getSession().setAttribute("successMsg", "Thêm phiên bản SKU thành công!");
 
-                User loggedInUser
-                        = (User) request.getSession()
-                                .getAttribute("loggedInUser");
+                auditLogService.log(loggedInUser, "CREATE_SKU", "PRODUCT_SKU", null, "Created SKU: " + skuCode, request);
+                response.sendRedirect(request.getContextPath() + "/product-sku?productId=" + productId);
 
-                auditLogService.log(
-                        loggedInUser,
-                        "CREATE_SKU",
-                        "PRODUCT_SKU",
-                        null,
-                        "Created SKU: " + skuCode,
-                        request
-                );
+            } else if ("update".equals(action)) {
+                int skuId = Integer.parseInt(request.getParameter("skuId"));
+                String skuCode = request.getParameter("skuCode").trim();
+                String priceStr = request.getParameter("priceStr").replace(".", "");
+                double price = Double.parseDouble(priceStr);
+                int stock = Integer.parseInt(request.getParameter("stock"));
 
+                // Kiểm tra trùng mã SKU (ngoại trừ chính nó)
+                if (skuDao.checkSkuCodeExistsForUpdate(skuCode, skuId)) {
+                    request.getSession().setAttribute("errorMsg", "Mã SKU '" + skuCode + "' đã bị trùng với một phiên bản khác!");
+                    response.sendRedirect(request.getContextPath() + "/product-sku?productId=" + productId);
+                    return;
+                }
+
+                ProductSku sku = new ProductSku(skuId, productId, skuCode, price, stock);
+                skuDao.update(sku);
+                request.getSession().setAttribute("successMsg", "Cập nhật SKU thành công!");
+
+                auditLogService.log(loggedInUser, "UPDATE_SKU", "PRODUCT_SKU", (long) skuId, "Updated SKU: " + skuCode, request);
                 response.sendRedirect(request.getContextPath() + "/product-sku?productId=" + productId);
 
             } else if ("delete".equals(action)) {
                 int skuId = Integer.parseInt(request.getParameter("skuId"));
                 skuDao.delete(skuId);
+                request.getSession().setAttribute("successMsg", "Xóa SKU thành công!");
 
-                User loggedInUser
-                        = (User) request.getSession()
-                                .getAttribute("loggedInUser");
-
-                auditLogService.log(
-                        loggedInUser,
-                        "DELETE_SKU",
-                        "PRODUCT_SKU",
-                        (long) skuId,
-                        "Deleted product SKU",
-                        request
-                );
-
+                auditLogService.log(loggedInUser, "DELETE_SKU", "PRODUCT_SKU", (long) skuId, "Deleted product SKU", request);
                 response.sendRedirect(request.getContextPath() + "/product-sku?productId=" + productId);
             }
         } catch (Exception e) {
+            request.getSession().setAttribute("errorMsg", "Đã xảy ra lỗi, vui lòng kiểm tra lại dữ liệu nhập vào!");
             response.sendRedirect(request.getContextPath() + "/product?view=list");
         }
     }

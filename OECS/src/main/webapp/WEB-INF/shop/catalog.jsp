@@ -170,7 +170,8 @@
                         <h4 class="fw-bold m-0">Sản Phẩm Công Nghệ</h4>
                         <c:if test="${not empty searchKeyword}">
                             <div class="text-muted mt-1 fs-6">
-                                Kết quả tìm kiếm cho: <strong class="text-dark">"${searchKeyword}"</strong>
+                                <!-- Inusar ti c:out ditoy tapno natalged a maiparang -->
+                                Kết quả tìm kiếm cho: <strong class="text-dark">"<c:out value='${searchKeyword}'/>"</strong>
                             </div>
                         </c:if>
                     </div>
@@ -192,7 +193,8 @@
                                             <!-- IPALITA TI LADAWAN NO ADDA -->
                                             <c:choose>
                                                 <c:when test="${not empty item.imageUrl}">
-                                                    <img src="${pageContext.request.contextPath}/${item.imageUrl}" alt="${item.productName}" class="img-fluid" style="max-height: 100%; object-fit: contain;">
+                                                    <!-- Inusar ti c:out para iti alt ken title attributes no adda -->
+                                                    <img src="${pageContext.request.contextPath}/${item.imageUrl}" alt="<c:out value='${item.productName}'/>" class="img-fluid" style="max-height: 100%; object-fit: contain;">
                                                 </c:when>
                                                 <c:otherwise>
                                                     <i class="bi bi-image text-muted"></i>
@@ -200,8 +202,9 @@
                                             </c:choose>
                                         </div>
                                         <div class="product-info">
-                                            <div class="product-brand">${item.brand.brandName}</div>
-                                            <div class="product-name">${item.productName}</div>
+                                            <!-- Inusar ti c:out para iti brand ken product name -->
+                                            <div class="product-brand"><c:out value="${item.brand.brandName}"/></div>
+                                            <div class="product-name"><c:out value="${item.productName}"/></div>
                                             <div class="product-price">
                                                 <c:choose>
                                                     <c:when test="${item.minPrice > 0}">

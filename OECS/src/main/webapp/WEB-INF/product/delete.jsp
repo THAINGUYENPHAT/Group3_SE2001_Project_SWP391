@@ -39,17 +39,20 @@
 
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Tên sản phẩm:</span>
-                        <strong>${product.productName}</strong>
+                        <!-- FIX XSS -->
+                        <strong><c:out value="${product.productName}" /></strong>
                     </div>
 
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Danh mục:</span>
-                        <strong>${product.category.categoryName}</strong>
+                        <!-- FIX XSS -->
+                        <strong><c:out value="${product.category.categoryName}" /></strong>
                     </div>
 
                     <div class="d-flex justify-content-between">
                         <span class="text-muted">Thương hiệu:</span>
-                        <strong>${product.brand.brandName}</strong>
+                        <!-- FIX XSS -->
+                        <strong><c:out value="${product.brand.brandName}" /></strong>
                     </div>
                 </div>
 
