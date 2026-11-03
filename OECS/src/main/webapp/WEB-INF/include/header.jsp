@@ -824,10 +824,20 @@
                                             // SỬ DỤNG HÀM ESCAPE TRƯỚC KHI IN RA GIAO DIỆN
                                             const safeName = escapeHTML(item.name);
 
+                                            // XỬ LÝ HÌNH ẢNH SẢN PHẨM: Hiển thị ảnh nếu có, ngược lại hiện hộp mặc định
+                                            let imageHtml = '';
+                                            if (item.imageUrl && item.imageUrl.trim() !== '') {
+                                                // Bảo mật XSS cho URL ảnh
+                                                const safeImgUrl = escapeHTML(item.imageUrl);
+                                                imageHtml = `<img src="${pageContext.request.contextPath}/\${safeImgUrl}" alt="\${safeName}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;">`;
+                                            } else {
+                                                imageHtml = `<i class="bi bi-box-seam fs-5 text-secondary"></i>`;
+                                            }
+
                                             const html = `
                                 <a href="${pageContext.request.contextPath}/shop?action=detail&id=\${item.id}" class="suggestion-item">
-                                    <div class="suggestion-img d-flex align-items-center justify-content-center bg-light text-secondary border">
-                                        <i class="bi bi-box-seam fs-5"></i>
+                                    <div class="suggestion-img d-flex align-items-center justify-content-center bg-light border p-1">
+                                        \${imageHtml}
                                     </div>
                                     <div class="suggestion-info">
                                         <span class="suggestion-name">\${safeName}</span>

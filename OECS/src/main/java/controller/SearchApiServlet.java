@@ -39,12 +39,15 @@ public class SearchApiServlet extends HttpServlet {
         for (int i = 0; i < products.size(); i++) {
             Product p = products.get(i);
 
-            String safeName = p.getProductName().replace("\"", "\\\"");
+            // Escape dấu ngoặc kép để không làm hỏng cú pháp JSON
+            String safeName = p.getProductName() != null ? p.getProductName().replace("\"", "\\\"") : "";
+            String safeImageUrl = p.getImageUrl() != null ? p.getImageUrl().replace("\"", "\\\"").replace("\\", "\\\\") : "";
 
             json.append("{");
             json.append("\"id\":").append(p.getProductId()).append(",");
             json.append("\"name\":\"").append(safeName).append("\",");
-            json.append("\"price\":").append(p.getMinPrice()); 
+            json.append("\"price\":").append(p.getMinPrice()).append(",");
+            json.append("\"imageUrl\":\"").append(safeImageUrl).append("\""); // ĐÃ THÊM IMAGE URL VÀO ĐÂY
             json.append("}");
 
             if (i < products.size() - 1) {
