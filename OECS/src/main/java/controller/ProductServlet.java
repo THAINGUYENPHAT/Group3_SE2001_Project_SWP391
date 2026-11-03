@@ -131,15 +131,32 @@ public class ProductServlet extends HttpServlet {
         String action = request.getParameter("action");
         ProductDAO productDao = new ProductDAO();
 
+        // Biểu thức chính quy: Chỉ cho phép Chữ cái (có dấu \p{L}), Số (\p{N}), Khoảng trắng (\s) và dấu gạch ngang (-)
+        String nameRegex = "^[\\p{L}\\p{N}\\s\\-]+$";
+
         try {
             // =====================================================
             // ACTION: CREATE
             // =====================================================
             if ("create".equals(action)) {
-                String name = request.getParameter("name");
+                String name = request.getParameter("name").trim();
                 int categoryId = Integer.parseInt(request.getParameter("categoryId"));
                 int brandId = Integer.parseInt(request.getParameter("brandId"));
                 String description = request.getParameter("description");
+
+                // 1. Kiểm tra ký tự đặc biệt
+                if (!name.matches(nameRegex)) {
+                    request.getSession().setAttribute("errorMsg", "Tên sản phẩm không hợp lệ! Chỉ được dùng chữ cái, số, khoảng trắng và dấu gạch ngang (-).");
+                    response.sendRedirect(request.getContextPath() + "/product?view=create");
+                    return;
+                }
+
+                // 2. Kiểm tra trùng lặp tên
+                if (productDao.checkProductNameExists(name)) {
+                    request.getSession().setAttribute("errorMsg", "Tên sản phẩm '" + name + "' đã tồn tại! Vui lòng chọn tên khác.");
+                    response.sendRedirect(request.getContextPath() + "/product?view=create");
+                    return;
+                }
 
                 // Xử lý upload ảnh
                 String imageUrl = uploadImage(request);
@@ -157,12 +174,26 @@ public class ProductServlet extends HttpServlet {
             // =====================================================
             else if ("edit".equals(action)) {
                 int id = Integer.parseInt(request.getParameter("id"));
-                String name = request.getParameter("name");
+                String name = request.getParameter("name").trim();
                 int categoryId = Integer.parseInt(request.getParameter("categoryId"));
                 int brandId = Integer.parseInt(request.getParameter("brandId"));
                 String description = request.getParameter("description");
 
-                // Xử lý upload ảnh (Sẽ trả về null nếu không chọn ảnh mới)
+                // 1. Kiểm tra ký tự đặc biệt
+                if (!name.matches(nameRegex)) {
+                    request.getSession().setAttribute("errorMsg", "Tên sản phẩm không hợp lệ! Chỉ được dùng chữ cái, số, khoảng trắng và dấu gạch ngang (-).");
+                    response.sendRedirect(request.getContextPath() + "/product?view=edit&id=" + id);
+                    return;
+                }
+
+                // 2. Kiểm tra trùng lặp tên (ngoại trừ chính nó)
+                if (productDao.checkProductNameExistsForUpdate(name, id)) {
+                    request.getSession().setAttribute("errorMsg", "Tên sản phẩm '" + name + "' đã bị trùng với một sản phẩm khác!");
+                    response.sendRedirect(request.getContextPath() + "/product?view=edit&id=" + id);
+                    return;
+                }
+
+                // Xử lý upload ảnh
                 String imageUrl = uploadImage(request);
 
                 Product product = new Product();

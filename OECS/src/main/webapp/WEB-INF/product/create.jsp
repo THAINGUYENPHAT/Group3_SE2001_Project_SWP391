@@ -27,11 +27,19 @@
                     </div>
                 </div>
 
-                <!-- Error -->
+                <!-- Error Messages -->
+                <c:if test="${not empty sessionScope.errorMsg}">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <c:out value="${sessionScope.errorMsg}" />
+                    </div>
+                    <c:remove var="errorMsg" scope="session"/>
+                </c:if>
+
                 <c:if test="${param.error == 'true'}">
                     <div class="alert alert-danger">
                         <i class="bi bi-exclamation-triangle me-2"></i>
-                        Không thể thêm sản phẩm. Vui lòng kiểm tra lại dữ liệu.
+                        Lỗi hệ thống! Không thể thực hiện thao tác. Vui lòng kiểm tra lại dữ liệu.
                     </div>
                 </c:if>
 
@@ -44,7 +52,10 @@
                         <label class="form-label fw-semibold">
                             Tên Sản Phẩm <span class="text-danger">*</span>
                         </label>
-                        <input type="text" name="name" class="form-control form-control-lg" placeholder="VD: iPhone 17 Pro Max" required>
+                        <!-- FIX XSS: Dùng c:out để giữ lại text an toàn nếu form bị lỗi tải lại -->
+                        <input type="text" name="name" class="form-control form-control-lg" 
+                               placeholder="VD: iPhone 17 Pro Max" 
+                               value="<c:out value='${param.name}' />" required>
                     </div>
 
                     <!-- Category -->
@@ -55,7 +66,10 @@
                         <select name="categoryId" class="form-select form-select-lg" required>
                             <option value="">-- Chọn danh mục --</option>
                             <c:forEach items="${categoryList}" var="category">
-                                <option value="${category.categoryId}">${category.categoryName}</option>
+                                <!-- FIX XSS: Dùng c:out bọc tên danh mục lấy từ DB -->
+                                <option value="${category.categoryId}" ${param.categoryId == category.categoryId ? 'selected' : ''}>
+                                    <c:out value="${category.categoryName}" />
+                                </option>
                             </c:forEach>
                         </select>
                     </div>
@@ -68,7 +82,10 @@
                         <select name="brandId" class="form-select form-select-lg" required>
                             <option value="">-- Chọn thương hiệu --</option>
                             <c:forEach items="${brandList}" var="brand">
-                                <option value="${brand.brandId}">${brand.brandName}</option>
+                                <!-- FIX XSS: Dùng c:out bọc tên thương hiệu lấy từ DB -->
+                                <option value="${brand.brandId}" ${param.brandId == brand.brandId ? 'selected' : ''}>
+                                    <c:out value="${brand.brandName}" />
+                                </option>
                             </c:forEach>
                         </select>
                     </div>
@@ -83,7 +100,8 @@
                     <!-- Description -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Mô Tả</label>
-                        <textarea name="description" class="form-control" rows="5" placeholder="Nhập mô tả sản phẩm..."></textarea>
+                        <!-- FIX XSS: Dùng c:out để hiển thị lại mô tả an toàn -->
+                        <textarea name="description" class="form-control" rows="5" placeholder="Nhập mô tả sản phẩm..."><c:out value="${param.description}" /></textarea>
                     </div>
 
                     <!-- Buttons -->

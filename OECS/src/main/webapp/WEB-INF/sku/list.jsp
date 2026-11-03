@@ -18,14 +18,16 @@
         <!-- Vùng hiển thị thông báo lỗi/thành công -->
         <c:if test="${not empty sessionScope.errorMsg}">
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> ${sessionScope.errorMsg}
+                <!-- FIX XSS: Thông báo có thể chứa mã SKU độc hại -->
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> <c:out value="${sessionScope.errorMsg}"/>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
             <c:remove var="errorMsg" scope="session"/>
         </c:if>
         <c:if test="${not empty sessionScope.successMsg}">
             <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="bi bi-check-circle-fill me-2"></i> ${sessionScope.successMsg}
+                <!-- FIX XSS -->
+                <i class="bi bi-check-circle-fill me-2"></i> <c:out value="${sessionScope.successMsg}"/>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
             <c:remove var="successMsg" scope="session"/>
@@ -40,7 +42,8 @@
                     <div>
                         <h4 class="fw-bold mb-0">Quản lý SKU (Phiên bản sản phẩm)</h4>
                         <span class="text-muted fs-7">
-                            Sản phẩm: <strong class="text-dark">${product.productName}</strong>
+                            <!-- FIX XSS: Tên sản phẩm -->
+                            Sản phẩm: <strong class="text-dark"><c:out value="${product.productName}"/></strong>
                         </span>
                     </div>
                 </div>
@@ -97,7 +100,8 @@
                                     <c:forEach items="${skuList}" var="sku">
                                         <tr>
                                             <td class="ps-4"><span class="badge bg-light text-secondary border">#${sku.skuId}</span></td>
-                                            <td class="fw-bold text-dark">${sku.skuCode}</td>
+                                            <!-- FIX XSS: Mã SKU -->
+                                            <td class="fw-bold text-dark"><c:out value="${sku.skuCode}"/></td>
                                             <td class="text-danger fw-semibold">
                                                 <fmt:formatNumber value="${sku.price}" pattern="#,### VNĐ"/>
                                             </td>
@@ -148,7 +152,8 @@
 
                                                         <div class="mb-3">
                                                             <label class="form-label fw-semibold">Mã SKU</label>
-                                                            <input type="text" name="skuCode" class="form-control" value="${sku.skuCode}" required>
+                                                            <!-- FIX XSS: Thuộc tính value của thẻ input -->
+                                                            <input type="text" name="skuCode" class="form-control" value="<c:out value='${sku.skuCode}'/>" required>
                                                         </div>
                                                         <div class="mb-3">
                                                             <label class="form-label fw-semibold">Giá bán (VNĐ)</label>
