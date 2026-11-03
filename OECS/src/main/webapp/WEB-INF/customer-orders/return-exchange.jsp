@@ -192,7 +192,6 @@
                 <select id="requestType" name="requestType"
                         class="form-select" required>
                     <option value="RETURN">Trả hàng</option>
-                    <option value="EXCHANGE">Đổi phiên bản sản phẩm</option>
                 </select>
             </div>
 

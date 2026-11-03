@@ -328,9 +328,8 @@
                         <thead>
                             <tr>
                                 <th>SẢN PHẨM</th>
-                                <th>SKU BAN ĐẦU</th>
+                                <th>SKU</th>
                                 <th class="text-center">SỐ LƯỢNG</th>
-                                <th>SKU MUỐN ĐỔI</th>
                             </tr>
                         </thead>
 
@@ -351,16 +350,6 @@
                                         <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2">
                                             <c:out value="${item.quantity}"/>
                                         </span>
-                                    </td>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${not empty item.exchangeSkuCode}">
-                                                <c:out value="${item.exchangeSkuCode}"/>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="text-muted small">Không áp dụng</span>
-                                            </c:otherwise>
-                                        </c:choose>
                                     </td>
                                 </tr>
                             </c:forEach>

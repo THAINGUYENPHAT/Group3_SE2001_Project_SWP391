@@ -1,3 +1,4 @@
+
 package controller;
 
 import dao.CategoryDAO;
@@ -39,57 +40,18 @@ public class CategoryServlet extends HttpServlet {
         String view = request.getParameter("view");
         CategoryDAO dao = new CategoryDAO();
 
-        // LIST
         if (view == null || view.equals("list")) {
 
             String keyword = request.getParameter("keyword");
             keyword = keyword == null ? "" : keyword.trim();
 
-            int page = 1;
-
-            try {
-                String pageText = request.getParameter("page");
-
-                if (pageText != null) {
-                    page = Integer.parseInt(pageText);
-                }
-
-                if (page < 1) {
-                    page = 1;
-                }
-            } catch (NumberFormatException e) {
-                page = 1;
-            }
-
-            // Lay tat ca danh muc va sap xep theo cay thu muc
             List<Category> allCategories = dao.getList();
-
             Map<Integer, Integer> categoryDepths = new HashMap<>();
 
             List<Category> treeList = buildCategoryTree(
                     allCategories, categoryDepths
             );
 
-            // Tim cac danh muc goc
-            Set<Integer> allCategoryIds = new HashSet<>();
-
-            for (Category category : allCategories) {
-                allCategoryIds.add(category.getCategoryId());
-            }
-
-            List<Category> rootCategories = new ArrayList<>();
-
-            for (Category category : treeList) {
-                Integer parentId = category.getParentId();
-
-                if (parentId == null
-                        || !allCategoryIds.contains(parentId)
-                        || parentId == category.getCategoryId()) {
-                    rootCategories.add(category);
-                }
-            }
-
-            // Tim cac danh muc can hien thi
             Set<Integer> matchedIds = new HashSet<>();
 
             if (keyword.isEmpty()) {
@@ -105,10 +67,8 @@ public class CategoryServlet extends HttpServlet {
                     if (name != null
                             && name.toLowerCase().contains(searchKeyword)) {
 
-                        // Them danh muc dang khop
                         matchedIds.add(category.getCategoryId());
 
-                        // Them cac danh muc cha
                         Integer parentId = category.getParentId();
                         Set<Integer> visitedParents = new HashSet<>();
 
@@ -136,113 +96,24 @@ public class CategoryServlet extends HttpServlet {
                 }
             }
 
-            // Gom danh muc theo tung danh muc goc
-            Map<Integer, List<Category>> categoryGroups
-                    = new HashMap<>();
-
-            for (Category root : rootCategories) {
-                List<Category> group = new ArrayList<>();
-
-                for (Category category : treeList) {
-                    if (isInCategoryTree(
-                            category,
-                            root.getCategoryId(),
-                            allCategories)
-                            && matchedIds.contains(
-                                    category.getCategoryId())) {
-
-                        group.add(category);
-                    }
-                }
-
-                if (!group.isEmpty()) {
-                    categoryGroups.put(
-                            root.getCategoryId(), group
-                    );
-                }
-            }
-
-            // Sap xep cac nhom theo ten danh muc goc
-            List<Integer> rootIds = new ArrayList<>(
-                    categoryGroups.keySet()
-            );
-
-            rootIds.sort((id1, id2) -> {
-                String name1 = "";
-                String name2 = "";
-
-                for (Category category : rootCategories) {
-                    if (category.getCategoryId() == id1) {
-                        name1 = category.getCategoryName();
-                    }
-
-                    if (category.getCategoryId() == id2) {
-                        name2 = category.getCategoryName();
-                    }
-                }
-
-                return name1.compareToIgnoreCase(name2);
-            });
-
-            // Tinh tong so danh muc phu hop voi tu khoa
-            int totalCategories = matchedIds.size();
-
-            // Phan trang theo nhom danh muc goc
-            int pageSize = 10;
-
-            int totalPages = Math.max(
-                    1,
-                    (int) Math.ceil(
-                            (double) rootIds.size() / pageSize
-                    )
-            );
-
-            if (page > totalPages) {
-                page = totalPages;
-            }
-
-            int fromIndex = Math.min(
-                    (page - 1) * pageSize,
-                    rootIds.size()
-            );
-
-            int toIndex = Math.min(
-                    fromIndex + pageSize,
-                    rootIds.size()
-            );
-
-            // Lay cac nhom danh muc cua trang hien tai
             List<Category> categoryList = new ArrayList<>();
 
-            for (int i = fromIndex; i < toIndex; i++) {
-                categoryList.addAll(
-                        categoryGroups.get(rootIds.get(i))
-                );
+            for (Category category : treeList) {
+                if (matchedIds.contains(category.getCategoryId())) {
+                    categoryList.add(category);
+                }
             }
 
-            // Lay so san pham va so danh muc con
+            int totalCategories = categoryList.size();
+
             Map<Integer, Integer> productCounts
                     = dao.getProductCounts(categoryList);
 
             Map<Integer, Integer> childCounts
                     = dao.getChildCounts(categoryList);
 
-            // Lay ten danh muc de hien thi danh muc cha
             Map<Integer, String> categoryNames
                     = dao.getCategoryNames();
-
-            // Tinh vi tri danh muc hien thi
-            int startItem = categoryList.isEmpty()
-                    ? 0
-                    : countDisplayedBeforePage(
-                            rootIds,
-                            categoryGroups,
-                            fromIndex
-                    ) + 1;
-
-            int endItem = startItem == 0
-                    ? 0
-                    : startItem + categoryList.size() - 1;
 
             request.setAttribute("categoryList", categoryList);
             request.setAttribute("categoryDepths", categoryDepths);
@@ -250,17 +121,12 @@ public class CategoryServlet extends HttpServlet {
             request.setAttribute("productCounts", productCounts);
             request.setAttribute("childCounts", childCounts);
             request.setAttribute("categoryNames", categoryNames);
-            request.setAttribute("currentPage", page);
-            request.setAttribute("totalPages", totalPages);
             request.setAttribute("totalCategories", totalCategories);
-            request.setAttribute("startItem", startItem);
-            request.setAttribute("endItem", endItem);
 
             request.getRequestDispatcher(
                     "/WEB-INF/category/list.jsp"
             ).forward(request, response);
 
-            // CREATE
         } else if ("create".equals(view)) {
 
             request.setAttribute("categoryList", dao.getList());
@@ -269,7 +135,6 @@ public class CategoryServlet extends HttpServlet {
                     "/WEB-INF/category/create.jsp"
             ).forward(request, response);
 
-            // EDIT
         } else if ("edit".equals(view)) {
 
             try {
@@ -301,7 +166,6 @@ public class CategoryServlet extends HttpServlet {
                 );
             }
 
-            // DELETE
         } else if ("delete".equals(view)) {
 
             try {
@@ -369,7 +233,6 @@ public class CategoryServlet extends HttpServlet {
         CategoryDAO dao = new CategoryDAO();
         String contextPath = request.getContextPath();
 
-        // CREATE
         if ("create".equals(action)) {
 
             try {
@@ -377,41 +240,35 @@ public class CategoryServlet extends HttpServlet {
                 String parentIdText
                         = request.getParameter("parentId");
 
-                // Kiem tra ten danh muc rong
                 if (name == null || name.trim().isEmpty()) {
-                    request.setAttribute(
-                            "errorMessage",
-                            "Vui lòng nhập tên danh mục."
+                    forwardCreateWithError(
+                            request, response, dao,
+                            "Vui lòng nhập tên danh mục.",
+                            name
                     );
-                    request.setAttribute(
-                            "categoryList", dao.getList()
-                    );
-
-                    request.getRequestDispatcher(
-                            "/WEB-INF/category/create.jsp"
-                    ).forward(request, response);
                     return;
                 }
 
                 name = name.trim();
 
-                // Kiem tra ten danh muc trung
-                if (dao.isCategoryNameExists(name)) {
-                    request.setAttribute(
-                            "errorMessage",
-                            "Tên danh mục đã tồn tại. Vui lòng nhập tên khác."
+                if (!isValidCategoryName(name)) {
+                    forwardCreateWithError(
+                            request, response, dao,
+                            "Tên danh mục chỉ được chứa chữ cái, chữ số và khoảng trắng.",
+                            name
                     );
-                    request.setAttribute(
-                            "categoryList", dao.getList()
-                    );
-
-                    request.getRequestDispatcher(
-                            "/WEB-INF/category/create.jsp"
-                    ).forward(request, response);
                     return;
                 }
 
-                // Lay danh muc cha
+                if (dao.isCategoryNameExists(name)) {
+                    forwardCreateWithError(
+                            request, response, dao,
+                            "Tên danh mục đã tồn tại. Vui lòng nhập tên khác.",
+                            name
+                    );
+                    return;
+                }
+
                 Integer parentId = null;
 
                 if (parentIdText != null
@@ -419,21 +276,14 @@ public class CategoryServlet extends HttpServlet {
                     parentId = Integer.parseInt(parentIdText);
                 }
 
-                // Kiem tra danh muc cha ton tai
                 if (parentId != null
                         && dao.getById(parentId) == null) {
 
-                    request.setAttribute(
-                            "errorMessage",
-                            "Danh mục cha không tồn tại."
+                    forwardCreateWithError(
+                            request, response, dao,
+                            "Danh mục cha không tồn tại.",
+                            name
                     );
-                    request.setAttribute(
-                            "categoryList", dao.getList()
-                    );
-
-                    request.getRequestDispatcher(
-                            "/WEB-INF/category/create.jsp"
-                    ).forward(request, response);
                     return;
                 }
 
@@ -459,21 +309,14 @@ public class CategoryServlet extends HttpServlet {
                     );
 
                     response.sendRedirect(
-                            request.getContextPath()
-                            + "/category?view=list"
+                            contextPath + "/category?view=list"
                     );
                 } else {
-                    request.setAttribute(
-                            "errorMessage",
-                            "Không thể thêm danh mục. Vui lòng thử lại."
+                    forwardCreateWithError(
+                            request, response, dao,
+                            "Không thể thêm danh mục. Vui lòng thử lại.",
+                            name
                     );
-                    request.setAttribute(
-                            "categoryList", dao.getList()
-                    );
-
-                    request.getRequestDispatcher(
-                            "/WEB-INF/category/create.jsp"
-                    ).forward(request, response);
                 }
 
             } catch (Exception e) {
@@ -483,20 +326,13 @@ public class CategoryServlet extends HttpServlet {
                         e
                 );
 
-                request.setAttribute(
-                        "errorMessage",
-                        "Đã xảy ra lỗi khi thêm danh mục."
+                forwardCreateWithError(
+                        request, response, dao,
+                        "Đã xảy ra lỗi khi thêm danh mục.",
+                        request.getParameter("name")
                 );
-                request.setAttribute(
-                        "categoryList", dao.getList()
-                );
-
-                request.getRequestDispatcher(
-                        "/WEB-INF/category/create.jsp"
-                ).forward(request, response);
             }
 
-            // EDIT
         } else if ("edit".equals(action)) {
 
             int id = 0;
@@ -514,53 +350,40 @@ public class CategoryServlet extends HttpServlet {
 
                 if (currentCategory == null) {
                     response.sendRedirect(
-                            request.getContextPath()
-                            + "/category?view=list"
+                            contextPath + "/category?view=list"
                     );
                     return;
                 }
 
-                // Kiem tra ten danh muc rong
                 if (name == null || name.trim().isEmpty()) {
-                    request.setAttribute(
-                            "errorMessage",
-                            "Vui lòng nhập tên danh mục."
+                    forwardEditWithError(
+                            request, response, dao, currentCategory,
+                            "Vui lòng nhập tên danh mục.",
+                            name
                     );
-                    request.setAttribute(
-                            "category", currentCategory
-                    );
-                    request.setAttribute(
-                            "categoryList", dao.getList()
-                    );
-
-                    request.getRequestDispatcher(
-                            "/WEB-INF/category/edit.jsp"
-                    ).forward(request, response);
                     return;
                 }
 
                 name = name.trim();
 
-                // Kiem tra ten trung, bo qua danh muc dang sua
-                if (dao.isCategoryNameExists(name, id)) {
-                    request.setAttribute(
-                            "errorMessage",
-                            "Tên danh mục đã tồn tại. Vui lòng nhập tên khác."
+                if (!isValidCategoryName(name)) {
+                    forwardEditWithError(
+                            request, response, dao, currentCategory,
+                            "Tên danh mục chỉ được chứa chữ cái, chữ số và khoảng trắng.",
+                            name
                     );
-                    request.setAttribute(
-                            "category", currentCategory
-                    );
-                    request.setAttribute(
-                            "categoryList", dao.getList()
-                    );
-
-                    request.getRequestDispatcher(
-                            "/WEB-INF/category/edit.jsp"
-                    ).forward(request, response);
                     return;
                 }
 
-                // Lay danh muc cha
+                if (dao.isCategoryNameExists(name, id)) {
+                    forwardEditWithError(
+                            request, response, dao, currentCategory,
+                            "Tên danh mục đã tồn tại. Vui lòng nhập tên khác.",
+                            name
+                    );
+                    return;
+                }
+
                 Integer parentId = null;
 
                 if (parentIdText != null
@@ -568,44 +391,24 @@ public class CategoryServlet extends HttpServlet {
                     parentId = Integer.parseInt(parentIdText);
                 }
 
-                // Kiem tra danh muc cha hop le
                 if (parentId != null) {
                     if (parentId == id
                             || dao.getById(parentId) == null) {
 
-                        request.setAttribute(
-                                "errorMessage",
-                                "Danh mục cha không hợp lệ."
+                        forwardEditWithError(
+                                request, response, dao, currentCategory,
+                                "Danh mục cha không hợp lệ.",
+                                name
                         );
-                        request.setAttribute(
-                                "category", currentCategory
-                        );
-                        request.setAttribute(
-                                "categoryList", dao.getList()
-                        );
-
-                        request.getRequestDispatcher(
-                                "/WEB-INF/category/edit.jsp"
-                        ).forward(request, response);
                         return;
                     }
 
-                    // Kiem tra tranh tao vong lap danh muc cha/con
                     if (isDescendant(dao, parentId, id)) {
-                        request.setAttribute(
-                                "errorMessage",
-                                "Không thể chọn danh mục con làm danh mục cha."
+                        forwardEditWithError(
+                                request, response, dao, currentCategory,
+                                "Không thể chọn danh mục con làm danh mục cha.",
+                                name
                         );
-                        request.setAttribute(
-                                "category", currentCategory
-                        );
-                        request.setAttribute(
-                                "categoryList", dao.getList()
-                        );
-
-                        request.getRequestDispatcher(
-                                "/WEB-INF/category/edit.jsp"
-                        ).forward(request, response);
                         return;
                     }
                 }
@@ -617,6 +420,7 @@ public class CategoryServlet extends HttpServlet {
                 int result = dao.edit(category);
 
                 if (result > 0) {
+
                     User loggedInUser
                             = (User) request.getSession()
                                     .getAttribute("loggedInUser");
@@ -631,24 +435,14 @@ public class CategoryServlet extends HttpServlet {
                     );
 
                     response.sendRedirect(
-                            request.getContextPath()
-                            + "/category?view=list"
+                            contextPath + "/category?view=list"
                     );
                 } else {
-                    request.setAttribute(
-                            "errorMessage",
-                            "Không thể cập nhật danh mục. Vui lòng thử lại."
+                    forwardEditWithError(
+                            request, response, dao, currentCategory,
+                            "Không thể cập nhật danh mục. Vui lòng thử lại.",
+                            name
                     );
-                    request.setAttribute(
-                            "category", currentCategory
-                    );
-                    request.setAttribute(
-                            "categoryList", dao.getList()
-                    );
-
-                    request.getRequestDispatcher(
-                            "/WEB-INF/category/edit.jsp"
-                    ).forward(request, response);
                 }
 
             } catch (Exception e) {
@@ -663,35 +457,23 @@ public class CategoryServlet extends HttpServlet {
 
                     if (currentCategory == null) {
                         response.sendRedirect(
-                                request.getContextPath()
-                                + "/category?view=list"
+                                contextPath + "/category?view=list"
                         );
                         return;
                     }
 
-                    request.setAttribute(
-                            "category", currentCategory
+                    forwardEditWithError(
+                            request, response, dao, currentCategory,
+                            "Đã xảy ra lỗi khi cập nhật danh mục.",
+                            request.getParameter("name")
                     );
-                    request.setAttribute(
-                            "categoryList", dao.getList()
-                    );
-                    request.setAttribute(
-                            "errorMessage",
-                            "Đã xảy ra lỗi khi cập nhật danh mục."
-                    );
-
-                    request.getRequestDispatcher(
-                            "/WEB-INF/category/edit.jsp"
-                    ).forward(request, response);
                 } else {
                     response.sendRedirect(
-                            request.getContextPath()
-                            + "/category?view=list"
+                            contextPath + "/category?view=list"
                     );
                 }
             }
 
-            // DELETE
         } else if ("delete".equals(action)) {
 
             String idText = request.getParameter("id");
@@ -782,13 +564,56 @@ public class CategoryServlet extends HttpServlet {
 
         } else {
             response.sendRedirect(
-                    request.getContextPath()
-                    + "/category?view=list"
+                    contextPath + "/category?view=list"
             );
         }
     }
 
-    // Kiem tra parentId co phai la hau due cua categoryId khong
+    // Kiem tra ten danh muc: chu cai, chu so va khoang trang
+    private boolean isValidCategoryName(String name) {
+        return name != null
+                && name.matches("^[\\p{L}\\p{M}\\p{N} ]+$");
+    }
+
+    // Hien thi loi va giu lai ten vua nhap khi tao danh muc
+    private void forwardCreateWithError(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            CategoryDAO dao,
+            String errorMessage,
+            String name)
+            throws ServletException, IOException {
+
+        request.setAttribute("errorMessage", errorMessage);
+        request.setAttribute("submittedName", name);
+        request.setAttribute("categoryList", dao.getList());
+
+        request.getRequestDispatcher(
+                "/WEB-INF/category/create.jsp"
+        ).forward(request, response);
+    }
+
+    // Hien thi loi va giu lai ten vua nhap khi sua danh muc
+    private void forwardEditWithError(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            CategoryDAO dao,
+            Category category,
+            String errorMessage,
+            String name)
+            throws ServletException, IOException {
+
+        category.setCategoryName(name);
+
+        request.setAttribute("errorMessage", errorMessage);
+        request.setAttribute("category", category);
+        request.setAttribute("categoryList", dao.getList());
+
+        request.getRequestDispatcher(
+                "/WEB-INF/category/edit.jsp"
+        ).forward(request, response);
+    }
+
     private boolean isDescendant(
             CategoryDAO dao, int parentId, int categoryId) {
 
@@ -811,7 +636,6 @@ public class CategoryServlet extends HttpServlet {
         return false;
     }
 
-    // Sap xep danh muc theo thu tu cay thu muc
     private List<Category> buildCategoryTree(
             List<Category> categories,
             Map<Integer, Integer> categoryDepths) {
@@ -830,7 +654,6 @@ public class CategoryServlet extends HttpServlet {
             );
         }
 
-        // Gom danh muc theo danh muc cha
         for (Category category : categories) {
             Integer parentId = category.getParentId();
 
@@ -843,7 +666,6 @@ public class CategoryServlet extends HttpServlet {
             }
         }
 
-        // Sap xep cac danh muc cung cap theo ten
         Comparator<Category> byName = Comparator.comparing(
                 Category::getCategoryName,
                 Comparator.nullsLast(
@@ -859,7 +681,6 @@ public class CategoryServlet extends HttpServlet {
 
         List<Category> result = new ArrayList<>();
 
-        // Duyet tu danh muc goc xuong cac cap con
         for (Category root : roots) {
             appendCategoryTree(
                     root,
@@ -871,7 +692,6 @@ public class CategoryServlet extends HttpServlet {
             );
         }
 
-        // Du phong du lieu loi co chu trinh hoac khong co goc
         for (Category category : categories) {
             if (!visited.contains(category.getCategoryId())) {
                 appendCategoryTree(
@@ -888,7 +708,6 @@ public class CategoryServlet extends HttpServlet {
         return result;
     }
 
-    // Them danh muc va cac cap con theo thu tu duyet cay
     private void appendCategoryTree(
             Category category,
             int depth,
@@ -920,62 +739,5 @@ public class CategoryServlet extends HttpServlet {
                 );
             }
         }
-    }
-
-    // Kiem tra danh muc co nam trong cay cua danh muc goc khong
-    private boolean isInCategoryTree(
-            Category category,
-            int rootId,
-            List<Category> allCategories) {
-
-        Category current = category;
-        Set<Integer> visited = new HashSet<>();
-
-        while (current != null
-                && visited.add(current.getCategoryId())) {
-
-            if (current.getCategoryId() == rootId) {
-                return true;
-            }
-
-            Integer parentId = current.getParentId();
-
-            if (parentId == null) {
-                return false;
-            }
-
-            Category parent = null;
-
-            for (Category item : allCategories) {
-                if (item.getCategoryId() == parentId) {
-                    parent = item;
-                    break;
-                }
-            }
-
-            current = parent;
-        }
-
-        return false;
-    }
-
-    // Dem so danh muc cua cac trang truoc
-    private int countDisplayedBeforePage(
-            List<Integer> rootIds,
-            Map<Integer, List<Category>> categoryGroups,
-            int endIndex) {
-
-        int count = 0;
-
-        for (int i = 0; i < endIndex; i++) {
-            List<Category> group
-                    = categoryGroups.get(rootIds.get(i));
-
-            if (group != null) {
-                count += group.size();
-            }
-        }
-
-        return count;
     }
 }

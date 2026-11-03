@@ -90,7 +90,7 @@
             </div>
             <div class="mt-2">
                 <span class="fs-5 fw-bold text-dark">Tải ảnh lên</span>
-                <div class="text-muted fs-7">JPG, PNG, GIF, WEBP</div>
+                <div class="text-muted fs-7">JPG, PNG</div>
             </div>
         </div>
     </div>

@@ -227,10 +227,7 @@
                     Chọn một yêu cầu để xem thông tin chi tiết.
                 </span>
             </div>
-            <span class="badge bg-light text-secondary border rounded-pill px-3 py-2">
-                <i class="bi bi-list-ul me-1"></i>
-                ${not empty requestList ? fn:length(requestList) : 0} yêu cầu
-            </span>
+            
         </div>
 
         <div class="table-responsive">

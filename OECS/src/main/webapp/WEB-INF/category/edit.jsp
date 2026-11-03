@@ -1,5 +1,7 @@
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
+<%@taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <%@include file="/WEB-INF/include/header.jsp" %>
 
@@ -15,6 +17,7 @@
 
         <div class="card shadow-sm border-0 rounded-4">
             <div class="card-body p-4 p-md-5">
+
                 <!-- Header -->
                 <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
                     <div class="bg-primary bg-opacity-10 text-primary rounded d-flex align-items-center justify-content-center me-3"
@@ -30,13 +33,24 @@
                     </div>
                 </div>
 
+                <!-- Error message -->
+                <c:if test="${not empty errorMessage}">
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        <c:out value="${errorMessage}"/>
+                    </div>
+                </c:if>
+
                 <!-- Form -->
-                <form action="${pageContext.request.contextPath}/category" method="POST">
-                    <input type="hidden" name="action" value="edit" />
+                <form action="${pageContext.request.contextPath}/category"
+                      method="POST">
+
+                    <input type="hidden" name="action" value="edit"/>
 
                     <!-- Category ID -->
                     <div class="mb-4">
-                        <label for="category-id" class="form-label fw-semibold text-dark">
+                        <label for="category-id"
+                               class="form-label fw-semibold text-dark">
                             Mã Danh Mục
                         </label>
 
@@ -45,12 +59,13 @@
                                id="category-id"
                                class="form-control form-control-lg fs-6 bg-light"
                                value="${category.categoryId}"
-                               readonly />
+                               readonly/>
                     </div>
 
                     <!-- Category name -->
                     <div class="mb-4">
-                        <label for="category-name" class="form-label fw-semibold text-dark">
+                        <label for="category-name"
+                               class="form-label fw-semibold text-dark">
                             Tên Danh Mục <span class="text-danger">*</span>
                         </label>
 
@@ -58,28 +73,36 @@
                                name="name"
                                id="category-name"
                                class="form-control form-control-lg fs-6"
-                               value="<c:out value='${category.categoryName}'/>"
-                               required />
+                               value="${fn:escapeXml(category.categoryName)}"
+                               placeholder="VD: Điện thoại, Laptop, Phụ kiện..."
+                               required/>
+
+                        <div class="form-text mt-2">
+                            Chỉ được nhập chữ cái, chữ số và khoảng trắng.
+                        </div>
                     </div>
 
                     <!-- Parent category -->
                     <div class="mb-4">
-                        <label for="parent-id" class="form-label fw-semibold text-dark">
+                        <label for="parent-id"
+                               class="form-label fw-semibold text-dark">
                             Danh Mục Cha
                         </label>
 
                         <select name="parentId"
                                 id="parent-id"
                                 class="form-select form-select-lg fs-6">
+
                             <option value=""
-                                    ${empty category.parentId ? 'selected' : ''}>
+                                ${empty category.parentId ? 'selected' : ''}>
                                 📁 Danh mục gốc (không có danh mục cha)
                             </option>
 
                             <c:forEach items="${categoryList}" var="item">
                                 <c:if test="${item.categoryId != category.categoryId}">
                                     <option value="${item.categoryId}"
-                                            ${item.categoryId == category.parentId ? 'selected' : ''}>
+                                        ${item.categoryId == category.parentId ? 'selected' : ''}>
+
                                         <c:choose>
                                             <c:when test="${empty item.parentId}">
                                                 📁 <c:out value="${item.categoryName}"/> — Danh mục gốc
@@ -101,7 +124,8 @@
 
                     <!-- Buttons -->
                     <div class="d-flex gap-2 pt-3 mt-4 border-top">
-                        <button type="submit" class="btn btn-primary btn-lg fs-6 px-4">
+                        <button type="submit"
+                                class="btn btn-primary btn-lg fs-6 px-4">
                             <i class="bi bi-check-lg me-1"></i>
                             Lưu Thay Đổi
                         </button>
@@ -111,6 +135,7 @@
                             Hủy
                         </a>
                     </div>
+
                 </form>
             </div>
         </div>
