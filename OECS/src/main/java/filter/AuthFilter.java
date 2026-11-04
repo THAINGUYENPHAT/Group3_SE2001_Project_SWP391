@@ -37,7 +37,6 @@ public class AuthFilter implements Filter {
             "/reset-password",
             "/favicon.ico",
             "/guide",
-
             // Callback thanh toan tu cong sandbox
             "/payment/vnpay/ipn",
             "/payment/momo/ipn",
@@ -55,7 +54,9 @@ public class AuthFilter implements Filter {
             "/my-orders/cancel",
             "/order-success",
             "/payment",
-            "/payment/action"
+            "/payment/action",
+            "/return-exchange",
+            "/review/report"
     );
 
     // Chi Staff duoc truy cap
@@ -67,7 +68,8 @@ public class AuthFilter implements Filter {
             "/staff/voucher",
             "/product-sku",
             "/staff/banner",
-            "/staff/return-exchange"
+            "/staff/return-exchange",
+            "/staff/reviews"
     );
 
     // Chi Admin duoc truy cap
@@ -80,15 +82,15 @@ public class AuthFilter implements Filter {
     );
 
     // Moi user da dang nhap deu duoc truy cap
-    private static final List<String> AUTHENTICATED_URLS =
-            Arrays.asList(
+    private static final List<String> AUTHENTICATED_URLS
+            = Arrays.asList(
                     "/profile",
                     "/notification"
             );
 
     // Tai nguyen tinh
-    private static final List<String> PUBLIC_PREFIXES =
-            Arrays.asList(
+    private static final List<String> PUBLIC_PREFIXES
+            = Arrays.asList(
                     "/assets/",
                     "/css/",
                     "/js/",
@@ -108,11 +110,11 @@ public class AuthFilter implements Filter {
             FilterChain chain
     ) throws IOException, ServletException {
 
-        HttpServletRequest httpRequest =
-                (HttpServletRequest) request;
+        HttpServletRequest httpRequest
+                = (HttpServletRequest) request;
 
-        HttpServletResponse httpResponse =
-                (HttpServletResponse) response;
+        HttpServletResponse httpResponse
+                = (HttpServletResponse) response;
 
         HttpSession session = httpRequest.getSession(false);
 
@@ -170,69 +172,97 @@ public class AuthFilter implements Filter {
         }
 
         // 4. Kiem tra quyen Customer
-        boolean isCustomerUrl =
-                CUSTOMER_URLS.contains(relativePath);
+        boolean isCustomerUrl
+                = CUSTOMER_URLS.contains(relativePath);
 
-        if (isCustomerUrl && !user.isCustomer()) {
-            session.setAttribute(
-                    "toastMessage",
-                    "Bạn không có quyền truy cập "
-                    + "chức năng dành cho khách hàng!"
-            );
+        if (isCustomerUrl) {
 
-            session.setAttribute("toastType", "error");
+            if (!user.isCustomer()) {
+                session.setAttribute(
+                        "toastMessage",
+                        "Bạn không có quyền truy cập "
+                        + "chức năng dành cho khách hàng!"
+                );
 
-            httpResponse.sendRedirect(
-                    contextPath + "/home"
-            );
+                session.setAttribute("toastType", "error");
 
+                httpResponse.sendRedirect(
+                        contextPath + "/home"
+                );
+
+                return;
+            }
+
+            chain.doFilter(request, response);
             return;
         }
 
         // 5. Kiem tra quyen Staff
-        boolean isStaffUrl =
-                STAFF_URLS.contains(relativePath)
+        boolean isStaffUrl
+                = STAFF_URLS.contains(relativePath)
                 || relativePath.startsWith("/admin/orders/")
                 || relativePath.startsWith("/staff/voucher/");
 
-        if (isStaffUrl && !user.isStaff()) {
-            session.setAttribute(
-                    "toastMessage",
-                    "Bạn không có quyền truy cập "
-                    + "khu vực dành cho nhân viên!"
-            );
+        if (isStaffUrl) {
+            if (!user.isStaff()) {
+                session.setAttribute(
+                        "toastMessage",
+                        "Bạn không có quyền truy cập "
+                        + "khu vực dành cho nhân viên!"
+                );
 
-            session.setAttribute("toastType", "error");
+                session.setAttribute("toastType", "error");
 
-            httpResponse.sendRedirect(
-                    contextPath + "/home"
-            );
+                httpResponse.sendRedirect(
+                        contextPath + "/home"
+                );
 
+                return;
+            }
+            chain.doFilter(request, response);
             return;
         }
 
         // 6. Kiem tra quyen Admin
-        boolean isAdminUrl =
-                ADMIN_URLS.contains(relativePath);
+        boolean isAdminUrl
+                = ADMIN_URLS.contains(relativePath);
 
-        if (isAdminUrl && !user.isAdmin()) {
-            session.setAttribute(
-                    "toastMessage",
-                    "Bạn không có quyền truy cập "
-                    + "khu vực quản trị!"
-            );
+        if (isAdminUrl) {
+            if (!user.isAdmin()) {
+                session.setAttribute(
+                        "toastMessage",
+                        "Bạn không có quyền truy cập "
+                        + "khu vực quản trị!"
+                );
 
-            session.setAttribute("toastType", "error");
+                session.setAttribute("toastType", "error");
 
-            httpResponse.sendRedirect(
-                    contextPath + "/home"
-            );
+                httpResponse.sendRedirect(
+                        contextPath + "/home"
+                );
 
+                return;
+            }
+            chain.doFilter(request, response);
             return;
         }
 
-        // 7. Cho request di tiep
-        chain.doFilter(request, response);
+        // 7. URL khong thuoc bat ky nhom nao -> tu choi
+        session.setAttribute(
+                "toastMessage",
+                "Đường dẫn không hợp lệ hoặc bạn không có quyền truy cập!"
+        );
+
+        session.setAttribute(
+                "toastType",
+                "error"
+        );
+
+        httpResponse.sendRedirect(
+                contextPath + "/home"
+        );
+        
+        return;
     }
 
     @Override
