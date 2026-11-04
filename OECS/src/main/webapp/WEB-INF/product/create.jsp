@@ -90,11 +90,21 @@
                         </select>
                     </div>
 
-                    <!-- Hình Ảnh -->
+                    <!-- Hình Ảnh Chính (Hiển thị list) -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">Hình ảnh Sản Phẩm</label>
-                        <input type="file" name="imageFile" class="form-control form-control-lg" accept="image/png, image/jpeg, image/jpg, image/webp">
-                        <div class="form-text">Định dạng hỗ trợ: JPG, PNG, WEBP. Tối đa 10MB.</div>
+                        <label class="form-label fw-semibold">Hình ảnh Đại diện <span class="text-danger">*</span></label>
+                        <input type="file" name="imageFile" class="form-control form-control-lg" accept="image/png, image/jpeg, image/jpg, image/webp" required>
+                        <div class="form-text">Ảnh hiển thị bên ngoài danh sách sản phẩm. Tối đa 10MB.</div>
+                    </div>
+
+                    <!-- NÂNG CẤP: Hình ảnh Phụ (Nhiều ảnh cho Detail) -->
+                    <div class="mb-4 p-3 bg-light border rounded-3">
+                        <label class="form-label fw-semibold text-primary">Các Hình ảnh Phụ (Xem chi tiết)</label>
+                        <!-- Thuộc tính multiple cho phép chọn nhiều file -->
+                        <input type="file" name="galleryFiles" class="form-control" accept="image/png, image/jpeg, image/jpg, image/webp" multiple>
+                        <div class="form-text text-muted">
+                            <i class="bi bi-info-circle me-1"></i> Giữ phím <b>Ctrl</b> (Windows) hoặc <b>Cmd</b> (Mac) để chọn nhiều ảnh cùng lúc.
+                        </div>
                     </div>
 
                     <!-- Description -->

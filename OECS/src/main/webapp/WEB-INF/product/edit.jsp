@@ -84,16 +84,52 @@
                         </select>
                     </div>
 
-                    <!-- Hình ảnh -->
+                    <!-- Hình ảnh Chính -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">Hình ảnh Sản Phẩm</label>
+                        <label class="form-label fw-semibold">Hình ảnh Đại Diện</label>
                         <c:if test="${not empty product.imageUrl}">
                             <div class="mb-2">
                                 <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="Ảnh sản phẩm" class="img-thumbnail" style="height: 100px; width: 100px; object-fit: cover;">
                             </div>
                         </c:if>
                         <input type="file" name="imageFile" class="form-control form-control-lg" accept="image/png, image/jpeg, image/jpg, image/webp">
-                        <div class="form-text">Để trống nếu không muốn thay đổi ảnh. Định dạng hỗ trợ: JPG, PNG, WEBP.</div>
+                        <div class="form-text">Để trống nếu không muốn thay đổi ảnh đại diện.</div>
+                    </div>
+
+                    <!-- Khu vực quản lý Hình ảnh Phụ -->
+                    <div class="mb-4 p-3 bg-light border rounded-3">
+                        <label class="form-label fw-semibold text-primary mb-3">Hình ảnh Phụ (Gallery)</label>
+
+                        <!-- Hiển thị các ảnh phụ HIỆN TẠI đang có -->
+                        <c:if test="${not empty product.galleryImages}">
+                            <div class="d-flex flex-wrap gap-3 mb-3">
+                                <c:forEach items="${product.galleryImages}" var="img">
+                                    <div class="position-relative border rounded p-2 text-center bg-white shadow-sm" style="width: 110px;">
+                                        <img src="${pageContext.request.contextPath}/${img.imageUrl}" 
+                                             class="img-thumbnail border-0 p-0 mb-2" 
+                                             style="height: 80px; width: 100%; object-fit: cover;">
+
+                                        <!-- Checkbox chọn để xóa -->
+                                        <div class="form-check d-flex justify-content-center align-items-center m-0">
+                                            <input class="form-check-input border-danger" type="checkbox" name="deleteImageIds" value="${img.imageId}" id="delImg_${img.imageId}">
+                                            <label class="form-check-label text-danger fw-medium ms-1" style="font-size: 13px;" for="delImg_${img.imageId}">
+                                                Xóa ảnh
+                                            </label>
+                                        </div>
+                                    </div>
+                                </c:forEach>
+                            </div>
+                            <div class="form-text text-danger mb-4">
+                                <i class="bi bi-exclamation-circle me-1"></i> Tích vào nút "Xóa ảnh" bên dưới nếu bạn muốn gỡ bỏ ảnh đó.
+                            </div>
+                        </c:if>
+
+                        <!-- Ô chọn tải thêm ảnh phụ -->
+                        <label class="form-label fw-semibold text-dark">Tải thêm Hình ảnh Phụ</label>
+                        <input type="file" name="galleryFiles" class="form-control" accept="image/png, image/jpeg, image/jpg, image/webp" multiple>
+                        <div class="form-text text-muted">
+                            <i class="bi bi-info-circle me-1"></i> Giữ phím <b>Ctrl/Cmd</b> để chọn nhiều ảnh bổ sung (Các ảnh cũ không bị tích Xóa sẽ được giữ nguyên).
+                        </div>
                     </div>
 
                     <!-- Description -->
