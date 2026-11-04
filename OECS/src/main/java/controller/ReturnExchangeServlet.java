@@ -1,3 +1,4 @@
+
 package controller;
 
 import jakarta.servlet.ServletException;
@@ -8,6 +9,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,18 +39,40 @@ public class ReturnExchangeServlet extends HttpServlet {
             return;
         }
 
-        String orderIdParam = request.getParameter("orderId");
         int orderId;
 
         try {
-            orderId = Integer.parseInt(orderIdParam);
+            orderId = Integer.parseInt(request.getParameter("orderId"));
 
             if (orderId <= 0) {
                 throw new NumberFormatException();
             }
         } catch (NumberFormatException ex) {
-            response.sendRedirect(
-                    request.getContextPath() + "/my-orders");
+            response.sendRedirect(request.getContextPath() + "/my-orders");
+            return;
+        }
+
+        HttpSession session = request.getSession();
+
+        // Kiểm tra thông báo gửi yêu cầu thành công
+        String successMessage =
+                (String) session.getAttribute("returnSuccessMessage");
+
+        Integer successOrderId =
+                (Integer) session.getAttribute("returnSuccessOrderId");
+
+        if (successMessage != null && successOrderId != null
+                && successOrderId == orderId) {
+
+            request.setAttribute("successMessage", successMessage);
+            request.setAttribute("orderId", orderId);
+
+            session.removeAttribute("returnSuccessMessage");
+            session.removeAttribute("returnSuccessOrderId");
+
+            request.getRequestDispatcher(
+                    "/WEB-INF/customer-orders/return-exchange.jsp")
+                    .forward(request, response);
             return;
         }
 
@@ -62,9 +87,9 @@ public class ReturnExchangeServlet extends HttpServlet {
             response.sendRedirect(
                     request.getContextPath()
                     + "/my-orders?message="
-                    + java.net.URLEncoder.encode(
+                    + URLEncoder.encode(
                             ex.getMessage(),
-                            java.nio.charset.StandardCharsets.UTF_8));
+                            StandardCharsets.UTF_8));
 
         } catch (SQLException ex) {
             throw new ServletException(
@@ -96,8 +121,7 @@ public class ReturnExchangeServlet extends HttpServlet {
                 throw new NumberFormatException();
             }
         } catch (NumberFormatException ex) {
-            response.sendRedirect(
-                    request.getContextPath() + "/my-orders");
+            response.sendRedirect(request.getContextPath() + "/my-orders");
             return;
         }
 
@@ -168,12 +192,20 @@ public class ReturnExchangeServlet extends HttpServlet {
                     items
             );
 
+            // Lưu thông báo thành công vào session
+            HttpSession session = request.getSession();
+
+            session.setAttribute(
+                    "returnSuccessMessage",
+                    "Gửi yêu cầu đổi/trả hàng #" + requestId
+                    + " thành công!");
+
+            session.setAttribute("returnSuccessOrderId", orderId);
+
+            // Quay lại chính trang tạo yêu cầu, không về my-orders
             response.sendRedirect(
                     request.getContextPath()
-                    + "/my-orders?message="
-                    + java.net.URLEncoder.encode(
-                            "Đã gửi yêu cầu đổi/trả hàng #" + requestId,
-                            java.nio.charset.StandardCharsets.UTF_8));
+                    + "/return-exchange?orderId=" + orderId);
 
         } catch (NumberFormatException ex) {
             showFormError(

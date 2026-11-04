@@ -427,6 +427,7 @@ public class ReturnExchangeDAO {
         String sql
                 = "SELECT ri.request_item_id, ri.order_item_id, "
                 + "ri.quantity, ri.exchange_sku_id, "
+                + "oi.price, "
                 + "p.product_name, original.sku_code AS original_sku_code, "
                 + "target.sku_code AS exchange_sku_code "
                 + "FROM dbo.RETURN_REQUEST_ITEM ri "
@@ -448,15 +449,31 @@ public class ReturnExchangeDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> item = new LinkedHashMap<>();
-                    item.put("requestItemId", rs.getInt("request_item_id"));
-                    item.put("orderItemId", rs.getInt("order_item_id"));
-                    item.put("quantity", rs.getInt("quantity"));
-                    item.put("exchangeSkuId", rs.getObject("exchange_sku_id"));
-                    item.put("productName", rs.getString("product_name"));
+
+                    item.put("requestItemId",
+                            rs.getInt("request_item_id"));
+
+                    item.put("orderItemId",
+                            rs.getInt("order_item_id"));
+
+                    item.put("quantity",
+                            rs.getInt("quantity"));
+
+                    item.put("price",
+                            rs.getBigDecimal("price"));
+
+                    item.put("exchangeSkuId",
+                            rs.getObject("exchange_sku_id"));
+
+                    item.put("productName",
+                            rs.getString("product_name"));
+
                     item.put("originalSkuCode",
                             rs.getString("original_sku_code"));
+
                     item.put("exchangeSkuCode",
                             rs.getString("exchange_sku_code"));
+
                     items.add(item);
                 }
             }
@@ -718,5 +735,41 @@ public class ReturnExchangeDAO {
             }
         }
     }
+// Lấy yêu cầu đổi/trả mới nhất của một đơn hàng thuộc đúng khách hàng.
 
+    public Map<String, Object> getLatestRequestByOrder(
+            int orderId, int userId) throws SQLException {
+
+        String sql
+                = "SELECT TOP 1 request_id, request_type, "
+                + "request_status, reason, created_at, "
+                + "reviewed_at, staff_note "
+                + "FROM dbo.RETURN_REQUEST "
+                + "WHERE order_id = ? AND user_id = ? "
+                + "ORDER BY created_at DESC, request_id DESC";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, orderId);
+            ps.setInt(2, userId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Map<String, Object> request = new LinkedHashMap<>();
+
+                    request.put("requestId", rs.getInt("request_id"));
+                    request.put("requestType", rs.getString("request_type"));
+                    request.put("requestStatus", rs.getString("request_status"));
+                    request.put("reason", rs.getString("reason"));
+                    request.put("createdAt", rs.getTimestamp("created_at"));
+                    request.put("reviewedAt", rs.getTimestamp("reviewed_at"));
+                    request.put("staffNote", rs.getString("staff_note"));
+
+                    return request;
+                }
+            }
+        }
+
+        return null;
+    }
 }

@@ -1,4 +1,3 @@
-
 package controller;
 
 import dao.BannerDAO;
@@ -48,6 +47,29 @@ public class BannerServlet extends HttpServlet {
         Files.createDirectories(uploadDirectory);
 
         return uploadDirectory;
+    }
+
+    // Xoa anh banner cu khi nguoi dung thay anh moi.
+    private void deleteOldImage(String imageUrl) {
+        if (imageUrl == null || !imageUrl.startsWith("uploads/banners/")) {
+            return;
+        }
+
+        try {
+            Path uploadDirectory = getUploadDirectory();
+
+            String fileName = Paths.get(imageUrl)
+                    .getFileName()
+                    .toString();
+
+            Path oldImage = uploadDirectory.resolve(fileName).normalize();
+
+            if (oldImage.startsWith(uploadDirectory)) {
+                Files.deleteIfExists(oldImage);
+            }
+        } catch (IOException e) {
+            log("Cannot delete old banner image", e);
+        }
     }
 
     // Kiem tra mo ta banner
@@ -130,6 +152,45 @@ public class BannerServlet extends HttpServlet {
 
         String action = request.getParameter("action");
 
+        // Xu ly chinh sua banner
+        if ("edit".equals(action)) {
+            try {
+                int bannerId = Integer.parseInt(
+                        request.getParameter("id")
+                );
+
+                if (bannerId <= 0) {
+                    throw new NumberFormatException();
+                }
+
+                Banner banner = bannerDAO.getById(bannerId);
+
+                if (banner == null) {
+                    response.sendError(
+                            HttpServletResponse.SC_NOT_FOUND,
+                            "Không tìm thấy banner."
+                    );
+                    return;
+                }
+
+                request.setAttribute("banner", banner);
+
+                request.getRequestDispatcher(
+                        "/WEB-INF/banner/edit.jsp"
+                ).forward(request, response);
+
+                return;
+
+            } catch (NumberFormatException e) {
+                response.sendError(
+                        HttpServletResponse.SC_BAD_REQUEST,
+                        "ID banner không hợp lệ."
+                );
+                return;
+            }
+        }
+
+        // Xu ly xoa banner
         if ("delete".equals(action)) {
             String idValue = request.getParameter("id");
 
@@ -156,6 +217,7 @@ public class BannerServlet extends HttpServlet {
             return;
         }
 
+        // Xu ly bat/tat banner
         if ("toggle".equals(action)) {
             String idValue = request.getParameter("id");
 
@@ -186,6 +248,7 @@ public class BannerServlet extends HttpServlet {
             return;
         }
 
+        // Lay danh sach banner
         List<Banner> banners = bannerDAO.getAll();
         request.setAttribute("banners", banners);
 
@@ -202,6 +265,15 @@ public class BannerServlet extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
+        // Xu ly cap nhat banner
+        String action = request.getParameter("action");
+
+        if ("update".equals(action)) {
+            updateBanner(request, response);
+            return;
+        }
+
+        // Xu ly them banner
         String altText = request.getParameter("altText");
         String targetUrl = request.getParameter("targetUrl");
         String orderValue = request.getParameter("displayOrder");
@@ -339,6 +411,184 @@ public class BannerServlet extends HttpServlet {
 
         response.sendRedirect(
                 request.getContextPath() + "/staff/banner?success=create"
+        );
+    }
+
+    // Cap nhat banner
+    private void updateBanner(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws ServletException, IOException {
+
+        int bannerId;
+
+        try {
+            bannerId = Integer.parseInt(request.getParameter("bannerId"));
+
+            if (bannerId <= 0) {
+                throw new NumberFormatException();
+            }
+        } catch (NumberFormatException e) {
+            response.sendError(
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "ID banner không hợp lệ."
+            );
+            return;
+        }
+
+        Banner oldBanner = bannerDAO.getById(bannerId);
+
+        if (oldBanner == null) {
+            response.sendError(
+                    HttpServletResponse.SC_NOT_FOUND,
+                    "Không tìm thấy banner."
+            );
+            return;
+        }
+
+        String altText = request.getParameter("altText");
+        String targetUrl = request.getParameter("targetUrl");
+        String orderValue = request.getParameter("displayOrder");
+
+        if (!isValidAltText(altText)) {
+            redirectError(request, response, "invalidAlt");
+            return;
+        }
+
+        if (!isValidTargetUrl(targetUrl)) {
+            redirectError(request, response, "invalidUrl");
+            return;
+        }
+
+        int displayOrder;
+
+        try {
+            if (orderValue == null || orderValue.trim().isEmpty()) {
+                redirectError(request, response, "invalidOrder");
+                return;
+            }
+
+            displayOrder = Integer.parseInt(orderValue.trim());
+
+            if (displayOrder < 0) {
+                redirectError(request, response, "invalidOrder");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            redirectError(request, response, "invalidOrder");
+            return;
+        }
+
+        Part imagePart = request.getPart("imageFile");
+
+        String imageUrl = oldBanner.getImageUrl();
+        Path newImagePath = null;
+
+        // Chi upload anh moi khi nguoi dung co chon file.
+        if (imagePart != null && imagePart.getSize() > 0) {
+
+            String contentType = imagePart.getContentType();
+
+            if (contentType == null
+                    || !(contentType.equals("image/jpeg")
+                    || contentType.equals("image/png")
+                    || contentType.equals("image/gif")
+                    || contentType.equals("image/webp"))) {
+
+                redirectError(request, response, "upload");
+                return;
+            }
+
+            String originalName = imagePart.getSubmittedFileName();
+
+            if (originalName == null || originalName.trim().isEmpty()) {
+                redirectError(request, response, "upload");
+                return;
+            }
+
+            originalName = Paths.get(originalName)
+                    .getFileName()
+                    .toString();
+
+            int dotIndex = originalName.lastIndexOf('.');
+
+            if (dotIndex < 0) {
+                redirectError(request, response, "upload");
+                return;
+            }
+
+            String extension = originalName.substring(dotIndex)
+                    .toLowerCase(Locale.ROOT);
+
+            if (!(extension.equals(".jpg")
+                    || extension.equals(".jpeg")
+                    || extension.equals(".png")
+                    || extension.equals(".gif")
+                    || extension.equals(".webp"))) {
+
+                redirectError(request, response, "upload");
+                return;
+            }
+
+            String fileName = UUID.randomUUID() + extension;
+
+            Path uploadDirectory = getUploadDirectory();
+
+            newImagePath = uploadDirectory.resolve(fileName).normalize();
+
+            if (!newImagePath.startsWith(uploadDirectory)) {
+                response.sendError(
+                        HttpServletResponse.SC_BAD_REQUEST,
+                        "Đường dẫn file không hợp lệ."
+                );
+                return;
+            }
+
+            try (InputStream input = imagePart.getInputStream()) {
+                Files.copy(
+                        input,
+                        newImagePath,
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+            }
+
+            imageUrl = "uploads/banners/" + fileName;
+        }
+
+        Banner banner = new Banner();
+
+        banner.setBannerId(bannerId);
+        banner.setImageUrl(imageUrl);
+        banner.setAltText(
+                altText == null || altText.trim().isEmpty()
+                ? null : altText.trim()
+        );
+        banner.setTargetUrl(
+                targetUrl == null || targetUrl.trim().isEmpty()
+                ? null : targetUrl.trim()
+        );
+
+        // Giu nguyen trang thai bat/tat hien tai.
+        banner.setActive(oldBanner.isActive());
+
+        banner.setDisplayOrder(displayOrder);
+
+        if (!bannerDAO.update(banner)) {
+            if (newImagePath != null) {
+                Files.deleteIfExists(newImagePath);
+            }
+
+            redirectError(request, response, "database");
+            return;
+        }
+
+        // Chi xoa anh cu sau khi database cap nhat thanh cong.
+        if (newImagePath != null) {
+            deleteOldImage(oldBanner.getImageUrl());
+        }
+
+        response.sendRedirect(
+                request.getContextPath() + "/staff/banner?success=update"
         );
     }
 }

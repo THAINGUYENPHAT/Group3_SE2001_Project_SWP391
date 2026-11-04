@@ -617,6 +617,14 @@
                                                     </a>
                                                 </li>
 
+                                                <li>
+                                                    <a class="dropdown-item rounded-2 py-2"
+                                                       href="${pageContext.request.contextPath}/staff/banner">
+                                                        <i class="bi bi-images text-info me-2"></i>
+                                                        Quản lý Banner
+                                                    </a>
+                                                </li>
+
 
                                                 <li>
                                                     <a class="dropdown-item rounded-2 py-2"

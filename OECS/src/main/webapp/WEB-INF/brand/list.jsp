@@ -71,18 +71,6 @@
         </div>
     </div>
 
-    <div class="col-12 col-sm-6 col-lg-4">
-        <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between">
-                <span class="text-muted fs-7 fw-medium">Trạng thái dữ liệu</span>
-                <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2"><i class="bi bi-check-circle-fill"></i></span>
-            </div>
-            <div class="mt-2">
-                <span class="fs-3 fw-bold text-dark">100%</span>
-                <span class="text-muted fs-7 ms-2">Đã đồng bộ</span>
-            </div>
-        </div>
-    </div>
 
     <div class="col-12 col-sm-6 col-lg-4">
         <div class="stat-card">

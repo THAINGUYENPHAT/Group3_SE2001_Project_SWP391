@@ -279,6 +279,112 @@
         </c:when>
     </c:choose>
 
+
+    <!-- RETURN / EXCHANGE REQUEST STATUS -->
+    <c:if test="${not empty latestReturnExchangeRequest}">
+        <c:choose>
+            <c:when test="${latestReturnExchangeRequest.requestStatus == 'PENDING'}">
+                <div class="purchase-panel"
+                     style="margin-bottom: 20px;
+                     border-left: 4px solid #d97706;
+                     background: #fffbeb;">
+
+                    <div style="display: flex;
+                         align-items: flex-start;
+                         gap: 12px;">
+
+                        <i class="bi bi-clock-history"
+                           style="font-size: 24px; color: #d97706;"></i>
+
+                        <div>
+                            <strong style="color: #92400e;">
+                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đang được xử lý
+                            </strong>
+
+                            <p style="color: #92400e; margin: 6px 0 0;">
+                                Bạn đã gửi yêu cầu thành công.
+                                Cửa hàng đang xem xét yêu cầu của bạn.
+                                Vui lòng chờ kết quả xử lý.
+                            </p>
+
+                            <small style="display: block;
+                                   color: #a16207;
+                                   margin-top: 8px;">
+                                Mã yêu cầu:
+                                #<c:out value="${latestReturnExchangeRequest.requestId}"/>
+                                · Gửi lúc:
+                                <fmt:formatDate
+                                    value="${latestReturnExchangeRequest.createdAt}"
+                                    pattern="dd/MM/yyyy HH:mm"/>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </c:when>
+
+            <c:when test="${latestReturnExchangeRequest.requestStatus == 'APPROVED'}">
+                <div class="purchase-panel"
+                     style="margin-bottom: 20px;
+                     border-left: 4px solid #16a34a;
+                     background: #f0fdf4;">
+
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <i class="bi bi-check-circle-fill"
+                           style="font-size: 24px; color: #16a34a;"></i>
+
+                        <div>
+                            <strong style="color: #166534;">
+                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đã được chấp nhận
+                            </strong>
+
+                            <p style="color: #166534; margin: 6px 0 0;">
+                                Cửa hàng đã chấp nhận yêu cầu của bạn.
+                                Vui lòng theo dõi thông báo để cập nhật thông tin tiếp theo.
+                            </p>
+
+                            <c:if test="${not empty latestReturnExchangeRequest.staffNote}">
+                                <p style="color: #166534; margin: 8px 0 0;">
+                                    <strong>Ghi chú từ cửa hàng:</strong>
+                                    <c:out value="${latestReturnExchangeRequest.staffNote}"/>
+                                </p>
+                            </c:if>
+                        </div>
+                    </div>
+                </div>
+            </c:when>
+
+            <c:when test="${latestReturnExchangeRequest.requestStatus == 'REJECTED'}">
+                <div class="purchase-panel"
+                     style="margin-bottom: 20px;
+                     border-left: 4px solid #dc2626;
+                     background: #fef2f2;">
+
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <i class="bi bi-x-circle-fill"
+                           style="font-size: 24px; color: #dc2626;"></i>
+
+                        <div>
+                            <strong style="color: #991b1b;">
+                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đã bị từ chối
+                            </strong>
+
+                            <p style="color: #991b1b; margin: 6px 0 0;">
+                                Rất tiếc, cửa hàng chưa thể chấp nhận yêu cầu này.
+                            </p>
+
+                            <c:if test="${not empty latestReturnExchangeRequest.staffNote}">
+                                <p style="color: #991b1b; margin: 8px 0 0;">
+                                    <strong>Lý do từ chối:</strong>
+                                    <c:out value="${latestReturnExchangeRequest.staffNote}"/>
+                                </p>
+                            </c:if>
+                        </div>
+                    </div>
+                </div>
+            </c:when>
+        </c:choose>
+    </c:if>
+
     <div class="purchase-detail-grid">
 
         <%-- Cot thong tin don hang --%>
@@ -422,12 +528,12 @@
                     <a href="${returnExchangeUrl}"
                        class="purchase-button-secondary"
                        style="display: flex;
-                              align-items: center;
-                              justify-content: center;
-                              gap: 8px;
-                              width: 100%;
-                              box-sizing: border-box;
-                              margin-top: 12px;">
+                       align-items: center;
+                       justify-content: center;
+                       gap: 8px;
+                       width: 100%;
+                       box-sizing: border-box;
+                       margin-top: 12px;">
                         <i class="bi bi-arrow-return-left"
                            aria-hidden="true"></i>
                         Yêu cầu trả hàng
@@ -462,7 +568,7 @@
                 <span>Giảm giá</span>
                 <span class="text-success">
                     −<fmt:formatNumber value="${order.discountAmount}"
-                                       maxFractionDigits="0" />đ
+                                      maxFractionDigits="0" />đ
                 </span>
             </div>
 

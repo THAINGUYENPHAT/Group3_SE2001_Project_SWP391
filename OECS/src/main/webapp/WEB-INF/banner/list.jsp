@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 
@@ -19,6 +18,9 @@
             <c:when test="${param.success == 'create'}">
                 Thêm banner thành công.
             </c:when>
+            <c:when test="${param.success == 'update'}">
+                Cập nhật banner thành công.
+            </c:when>
             <c:when test="${param.success == 'toggle'}">
                 Cập nhật trạng thái banner thành công.
             </c:when>
@@ -30,7 +32,6 @@
                 aria-label="Đóng"></button>
     </div>
 </c:if>
-
 
 <c:if test="${not empty param.error}">
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -59,7 +60,6 @@
     </div>
 </c:if>
 
-
 <div class="row g-3 mb-4">
     <div class="col-12 col-sm-6 col-lg-4">
         <div class="stat-card">
@@ -71,21 +71,6 @@
             </div>
             <div class="mt-2">
                 <span class="fs-3 fw-bold text-dark">${banners.size()}</span>
-                <span class="text-muted fs-7 ms-2">Banner</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-12 col-sm-6 col-lg-4">
-        <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between">
-                <span class="text-muted fs-7 fw-medium">Banner đang bật</span>
-                <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2">
-                    <i class="bi bi-check-circle-fill"></i>
-                </span>
-            </div>
-            <div class="mt-2">
-                <span class="fs-3 fw-bold text-dark">${activeCount}</span>
                 <span class="text-muted fs-7 ms-2">Banner</span>
             </div>
         </div>
@@ -157,7 +142,6 @@
                 <div class="invalid-feedback">
                     Mô tả chứa ký tự không được phép.
                 </div>
-
             </div>
 
             <div class="col-12 col-md-8">
@@ -177,7 +161,6 @@
                 <div class="invalid-feedback">
                     Liên kết không hợp lệ.
                 </div>
-
             </div>
 
             <div class="col-12 col-md-4">
@@ -197,7 +180,6 @@
                 <div class="form-text">
                     Chỉ nhập số nguyên không âm. Số nhỏ hơn sẽ hiển thị trước.
                 </div>
-
             </div>
         </div>
 
@@ -289,12 +271,22 @@
 
                                 <td class="text-end">
                                     <div class="d-inline-flex flex-wrap justify-content-end gap-1">
+
+                                        <!-- Chinh sua banner -->
+                                        <a href="${pageContext.request.contextPath}/staff/banner?action=edit&id=${banner.bannerId}"
+                                           class="btn btn-sm btn-light text-primary border rounded-2"
+                                           title="Chỉnh sửa">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+
+                                        <!-- Bat/tat banner -->
                                         <a href="${pageContext.request.contextPath}/staff/banner?action=toggle&id=${banner.bannerId}&active=${banner.active ? 0 : 1}"
                                            class="btn btn-sm btn-light border rounded-2 ${banner.active ? 'text-warning' : 'text-success'}"
                                            title="${banner.active ? 'Tắt banner' : 'Bật banner'}">
                                             <i class="bi ${banner.active ? 'bi-eye-slash' : 'bi-eye'}"></i>
                                         </a>
 
+                                        <!-- Xoa banner -->
                                         <a href="${pageContext.request.contextPath}/staff/banner?action=delete&id=${banner.bannerId}"
                                            class="btn btn-sm btn-light text-danger border rounded-2"
                                            title="Xóa"

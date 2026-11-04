@@ -1,4 +1,3 @@
-
 package controller;
 
 import dao.OrderDAO;
@@ -38,7 +37,9 @@ public class CustomerOrderServlet extends HttpServlet {
         response.setHeader("Cache-Control", "no-store");
 
         User user = customer(request, response);
-        if (user == null) return;
+        if (user == null) {
+            return;
+        }
 
         if ("/my-orders/cancel".equals(request.getServletPath())) {
             response.setHeader("Allow", "POST");
@@ -64,7 +65,9 @@ public class CustomerOrderServlet extends HttpServlet {
                 String tab = request.getParameter("status");
                 tab = tab == null ? "ALL" : tab.toUpperCase(Locale.ROOT);
 
-                if (!tabs.containsKey(tab)) tab = "ALL";
+                if (!tabs.containsKey(tab)) {
+                    tab = "ALL";
+                }
 
                 String query = request.getParameter("q");
                 query = query == null ? "" : query.trim();
@@ -143,9 +146,19 @@ public class CustomerOrderServlet extends HttpServlet {
 
                 request.setAttribute("order", order);
 
+// Kiểm tra khách hàng có được gửi yêu cầu đổi/trả mới không.
                 request.setAttribute(
                         "canRequestReturnExchange",
                         returnExchangeDAO.canRequest(id, user.getUserId())
+                );
+
+// Lấy yêu cầu đổi/trả mới nhất của đơn hàng.
+                request.setAttribute(
+                        "latestReturnExchangeRequest",
+                        returnExchangeDAO.getLatestRequestByOrder(
+                                id,
+                                user.getUserId()
+                        )
                 );
 
                 request.setAttribute(
@@ -190,7 +203,9 @@ public class CustomerOrderServlet extends HttpServlet {
         response.setHeader("Cache-Control", "no-store");
 
         User user = customer(request, response);
-        if (user == null) return;
+        if (user == null) {
+            return;
+        }
 
         if (!"/my-orders/cancel".equals(request.getServletPath())) {
             response.setHeader("Allow", "GET");

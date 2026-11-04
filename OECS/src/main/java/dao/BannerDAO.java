@@ -48,6 +48,38 @@ public class BannerDAO extends DBContext {
         return banners;
     }
 
+    // Get banner by ID
+    public Banner getById(int bannerId) {
+        String sql = "SELECT banner_id, image_url, alt_text, target_url, "
+                + "is_active, display_order, created_at "
+                + "FROM BANNER WHERE banner_id = ?";
+
+        try (Connection conn = this.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, bannerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Banner banner = new Banner();
+                    banner.setBannerId(rs.getInt("banner_id"));
+                    banner.setImageUrl(rs.getString("image_url"));
+                    banner.setAltText(rs.getString("alt_text"));
+                    banner.setTargetUrl(rs.getString("target_url"));
+                    banner.setActive(rs.getBoolean("is_active"));
+                    banner.setDisplayOrder(rs.getInt("display_order"));
+                    banner.setCreatedAt(rs.getTimestamp("created_at"));
+
+                    return banner;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Cannot get banner by ID", e);
+        }
+
+        return null;
+    }
+
     public List<Banner> getActive() {
         List<Banner> banners = new ArrayList<>();
 
