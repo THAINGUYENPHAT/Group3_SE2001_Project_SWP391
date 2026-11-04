@@ -1,3 +1,4 @@
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core"%>
 <%@taglib prefix="fmt" uri="jakarta.tags.fmt"%>
@@ -103,6 +104,33 @@
         overflow-wrap: anywhere;
     }
 
+    /* FILTER PANEL */
+    .return-page .filter-panel {
+        background: #f8fafc;
+        border-bottom: 1px solid #edf0f5;
+        padding: 18px;
+    }
+
+    .return-page .filter-panel .form-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748b;
+        margin-bottom: 7px;
+    }
+
+    .return-page .filter-panel .form-control,
+    .return-page .filter-panel .form-select {
+        min-height: 42px;
+        border-radius: 8px;
+        border-color: #e2e8f0;
+        font-size: 13px;
+    }
+
+    .return-page .filter-result {
+        font-size: 13px;
+        color: #64748b;
+    }
+
     @media (max-width: 768px) {
         .return-page .page-heading {
             align-items: stretch !important;
@@ -163,6 +191,7 @@
     </c:if>
 
     <div class="row g-3 mb-4">
+
         <div class="col-12 col-sm-6 col-xl-4">
             <div class="stat-card">
                 <div class="d-flex align-items-center justify-content-between">
@@ -217,9 +246,11 @@
                 </div>
             </div>
         </div>
+
     </div>
 
     <div class="card-custom overflow-hidden">
+
         <div class="p-3 border-bottom d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
             <div>
                 <h5 class="fw-bold mb-1">Danh sách yêu cầu</h5>
@@ -227,10 +258,82 @@
                     Chọn một yêu cầu để xem thông tin chi tiết.
                 </span>
             </div>
-            <span class="badge bg-light text-secondary border rounded-pill px-3 py-2">
-                <i class="bi bi-list-ul me-1"></i>
-                ${not empty requestList ? fn:length(requestList) : 0} yêu cầu
-            </span>
+        </div>
+
+        <!-- FILTER PANEL -->
+        <div class="filter-panel">
+            <div class="row g-3">
+
+                <div class="col-12 col-lg-4">
+                    <label for="searchRequest" class="form-label">
+                        TÌM KIẾM
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text"
+                               id="searchRequest"
+                               class="form-control"
+                               placeholder="Nhập tên khách hàng...">
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-lg-2">
+                    <label for="filterType" class="form-label">
+                        LOẠI YÊU CẦU
+                    </label>
+                    <select id="filterType" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="RETURN">Trả hàng</option>
+                        <option value="EXCHANGE">Đổi hàng</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-sm-6 col-lg-2">
+                    <label for="filterStatus" class="form-label">
+                        TRẠNG THÁI
+                    </label>
+                    <select id="filterStatus" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="PENDING">Chờ xử lý</option>
+                        <option value="APPROVED">Đã chấp nhận</option>
+                        <option value="REJECTED">Đã từ chối</option>
+                    </select>
+                </div>
+
+                <div class="col-6 col-lg-2">
+                    <label for="filterFromDate" class="form-label">
+                        TỪ NGÀY
+                    </label>
+                    <input type="date"
+                           id="filterFromDate"
+                           class="form-control">
+                </div>
+
+                <div class="col-6 col-lg-2">
+                    <label for="filterToDate" class="form-label">
+                        ĐẾN NGÀY
+                    </label>
+                    <input type="date"
+                           id="filterToDate"
+                           class="form-control">
+                </div>
+
+                <div class="col-12 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+                    <span class="filter-result" id="filterResult">
+                        Hiển thị tất cả yêu cầu
+                    </span>
+
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm rounded-3 px-3"
+                            id="resetFilters">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>
+                        Xóa bộ lọc
+                    </button>
+                </div>
+
+            </div>
         </div>
 
         <div class="table-responsive">
@@ -250,7 +353,10 @@
 
                 <tbody>
                     <c:forEach var="item" items="${requestList}">
-                        <tr>
+                        <tr class="request-row"
+                            data-type="${item.requestType}"
+                            data-status="${item.requestStatus}">
+
                             <td>
                                 <span class="request-id">
                                     #<c:out value="${item.requestId}"/>
@@ -299,6 +405,11 @@
                             </td>
 
                             <td>
+                                <span class="filter-date d-none">
+                                    <fmt:formatDate value="${item.createdAt}"
+                                                    pattern="yyyy-MM-dd"/>
+                                </span>
+
                                 <span class="text-dark small">
                                     <i class="bi bi-calendar3 text-muted me-1"></i>
                                     <fmt:formatDate value="${item.createdAt}"
@@ -343,6 +454,19 @@
                         </tr>
                     </c:forEach>
 
+                    <!-- KHONG CO KET QUA LOC -->
+                    <tr id="noFilterResult" style="display: none;">
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i class="bi bi-search display-4 d-block mb-3"></i>
+                                <h6 class="fw-bold text-dark">Không tìm thấy yêu cầu</h6>
+                                <p class="mb-0 small">
+                                    Không có yêu cầu nào phù hợp với bộ lọc hiện tại.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
                     <c:if test="${empty requestList}">
                         <tr>
                             <td colspan="8">
@@ -362,5 +486,94 @@
     </div>
 
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("searchRequest");
+    const typeFilter = document.getElementById("filterType");
+    const statusFilter = document.getElementById("filterStatus");
+    const fromDateFilter = document.getElementById("filterFromDate");
+    const toDateFilter = document.getElementById("filterToDate");
+    const resetButton = document.getElementById("resetFilters");
+    const resultLabel = document.getElementById("filterResult");
+    const noResultRow = document.getElementById("noFilterResult");
+
+    const rows = document.querySelectorAll(".request-row");
+
+    function filterRequests() {
+        const keyword = searchInput.value.trim().toLowerCase();
+        const selectedType = typeFilter.value;
+        const selectedStatus = statusFilter.value;
+        const fromDate = fromDateFilter.value;
+        const toDate = toDateFilter.value;
+
+        let visibleCount = 0;
+
+        rows.forEach(function (row) {
+            const customerName = row.cells[2].innerText.trim().toLowerCase();
+            const rowType = row.dataset.type;
+            const rowStatus = row.dataset.status;
+
+            const dateElement = row.querySelector(".filter-date");
+            const rowDate = dateElement
+                    ? dateElement.textContent.trim()
+                    : "";
+
+            const matchesKeyword = customerName.includes(keyword);
+
+            const matchesType =
+                    selectedType === "" || rowType === selectedType;
+
+            const matchesStatus =
+                    selectedStatus === "" || rowStatus === selectedStatus;
+
+            const matchesFromDate =
+                    fromDate === "" || rowDate >= fromDate;
+
+            const matchesToDate =
+                    toDate === "" || rowDate <= toDate;
+
+            const isMatched =
+                    matchesKeyword &&
+                    matchesType &&
+                    matchesStatus &&
+                    matchesFromDate &&
+                    matchesToDate;
+
+            row.style.display = isMatched ? "" : "none";
+
+            if (isMatched) {
+                visibleCount++;
+            }
+        });
+
+        if (noResultRow) {
+            noResultRow.style.display =
+                    rows.length > 0 && visibleCount === 0 ? "" : "none";
+        }
+
+        resultLabel.textContent =
+                "Hiển thị " + visibleCount + " / " + rows.length + " yêu cầu";
+    }
+
+    searchInput.addEventListener("input", filterRequests);
+    typeFilter.addEventListener("change", filterRequests);
+    statusFilter.addEventListener("change", filterRequests);
+    fromDateFilter.addEventListener("change", filterRequests);
+    toDateFilter.addEventListener("change", filterRequests);
+
+    resetButton.addEventListener("click", function () {
+        searchInput.value = "";
+        typeFilter.value = "";
+        statusFilter.value = "";
+        fromDateFilter.value = "";
+        toDateFilter.value = "";
+
+        filterRequests();
+    });
+
+    filterRequests();
+});
+</script>
 
 <%@include file="/WEB-INF/include/footer.jsp" %>

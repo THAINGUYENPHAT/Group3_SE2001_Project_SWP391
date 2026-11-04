@@ -6,7 +6,193 @@
 <link rel="stylesheet"
       href="${pageContext.request.contextPath}/assets/css/customer-orders.css">
 
+<style>
+    .customer-toast-container {
+        position: fixed;
+        top: 90px;
+        right: 24px;
+        z-index: 9999;
+        width: min(390px, calc(100vw - 32px));
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        pointer-events: none;
+    }
+
+    .customer-toast {
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px 42px 18px 16px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 8px 28px rgba(15, 23, 42, .16);
+        border-left: 4px solid #16a34a;
+        pointer-events: auto;
+        overflow: hidden;
+        animation: customerToastIn .3s ease forwards;
+    }
+
+    .customer-toast.error {
+        border-left-color: #dc2626;
+    }
+
+    .customer-toast-icon {
+        font-size: 22px;
+        color: #16a34a;
+        line-height: 1.2;
+    }
+
+    .customer-toast.error .customer-toast-icon {
+        color: #dc2626;
+    }
+
+    .customer-toast-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .customer-toast-title {
+        display: block;
+        color: #1e293b;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .customer-toast-message {
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    .customer-toast-close {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        border: 0;
+        background: transparent;
+        color: #94a3b8;
+        font-size: 20px;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .customer-toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        width: 100%;
+        background: #16a34a;
+        transform-origin: left;
+        animation: customerToastProgress 4s linear forwards;
+    }
+
+    .customer-toast.error .customer-toast-progress {
+        background: #dc2626;
+    }
+
+    .customer-toast.hide {
+        animation: customerToastOut .25s ease forwards;
+    }
+
+    @keyframes customerToastIn {
+        from {
+            opacity: 0;
+            transform: translateX(25px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes customerToastOut {
+        to {
+            opacity: 0;
+            transform: translateX(25px);
+        }
+    }
+
+    @keyframes customerToastProgress {
+        from {
+            transform: scaleX(1);
+        }
+        to {
+            transform: scaleX(0);
+        }
+    }
+
+    @media (max-width: 576px) {
+        .customer-toast-container {
+            top: 75px;
+            right: 16px;
+        }
+    }
+</style>
+
 <div class="purchases-root">
+
+    <div class="customer-toast-container"
+         aria-live="polite"
+         aria-atomic="true">
+
+        <c:if test="${not empty sessionScope.customerOrderMessage}">
+            <div class="customer-toast" role="status">
+                <i class="bi bi-check-circle-fill customer-toast-icon"
+                   aria-hidden="true"></i>
+
+                <div class="customer-toast-content">
+                    <strong class="customer-toast-title">
+                        Thao tác thành công!
+                    </strong>
+                    <div class="customer-toast-message">
+                        <c:out value="${sessionScope.customerOrderMessage}"/>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="customer-toast-close"
+                        aria-label="Đóng thông báo"
+                        onclick="closeCustomerToast(this)">
+                    &times;
+                </button>
+
+                <div class="customer-toast-progress"></div>
+            </div>
+            <c:remove var="customerOrderMessage" scope="session"/>
+        </c:if>
+
+        <c:if test="${not empty sessionScope.customerOrderError}">
+            <div class="customer-toast error" role="alert">
+                <i class="bi bi-exclamation-circle-fill customer-toast-icon"
+                   aria-hidden="true"></i>
+
+                <div class="customer-toast-content">
+                    <strong class="customer-toast-title">
+                        Thao tác chưa thành công!
+                    </strong>
+                    <div class="customer-toast-message">
+                        <c:out value="${sessionScope.customerOrderError}"/>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="customer-toast-close"
+                        aria-label="Đóng thông báo"
+                        onclick="closeCustomerToast(this)">
+                    &times;
+                </button>
+
+                <div class="customer-toast-progress"></div>
+            </div>
+            <c:remove var="customerOrderError" scope="session"/>
+        </c:if>
+
+    </div>
 
     <%-- Quay lai danh sach don hang --%>
     <a class="purchase-back"
@@ -27,10 +213,10 @@
                 <fmt:formatDate value="${order.createdAt}"
                                 pattern="dd/MM/yyyy · HH:mm" />
 
-            <span aria-hidden="true">—</span>
+                <span aria-hidden="true">—</span>
 
-            <c:out value="${statusLabels[order.orderStatus]}"
-                   default="Đang cập nhật trạng thái" />
+                <c:out value="${statusLabels[order.orderStatus]}"
+                       default="Đang cập nhật trạng thái" />
             </p>
         </div>
 
@@ -40,24 +226,6 @@
             Cập nhật
         </a>
     </div>
-
-    <%-- Thong bao thanh cong --%>
-    <c:if test="${not empty sessionScope.customerOrderMessage}">
-        <div class="alert alert-success" role="status">
-            <c:out value="${sessionScope.customerOrderMessage}" />
-        </div>
-
-        <c:remove var="customerOrderMessage" scope="session" />
-    </c:if>
-
-    <%-- Thong bao loi --%>
-    <c:if test="${not empty sessionScope.customerOrderError}">
-        <div class="alert alert-danger" role="alert">
-            <c:out value="${sessionScope.customerOrderError}" />
-        </div>
-
-        <c:remove var="customerOrderError" scope="session" />
-    </c:if>
 
     <%-- Trang thai va tien trinh don hang --%>
     <c:choose>
@@ -84,21 +252,21 @@
                         <li class="${step.done ? 'is-done' : ''} ${step.current ? 'is-current' : ''}"
                             ${step.current ? 'aria-current="step"' : ''}>
 
-                        <span class="purchase-progress-icon">
-                            <i class="bi bi-${step.icon}"
-                               aria-hidden="true"></i>
-                        </span>
+                            <span class="purchase-progress-icon">
+                                <i class="bi bi-${step.icon}"
+                                   aria-hidden="true"></i>
+                            </span>
 
-                        <strong>
-                            <c:out value="${step.label}" />
-                        </strong>
+                            <strong>
+                                <c:out value="${step.label}" />
+                            </strong>
 
-                        <c:if test="${not empty step.at}">
-                            <time>
-                                <fmt:formatDate value="${step.at}"
-                                                pattern="dd/MM/yyyy HH:mm" />
-                            </time>
-                        </c:if>
+                            <c:if test="${not empty step.at}">
+                                <time>
+                                    <fmt:formatDate value="${step.at}"
+                                                    pattern="dd/MM/yyyy HH:mm" />
+                                </time>
+                            </c:if>
                         </li>
                     </c:forEach>
                 </ol>
@@ -110,6 +278,112 @@
             </section>
         </c:when>
     </c:choose>
+
+
+    <!-- RETURN / EXCHANGE REQUEST STATUS -->
+    <c:if test="${not empty latestReturnExchangeRequest}">
+        <c:choose>
+            <c:when test="${latestReturnExchangeRequest.requestStatus == 'PENDING'}">
+                <div class="purchase-panel"
+                     style="margin-bottom: 20px;
+                     border-left: 4px solid #d97706;
+                     background: #fffbeb;">
+
+                    <div style="display: flex;
+                         align-items: flex-start;
+                         gap: 12px;">
+
+                        <i class="bi bi-clock-history"
+                           style="font-size: 24px; color: #d97706;"></i>
+
+                        <div>
+                            <strong style="color: #92400e;">
+                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đang được xử lý
+                            </strong>
+
+                            <p style="color: #92400e; margin: 6px 0 0;">
+                                Bạn đã gửi yêu cầu thành công.
+                                Cửa hàng đang xem xét yêu cầu của bạn.
+                                Vui lòng chờ kết quả xử lý.
+                            </p>
+
+                            <small style="display: block;
+                                   color: #a16207;
+                                   margin-top: 8px;">
+                                Mã yêu cầu:
+                                #<c:out value="${latestReturnExchangeRequest.requestId}"/>
+                                · Gửi lúc:
+                                <fmt:formatDate
+                                    value="${latestReturnExchangeRequest.createdAt}"
+                                    pattern="dd/MM/yyyy HH:mm"/>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </c:when>
+
+            <c:when test="${latestReturnExchangeRequest.requestStatus == 'APPROVED'}">
+                <div class="purchase-panel"
+                     style="margin-bottom: 20px;
+                     border-left: 4px solid #16a34a;
+                     background: #f0fdf4;">
+
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <i class="bi bi-check-circle-fill"
+                           style="font-size: 24px; color: #16a34a;"></i>
+
+                        <div>
+                            <strong style="color: #166534;">
+                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đã được chấp nhận
+                            </strong>
+
+                            <p style="color: #166534; margin: 6px 0 0;">
+                                Cửa hàng đã chấp nhận yêu cầu của bạn.
+                                Vui lòng theo dõi thông báo để cập nhật thông tin tiếp theo.
+                            </p>
+
+                            <c:if test="${not empty latestReturnExchangeRequest.staffNote}">
+                                <p style="color: #166534; margin: 8px 0 0;">
+                                    <strong>Ghi chú từ cửa hàng:</strong>
+                                    <c:out value="${latestReturnExchangeRequest.staffNote}"/>
+                                </p>
+                            </c:if>
+                        </div>
+                    </div>
+                </div>
+            </c:when>
+
+            <c:when test="${latestReturnExchangeRequest.requestStatus == 'REJECTED'}">
+                <div class="purchase-panel"
+                     style="margin-bottom: 20px;
+                     border-left: 4px solid #dc2626;
+                     background: #fef2f2;">
+
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <i class="bi bi-x-circle-fill"
+                           style="font-size: 24px; color: #dc2626;"></i>
+
+                        <div>
+                            <strong style="color: #991b1b;">
+                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đã bị từ chối
+                            </strong>
+
+                            <p style="color: #991b1b; margin: 6px 0 0;">
+                                Rất tiếc, cửa hàng chưa thể chấp nhận yêu cầu này.
+                            </p>
+
+                            <c:if test="${not empty latestReturnExchangeRequest.staffNote}">
+                                <p style="color: #991b1b; margin: 8px 0 0;">
+                                    <strong>Lý do từ chối:</strong>
+                                    <c:out value="${latestReturnExchangeRequest.staffNote}"/>
+                                </p>
+                            </c:if>
+                        </div>
+                    </div>
+                </div>
+            </c:when>
+        </c:choose>
+    </c:if>
 
     <div class="purchase-detail-grid">
 
@@ -150,14 +424,14 @@
                 <ol class="purchase-timeline">
                     <c:forEach var="entry" items="${history}">
                         <li>
-                        <time>
-                            <fmt:formatDate value="${entry.updatedAt}"
-                                            pattern="dd/MM/yyyy HH:mm:ss" />
-                        </time>
+                            <time>
+                                <fmt:formatDate value="${entry.updatedAt}"
+                                                pattern="dd/MM/yyyy HH:mm:ss" />
+                            </time>
 
-                        <strong>
-                            <c:out value="${entry.label}" />
-                        </strong>
+                            <strong>
+                                <c:out value="${entry.label}" />
+                            </strong>
                         </li>
                     </c:forEach>
                 </ol>
@@ -207,6 +481,7 @@
                                             <c:param name="view" value="create" />
                                             <c:param name="orderItemId" value="${item.orderItemId}" />
                                         </c:url>
+
                                         <div class="purchase-review-action">
                                             <a href="${reviewUrl}" class="purchase-review-btn">
                                                 <i class="bi bi-star-fill"></i>
@@ -230,14 +505,10 @@
                         </p>
                     </c:if>
                 </div>
-            
             </section>
 
             <%-- Thao tac tra hang --%>
-            <c:if test="${order.orderStatus eq 'COMPLETED'
-                          or order.orderStatus eq 'Completed'
-                          or order.orderStatus eq 'DELIVERED'
-                          or order.orderStatus eq 'Delivered'}">
+            <c:if test="${canRequestReturnExchange}">
                 <div class="purchase-panel" style="margin-top: 20px;">
                     <h2>
                         <i class="bi bi-box-arrow-in-left me-2"
@@ -257,12 +528,12 @@
                     <a href="${returnExchangeUrl}"
                        class="purchase-button-secondary"
                        style="display: flex;
-                              align-items: center;
-                              justify-content: center;
-                              gap: 8px;
-                              width: 100%;
-                              box-sizing: border-box;
-                              margin-top: 12px;">
+                       align-items: center;
+                       justify-content: center;
+                       gap: 8px;
+                       width: 100%;
+                       box-sizing: border-box;
+                       margin-top: 12px;">
                         <i class="bi bi-arrow-return-left"
                            aria-hidden="true"></i>
                         Yêu cầu trả hàng
@@ -272,7 +543,6 @@
         </div>
 
         <%-- Cot thong tin thanh toan --%>
-
         <aside class="purchase-panel"
                aria-labelledby="purchase-payment-title">
 
@@ -418,5 +688,33 @@
         </aside>
     </div>
 </div>
+
+<script>
+    function closeCustomerToast(button) {
+        const toast = button.closest(".customer-toast");
+
+        if (toast) {
+            toast.classList.add("hide");
+
+            setTimeout(function () {
+                toast.remove();
+            }, 250);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".customer-toast").forEach(function (toast) {
+            setTimeout(function () {
+                if (toast.isConnected) {
+                    toast.classList.add("hide");
+
+                    setTimeout(function () {
+                        toast.remove();
+                    }, 250);
+                }
+            }, 4000);
+        });
+    });
+</script>
 
 <%@ include file="/WEB-INF/include/footer.jsp" %>

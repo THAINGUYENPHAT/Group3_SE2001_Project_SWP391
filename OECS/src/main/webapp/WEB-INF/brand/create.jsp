@@ -1,3 +1,4 @@
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 
@@ -27,7 +28,6 @@
                 <form action="${pageContext.request.contextPath}/brand" method="POST">
                     <input type="hidden" name="action" value="create" />
 
-
                     <div class="mb-4">
                         <label for="brand-name" class="form-label fw-semibold text-dark">
                             Tên Thương Hiệu <span class="text-danger">*</span>
@@ -44,7 +44,6 @@
 
                         <div class="form-text">Tối đa 100 ký tự.</div>
 
-
                         <c:if test="${not empty param.error}">
                             <div class="alert alert-danger small mt-2" role="alert">
                                 <c:choose>
@@ -53,6 +52,9 @@
                                     </c:when>
                                     <c:when test="${param.error == 'length'}">
                                         Tên thương hiệu không được vượt quá 100 ký tự.
+                                    </c:when>
+                                    <c:when test="${param.error == 'special'}">
+                                        Tên thương hiệu chỉ được chứa chữ cái, chữ số và khoảng trắng. Không được chứa ký tự đặc biệt.
                                     </c:when>
                                     <c:when test="${param.error == 'duplicate'}">
                                         Tên thương hiệu đã tồn tại.
@@ -68,7 +70,6 @@
                         </c:if>
 
                     </div>
-
 
                     <div class="mb-4">
                         <label for="brand-logo" class="form-label fw-semibold text-dark">Đường Dẫn Logo (URL)</label>

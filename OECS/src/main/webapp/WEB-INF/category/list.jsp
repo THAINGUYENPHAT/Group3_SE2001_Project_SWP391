@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 <%@taglib prefix="fn" uri="jakarta.tags.functions" %>
@@ -78,36 +77,6 @@
             <div class="mt-2">
                 <span class="fs-3 fw-bold text-dark">${totalCategories}</span>
                 <span class="text-muted fs-7 ms-2">Danh mục</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-12 col-sm-6 col-lg-4">
-        <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between">
-                <span class="text-muted fs-7 fw-medium">Số danh mục gốc mỗi trang</span>
-                <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2">
-                    <i class="bi bi-list-ul"></i>
-                </span>
-            </div>
-            <div class="mt-2">
-                <span class="fs-3 fw-bold text-dark">10</span>
-                <span class="text-muted fs-7 ms-2">Danh mục/trang</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-12 col-sm-6 col-lg-4">
-        <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between">
-                <span class="text-muted fs-7 fw-medium">Trang hiện tại</span>
-                <span class="badge bg-info-subtle text-info rounded-pill px-3 py-2">
-                    <i class="bi bi-file-earmark-text-fill"></i>
-                </span>
-            </div>
-            <div class="mt-2">
-                <span class="fs-3 fw-bold text-dark">${currentPage}</span>
-                <span class="text-muted fs-7 ms-2">/ ${totalPages} trang</span>
             </div>
         </div>
     </div>
@@ -336,61 +305,15 @@
         </table>
     </div>
 
-    <!-- Pagination -->
-    <div class="p-3 border-top d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 bg-white">
+    <!-- Category summary -->
+    <div class="p-3 border-top bg-white">
         <span class="text-muted fs-7">
-            Hiển thị
-            <strong>${startItem}</strong> - <strong>${endItem}</strong>
-            trên tổng số <strong>${totalCategories}</strong> danh mục
+            Tổng cộng <strong>${totalCategories}</strong> danh mục
+            <c:if test="${not empty keyword}">
+                phù hợp với từ khóa
+                "<strong><c:out value='${keyword}'/></strong>"
+            </c:if>
         </span>
-
-        <c:if test="${totalPages > 1}">
-            <c:url var="prevUrl" value="/category">
-                <c:param name="view" value="list"/>
-                <c:param name="page" value="${currentPage - 1}"/>
-                <c:if test="${not empty keyword}">
-                    <c:param name="keyword" value="${keyword}"/>
-                </c:if>
-            </c:url>
-
-            <c:url var="nextUrl" value="/category">
-                <c:param name="view" value="list"/>
-                <c:param name="page" value="${currentPage + 1}"/>
-                <c:if test="${not empty keyword}">
-                    <c:param name="keyword" value="${keyword}"/>
-                </c:if>
-            </c:url>
-
-            <ul class="pagination pagination-sm mb-0">
-                <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                    <a class="page-link"
-                       href="${currentPage > 1 ? prevUrl : '#'}">
-                        Trước
-                    </a>
-                </li>
-
-                <c:forEach begin="1" end="${totalPages}" var="p">
-                    <c:url var="pageUrl" value="/category">
-                        <c:param name="view" value="list"/>
-                        <c:param name="page" value="${p}"/>
-                        <c:if test="${not empty keyword}">
-                            <c:param name="keyword" value="${keyword}"/>
-                        </c:if>
-                    </c:url>
-
-                    <li class="page-item ${p == currentPage ? 'active' : ''}">
-                        <a class="page-link" href="${pageUrl}">${p}</a>
-                    </li>
-                </c:forEach>
-
-                <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
-                    <a class="page-link"
-                       href="${currentPage < totalPages ? nextUrl : '#'}">
-                        Sau
-                    </a>
-                </li>
-            </ul>
-        </c:if>
     </div>
 </div>
 

@@ -26,9 +26,20 @@
                     </div>
                 </div>
 
-                <!-- Error -->
+                <!-- Error Messages -->
+                <c:if test="${not empty sessionScope.errorMsg}">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <c:out value="${sessionScope.errorMsg}" />
+                    </div>
+                    <c:remove var="errorMsg" scope="session"/>
+                </c:if>
+
                 <c:if test="${param.error == 'true'}">
-                    <div class="alert alert-danger">Không thể cập nhật sản phẩm.</div>
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Lỗi hệ thống! Không thể thực hiện thao tác. Vui lòng kiểm tra lại dữ liệu.
+                    </div>
                 </c:if>
 
                 <form action="${pageContext.request.contextPath}/product" method="POST" enctype="multipart/form-data">
@@ -43,7 +54,8 @@
                     <!-- Name -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Tên Sản Phẩm <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control form-control-lg" value="${product.productName}" required>
+                        <!-- FIX XSS -->
+                        <input type="text" name="name" class="form-control form-control-lg" value="<c:out value='${product.productName}'/>" required>
                     </div>
 
                     <!-- Category -->
@@ -52,7 +64,8 @@
                         <select name="categoryId" class="form-select form-select-lg" required>
                             <c:forEach items="${categoryList}" var="category">
                                 <option value="${category.categoryId}" ${category.categoryId == product.categoryId ? 'selected' : ''}>
-                                    ${category.categoryName}
+                                    <!-- FIX XSS -->
+                                    <c:out value="${category.categoryName}" />
                                 </option>
                             </c:forEach>
                         </select>
@@ -64,7 +77,8 @@
                         <select name="brandId" class="form-select form-select-lg" required>
                             <c:forEach items="${brandList}" var="brand">
                                 <option value="${brand.brandId}" ${brand.brandId == product.brandId ? 'selected' : ''}>
-                                    ${brand.brandName}
+                                    <!-- FIX XSS -->
+                                    <c:out value="${brand.brandName}" />
                                 </option>
                             </c:forEach>
                         </select>
@@ -85,7 +99,8 @@
                     <!-- Description -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Mô Tả</label>
-                        <textarea name="description" class="form-control" rows="5">${product.description}</textarea>
+                        <!-- FIX XSS -->
+                        <textarea name="description" class="form-control" rows="5"><c:out value="${product.description}"/></textarea>
                     </div>
 
                     <!-- Buttons -->

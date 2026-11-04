@@ -214,4 +214,36 @@ public class ProductDAO extends DBContext {
         }
         return list;
     }
+    // =====================================================
+    // KIỂM TRA TRÙNG LẶP TÊN SẢN PHẨM
+    // =====================================================
+
+    // 1. Kiểm tra khi Thêm mới
+    public boolean checkProductNameExists(String productName) {
+        String sql = "SELECT 1 FROM PRODUCT WHERE product_name = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
+            statement.setString(1, productName);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next(); // Trả về true nếu tên đã tồn tại
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi kiểm tra trùng tên Product!", ex);
+        }
+        return false;
+    }
+
+    // 2. Kiểm tra khi Cập nhật (bỏ qua ID của chính nó)
+    public boolean checkProductNameExistsForUpdate(String productName, int excludeProductId) {
+        String sql = "SELECT 1 FROM PRODUCT WHERE product_name = ? AND product_id != ?";
+        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
+            statement.setString(1, productName);
+            statement.setInt(2, excludeProductId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi kiểm tra trùng tên Product lúc Edit!", ex);
+        }
+        return false;
+    }
 }

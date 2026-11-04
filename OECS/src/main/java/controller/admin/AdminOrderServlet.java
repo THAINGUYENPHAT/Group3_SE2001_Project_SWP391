@@ -152,36 +152,28 @@ public class AdminOrderServlet extends HttpServlet {
                     successMessage = "Xác nhận đơn hàng thành công!";
                 }
 
-            } else if ("changeStatus".equals(action)) {
+            } else if ("nextStep".equals(action)) {
 
-                String requested = request.getParameter("status");
-
-                if (requested != null) {
-                    requested = requested.trim().toUpperCase();
-                }
-
-                String expected = null;
-
+                // Backend tự xác định bước tiếp theo.
+                // Không nhận trạng thái do người dùng tự chọn.
                 if ("CONFIRMED".equals(current)) {
-                    expected = "PACKING";
-                } else if ("PACKING".equals(current)) {
-                    expected = "SHIPPING";
-                } else if ("SHIPPING".equals(current)) {
-                    expected = "COMPLETED";
-                }
+                    nextStatus = "PACKING";
+                    successMessage = "Đơn hàng đã chuyển sang đóng gói!";
 
-                if (expected != null && expected.equals(requested)) {
-                    nextStatus = expected;
-                    successMessage = "Cập nhật trạng thái đơn hàng thành công!";
+                } else if ("PACKING".equals(current)) {
+                    nextStatus = "SHIPPING";
+                    successMessage = "Đơn hàng đã chuyển sang giao hàng!";
+
+                } else if ("SHIPPING".equals(current)) {
+                    nextStatus = "COMPLETED";
+                    successMessage = "Đơn hàng đã hoàn thành!";
                 }
 
             } else if ("cancel".equals(action)) {
 
-                if ("PENDING_CONFIRMATION".equals(current)
-                        || "CONFIRMED".equals(current)
-                        || "PACKING".equals(current)
-                        || "SHIPPING".equals(current)) {
-
+                // Chỉ nhận yêu cầu hủy khi chưa xác nhận.
+                // DAO vẫn phải kiểm tra thanh toán và hoàn kho.
+                if ("PENDING_CONFIRMATION".equals(current)) {
                     nextStatus = "CANCELLED";
                     successMessage = "Hủy đơn hàng thành công!";
                 }

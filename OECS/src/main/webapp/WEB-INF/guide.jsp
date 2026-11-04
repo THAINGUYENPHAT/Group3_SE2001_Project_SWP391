@@ -532,6 +532,4 @@
 
 </div>
 
-</main>
-</body>
-</html>
+<%@include file="/WEB-INF/include/footer.jsp" %>

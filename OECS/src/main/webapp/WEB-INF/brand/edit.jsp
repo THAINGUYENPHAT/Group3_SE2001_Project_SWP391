@@ -1,3 +1,4 @@
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core" %>
 
@@ -27,7 +28,6 @@
                             </div>
                         </div>
 
-
                         <c:if test="${not empty param.error}">
                             <div class="alert alert-danger" role="alert">
                                 <c:choose>
@@ -36,6 +36,9 @@
                                     </c:when>
                                     <c:when test="${param.error == 'length'}">
                                         Tên thương hiệu không được vượt quá 100 ký tự.
+                                    </c:when>
+                                    <c:when test="${param.error == 'special'}">
+                                        Tên thương hiệu chỉ được chứa chữ cái, chữ số và khoảng trắng. Không được chứa ký tự đặc biệt.
                                     </c:when>
                                     <c:when test="${param.error == 'duplicate'}">
                                         Tên thương hiệu đã được sử dụng bởi thương hiệu khác.
@@ -52,7 +55,6 @@
                                 </c:choose>
                             </div>
                         </c:if>
-
 
                         <form action="${pageContext.request.contextPath}/brand" method="POST">
                             <input type="hidden" name="action" value="edit" />
@@ -89,8 +91,6 @@
                                            class="form-control form-control-lg fs-6 border-start-0 ps-0" />
                                 </div>
                             </div>
-
-                            
 
                             <div class="d-flex gap-2 pt-3 mt-4 border-top">
                                 <button type="submit" class="btn btn-primary btn-lg fs-6 px-4">

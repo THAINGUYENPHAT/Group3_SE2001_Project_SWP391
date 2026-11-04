@@ -1,3 +1,4 @@
+
 package controller;
 
 import dao.BrandDAO;
@@ -231,6 +232,12 @@ public class BrandServlet extends HttpServlet {
                 return;
             }
 
+            if (!isValidBrandName(name)) {
+                response.sendRedirect(contextPath
+                        + "/brand?view=create&error=special");
+                return;
+            }
+
             if (logoUrl.isEmpty()) {
                 logoUrl = null;
             } else if (logoUrl.length() > 2048
@@ -313,6 +320,12 @@ public class BrandServlet extends HttpServlet {
                 return;
             }
 
+            if (!isValidBrandName(name)) {
+                response.sendRedirect(contextPath
+                        + "/brand?view=edit&id=" + id + "&error=special");
+                return;
+            }
+
             if (logoUrl.isEmpty()) {
                 logoUrl = null;
             } else if (logoUrl.length() > 2048
@@ -354,7 +367,7 @@ public class BrandServlet extends HttpServlet {
                             "Updated brand: " + name,
                             request
                     );
-                    
+
                     response.sendRedirect(contextPath
                             + "/brand?view=list&success=edit");
                 } else {
@@ -410,7 +423,7 @@ public class BrandServlet extends HttpServlet {
                 int result = dao.delete(existing);
 
                 if (result == 1) {
-                    
+
                     User loggedInUser
                             = (User) request.getSession()
                                     .getAttribute("loggedInUser");
@@ -423,7 +436,7 @@ public class BrandServlet extends HttpServlet {
                             "Deleted brand: " + existing.getBrandName(),
                             request
                     );
-                    
+
                     response.sendRedirect(contextPath
                             + "/brand?view=list&success=delete");
                 } else {
@@ -443,5 +456,10 @@ public class BrandServlet extends HttpServlet {
         } else {
             response.sendRedirect(contextPath + "/brand?view=list");
         }
+    }
+
+    private boolean isValidBrandName(String name) {
+        return name != null
+                && name.matches("^[\\p{L}\\p{M}\\p{N} ]+$");
     }
 }
