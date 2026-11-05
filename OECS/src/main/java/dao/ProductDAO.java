@@ -18,7 +18,7 @@ public class ProductDAO extends DBContext {
 
     public List<Product> getList() {
         List<Product> list = new ArrayList<>();
-        // Đã bổ sung đầy đủ INNER JOIN theo chuẩn DB[cite: 1]
+        // Đã bổ sung đầy đủ INNER JOIN theo chuẩn DB
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
                 + "c.category_id, c.category_name, c.parent_id, "
                 + "b.brand_id, b.brand_name, b.logo_url "
@@ -79,6 +79,36 @@ public class ProductDAO extends DBContext {
         }
     }
 
+    // =====================================================
+    // HÀM MỚI: Thêm sản phẩm và trả về ID vừa tạo
+    // =====================================================
+    public int insertReturnId(Product product) {
+        String sql = "INSERT INTO PRODUCT (product_name, description, category_id, brand_id, image_url) VALUES (?, ?, ?, ?, ?)";
+        // Thêm tham số RETURN_GENERATED_KEYS
+        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+
+            statement.setString(1, product.getProductName());
+            statement.setString(2, product.getDescription());
+            statement.setInt(3, product.getCategoryId());
+            statement.setInt(4, product.getBrandId());
+            statement.setString(5, product.getImageUrl());
+
+            int affectedRows = statement.executeUpdate();
+
+            if (affectedRows > 0) {
+                // Lấy ID tự tăng vừa được tạo ra trong CSDL
+                try (ResultSet rs = statement.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getInt(1); // Trả về product_id
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi insertReturnId Product!", ex);
+        }
+        return 0;
+    }
+
     public int update(Product product) {
         // Nếu có upload ảnh mới thì cập nhật, nếu không thì giữ nguyên ảnh cũ bằng COALESCE
         String sql = "UPDATE PRODUCT SET product_name=?, description=?, category_id=?, brand_id=?, image_url=COALESCE(?, image_url) WHERE product_id=?";
@@ -111,7 +141,7 @@ public class ProductDAO extends DBContext {
     }
 
     public Product getById(int id) {
-        // Đã bổ sung đầy đủ INNER JOIN theo chuẩn DB[cite: 1]
+        // Đã bổ sung đầy đủ INNER JOIN theo chuẩn DB
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
                 + "c.category_id, c.category_name, c.parent_id, "
                 + "b.brand_id, b.brand_name, b.logo_url "
@@ -138,7 +168,7 @@ public class ProductDAO extends DBContext {
                             rs.getString("logo_url")
                     );
 
-                    // Đã sửa lỗi logic: thêm return để trả về đối tượng tìm được[cite: 1]
+                    // Đã sửa lỗi logic: thêm return để trả về đối tượng tìm được
                     return new Product(
                             rs.getInt("product_id"),
                             rs.getInt("category_id"),
@@ -163,7 +193,7 @@ public class ProductDAO extends DBContext {
     // =====================================================
     public List<Product> searchProducts(String keyword) {
         List<Product> list = new ArrayList<>();
-        // Đã bổ sung đầy đủ INNER JOIN và điều kiện WHERE để tìm kiếm tương đối[cite: 1]
+        // Đã bổ sung đầy đủ INNER JOIN và điều kiện WHERE để tìm kiếm tương đối
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
                 + "c.category_id, c.category_name, c.parent_id, "
                 + "b.brand_id, b.brand_name, b.logo_url "
@@ -245,5 +275,66 @@ public class ProductDAO extends DBContext {
             Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi kiểm tra trùng tên Product lúc Edit!", ex);
         }
         return false;
+    }
+
+    public void insertGalleryImages(int productId, List<String> imageUrls) {
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            return;
+        }
+        String sql = "INSERT INTO PRODUCT_IMAGES (product_id, image_url) VALUES (?, ?)";
+        try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
+            for (String url : imageUrls) {
+                stm.setInt(1, productId);
+                stm.setString(2, url);
+                stm.addBatch();
+            }
+            stm.executeBatch();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void deleteGalleryImages(int productId) {
+        String sql = "DELETE FROM PRODUCT_IMAGES WHERE product_id = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
+            stm.setInt(1, productId);
+            stm.executeUpdate();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    // =====================================================
+    // LẤY DANH SÁCH ẢNH PHỤ
+    // =====================================================
+    public List<model.ProductImage> getProductImages(int productId) {
+        List<model.ProductImage> list = new ArrayList<>();
+        String sql = "SELECT image_id, product_id, image_url FROM PRODUCT_IMAGES WHERE product_id = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
+            stm.setInt(1, productId);
+            try (ResultSet rs = stm.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new model.ProductImage(
+                            rs.getInt("image_id"),
+                            rs.getInt("product_id"),
+                            rs.getString("image_url")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // Xóa một ảnh phụ cụ thể theo imageId
+    public void deleteGalleryImageById(int imageId) {
+        String sql = "DELETE FROM PRODUCT_IMAGES WHERE image_id = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
+            stm.setInt(1, imageId);
+            stm.executeUpdate();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 }
