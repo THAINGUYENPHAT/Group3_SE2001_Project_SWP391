@@ -108,6 +108,10 @@
         <h3 class="fw-bold mb-1">
             Xác nhận đơn hàng
         </h3>
+<c:if test="${not empty orderingRestriction}">
+    <div class="alert alert-warning" role="alert"><c:out value="${orderingRestriction}"/></div>
+</c:if>
+<p>Mỗi đơn tối đa 5 sản phẩm. Hủy hơn 5 sản phẩm trong 7 ngày sẽ bị khóa đặt hàng lần lượt 3 ngày, 7 ngày và vĩnh viễn.</p>
 
         <p class="text-muted mb-0">
             Vui lòng kiểm tra thông tin trước khi đặt hàng.

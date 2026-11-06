@@ -320,6 +320,12 @@ public class CheckoutServlet extends HttpServlet {
                 Math.max(0, subtotal + shippingFee - discount)
         );
 
+        try {
+            request.setAttribute("orderingRestriction", orderService.orderingRestriction(userId));
+        } catch (SQLException e) {
+            throw new ServletException("Không kiểm tra được quyền đặt hàng.", e);
+        }
+
         // Chi bat cong sandbox khi da co cau hinh
         request.setAttribute(
                 "vnpayAvailable",
