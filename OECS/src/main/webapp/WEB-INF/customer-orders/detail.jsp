@@ -207,6 +207,9 @@
             <span class="purchase-eyebrow">THEO DÕI ĐƠN HÀNG</span>
 
             <h1>Đơn hàng #${order.orderId}</h1>
+            <c:if test="${not empty orderingRestriction}">
+                <div class="alert alert-warning" role="alert"><c:out value="${orderingRestriction}"/></div>
+            </c:if>
 
             <p>
                 Đặt ngày
@@ -391,6 +394,18 @@
         <div>
 
             <%-- Dia chi nhan hang --%>
+
+            <c:if test="${not empty refunds}">
+                <section class="purchase-panel mb-3">
+                    <h2>Hoàn tiền thanh toán</h2>
+                    <c:forEach var="refund" items="${refunds}">
+                        <div class="mb-3"><p>Yêu cầu #${refund.id} · <fmt:formatNumber value="${refund.amount}" pattern="#,##0"/> đ · <c:out value="${refund.statusLabel}"/></p>
+                            <p><c:out value="${refund.reason}"/></p>
+                            <c:if test="${refund.status == 'SUCCESS'}"><p>Mã tham chiếu hoàn tiền <c:out value="${refund.reference}"/></p></c:if>
+                        </div>
+                    </c:forEach>
+                </section>
+            </c:if>
             <section class="purchase-panel purchase-address">
                 <h2>
                     <i class="bi bi-geo-alt me-2" aria-hidden="true"></i>

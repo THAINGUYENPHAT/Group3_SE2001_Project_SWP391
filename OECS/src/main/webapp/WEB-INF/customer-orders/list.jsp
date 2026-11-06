@@ -349,6 +349,10 @@
 </style>
 
 <main id="purchase-history" aria-labelledby="ph-title">
+    <c:if test="${not empty orderingRestriction}">
+        <div class="alert alert-warning" role="alert"><c:out value="${orderingRestriction}"/></div>
+    </c:if>
+
 
     <%-- DIEU HUONG --%>
     <div class="ph-topbar">

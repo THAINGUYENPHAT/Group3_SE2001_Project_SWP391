@@ -58,6 +58,7 @@ public class CustomerOrderServlet extends HttpServlet {
         request.setAttribute("statusLabels", OrderService.statusLabels());
 
         try {
+            request.setAttribute("orderingRestriction", service.orderingRestriction(user.getUserId()));
             if ("/my-orders".equals(request.getServletPath())) {
 
                 Map<String, String> tabs = OrderService.purchaseTabs();
@@ -145,6 +146,7 @@ public class CustomerOrderServlet extends HttpServlet {
                 );
 
                 request.setAttribute("order", order);
+                request.setAttribute("refunds", new dao.PaymentRefundDAO().findForCustomer(id, user.getUserId()));
 
 // Kiểm tra khách hàng có được gửi yêu cầu đổi/trả mới không.
                 request.setAttribute(

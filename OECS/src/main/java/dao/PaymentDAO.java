@@ -416,6 +416,8 @@ public class PaymentDAO {
             connection.setAutoCommit(false);
 
             try {
+                OrderPolicyDAO policy = new OrderPolicyDAO();
+                policy.lockCustomer(connection, userId);
                 LockedOrder order = lock(connection, orderId);
 
                 if (order.owner != userId) {
@@ -483,6 +485,7 @@ public class PaymentDAO {
 
                 } else {
                     cancel(connection, order);
+                    policy.recordCancellation(connection, userId, orderId);
                 }
 
                 connection.commit();
