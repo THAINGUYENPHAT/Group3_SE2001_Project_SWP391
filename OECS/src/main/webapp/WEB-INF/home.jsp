@@ -925,7 +925,6 @@
                                     <div class="product-image text-dark">
                                         <c:choose>
                                             <c:when test="${not empty product.imageUrl}">
-                                                <!-- INUSAR TI c:out DITOY -->
                                                 <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="<c:out value='${product.productName}'/>">
                                             </c:when>
                                             <c:otherwise>
@@ -935,10 +934,8 @@
                                     </div>
 
                                     <div class="product-info">
-                                        <!-- INUSAR TI c:out DITOY -->
                                         <div class="product-brand"><c:out value="${product.brand.brandName}"/></div>
                                         <div class="product-name text-dark"><c:out value="${product.productName}"/></div>
-                                        <div class="product-description"><c:out value="${product.description}"/></div>
                                     </div>
                                 </a>
                             </div>
