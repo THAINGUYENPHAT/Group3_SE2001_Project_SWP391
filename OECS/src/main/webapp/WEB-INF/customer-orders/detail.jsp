@@ -450,8 +450,16 @@
                     <c:forEach var="item" items="${items}">
                         <div class="purchase-product">
                             <span class="purchase-product-icon">
-                                <i class="bi bi-box-seam"
-                                   aria-hidden="true"></i>
+                                <c:choose>
+                                    <c:when test="${not empty item.imageUrl}">
+                                        <c:url var="productImage" value="/${item.imageUrl}" />
+                                        <img src="<c:out value='${productImage}'/>" alt=""
+                                             style="width:100%; height:100%; object-fit:contain; border-radius:inherit;" />
+                                    </c:when>
+                                    <c:otherwise>
+                                        <i class="bi bi-box-seam" aria-hidden="true"></i>
+                                    </c:otherwise>
+                                </c:choose>
                             </span>
 
                             <div class="purchase-product-info">
