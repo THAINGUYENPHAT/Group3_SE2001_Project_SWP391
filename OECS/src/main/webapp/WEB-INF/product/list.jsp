@@ -95,7 +95,6 @@
                     <th>SẢN PHẨM</th>
                     <th>DANH MỤC</th>
                     <th>THƯƠNG HIỆU</th>
-                    <th>MÔ TẢ</th>
                     <th style="width: 130px;" class="text-end">THAO TÁC</th>
                 </tr>
             </thead>
@@ -151,19 +150,6 @@
                                             <span class="badge bg-info-subtle text-info border border-info-subtle">
                                                 <!-- FIX XSS TẠI TÊN THƯƠNG HIỆU -->
                                                 <c:out value="${product.brand.brandName}" />
-                                            </span>
-                                        </c:when>
-                                        <c:otherwise><span class="text-muted">Không có</span></c:otherwise>
-                                    </c:choose>
-                                </td>
-
-                                <!-- Description -->
-                                <td>
-                                    <c:choose>
-                                        <c:when test="${not empty product.description}">
-                                            <span class="text-muted" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                                <!-- FIX XSS TẠI MÔ TẢ -->
-                                                <c:out value="${product.description}" />
                                             </span>
                                         </c:when>
                                         <c:otherwise><span class="text-muted">Không có</span></c:otherwise>

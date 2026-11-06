@@ -110,7 +110,7 @@ public class OrderDAO {
         if (ids.size() > 50) {
             throw new IllegalArgumentException("Too many orders");
         }
-        String sql = "SELECT i.order_id, i.sku_id, i.price, i.quantity, s.sku_code, p.product_name "
+        String sql = "SELECT i.order_id, i.sku_id, i.price, i.quantity, s.sku_code, p.product_name, p.image_url "
                 + "FROM dbo.ORDER_ITEM i JOIN dbo.[ORDER] o ON o.order_id = i.order_id "
                 + "LEFT JOIN dbo.PRODUCT_SKU s ON s.sku_id = i.sku_id "
                 + "LEFT JOIN dbo.PRODUCT p ON p.product_id = s.product_id WHERE o.user_id = ? "
@@ -125,6 +125,7 @@ public class OrderDAO {
                 while (rs.next()) {
                     Map<String, Object> item = new LinkedHashMap<>();
                     item.put("skuId", rs.getInt("sku_id"));
+                    item.put("imageUrl", rs.getString("image_url"));
                     item.put("skuCode", rs.getString("sku_code"));
                     item.put("productName", rs.getString("product_name"));
                     item.put("price", rs.getBigDecimal("price"));
@@ -363,7 +364,7 @@ public class OrderDAO {
 
     // Customer detail queries always include the authenticated owner.
     public List<Map<String, Object>> findItems(int orderId, int userId) throws SQLException {
-        String sql = "SELECT i.order_item_id, i.sku_id, i.price, i.quantity, s.sku_code, p.product_name "
+        String sql = "SELECT i.order_item_id, i.sku_id, i.price, i.quantity, s.sku_code, p.product_name, p.image_url "
                 + "FROM dbo.ORDER_ITEM i JOIN dbo.[ORDER] o ON o.order_id = i.order_id "
                 + "LEFT JOIN dbo.PRODUCT_SKU s ON s.sku_id = i.sku_id "
                 + "LEFT JOIN dbo.PRODUCT p ON p.product_id = s.product_id "
@@ -377,6 +378,7 @@ public class OrderDAO {
                     Map<String, Object> item = new LinkedHashMap<>();
                     item.put("orderItemId", rs.getInt("order_item_id"));
                     item.put("skuId", rs.getInt("sku_id"));
+                    item.put("imageUrl", rs.getString("image_url"));
                     item.put("skuCode", rs.getString("sku_code"));
                     item.put("productName", rs.getString("product_name"));
                     item.put("price", rs.getBigDecimal("price"));
