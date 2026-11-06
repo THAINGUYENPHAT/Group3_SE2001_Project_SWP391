@@ -346,11 +346,7 @@
             </p>
         </div>
 
-        <a href="${pageContext.request.contextPath}/my-orders"
-           class="btn btn-outline-secondary rounded-3 px-3 py-2">
-            <i class="bi bi-arrow-left me-1"></i>
-            Quay lại lịch sử đơn hàng
-        </a>
+        
     </div>
 
     <!-- SUCCESS SCREEN -->
