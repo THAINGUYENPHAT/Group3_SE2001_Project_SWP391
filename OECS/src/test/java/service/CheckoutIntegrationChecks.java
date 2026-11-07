@@ -59,6 +59,8 @@ public final class CheckoutIntegrationChecks {
                 purchaseHistoryChecks();
                 selectedCheckoutChecks();
                 servletGuards();
+                cancellationPolicyChecks();
+                refundWorkflowChecks();
                 System.out.println("PASS: " + passed + " checkout/order integration assertions");
             } finally {
                 // Only the exact database created above is eligible for cleanup.
@@ -78,12 +80,13 @@ public final class CheckoutIntegrationChecks {
         String schema = new String(bytes, bytes.length > 1 && bytes[0] == (byte) 0xff
                 && bytes[1] == (byte) 0xfe ? StandardCharsets.UTF_16LE : StandardCharsets.UTF_8);
         String[] tables = {"USER", "ADDRESSBOOK", "CATEGORY", "BRAND", "PRODUCT", "PRODUCT_SKU",
-            "CART", "CART_ITEMS", "SHIPPING_PARTNER", "VOUCHER", "ORDER", "ORDER_ITEM", "ORDER_STATUS_HISTORY", "VOUCHER_USAGES"};
+            "CART", "CART_ITEMS", "SHIPPING_PARTNER", "VOUCHER", "ORDER", "ORDER_ITEM", "ORDER_STATUS_HISTORY", "VOUCHER_USAGES", "ORDER_CUSTOMER_POLICY", "ORDER_CUSTOMER_CANCELLATION", "PAYMENT_TRANSACTION", "PAYMENT_REFUND"};
         for (String table : tables) {
             Matcher match = Pattern.compile("^CREATE TABLE \\[?" + table + "\\]? \\([\\s\\S]*?^\\);", Pattern.MULTILINE).matcher(schema);
             if (!match.find()) throw new IllegalStateException("Cannot find schema for " + table);
             execute(match.group());
         }
+        execute("CREATE UNIQUE INDEX UX_Payment_Refund_Transaction ON dbo.PAYMENT_REFUND(transaction_id)");
         execute("CREATE UNIQUE INDEX UX_Order_CheckoutToken ON dbo.[ORDER](checkout_token) WHERE checkout_token IS NOT NULL");
     }
 
@@ -270,6 +273,138 @@ public final class CheckoutIntegrationChecks {
                 && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=2") == 10,
                 "cancelling selected checkout restores only purchased stock");
     }
+
+
+    private int policyUser;
+    private int policyAddress;
+    private int policyCart;
+
+    private int policyOrder(int quantity) throws Exception {
+        execute("INSERT INTO dbo.CART_ITEMS(cart_id,sku_id,quantity) VALUES (" + policyCart + ",1," + quantity + ")");
+        return checkout.placeCodOrder(policyUser, policyAddress, UUID.randomUUID().toString(), null);
+    }
+
+    private void cancellationPolicyChecks() throws Exception {
+        execute("INSERT INTO dbo.[USER](username,email,password_hash) VALUES ('policy-test','policy@example.invalid','test')");
+        policyUser = (int) scalar("SELECT user_id FROM dbo.[USER] WHERE username='policy-test'");
+        execute("INSERT INTO dbo.ADDRESSBOOK(user_id,recipient_name,phone_number,address_line) VALUES (" + policyUser + ",N'Policy','0901234567',N'Test')");
+        policyAddress = (int) scalar("SELECT address_id FROM dbo.ADDRESSBOOK WHERE user_id=" + policyUser);
+        execute("INSERT INTO dbo.CART(user_id) VALUES (" + policyUser + ")");
+        policyCart = (int) scalar("SELECT cart_id FROM dbo.CART WHERE user_id=" + policyUser);
+        execute("UPDATE dbo.PRODUCT_SKU SET stock_quantity=1000 WHERE sku_id=1");
+
+        expectInvalid(() -> policyOrder(6), "six units rejected before creating order");
+        execute("DELETE FROM dbo.CART_ITEMS WHERE cart_id=" + policyCart);
+        int five = policyOrder(5);
+        int one = policyOrder(1);
+        int duringBlock = policyOrder(1);
+        checkout.cancelOrderByCustomer(policyUser, five);
+        check(checkout.orderingRestriction(policyUser) == null, "exactly five cancelled units allowed");
+        checkout.cancelOrderByCustomer(policyUser, one);
+        check(scalar("SELECT violation_count FROM dbo.ORDER_CUSTOMER_POLICY WHERE user_id=" + policyUser) == 1,
+                "six cancelled units trigger first strike");
+        check(scalar("SELECT DATEDIFF(HOUR,SYSUTCDATETIME(),blocked_until) FROM dbo.ORDER_CUSTOMER_POLICY WHERE user_id=" + policyUser) >= 71,
+                "first strike blocks three days");
+        expectInvalid(() -> policyOrder(1), "blocked customer cannot place an order");
+        execute("DELETE FROM dbo.CART_ITEMS WHERE cart_id=" + policyCart);
+        checkout.cancelOrderByCustomer(policyUser, duringBlock);
+        check(scalar("SELECT violation_count FROM dbo.ORDER_CUSTOMER_POLICY WHERE user_id=" + policyUser) == 1,
+                "cancelling existing order during block does not escalate");
+        check(!checkout.cancelOrderByCustomer(policyUser, duringBlock), "repeated cancellation does not add an event");
+
+        expirePolicyBlock();
+        check(checkout.orderingRestriction(policyUser) == null, "ordering resumes after block ends");
+        final int firstConcurrent = policyOrder(3);
+        final int secondConcurrent = policyOrder(3);
+        parallel(() -> checkout.cancelOrderByCustomer(policyUser, firstConcurrent),
+                () -> checkout.cancelOrderByCustomer(policyUser, secondConcurrent));
+        check(scalar("SELECT violation_count FROM dbo.ORDER_CUSTOMER_POLICY WHERE user_id=" + policyUser) == 2,
+                "concurrent cancellations escalate once in new period");
+        check(scalar("SELECT DATEDIFF(HOUR,SYSUTCDATETIME(),blocked_until) FROM dbo.ORDER_CUSTOMER_POLICY WHERE user_id=" + policyUser) >= 167,
+                "second strike blocks seven days");
+        expirePolicyBlock();
+        int first = policyOrder(5);
+        int second = policyOrder(1);
+        checkout.cancelOrderByCustomer(policyUser, first);
+        checkout.cancelOrderByCustomer(policyUser, second);
+        check(scalar("SELECT violation_count FROM dbo.ORDER_CUSTOMER_POLICY WHERE user_id=" + policyUser) == 3,
+                "third strike is permanent");
+        check(checkout.orderingRestriction(policyUser).contains("vĩnh viễn"), "permanent block explained to customer");
+        expectInvalid(() -> policyOrder(1), "permanent block enforced");
+        execute("DELETE FROM dbo.CART_ITEMS WHERE cart_id=" + policyCart);
+
+        // Reset only this isolated fixture to exercise the online cancellation entry point.
+        execute("DELETE FROM dbo.ORDER_CUSTOMER_CANCELLATION WHERE user_id=" + policyUser);
+        execute("DELETE FROM dbo.ORDER_CUSTOMER_POLICY WHERE user_id=" + policyUser);
+        int expired = policyOrder(5);
+        execute("UPDATE dbo.[ORDER] SET payment_method='VNPAY',order_status='PENDING_PAYMENT',payment_expires_at=DATEADD(MINUTE,-1,SYSUTCDATETIME()) WHERE order_id=" + expired);
+        dao.PaymentDAO payments = new dao.PaymentDAO(connections);
+        payments.changeOrCancel(policyUser, expired, false);
+        check(scalar("SELECT COUNT(*) FROM dbo.ORDER_CUSTOMER_CANCELLATION WHERE order_id=" + expired) == 0,
+                "automatic payment expiry excluded from customer cancellation count");
+        int online = policyOrder(5);
+        execute("UPDATE dbo.[ORDER] SET payment_method='VNPAY',order_status='PENDING_PAYMENT',payment_expires_at=DATEADD(MINUTE,15,SYSUTCDATETIME()) WHERE order_id=" + online);
+        payments.changeOrCancel(policyUser, online, false);
+        payments.changeOrCancel(policyUser, online, false);
+        check(scalar("SELECT quantity FROM dbo.ORDER_CUSTOMER_CANCELLATION WHERE order_id=" + online) == 5,
+                "explicit online cancellation counted exactly once");
+        // Old cancellation outside rolling seven days must not combine with a new one.
+        execute("UPDATE dbo.ORDER_CUSTOMER_CANCELLATION SET cancelled_at=DATEADD(DAY,-8,SYSUTCDATETIME()) WHERE user_id=" + policyUser);
+        checkout.cancelOrderByCustomer(policyUser, policyOrder(1));
+        check(checkout.orderingRestriction(policyUser) == null, "events older than seven days excluded");
+    }
+
+    private void expirePolicyBlock() throws SQLException {
+        execute("UPDATE dbo.ORDER_CUSTOMER_CANCELLATION SET cancelled_at=DATEADD(DAY,-10,SYSUTCDATETIME()) WHERE user_id=" + policyUser);
+        execute("UPDATE dbo.ORDER_CUSTOMER_POLICY SET blocked_until=DATEADD(SECOND,-1,SYSUTCDATETIME()) WHERE user_id=" + policyUser);
+    }
+
+    private void refundWorkflowChecks() throws Exception {
+        int id = policyOrder(1);
+        execute("UPDATE dbo.[ORDER] SET payment_method='VNPAY',order_status='PENDING_PAYMENT',payment_expires_at=DATEADD(MINUTE,15,SYSUTCDATETIME()) WHERE order_id=" + id);
+        execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code) "
+                + "SELECT order_id,'VNPAY',total_amount,'REFUND-A' FROM dbo.[ORDER] WHERE order_id=" + id);
+        execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code) "
+                + "SELECT order_id,'VNPAY',total_amount,'REFUND-B' FROM dbo.[ORDER] WHERE order_id=" + id);
+        BigDecimal amount = BigDecimal.valueOf(scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + id));
+        dao.PaymentDAO payments = new dao.PaymentDAO(connections);
+        check("04".equals(payments.settle("VNPAY","REFUND-A",amount.add(BigDecimal.ONE),"PROVIDER-A","00",true)),
+                "incorrect callback amount rejected");
+        check("00".equals(payments.settle("VNPAY","REFUND-A",amount,"PROVIDER-A","00",true)),
+                "first payment confirms order");
+        parallel(() -> payments.settle("VNPAY","REFUND-B",amount,"PROVIDER-B","00",true),
+                () -> payments.settle("VNPAY","REFUND-B",amount,"PROVIDER-B","00",true));
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND") == 1, "duplicate successful payment creates one refund despite repeated callbacks");
+        long refundId = scalar("SELECT refund_id FROM dbo.PAYMENT_REFUND");
+        dao.PaymentRefundDAO refunds = new dao.PaymentRefundDAO(connections);
+        check(refunds.findForCustomer(id,policyUser).size() == 1, "customer sees own refund");
+        check(refunds.findForCustomer(id,1).isEmpty(), "other customer cannot see refund");
+        expectInvalid(() -> { refunds.updateStatus(refundId,"PENDING","SUCCESS","receipt",1); return null; },
+                "cannot skip reconciliation");
+        refunds.updateStatus(refundId,"PENDING","PROCESSING",null,1);
+        expectInvalid(() -> { refunds.updateStatus(refundId,"PENDING","PROCESSING",null,1); return null; },
+                "stale staff update rejected");
+        expectInvalid(() -> { refunds.updateStatus(refundId,"PROCESSING","SUCCESS"," ",1); return null; },
+                "completion needs refund reference");
+        refunds.updateStatus(refundId,"PROCESSING","FAILED",null,1);
+        refunds.updateStatus(refundId,"FAILED","PROCESSING",null,1);
+        refunds.updateStatus(refundId,"PROCESSING","SUCCESS","REFUND-RECEIPT-1",1);
+        check("Đã hoàn tiền".equals(refunds.findForCustomer(id,policyUser).get(0).get("statusLabel")),
+                "completed refund visible to customer");
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND WHERE processed_by=1 AND completed_at IS NOT NULL AND provider_refund_id='REFUND-RECEIPT-1'") == 1,
+                "completion records staff, date and reference");
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id + " AND payment_status='PAID'") == 1,
+                "surplus refund preserves original paid order");
+        expectSql(() -> { execute("INSERT INTO dbo.PAYMENT_REFUND(transaction_id,refund_amount) SELECT transaction_id,refund_amount FROM dbo.PAYMENT_REFUND"); return null; },
+                "database prevents duplicate refund requests");
+        controller.PaymentRefundServlet servlet = new controller.PaymentRefundServlet();
+        checkServlet(servlet, "doGet", null, "/staff/payment-refunds", null, 403, "anonymous refund access denied");
+        model.User customer = new model.User(); customer.setRoleName("Customer"); customer.setUserId(policyUser);
+        checkServlet(servlet, "doPost", customer, "/staff/payment-refunds", null, 403, "customer cannot update refunds");
+        model.User staff = new model.User(); staff.setRoleName("Staff"); staff.setUserId(1);
+        checkServlet(servlet, "doPost", staff, "/staff/payment-refunds", null, 403, "refund mutation requires CSRF token");
+    }
+
 
     private void servletGuards() throws Exception {
         controller.CustomerOrderServlet servlet = new controller.CustomerOrderServlet();
