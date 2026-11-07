@@ -6,6 +6,7 @@ import model.Product;
 import model.ProductSku;
 import model.ProductSpec;
 import model.ProductReview;
+import model.ProductImage;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -15,6 +16,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,6 +39,13 @@ public class ShopServlet extends HttpServlet {
                 Product product = shopDao.getProductDetail(id);
 
                 if (product != null) {
+                    // =========================================================
+                    // SỬA LỖI Ở ĐÂY: Gọi DAO lấy danh sách ảnh phụ rồi set vào Product
+                    // =========================================================
+                    List<ProductImage> galleryImages = shopDao.getProductImages(id);
+                    product.setGalleryImages(galleryImages);
+                    // =========================================================
+
                     List<ProductSku> skus = shopDao.getProductSkus(id);
                     List<ProductSpec> specs = shopDao.getProductSpecs(id);
 

@@ -116,6 +116,19 @@
         resize: vertical;
     }
 
+    .validation-error {
+        display: none;
+        color: #dc2626;
+        font-size: 13px;
+        margin-top: 8px;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .validation-error.show {
+        display: flex;
+    }
+
     .return-detail .action-card {
         border-top: 3px solid #2563eb;
     }
@@ -125,10 +138,293 @@
             padding: 16px;
         }
     }
+
+    /* ================= NOTIFICATION ================= */
+
+    .success-message,
+    .error-message {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: fixed;
+        top: 90px;
+        right: 28px;
+        z-index: 9999;
+        width: max-content;
+        max-width: min(450px, calc(100vw - 32px));
+        padding: 16px 20px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.5;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+        animation: notification-in 0.3s ease-out;
+    }
+
+    .success-message {
+        color: #166534;
+        background: #f0fdf4;
+        border: 1px solid #86efac;
+        border-left: 5px solid #22c55e;
+    }
+
+    .error-message {
+        color: #b91c1c;
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
+        border-left: 5px solid #ef4444;
+    }
+
+    .notification-icon {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .success-message .notification-icon {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .error-message .notification-icon {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    @keyframes notification-in {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes notification-out {
+        to {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+    }
+
+    .notification-hide {
+        animation: notification-out 0.25s ease-in forwards;
+        pointer-events: none;
+    }
+
+    @media (max-width: 600px) {
+        .success-message,
+        .error-message {
+            top: 82px;
+            right: 12px;
+            max-width: calc(100vw - 24px);
+            padding: 12px 14px;
+        }
+    }
+
+    /* ================= REVIEW CONFIRM MODAL ================= */
+
+    .review-modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(3px);
+    }
+
+    .review-modal-overlay.show {
+        display: flex;
+    }
+
+    .review-modal-box {
+        width: 100%;
+        max-width: 420px;
+        padding: 28px;
+        background: #ffffff;
+        border: 1px solid #e5eaf1;
+        border-radius: 18px;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+        text-align: center;
+        animation: review-modal-in 0.2s ease-out;
+    }
+
+    .review-modal-icon {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #e7f2ff;
+        color: #1677ff;
+        font-size: 27px;
+    }
+
+    .review-modal-icon.reject {
+        background: #fff1f2;
+        color: #e53935;
+    }
+
+    .review-modal-box h2 {
+        margin: 0 0 10px;
+        color: #10213b;
+        font-size: 21px;
+        font-weight: 700;
+    }
+
+    .review-modal-box p {
+        margin: 0;
+        color: #71819a;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .review-modal-actions {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 26px;
+    }
+
+    .review-modal-btn {
+        min-width: 120px;
+        padding: 11px 18px;
+        border-radius: 9px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .review-modal-btn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    .review-modal-btn-secondary {
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+    }
+
+    .review-modal-btn-secondary:hover {
+        background: #e2e8f0;
+    }
+
+    .review-modal-btn-approve {
+        background: #1677ff;
+        color: white;
+        border: 1px solid #1677ff;
+    }
+
+    .review-modal-btn-approve:hover {
+        background: #0867e8;
+    }
+
+    .review-modal-btn-reject {
+        background: #e53935;
+        color: white;
+        border: 1px solid #e53935;
+    }
+
+    .review-modal-btn-reject:hover {
+        background: #c62828;
+    }
+
+    @keyframes review-modal-in {
+        from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .review-modal-box {
+            padding: 24px 18px;
+        }
+
+        .review-modal-actions {
+            flex-direction: column-reverse;
+        }
+
+        .review-modal-btn {
+            width: 100%;
+        }
+    }
 </style>
 
 <div class="return-detail">
 
+    <!-- SUCCESS NOTIFICATION -->
+    <c:if test="${not empty param.message}">
+        <div class="success-message notification" role="status">
+            <span class="notification-icon">✓</span>
+            <span>
+                <c:choose>
+                    <c:when test="${param.message == 'approved'}">
+                        Yêu cầu đã được chấp nhận thành công. Khách hàng có thể theo dõi kết quả xử lý.
+                    </c:when>
+                    <c:when test="${param.message == 'rejected'}">
+                        Yêu cầu đã được từ chối thành công. Lý do từ chối đã được lưu lại.
+                    </c:when>
+                    <c:otherwise>
+                        Thao tác đã được thực hiện thành công.
+                    </c:otherwise>
+                </c:choose>
+            </span>
+        </div>
+    </c:if>
+
+    <!-- ERROR NOTIFICATION -->
+    <c:if test="${not empty param.error}">
+        <div class="error-message notification" role="alert">
+            <span class="notification-icon">!</span>
+            <span>
+                <c:choose>
+                    <c:when test="${param.error == 'noteRequired'}">
+                        Chưa thể từ chối yêu cầu. Vui lòng nhập lý do từ chối.
+                    </c:when>
+                    <c:when test="${param.error == 'alreadyReviewed'}">
+                        Yêu cầu đã được xử lý. Vui lòng tải lại trang để xem kết quả mới nhất.
+                    </c:when>
+                    <c:when test="${param.error == 'invalidId'}">
+                        Mã yêu cầu không hợp lệ. Vui lòng kiểm tra lại.
+                    </c:when>
+                    <c:when test="${param.error == 'invalidAction'}">
+                        Thao tác không hợp lệ. Vui lòng chọn Chấp nhận hoặc Từ chối.
+                    </c:when>
+                    <c:when test="${param.error == 'invalid'}">
+                        Không thể cập nhật yêu cầu vì dữ liệu không hợp lệ.
+                    </c:when>
+                    <c:when test="${param.error == 'system'}">
+                        Hệ thống đang gặp sự cố. Vui lòng thử lại sau.
+                    </c:when>
+                    <c:otherwise>
+                        Đã xảy ra lỗi khi xử lý yêu cầu. Vui lòng thử lại.
+                    </c:otherwise>
+                </c:choose>
+            </span>
+        </div>
+    </c:if>
+
+    <!-- PAGE HEADER -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
             <h3 class="fw-bold text-dark mb-1">
@@ -147,40 +443,10 @@
         </a>
     </div>
 
-    <c:if test="${not empty param.message}">
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            <c:out value="${param.message}"/>
-            <button type="button" class="btn-close"
-                    data-bs-dismiss="alert" aria-label="Đóng"></button>
-        </div>
-    </c:if>
-
-    <c:if test="${not empty param.error}">
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <c:choose>
-                <c:when test="${param.error == 'noteRequired'}">
-                    Vui lòng nhập lý do từ chối.
-                </c:when>
-                <c:when test="${param.error == 'alreadyReviewed'}">
-                    Yêu cầu này đã được xử lý trước đó.
-                </c:when>
-                <c:when test="${param.error == 'invalidId'}">
-                    Mã yêu cầu không hợp lệ.
-                </c:when>
-                <c:otherwise>
-                    Không thể xử lý yêu cầu. Vui lòng kiểm tra lại.
-                </c:otherwise>
-            </c:choose>
-            <button type="button" class="btn-close"
-                    data-bs-dismiss="alert" aria-label="Đóng"></button>
-        </div>
-    </c:if>
-
     <c:choose>
         <c:when test="${not empty selectedRequest}">
 
+            <!-- REQUEST INFORMATION -->
             <div class="detail-card">
                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
                     <div>
@@ -314,6 +580,8 @@
                 </c:if>
             </div>
 
+
+            <!-- REQUEST PRODUCTS -->
             <div class="detail-card">
                 <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
                     <h5 class="fw-bold mb-0">Sản phẩm trong yêu cầu</h5>
@@ -328,56 +596,92 @@
                         <thead>
                             <tr>
                                 <th>SẢN PHẨM</th>
-                                <th>SKU BAN ĐẦU</th>
+                                <th>SKU</th>
                                 <th class="text-center">SỐ LƯỢNG</th>
-                                <th>SKU MUỐN ĐỔI</th>
+                                <th class="text-end">ĐƠN GIÁ</th>
+                                <th class="text-end">THÀNH TIỀN</th>
                             </tr>
                         </thead>
 
+                        <c:set var="requestTotal" value="${0}" />
+
                         <tbody>
                             <c:forEach var="item" items="${requestItems}">
+                                <c:set var="lineTotal"
+                                       value="${item.price * item.quantity}" />
+
+                                <c:set var="requestTotal"
+                                       value="${requestTotal + lineTotal}" />
+
                                 <tr>
                                     <td>
                                         <div class="fw-semibold text-dark">
                                             <c:out value="${item.productName}"/>
                                         </div>
+
+                                        <c:if test="${not empty item.exchangeSkuCode}">
+                                            <small class="text-info">
+                                                <i class="bi bi-arrow-left-right me-1"></i>
+                                                SKU đổi:
+                                                <c:out value="${item.exchangeSkuCode}"/>
+                                            </small>
+                                        </c:if>
                                     </td>
+
                                     <td>
                                         <span class="badge bg-light text-secondary border">
                                             <c:out value="${item.originalSkuCode}"/>
                                         </span>
                                     </td>
+
                                     <td class="text-center">
                                         <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2">
                                             <c:out value="${item.quantity}"/>
                                         </span>
                                     </td>
-                                    <td>
-                                        <c:choose>
-                                            <c:when test="${not empty item.exchangeSkuCode}">
-                                                <c:out value="${item.exchangeSkuCode}"/>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <span class="text-muted small">Không áp dụng</span>
-                                            </c:otherwise>
-                                        </c:choose>
+
+                                    <td class="text-end text-nowrap">
+                                        <fmt:formatNumber value="${item.price}"
+                                                          maxFractionDigits="0"/>đ
+                                    </td>
+
+                                    <td class="text-end fw-semibold text-nowrap">
+                                        <fmt:formatNumber value="${lineTotal}"
+                                                          maxFractionDigits="0"/>đ
                                     </td>
                                 </tr>
                             </c:forEach>
 
                             <c:if test="${empty requestItems}">
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted py-4">
+                                    <td colspan="5" class="text-center text-muted py-4">
                                         <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                                         Không có sản phẩm trong yêu cầu.
                                     </td>
                                 </tr>
                             </c:if>
                         </tbody>
+
+                        <c:if test="${not empty requestItems}">
+                            <tfoot>
+                                <tr>
+                                    <td colspan="4" class="text-end fw-bold py-3">
+                                        Tổng giá trị sản phẩm yêu cầu:
+                                    </td>
+
+                                    <td class="text-end fw-bold text-primary fs-5 text-nowrap py-3">
+                                        <fmt:formatNumber value="${requestTotal}"
+                                                          maxFractionDigits="0"/>đ
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </c:if>
                     </table>
                 </div>
             </div>
 
+
+            <!-- ACTION CARD -->
             <div class="detail-card action-card">
                 <h5 class="section-title">
                     <i class="bi bi-clipboard-check text-primary me-2"></i>
@@ -386,6 +690,7 @@
 
                 <c:choose>
                     <c:when test="${selectedRequest.requestStatus == 'PENDING'}">
+
                         <div class="alert alert-info border-0 rounded-3 small">
                             <i class="bi bi-info-circle-fill me-2"></i>
                             Kiểm tra thông tin trước khi chấp nhận hoặc từ chối yêu cầu.
@@ -395,38 +700,48 @@
                               action="${pageContext.request.contextPath}/staff/return-exchange"
                               id="reviewForm">
 
-                            <input type="hidden" name="id"
+                            <input type="hidden"
+                                   name="id"
                                    value="<c:out value='${selectedRequest.requestId}'/>"/>
+
+                            <input type="hidden"
+                                   name="action"
+                                   id="reviewAction"/>
 
                             <div class="mb-3">
                                 <label for="staffNote" class="form-label fw-semibold">
                                     Ghi chú của Staff
                                 </label>
+
                                 <textarea id="staffNote"
                                           name="staffNote"
                                           class="form-control rounded-3"
                                           maxlength="1000"
                                           placeholder="Nhập ghi chú xử lý hoặc lý do từ chối..."></textarea>
+
+                                <div id="noteError" class="validation-error">
+                                    <i class="bi bi-exclamation-circle-fill"></i>
+                                    Vui lòng nhập lý do từ chối.
+                                </div>
+
                                 <div class="form-text">
                                     Khi từ chối, bạn cần nhập lý do cụ thể.
                                 </div>
                             </div>
 
+                            <!-- ACTION BUTTONS -->
                             <div class="d-flex flex-column flex-sm-row flex-wrap gap-2">
+
                                 <button class="btn btn-success rounded-3 px-4 py-2"
-                                        type="submit"
-                                        name="action"
-                                        value="approve"
-                                        onclick="return confirm('Bạn có chắc muốn chấp nhận yêu cầu này?');">
+                                        type="button"
+                                        onclick="showReviewModal('approve')">
                                     <i class="bi bi-check-circle me-1"></i>
                                     Chấp nhận
                                 </button>
 
                                 <button class="btn btn-danger rounded-3 px-4 py-2"
-                                        type="submit"
-                                        name="action"
-                                        value="reject"
-                                        onclick="return rejectRequest();">
+                                        type="button"
+                                        onclick="showReviewModal('reject')">
                                     <i class="bi bi-x-circle me-1"></i>
                                     Từ chối
                                 </button>
@@ -436,29 +751,46 @@
                                     <i class="bi bi-arrow-left me-1"></i>
                                     Quay lại danh sách
                                 </a>
+
                             </div>
                         </form>
 
-                        <script>
-                            function rejectRequest() {
-                                const note = document.getElementById("staffNote").value.trim();
-
-                                if (note === "") {
-                                    alert("Vui lòng nhập lý do từ chối.");
-                                    document.getElementById("staffNote").focus();
-                                    return false;
-                                }
-
-                                return confirm("Bạn có chắc muốn từ chối yêu cầu này?");
-                            }
-                        </script>
                     </c:when>
 
                     <c:otherwise>
-                        <div class="alert alert-secondary border-0 rounded-3 mb-3">
-                            <i class="bi bi-lock-fill me-2"></i>
-                            Yêu cầu này đã được xử lý. Bạn không thể duyệt lại.
-                        </div>
+                        <c:choose>
+                            <c:when test="${selectedRequest.requestStatus == 'APPROVED'}">
+                                <div class="alert alert-success border-0 rounded-3 mb-3">
+                                    <div class="fw-bold mb-1">
+                                        <i class="bi bi-check-circle-fill me-2"></i>
+                                        Yêu cầu đã được chấp nhận
+                                    </div>
+                                    Yêu cầu này đã được Staff chấp nhận trước đó.
+                                    Khách hàng có thể xem trạng thái và ghi chú xử lý.
+                                    Bạn không cần thực hiện thêm thao tác duyệt.
+                                </div>
+                            </c:when>
+
+                            <c:when test="${selectedRequest.requestStatus == 'REJECTED'}">
+                                <div class="alert alert-danger border-0 rounded-3 mb-3">
+                                    <div class="fw-bold mb-1">
+                                        <i class="bi bi-x-circle-fill me-2"></i>
+                                        Yêu cầu đã bị từ chối
+                                    </div>
+                                    Yêu cầu này đã được Staff từ chối trước đó.
+                                    Vui lòng xem ghi chú của Staff ở phần thông tin yêu cầu
+                                    nếu cần kiểm tra lý do.
+                                </div>
+                            </c:when>
+
+                            <c:otherwise>
+                                <div class="alert alert-secondary border-0 rounded-3 mb-3">
+                                    <i class="bi bi-lock-fill me-2"></i>
+                                    Yêu cầu hiện không ở trạng thái có thể xử lý.
+                                    Vui lòng tải lại trang hoặc liên hệ quản trị viên.
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
 
                         <a class="btn btn-outline-secondary rounded-3 px-4 py-2"
                            href="${pageContext.request.contextPath}/staff/return-exchange">
@@ -487,6 +819,196 @@
         </c:otherwise>
     </c:choose>
 
+    <!-- REVIEW CONFIRMATION MODAL -->
+    <div id="reviewModal"
+         class="review-modal-overlay"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="reviewModalTitle">
+
+        <div class="review-modal-box">
+
+            <div id="reviewModalIcon" class="review-modal-icon">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+
+            <h2 id="reviewModalTitle">
+                Xác nhận xử lý yêu cầu
+            </h2>
+
+            <p id="reviewModalMessage">
+                Bạn có chắc chắn muốn thực hiện thao tác này không?
+            </p>
+
+            <div class="review-modal-actions">
+
+                <button type="button"
+                        class="review-modal-btn review-modal-btn-secondary"
+                        onclick="closeReviewModal()">
+                    Hủy bỏ
+                </button>
+
+                <button type="button"
+                        id="confirmReviewButton"
+                        class="review-modal-btn review-modal-btn-approve"
+                        onclick="confirmReview()">
+                    Xác nhận
+                </button>
+
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<!-- REVIEW CONFIRMATION JAVASCRIPT -->
+<script>
+    let reviewAction = null;
+
+    function showReviewModal(action) {
+        const note = document.getElementById("staffNote");
+        const error = document.getElementById("noteError");
+
+        // Kiểm tra lý do trước khi mở modal từ chối
+        if (action === "reject" && note.value.trim() === "") {
+            if (error) {
+                error.classList.add("show");
+            }
+
+            note.focus();
+            return;
+        }
+
+        if (error) {
+            error.classList.remove("show");
+        }
+
+        reviewAction = action;
+
+        const modal = document.getElementById("reviewModal");
+        const icon = document.getElementById("reviewModalIcon");
+        const title = document.getElementById("reviewModalTitle");
+        const message = document.getElementById("reviewModalMessage");
+        const confirmButton = document.getElementById("confirmReviewButton");
+
+        // Reset trạng thái nút xác nhận
+        confirmButton.disabled = false;
+
+        if (action === "approve") {
+            icon.className = "review-modal-icon";
+            icon.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+
+            title.textContent = "Xác nhận chấp nhận";
+            message.textContent =
+                    "Bạn có chắc chắn muốn chấp nhận yêu cầu này không?";
+
+            confirmButton.className =
+                    "review-modal-btn review-modal-btn-approve";
+
+            confirmButton.textContent = "Chấp nhận";
+
+        } else {
+            icon.className = "review-modal-icon reject";
+            icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+
+            title.textContent = "Xác nhận từ chối";
+            message.textContent =
+                    "Bạn có chắc chắn muốn từ chối yêu cầu này không? Vui lòng kiểm tra lý do trước khi tiếp tục.";
+
+            confirmButton.className =
+                    "review-modal-btn review-modal-btn-reject";
+
+            confirmButton.textContent = "Từ chối";
+        }
+
+        modal.classList.add("show");
+        confirmButton.focus();
+    }
+
+    function closeReviewModal() {
+        const modal = document.getElementById("reviewModal");
+
+        modal.classList.remove("show");
+        reviewAction = null;
+    }
+
+    function confirmReview() {
+        if (reviewAction === null) {
+            return;
+        }
+
+        const note = document.getElementById("staffNote");
+        const error = document.getElementById("noteError");
+
+        // Kiểm tra lại lý do từ chối
+        if (reviewAction === "reject" && note.value.trim() === "") {
+            closeReviewModal();
+
+            if (error) {
+                error.classList.add("show");
+            }
+
+            note.focus();
+            return;
+        }
+
+        const form = document.getElementById("reviewForm");
+        const actionInput = document.getElementById("reviewAction");
+        const confirmButton = document.getElementById("confirmReviewButton");
+
+        actionInput.value = reviewAction;
+
+        confirmButton.disabled = true;
+        confirmButton.textContent = "Đang xử lý...";
+
+        form.submit();
+    }
+
+    // Xóa thông báo lỗi khi Staff nhập lý do
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const note = document.getElementById("staffNote");
+        const error = document.getElementById("noteError");
+
+        if (note && error) {
+            note.addEventListener("input", function () {
+                if (this.value.trim() !== "") {
+                    error.classList.remove("show");
+                }
+            });
+        }
+
+        // Tự động ẩn notification sau 3.5 giây
+        document.querySelectorAll(".notification").forEach(function (message) {
+            setTimeout(function () {
+                message.classList.add("notification-hide");
+
+                setTimeout(function () {
+                    message.remove();
+                }, 300);
+
+            }, 3500);
+        });
+
+    });
+
+    // Đóng modal khi click bên ngoài
+    const reviewModal = document.getElementById("reviewModal");
+
+    if (reviewModal) {
+        reviewModal.addEventListener("click", function (event) {
+            if (event.target === this) {
+                closeReviewModal();
+            }
+        });
+    }
+
+    // Đóng modal bằng phím ESC
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            closeReviewModal();
+        }
+    });
+</script>
 
 <%@include file="/WEB-INF/include/footer.jsp" %>

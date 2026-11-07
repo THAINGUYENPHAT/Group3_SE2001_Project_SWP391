@@ -343,7 +343,7 @@ public class CategoryDAO extends DBContext {
         return names;
     }
 
-    // Dem so san pham cua cac danh muc tren trang
+    // Dem tong so san pham cua danh muc va tat ca danh muc hau due
     public Map<Integer, Integer> getProductCounts(
             List<Category> categories) {
 
@@ -353,13 +353,44 @@ public class CategoryDAO extends DBContext {
             return counts;
         }
 
+        // Khoi tao mac dinh = 0 de danh muc khong co san pham van hien thi 0
+        for (Category category : categories) {
+            counts.put(category.getCategoryId(), 0);
+        }
+
         StringBuilder sql = new StringBuilder(
-                "SELECT category_id, COUNT(*) AS total "
-                + "FROM PRODUCT WHERE category_id IN ("
+                "WITH CategoryTree AS ( "
+                + "SELECT c.category_id AS root_id, "
+                + "c.category_id AS descendant_id, "
+                + "CAST('/' + CAST(c.category_id AS VARCHAR(20)) + '/' "
+                + "AS VARCHAR(MAX)) AS category_path "
+                + "FROM CATEGORY c "
+                + "WHERE c.category_id IN ("
         );
 
         appendPlaceholders(sql, categories.size());
-        sql.append(") GROUP BY category_id");
+
+        sql.append(
+                ") "
+                + "UNION ALL "
+                + "SELECT ct.root_id, child.category_id AS descendant_id, "
+                + "CAST(ct.category_path "
+                + "+ CAST(child.category_id AS VARCHAR(20)) + '/' "
+                + "AS VARCHAR(MAX)) AS category_path "
+                + "FROM CATEGORY child "
+                + "INNER JOIN CategoryTree ct "
+                + "ON child.parent_id = ct.descendant_id "
+                + "WHERE CHARINDEX( "
+                + "'/' + CAST(child.category_id AS VARCHAR(20)) + '/', "
+                + "ct.category_path) = 0 "
+                + ") "
+                + "SELECT ct.root_id, COUNT(p.category_id) AS total "
+                + "FROM CategoryTree ct "
+                + "LEFT JOIN PRODUCT p "
+                + "ON p.category_id = ct.descendant_id "
+                + "GROUP BY ct.root_id "
+                + "OPTION (MAXRECURSION 32767)"
+        );
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -371,7 +402,7 @@ public class CategoryDAO extends DBContext {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     counts.put(
-                            rs.getInt("category_id"),
+                            rs.getInt("root_id"),
                             rs.getInt("total")
                     );
                 }

@@ -556,6 +556,10 @@
                                             </c:if>
 
 
+                                            <c:if test="${sessionScope.loggedInUser.staff}">
+                                                <li><a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/staff/payment-refunds">Đối soát hoàn tiền</a></li>
+                                            </c:if>
+
                                             <%-- ================= STAFF ONLY ================= --%>
                                             <c:if test="${sessionScope.loggedInUser.staff}">
 
@@ -617,6 +621,14 @@
                                                     </a>
                                                 </li>
 
+                                                <li>
+                                                    <a class="dropdown-item rounded-2 py-2"
+                                                       href="${pageContext.request.contextPath}/staff/banner">
+                                                        <i class="bi bi-images text-info me-2"></i>
+                                                        Quản lý Banner
+                                                    </a>
+                                                </li>
+
 
                                                 <li>
                                                     <a class="dropdown-item rounded-2 py-2"
@@ -671,7 +683,9 @@
                         <form action="${pageContext.request.contextPath}/shop" method="GET" class="position-relative mb-0">
                             <i class="bi bi-search position-absolute text-secondary" style="left: 14px; top: 50%; transform: translateY(-50%);"></i>
                             <!-- Đổi placeholder và thêm thuộc tính name="keyword" -->
-                            <input type="text" name="keyword" id="headerSearchInput" class="form-control header-search-input" placeholder="Tìm kiếm tên, danh mục..." autocomplete="off">
+                            <input type="text" name="keyword" id="headerSearchInput" class="form-control header-search-input" 
+                                   placeholder="Tìm kiếm tên, danh mục..." autocomplete="off"
+                                   value="<c:out value='${param.keyword}' />">
                             <span class="search-shortcut-badge">Enter ↵</span>
 
                             <!-- Khu vực hiển thị kết quả AJAX -->
@@ -775,6 +789,22 @@
         </header>
         <!-- AJAX SEARCH SCRIPT -->
         <script>
+            // Hàm mã hóa ký tự đặc biệt thành HTML Entities (Chặn XSS)
+            function escapeHTML(str) {
+                if (!str)
+                    return '';
+                return String(str).replace(/[&<>'"]/g, function (tag) {
+                    const charsToReplace = {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        "'": '&#39;',
+                        '"': '&quot;'
+                    };
+                    return charsToReplace[tag] || tag;
+                });
+            }
+
             document.addEventListener("DOMContentLoaded", function () {
                 const searchInput = document.getElementById('headerSearchInput');
                 const searchSuggestions = document.getElementById('searchSuggestions');
@@ -803,18 +833,30 @@
                                                     ? new Intl.NumberFormat('vi-VN').format(item.price) + ' ₫'
                                                     : 'Liên hệ';
 
-                                            // Build HTML không dùng thẻ <img> mà dùng Icon hộp quà
+                                            // SỬ DỤNG HÀM ESCAPE TRƯỚC KHI IN RA GIAO DIỆN
+                                            const safeName = escapeHTML(item.name);
+
+                                            // XỬ LÝ HÌNH ẢNH SẢN PHẨM: Hiển thị ảnh nếu có, ngược lại hiện hộp mặc định
+                                            let imageHtml = '';
+                                            if (item.imageUrl && item.imageUrl.trim() !== '') {
+                                                // Bảo mật XSS cho URL ảnh
+                                                const safeImgUrl = escapeHTML(item.imageUrl);
+                                                imageHtml = `<img src="${pageContext.request.contextPath}/\${safeImgUrl}" alt="\${safeName}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;">`;
+                                            } else {
+                                                imageHtml = `<i class="bi bi-box-seam fs-5 text-secondary"></i>`;
+                                            }
+
                                             const html = `
-                                            <a href="${pageContext.request.contextPath}/shop?action=detail&id=\${item.id}" class="suggestion-item">
-                                                <div class="suggestion-img d-flex align-items-center justify-content-center bg-light text-secondary border">
-                                                    <i class="bi bi-box-seam fs-5"></i>
-                                                </div>
-                                                <div class="suggestion-info">
-                                                    <span class="suggestion-name">\${item.name}</span>
-                                                    <span class="suggestion-price">\${priceStr}</span>
-                                                </div>
-                                            </a>
-                                            `;
+                                <a href="${pageContext.request.contextPath}/shop?action=detail&id=\${item.id}" class="suggestion-item">
+                                    <div class="suggestion-img d-flex align-items-center justify-content-center bg-light border p-1">
+                                        \${imageHtml}
+                                    </div>
+                                    <div class="suggestion-info">
+                                        <span class="suggestion-name">\${safeName}</span>
+                                        <span class="suggestion-price">\${priceStr}</span>
+                                    </div>
+                                </a>
+                                `;
                                             searchSuggestions.insertAdjacentHTML('beforeend', html);
                                         });
                                     }
@@ -831,7 +873,6 @@
                     }
                 });
 
-                // Phím tắt Ctrl + K
                 document.addEventListener('keydown', function (e) {
                     if (e.ctrlKey && e.key === 'k') {
                         e.preventDefault();

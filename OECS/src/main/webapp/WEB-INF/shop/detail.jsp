@@ -61,6 +61,59 @@
         color: #495057;
         font-weight: 600;
     }
+    /* Thêm style làm đẹp cho thanh cuộn thumbnail */
+    .thumb-scroll::-webkit-scrollbar {
+        height: 6px;
+    }
+    .thumb-scroll::-webkit-scrollbar-thumb {
+        background-color: #dee2e6;
+        border-radius: 10px;
+    }
+
+    /* NEW STYLES FOR READ MORE/LESS */
+    .description-container {
+        position: relative;
+    }
+
+    .product-description-content {
+        line-height: 1.6;
+        font-size: 16px;
+        color: #333;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+
+    .product-description-content.collapsed {
+        max-height: 250px; /* Adjust this value to change the initial visible height */
+    }
+
+    .description-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100px; /* Height of the fade effect */
+        background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: 10px;
+        transition: opacity 0.3s ease-out;
+        pointer-events: none; /* Let clicks pass through the gradient to the content if needed, though button is what we want clicked */
+    }
+
+    .description-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .toggle-description-btn {
+        position: relative;
+        z-index: 10; /* Ensure button is above overlay */
+        pointer-events: auto; /* Re-enable pointer events for the button */
+        margin-top: 15px;
+    }
+
 </style>
 
 <div class="detail-page">
@@ -79,18 +132,48 @@
         </nav>
 
         <div class="row g-5 mb-5">
-            <!-- Left: Hình ảnh -->
+            <!-- Left: Hình ảnh (ĐÃ ĐƯỢC NÂNG CẤP ĐỂ HIỂN THỊ ALBUM) -->
             <div class="col-lg-5">
-                <div class="gallery-placeholder sticky-top" style="top: 20px;">
-                    <!-- HIỂN THỊ ẢNH CHI TIẾT SẢN PHẨM -->
-                    <c:choose>
-                        <c:when test="${not empty product.imageUrl}">
-                            <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="${product.productName}" class="img-fluid w-100 h-100" style="object-fit: cover;">
-                        </c:when>
-                        <c:otherwise>
-                            <i class="bi bi-image text-muted"></i>
-                        </c:otherwise>
-                    </c:choose>
+                <div class="sticky-top" style="top: 20px;">
+                    <!-- Ảnh Lớn -->
+                    <div class="gallery-placeholder mb-3">
+                        <c:choose>
+                            <c:when test="${not empty product.imageUrl}">
+                                <img id="mainProductImage" src="${pageContext.request.contextPath}/${product.imageUrl}" alt="${product.productName}" class="img-fluid w-100 h-100" style="object-fit: cover; border-radius: 16px;">
+                            </c:when>
+                            <c:otherwise>
+                                <i class="bi bi-image text-muted"></i>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+
+                    <!-- Danh sách ảnh nhỏ (Thumbnails) -->
+                    <c:if test="${not empty product.imageUrl}">
+                        <div class="d-flex gap-2 thumb-scroll" style="overflow-x: auto; padding-bottom: 8px;">
+
+                            <!-- 1. Thumbnail Ảnh chính -->
+                            <img src="${pageContext.request.contextPath}/${product.imageUrl}" 
+                                 class="img-thumbnail flex-shrink-0 gallery-thumb" 
+                                 style="width: 80px; height: 80px; object-fit: cover; cursor: pointer; border: 2px solid #0d6efd;"
+                                 onclick="changeMainImage(this)"
+                                 alt="Ảnh chính">
+
+                            <!-- 2. Thumbnail Các ảnh phụ (nếu có) -->
+                            <c:if test="${not empty product.galleryImages}">
+                                <c:forEach items="${product.galleryImages}" var="img">
+                                    <img src="${pageContext.request.contextPath}/${img.imageUrl}" 
+                                         class="img-thumbnail flex-shrink-0 gallery-thumb opacity-50" 
+                                         style="width: 80px; height: 80px; object-fit: cover; cursor: pointer; transition: 0.2s;"
+                                         onclick="changeMainImage(this)"
+                                         onmouseover="this.classList.remove('opacity-50')"
+                                         onmouseout="if (document.getElementById('mainProductImage').src !== this.src)
+                                                     this.classList.add('opacity-50')"
+                                         alt="Ảnh phụ">
+                                </c:forEach>
+                            </c:if>
+
+                        </div>
+                    </c:if>
                 </div>
             </div>
 
@@ -100,8 +183,7 @@
                     <i class="bi bi-patch-check-fill me-1"></i> Chính hãng ${product.brand.brandName}
                 </div>
 
-                <h1 class="product-title mb-3">${product.productName}</h1>
-                <p class="text-muted fs-6 mb-4">${product.description}</p>
+                <h1 class="product-title mb-4">${product.productName}</h1>
 
                 <div class="p-4 bg-light rounded-4 mb-4">
                     <div class="product-price-display" id="displayPrice">
@@ -172,6 +254,29 @@
                 </c:choose>
             </div>
         </div>
+
+        <!-- Section: Mô tả sản phẩm (ĐÃ THÊM TÍNH NĂNG XEM THÊM/ẨN BỚT) -->
+        <div class="row mt-5">
+            <div class="col-lg-8 mx-auto">
+                <h3 class="fw-bold mb-4 border-bottom pb-3">Tổng quan sản phẩm</h3>
+
+                <div class="description-container" id="descContainer">
+                    <div class="product-description-content collapsed" id="descContent">
+                        ${product.description}
+                    </div>
+
+                    <!-- Lớp phủ mờ (fade) -->
+                    <div class="description-overlay" id="descOverlay"></div>
+                </div>
+
+                <div class="text-center mt-3">
+                    <button class="btn btn-outline-primary toggle-description-btn" id="btnToggleDesc" style="display: none;">
+                        Xem thêm <i class="bi bi-chevron-down ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Section: Đánh giá và bình luận -->
         <div class="row mt-5">
             <div class="col-lg-8 mx-auto">
@@ -362,8 +467,26 @@
 </div>
 </div>
 
-<!-- Javascript xử lý đổi giá khi click SKU -->
+<!-- Javascript xử lý đổi giá và đổi ảnh Gallery -->
 <script>
+    // Hàm xử lý đổi ảnh Gallery 
+    function changeMainImage(thumbElement) {
+        // Đổi src của ảnh lớn
+        document.getElementById('mainProductImage').src = thumbElement.src;
+
+        // Reset viền và độ mờ của tất cả các ảnh nhỏ
+        let allThumbs = document.querySelectorAll('.gallery-thumb');
+        allThumbs.forEach(t => {
+            t.style.border = '1px solid #dee2e6';
+            t.classList.add('opacity-50');
+        });
+
+        // Highlight ảnh đang được chọn
+        thumbElement.style.border = '2px solid #0d6efd';
+        thumbElement.classList.remove('opacity-50');
+    }
+
+    // JS có sẵn xử lý SKU (Giữ nguyên)
     document.addEventListener("DOMContentLoaded", function () {
         const skuRadios = document.querySelectorAll('.sku-radio');
         const displayPrice = document.getElementById('displayPrice');
@@ -391,6 +514,37 @@
                     btnAddToCart.disabled = true;
                 }
             });
+        });
+
+        // --- SCRIPT PARA ITI PANAG-EXPAND/COLLAPSE TI DESKRIPSION ---
+        const descContent = document.getElementById('descContent');
+        const descOverlay = document.getElementById('descOverlay');
+        const btnToggleDesc = document.getElementById('btnToggleDesc');
+
+        // Kitaen no ti deskripsion ket napatpaut ngem iti nakabuklas a kadakkel (height)
+        if (descContent.scrollHeight > descContent.clientHeight) {
+            btnToggleDesc.style.display = 'inline-block'; // Ipakita ti button no atiddog ti linaon
+        } else {
+            descOverlay.classList.add('hidden'); // Ilemmed ti fade effect no saan nga atiddog ti linaon
+        }
+
+        btnToggleDesc.addEventListener('click', function () {
+            if (descContent.classList.contains('collapsed')) {
+                // Expand
+                descContent.classList.remove('collapsed');
+                descContent.style.maxHeight = descContent.scrollHeight + "px";
+                descOverlay.classList.add('hidden');
+                btnToggleDesc.innerHTML = 'Ẩn bớt <i class="bi bi-chevron-up ms-1"></i>';
+            } else {
+                // Collapse
+                descContent.classList.add('collapsed');
+                descContent.style.maxHeight = "250px"; // Tapno ag-match iti CSS
+                descOverlay.classList.remove('hidden');
+                btnToggleDesc.innerHTML = 'Xem thêm <i class="bi bi-chevron-down ms-1"></i>';
+
+                // Ag-scroll iti ngato ti deskripsion tapno saan a mapukaw ti panagkita
+                document.getElementById('descContainer').scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
         });
     });
 </script>

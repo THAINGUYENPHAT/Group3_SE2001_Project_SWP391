@@ -26,9 +26,20 @@
                     </div>
                 </div>
 
-                <!-- Error -->
+                <!-- Error Messages -->
+                <c:if test="${not empty sessionScope.errorMsg}">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <c:out value="${sessionScope.errorMsg}" />
+                    </div>
+                    <c:remove var="errorMsg" scope="session"/>
+                </c:if>
+
                 <c:if test="${param.error == 'true'}">
-                    <div class="alert alert-danger">Không thể cập nhật sản phẩm.</div>
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Lỗi hệ thống! Không thể thực hiện thao tác. Vui lòng kiểm tra lại dữ liệu.
+                    </div>
                 </c:if>
 
                 <form action="${pageContext.request.contextPath}/product" method="POST" enctype="multipart/form-data">
@@ -43,7 +54,8 @@
                     <!-- Name -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Tên Sản Phẩm <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control form-control-lg" value="${product.productName}" required>
+                        <!-- FIX XSS -->
+                        <input type="text" name="name" class="form-control form-control-lg" value="<c:out value='${product.productName}'/>" required>
                     </div>
 
                     <!-- Category -->
@@ -52,7 +64,8 @@
                         <select name="categoryId" class="form-select form-select-lg" required>
                             <c:forEach items="${categoryList}" var="category">
                                 <option value="${category.categoryId}" ${category.categoryId == product.categoryId ? 'selected' : ''}>
-                                    ${category.categoryName}
+                                    <!-- FIX XSS -->
+                                    <c:out value="${category.categoryName}" />
                                 </option>
                             </c:forEach>
                         </select>
@@ -64,28 +77,66 @@
                         <select name="brandId" class="form-select form-select-lg" required>
                             <c:forEach items="${brandList}" var="brand">
                                 <option value="${brand.brandId}" ${brand.brandId == product.brandId ? 'selected' : ''}>
-                                    ${brand.brandName}
+                                    <!-- FIX XSS -->
+                                    <c:out value="${brand.brandName}" />
                                 </option>
                             </c:forEach>
                         </select>
                     </div>
 
-                    <!-- Hình ảnh -->
+                    <!-- Hình ảnh Chính -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">Hình ảnh Sản Phẩm</label>
+                        <label class="form-label fw-semibold">Hình ảnh Đại Diện</label>
                         <c:if test="${not empty product.imageUrl}">
                             <div class="mb-2">
                                 <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="Ảnh sản phẩm" class="img-thumbnail" style="height: 100px; width: 100px; object-fit: cover;">
                             </div>
                         </c:if>
                         <input type="file" name="imageFile" class="form-control form-control-lg" accept="image/png, image/jpeg, image/jpg, image/webp">
-                        <div class="form-text">Để trống nếu không muốn thay đổi ảnh. Định dạng hỗ trợ: JPG, PNG, WEBP.</div>
+                        <div class="form-text">Để trống nếu không muốn thay đổi ảnh đại diện.</div>
+                    </div>
+
+                    <!-- Khu vực quản lý Hình ảnh Phụ -->
+                    <div class="mb-4 p-3 bg-light border rounded-3">
+                        <label class="form-label fw-semibold text-primary mb-3">Hình ảnh Phụ (Gallery)</label>
+
+                        <!-- Hiển thị các ảnh phụ HIỆN TẠI đang có -->
+                        <c:if test="${not empty product.galleryImages}">
+                            <div class="d-flex flex-wrap gap-3 mb-3">
+                                <c:forEach items="${product.galleryImages}" var="img">
+                                    <div class="position-relative border rounded p-2 text-center bg-white shadow-sm" style="width: 110px;">
+                                        <img src="${pageContext.request.contextPath}/${img.imageUrl}" 
+                                             class="img-thumbnail border-0 p-0 mb-2" 
+                                             style="height: 80px; width: 100%; object-fit: cover;">
+
+                                        <!-- Checkbox chọn để xóa -->
+                                        <div class="form-check d-flex justify-content-center align-items-center m-0">
+                                            <input class="form-check-input border-danger" type="checkbox" name="deleteImageIds" value="${img.imageId}" id="delImg_${img.imageId}">
+                                            <label class="form-check-label text-danger fw-medium ms-1" style="font-size: 13px;" for="delImg_${img.imageId}">
+                                                Xóa ảnh
+                                            </label>
+                                        </div>
+                                    </div>
+                                </c:forEach>
+                            </div>
+                            <div class="form-text text-danger mb-4">
+                                <i class="bi bi-exclamation-circle me-1"></i> Tích vào nút "Xóa ảnh" bên dưới nếu bạn muốn gỡ bỏ ảnh đó.
+                            </div>
+                        </c:if>
+
+                        <!-- Ô chọn tải thêm ảnh phụ -->
+                        <label class="form-label fw-semibold text-dark">Tải thêm Hình ảnh Phụ</label>
+                        <input type="file" name="galleryFiles" class="form-control" accept="image/png, image/jpeg, image/jpg, image/webp" multiple>
+                        <div class="form-text text-muted">
+                            <i class="bi bi-info-circle me-1"></i> Giữ phím <b>Ctrl/Cmd</b> để chọn nhiều ảnh bổ sung (Các ảnh cũ không bị tích Xóa sẽ được giữ nguyên).
+                        </div>
                     </div>
 
                     <!-- Description -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Mô Tả</label>
-                        <textarea name="description" class="form-control" rows="5">${product.description}</textarea>
+                        <!-- FIX XSS -->
+                        <textarea name="description" class="form-control" rows="5"><c:out value="${product.description}"/></textarea>
                     </div>
 
                     <!-- Buttons -->

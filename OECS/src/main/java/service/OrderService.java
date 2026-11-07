@@ -1,6 +1,7 @@
 package service;
 
 import dao.OrderDAO;
+import dao.OrderPolicyDAO;
 import db.CheckoutConnectionFactory;
 import db.DBContext;
 import model.Order;
@@ -22,6 +23,7 @@ import java.util.Map;
 
 public class OrderService {
 
+    private final OrderPolicyDAO policy = new OrderPolicyDAO();
     private final OrderDAO orderDAO;
     private final CheckoutConnectionFactory connections;
 
@@ -201,6 +203,7 @@ public class OrderService {
             conn.setAutoCommit(false);
 
             try {
+                policy.lockCustomer(conn, userId);
                 // 1. Khoa gio hang de chan dat trung dong thoi
                 int cartId;
 
@@ -234,6 +237,8 @@ public class OrderService {
                     conn.commit();
                     return existingOrderId;
                 }
+
+                policy.requireAllowed(conn, userId);
 
                 // 3. Kiem tra dia chi va luu thong tin nguoi nhan
                 Order order = new Order();
@@ -359,6 +364,14 @@ public class OrderService {
                             "Một số sản phẩm đã chọn "
                             + "không còn trong giỏ hàng."
                     );
+                }
+
+                long totalQuantity = 0;
+                for (CartLine line : lines) {
+                    totalQuantity += line.quantity;
+                }
+                if (totalQuantity > 5) {
+                    throw new IllegalArgumentException("Mỗi đơn được mua tối đa 5 sản phẩm tính theo tổng số lượng.");
                 }
 
                 // 5. Khoa va kiem tra voucher trong transaction
@@ -679,6 +692,7 @@ public class OrderService {
             conn.setAutoCommit(false);
 
             try {
+                policy.lockCustomer(conn, userId);
                 String sql
                         = "SELECT order_status, payment_method, "
                         + "payment_status, total_amount, stock_restored_at "
@@ -814,6 +828,7 @@ public class OrderService {
                 }
 
                 orderDAO.addHistory(conn, orderId, "CANCELLED");
+                policy.recordCancellation(conn, userId, orderId);
 
                 conn.commit();
                 return true;
@@ -827,6 +842,12 @@ public class OrderService {
 
                 throw e;
             }
+        }
+    }
+
+    public String orderingRestriction(int userId) throws SQLException {
+        try (Connection conn = connections.open()) {
+            return policy.restriction(conn, userId);
         }
     }
 

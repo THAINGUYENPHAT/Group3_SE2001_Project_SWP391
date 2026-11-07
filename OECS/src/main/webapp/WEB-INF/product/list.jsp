@@ -73,7 +73,8 @@
             <input type="hidden" name="view" value="list">
             <div class="position-relative flex-grow-1">
                 <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                <input type="text" name="search" value="${param.search}" class="form-control ps-5" placeholder="Tìm tên sản phẩm, danh mục, hãng...">
+                <!-- FIX XSS TẠI THANH TÌM KIẾM -->
+                <input type="text" name="search" value="<c:out value='${param.search}' />" class="form-control ps-5" placeholder="Tìm tên sản phẩm, danh mục, hãng...">
             </div>
             <button type="submit" class="btn btn-primary">Tìm kiếm</button>
             <c:if test="${not empty param.search}">
@@ -89,13 +90,12 @@
         <table class="table table-custom align-middle">
             <thead>
                 <tr>
-                <th style="width: 50px;">#</th>
-                <th>HÌNH ẢNH</th>
-                <th>SẢN PHẨM</th>
-                <th>DANH MỤC</th>
-                <th>THƯƠNG HIỆU</th>
-                <th>MÔ TẢ</th>
-                <th style="width: 130px;" class="text-end">THAO TÁC</th>
+                    <th style="width: 50px;">#</th>
+                    <th>HÌNH ẢNH</th>
+                    <th>SẢN PHẨM</th>
+                    <th>DANH MỤC</th>
+                    <th>THƯƠNG HIỆU</th>
+                    <th style="width: 130px;" class="text-end">THAO TÁC</th>
                 </tr>
             </thead>
 
@@ -105,91 +105,82 @@
                         <c:forEach items="${productList}" var="product">
                             <tr>
                                 <!-- ID -->
-                            <td>
-                            <span class="badge bg-light text-secondary border">#${product.productId}</span>
-                            </td>
+                                <td>
+                                    <span class="badge bg-light text-secondary border">#${product.productId}</span>
+                                </td>
 
-                            <!-- HÌNH ẢNH -->
-                            <td>
-                                <c:choose>
-                                    <c:when test="${not empty product.imageUrl}">
-                                        <img src="${pageContext.request.contextPath}/${product.imageUrl}" class="img-thumbnail rounded" style="width: 50px; height: 50px; object-fit: cover;">
-                                    </c:when>
-                                    <c:otherwise>
-                                        <div class="bg-light text-secondary d-flex align-items-center justify-content-center rounded border" style="width: 50px; height: 50px;">
-                                            <i class="bi bi-image fs-5"></i>
-                                        </div>
-                                    </c:otherwise>
-                                </c:choose>
-                            </td>
+                                <!-- HÌNH ẢNH -->
+                                <td>
+                                    <c:choose>
+                                        <c:when test="${not empty product.imageUrl}">
+                                            <img src="${pageContext.request.contextPath}/${product.imageUrl}" class="img-thumbnail rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                                        </c:when>
+                                        <c:otherwise>
+                                            <div class="bg-light text-secondary d-flex align-items-center justify-content-center rounded border" style="width: 50px; height: 50px;">
+                                                <i class="bi bi-image fs-5"></i>
+                                            </div>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
 
-                            <!-- Product Name -->
-                            <td>
-                                <div class="fw-bold text-dark">${product.productName}</div>
-                                <small class="text-muted">Ngày: ${product.createdAt}</small>
-                            </td>
+                                <!-- Product Name -->
+                                <td>
+                                    <!-- FIX XSS TẠI TÊN SẢN PHẨM -->
+                                    <div class="fw-bold text-dark"><c:out value="${product.productName}" /></div>
+                                    <small class="text-muted">Ngày: <c:out value="${product.createdAt}" /></small>
+                                </td>
 
-                            <!-- Category -->
-                            <td>
-                                <c:choose>
-                                    <c:when test="${product.category != null}">
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
-                                        <i class="bi bi-folder me-1"></i> ${product.category.categoryName}
-                                    </span>
-                                </c:when>
-                                <c:otherwise><span class="text-muted">Không có</span></c:otherwise>
-                            </c:choose>
-                            </td>
+                                <!-- Category -->
+                                <td>
+                                    <c:choose>
+                                        <c:when test="${product.category != null}">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                                <!-- FIX XSS TẠI TÊN DANH MỤC -->
+                                                <i class="bi bi-folder me-1"></i> <c:out value="${product.category.categoryName}" />
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise><span class="text-muted">Không có</span></c:otherwise>
+                                    </c:choose>
+                                </td>
 
-                            <!-- Brand -->
-                            <td>
-                                <c:choose>
-                                    <c:when test="${product.brand != null}">
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle">
-                                        ${product.brand.brandName}
-                                    </span>
-                                </c:when>
-                                <c:otherwise><span class="text-muted">Không có</span></c:otherwise>
-                            </c:choose>
-                            </td>
+                                <!-- Brand -->
+                                <td>
+                                    <c:choose>
+                                        <c:when test="${product.brand != null}">
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                                <!-- FIX XSS TẠI TÊN THƯƠNG HIỆU -->
+                                                <c:out value="${product.brand.brandName}" />
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise><span class="text-muted">Không có</span></c:otherwise>
+                                    </c:choose>
+                                </td>
 
-                            <!-- Description -->
-                            <td>
-                                <c:choose>
-                                    <c:when test="${not empty product.description}">
-                                    <span class="text-muted" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                        ${product.description}
-                                    </span>
-                                </c:when>
-                                <c:otherwise><span class="text-muted">Không có</span></c:otherwise>
-                            </c:choose>
-                            </td>
-
-                            <!-- Actions -->
-                            <td class="text-end">
-                                <div class="d-inline-flex gap-1">
-                                    <a href="${pageContext.request.contextPath}/product-sku?productId=${product.productId}" class="btn btn-sm btn-light text-success border rounded-2" title="Quản lý SKU (Giá & Tồn kho)">
-                                        <i class="bi bi-tags"></i>
-                                    </a>
-                                    <a href="${pageContext.request.contextPath}/product?view=edit&id=${product.productId}" class="btn btn-sm btn-light text-primary border rounded-2" title="Chỉnh sửa">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
-                                    <a href="${pageContext.request.contextPath}/product?view=delete&id=${product.productId}" class="btn btn-sm btn-light text-danger border rounded-2" title="Xóa">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                </div>
-                            </td>
+                                <!-- Actions -->
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-1">
+                                        <a href="${pageContext.request.contextPath}/product-sku?productId=${product.productId}" class="btn btn-sm btn-light text-success border rounded-2" title="Quản lý SKU (Giá & Tồn kho)">
+                                            <i class="bi bi-tags"></i>
+                                        </a>
+                                        <a href="${pageContext.request.contextPath}/product?view=edit&id=${product.productId}" class="btn btn-sm btn-light text-primary border rounded-2" title="Chỉnh sửa">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a href="${pageContext.request.contextPath}/product?view=delete&id=${product.productId}" class="btn btn-sm btn-light text-danger border rounded-2" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
                             </tr>
                         </c:forEach>
                     </c:when>
 
                     <c:otherwise>
                         <tr>
-                        <td colspan="7" class="text-center py-5">
-                            <i class="bi bi-box-seam fs-1 text-secondary"></i>
-                            <p class="fw-medium mt-2 mb-1">Chưa có sản phẩm nào</p>
-                            <small class="text-muted">Nhấn "Thêm sản phẩm" để bắt đầu.</small>
-                        </td>
+                            <td colspan="7" class="text-center py-5">
+                                <i class="bi bi-box-seam fs-1 text-secondary"></i>
+                                <p class="fw-medium mt-2 mb-1">Chưa có sản phẩm nào</p>
+                                <small class="text-muted">Nhấn "Thêm sản phẩm" để bắt đầu.</small>
+                            </td>
                         </tr>
                     </c:otherwise>
                 </c:choose>

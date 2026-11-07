@@ -1,6 +1,8 @@
 package model;
 
 import java.sql.Timestamp;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Product {
 
@@ -18,8 +20,18 @@ public class Product {
     private Category category;
     private Brand brand;
 
+    private List<ProductImage> galleryImages = new ArrayList<>();
+
     // Constructor mặc định
     public Product() {
+    }
+
+    public List<ProductImage> getGalleryImages() {
+        return galleryImages;
+    }
+
+    public void setGalleryImages(List<ProductImage> galleryImages) {
+        this.galleryImages = galleryImages;
     }
 
     // Constructor đầy đủ (dùng khi getList / getById từ DB)

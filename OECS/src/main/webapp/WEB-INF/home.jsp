@@ -770,7 +770,7 @@
                                    class="slide ${status.first ? 'active' : ''}">
                                     <img
                                         src="${pageContext.request.contextPath}/${banner.imageUrl}"
-                                        alt="${banner.altText}">
+                                        alt="<c:out value='${banner.altText}'/>"> <!-- INUSAR TI c:out DITOY -->
                                 </a>
                             </c:forEach>
                         </c:when>
@@ -925,7 +925,7 @@
                                     <div class="product-image text-dark">
                                         <c:choose>
                                             <c:when test="${not empty product.imageUrl}">
-                                                <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="${product.productName}">
+                                                <img src="${pageContext.request.contextPath}/${product.imageUrl}" alt="<c:out value='${product.productName}'/>">
                                             </c:when>
                                             <c:otherwise>
                                                 <i class="bi bi-box-seam"></i>
@@ -934,9 +934,8 @@
                                     </div>
 
                                     <div class="product-info">
-                                        <div class="product-brand">${product.brand.brandName}</div>
-                                        <div class="product-name text-dark">${product.productName}</div>
-                                        <div class="product-description">${product.description}</div>
+                                        <div class="product-brand"><c:out value="${product.brand.brandName}"/></div>
+                                        <div class="product-name text-dark"><c:out value="${product.productName}"/></div>
                                     </div>
                                 </a>
                             </div>

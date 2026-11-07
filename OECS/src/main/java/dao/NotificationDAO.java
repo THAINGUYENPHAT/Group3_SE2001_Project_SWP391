@@ -1,3 +1,4 @@
+
 package dao;
 
 import db.DBContext;
@@ -17,9 +18,7 @@ public class NotificationDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(NotificationDAO.class.getName());
 
-    // =========================
-    // 1. CREATE ORDER STATUS NOTIFICATION
-    // =========================
+    // CREATE ORDER STATUS NOTIFICATION
     public boolean createOrderStatusNotification(
             int orderId, String status) {
 
@@ -43,19 +42,50 @@ public class NotificationDAO extends DBContext {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException ex) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Error creating order status notification",
-                    ex
-            );
+            LOGGER.log(Level.SEVERE,
+                    "Error creating order status notification", ex);
         }
 
         return false;
     }
 
-    // =========================
-    // 2. COUNT UNREAD NOTIFICATIONS
-    // =========================
+    // CREATE RETURN/EXCHANGE NOTIFICATION
+    // Uses the existing transaction connection from ReturnExchangeDAO.
+    public void createReturnExchangeNotification(
+            Connection conn,
+            int userId,
+            int orderId,
+            String requestType,
+            String status) throws SQLException {
+
+        String type = "RETURN".equals(requestType)
+                ? "trả hàng"
+                : "đổi hàng";
+
+        String result = "APPROVED".equals(status)
+                ? "đã được chấp nhận"
+                : "đã bị từ chối";
+
+        String title = "Cập nhật yêu cầu đổi/trả hàng";
+        String message = "Yêu cầu " + type
+                + " cho đơn hàng #" + orderId
+                + " " + result + ".";
+
+        String sql = "INSERT INTO dbo.NOTIFICATION "
+                + "(user_id, order_id, title, message) "
+                + "VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, orderId);
+            ps.setString(3, title);
+            ps.setString(4, message);
+
+            ps.executeUpdate();
+        }
+    }
+
+    // COUNT UNREAD NOTIFICATIONS
     public int countUnread(int userId) {
 
         String sql = "SELECT COUNT(*) "
@@ -74,19 +104,14 @@ public class NotificationDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Error counting unread notifications",
-                    ex
-            );
+            LOGGER.log(Level.SEVERE,
+                    "Error counting unread notifications", ex);
         }
 
         return 0;
     }
 
-    // =========================
-    // 3. GET LATEST NOTIFICATIONS
-    // =========================
+    // GET LATEST NOTIFICATIONS
     public List<Notification> findLatest(int userId) {
 
         List<Notification> list = new ArrayList<>();
@@ -132,19 +157,14 @@ public class NotificationDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Error getting latest notifications",
-                    ex
-            );
+            LOGGER.log(Level.SEVERE,
+                    "Error getting latest notifications", ex);
         }
 
         return list;
     }
 
-    // =========================
-    // 4. MARK NOTIFICATION AS READ
-    // =========================
+    // MARK NOTIFICATION AS READ
     public boolean markAsRead(int notificationId, int userId) {
 
         String sql = "UPDATE dbo.NOTIFICATION "
@@ -161,11 +181,8 @@ public class NotificationDAO extends DBContext {
             return ps.executeUpdate() > 0;
 
         } catch (SQLException ex) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Error marking notification as read",
-                    ex
-            );
+            LOGGER.log(Level.SEVERE,
+                    "Error marking notification as read", ex);
         }
 
         return false;

@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import model.ProductImage;
 
 public class ShopDAO extends DBContext {
 
@@ -290,6 +291,22 @@ public class ShopDAO extends DBContext {
             }
         } catch (SQLException ex) {
             Logger.getLogger(ShopDAO.class.getName()).log(Level.SEVERE, "Lỗi khi lọc sản phẩm!", ex);
+        }
+        return list;
+    }
+
+    public List<ProductImage> getProductImages(int productId) {
+        List<ProductImage> list = new ArrayList<>();
+        String sql = "SELECT image_id, product_id, image_url FROM PRODUCT_IMAGES WHERE product_id = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
+            stm.setInt(1, productId);
+            try (ResultSet rs = stm.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new ProductImage(rs.getInt("image_id"), rs.getInt("product_id"), rs.getString("image_url")));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return list;
     }
