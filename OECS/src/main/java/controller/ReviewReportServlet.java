@@ -18,7 +18,7 @@ public class ReviewReportServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         String contextPath = request.getContextPath();
@@ -37,8 +37,8 @@ public class ReviewReportServlet extends HttpServlet {
             return;
         }
 
-        String expected =
-                (String) session.getAttribute("reviewCsrfToken");
+        String expected
+                = (String) session.getAttribute("reviewCsrfToken");
         String actual = request.getParameter("csrfToken");
 
         if (expected == null || !expected.equals(actual)) {
@@ -53,6 +53,11 @@ public class ReviewReportServlet extends HttpServlet {
         try {
             reviewId = Integer.parseInt(request.getParameter("reviewId"));
             productId = Integer.parseInt(request.getParameter("productId"));
+            if (reviewId <= 0 || productId <= 0) {
+                response.sendRedirect(contextPath + "/shop");
+                return;
+            }
+
         } catch (NumberFormatException e) {
             response.sendRedirect(contextPath + "/shop");
             return;
@@ -72,6 +77,7 @@ public class ReviewReportServlet extends HttpServlet {
         try {
             String result = new ReviewReportDAO().createReport(
                     reviewId,
+                    productId,
                     user.getUserId(),
                     reason.trim()
             );
