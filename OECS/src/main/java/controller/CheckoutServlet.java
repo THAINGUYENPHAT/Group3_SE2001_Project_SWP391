@@ -724,6 +724,8 @@ public class CheckoutServlet extends HttpServlet {
         );
 
         if (voucher == null) {
+            session.removeAttribute("appliedVoucher");
+            
             session.setAttribute(
                     "checkoutError",
                     "Voucher không hợp lệ, chưa đủ điều kiện "

@@ -14,9 +14,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -42,28 +39,27 @@ public class ShopServlet extends HttpServlet {
                     List<ProductSpec> specs = shopDao.getProductSpecs(id);
 
                     // Lấy đánh giá của tất cả phiên bản thuộc sản phẩm
+                    // Lấy tất cả đánh giá theo sản phẩm
                     ProductReviewDAO reviewDao = new ProductReviewDAO();
-                    List<ProductReview> reviews = new ArrayList<>();
 
-                    if (skus != null) {
-                        for (ProductSku sku : skus) {
-                            List<ProductReview> skuReviews
-                                    = reviewDao.getReviewsBySkuId(sku.getSkuId());
+                    List<ProductReview> reviews
+                            = reviewDao.getReviewsByProductId(id);
+                    System.out.println("========== REVIEW DEBUG ==========");
+                    System.out.println("Product ID: " + id);
+                    System.out.println("Total reviews: " + reviews.size());
 
-                            if (skuReviews != null) {
-                                reviews.addAll(skuReviews);
-                            }
-                        }
+                    for (ProductReview review : reviews) {
+                        System.out.println(
+                                "Review ID: " + review.getReviewId()
+                                + " | SKU ID: " + review.getSkuId()
+                                + " | Rating: " + review.getRating()
+                        );
                     }
 
-                    // Sắp xếp đánh giá mới nhất lên đầu
-                    reviews.sort(
-                            Comparator.comparing(
-                                    ProductReview::getCreatedAt,
-                                    Comparator.nullsLast(Comparator.reverseOrder())
-                            )
-                    );
+                    System.out.println("==================================");
 
+                    // Lấy số lượt mua
+                    int purchaseCount = reviewDao.getPurchaseCountByProductId(id);
                     // Tính điểm trung bình
                     int totalReviews = reviews.size();
                     int ratingSum = 0;
@@ -80,6 +76,7 @@ public class ShopServlet extends HttpServlet {
                     request.setAttribute("product", product);
                     request.setAttribute("skus", skus);
                     request.setAttribute("specs", specs);
+                    request.setAttribute("purchaseCount", purchaseCount);
 
                     // Dữ liệu đánh giá
                     request.setAttribute("reviews", reviews);

@@ -17,11 +17,6 @@ import java.io.IOException;
 import java.util.UUID;
 
 @WebServlet(name = "ReviewServlet", urlPatterns = {"/review"})
-@MultipartConfig(
-        fileSizeThreshold = 1024 * 1024,
-        maxFileSize = 5 * 1024 * 1024,
-        maxRequestSize = 20 * 1024 * 1024
-)
 public class ReviewServlet extends HttpServlet {
 
     private ProductReviewDAO reviewDAO;
@@ -31,9 +26,6 @@ public class ReviewServlet extends HttpServlet {
         reviewDAO = new ProductReviewDAO();
     }
 
-    // =====================================================
-    // GET
-    // =====================================================
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -64,9 +56,6 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // POST
-    // =====================================================
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -207,6 +196,12 @@ public class ReviewServlet extends HttpServlet {
                 redirectCreate(request, response, orderItemId);
                 return;
             }
+            if (containsSpam(comment)) {
+                setError(request,
+                        "Nội dung đánh giá có dấu hiệu spam hoặc chứa liên kết quảng cáo.");
+                redirectCreate(request, response, orderItemId);
+                return;
+            }
 
             int skuId = reviewDAO.getSkuIdByOrderItemId(orderItemId);
 
@@ -223,7 +218,32 @@ public class ReviewServlet extends HttpServlet {
                 redirectOrders(request, response);
                 return;
             }
+            
+            
+            // ============================================
+            // CHỐNG SPAM NỘI DUNG ĐÁNH GIÁ
+            // ============================================
+            if (containsSpam(comment)) {
+                setError(request,
+                        "Bình luận chứa liên kết quảng cáo "
+                        + "hoặc có dấu hiệu spam.");
+                redirectCreate(request, response, orderItemId);
+                return;
+            }
 
+            // ============================================
+            // GIỚI HẠN 3 ĐÁNH GIÁ TRONG 10 PHÚT
+            // ============================================
+            int recentReviews =
+                    reviewDAO.countRecentReviews(user.getUserId());
+
+            if (recentReviews >= 3) {
+                setError(request,
+                        "Bạn đã gửi quá nhiều đánh giá "
+                        + "trong 10 phút. Vui lòng thử lại sau.");
+                redirectCreate(request, response, orderItemId);
+                return;
+            }
             ProductReview review = new ProductReview();
             review.setUserId(user.getUserId());
             review.setOrderItemId(orderItemId);
@@ -309,6 +329,12 @@ public class ReviewServlet extends HttpServlet {
 
             if (comment != null && comment.length() > 2000) {
                 setError(request, "Nội dung đánh giá tối đa 2000 ký tự.");
+                redirectEdit(request, response, reviewId);
+                return;
+            }
+            if (containsSpam(comment)) {
+                setError(request,
+                        "Nội dung đánh giá có dấu hiệu spam hoặc chứa liên kết quảng cáo.");
                 redirectEdit(request, response, reviewId);
                 return;
             }
@@ -545,5 +571,27 @@ public class ReviewServlet extends HttpServlet {
         response.sendRedirect(
                 request.getContextPath() + "/my-orders"
         );
+    }
+    //kiểm tra spam và nội dung bình luận
+
+    private boolean containsSpam(String comment) {
+
+        if (comment == null || comment.trim().isEmpty()) {
+            return false;
+        }
+
+        String text = comment.trim();
+
+        // Chặn link quảng cáo trong bình luận.
+        if (text.matches("(?is).*\\b(?:https?://|www\\.).*")) {
+            return true;
+        }
+
+        // Phát hiện một ký tự bị lặp quá nhiều lần.
+        if (text.matches("(?s).*(.)\\1{29,}.*")) {
+            return true;
+        }
+
+        return false;
     }
 }

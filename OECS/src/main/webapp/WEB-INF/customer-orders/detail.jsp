@@ -210,7 +210,7 @@
                                         <div class="purchase-review-action">
                                             <a href="${reviewUrl}" class="purchase-review-btn">
                                                 <i class="bi bi-star-fill"></i>
-                                                Đánh giá / Xem đánh giá
+                                                Đánh giá
                                             </a>
                                         </div>
                                     </c:if>

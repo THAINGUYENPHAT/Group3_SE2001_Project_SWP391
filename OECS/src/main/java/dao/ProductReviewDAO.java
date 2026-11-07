@@ -345,13 +345,116 @@ public class ProductReviewDAO extends DBContext {
     }
 
     // =====================================================
+    // GET ALL REVIEWS BY PRODUCT ID
+    // =====================================================
+    public List<ProductReview> getReviewsByProductId(int productId) {
+
+        List<ProductReview> reviews = new ArrayList<>();
+
+        // Kiểm tra TẤT CẢ đánh giá của sản phẩm,
+        // kể cả đánh giá đã bị ẩn.
+        String debugSql
+                = "SELECT pr.review_id, pr.sku_id, "
+                + "pr.rating, pr.is_hidden, ps.product_id "
+                + "FROM dbo.PRODUCT_REVIEWS pr "
+                + "JOIN dbo.PRODUCT_SKU ps "
+                + "ON pr.sku_id = ps.sku_id "
+                + "WHERE ps.product_id = ? "
+                + "ORDER BY pr.review_id";
+
+        // Chỉ lấy đánh giá được phép hiển thị.
+        String sql
+                = "SELECT pr.review_id, pr.user_id, "
+                + "pr.order_item_id, pr.sku_id, "
+                + "pr.rating, pr.comment, pr.created_at "
+                + "FROM dbo.PRODUCT_REVIEWS pr "
+                + "JOIN dbo.PRODUCT_SKU ps "
+                + "ON pr.sku_id = ps.sku_id "
+                + "WHERE ps.product_id = ? "
+                + "AND pr.is_hidden = 0 "
+                + "ORDER BY pr.created_at DESC, pr.review_id DESC";
+
+        try (Connection conn = getConnection()) {
+
+            // Xác định SQL Server và database.
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT SERVERPROPERTY('ServerName') AS server_name, "
+                    + "DB_NAME() AS database_name"); ResultSet rs = ps.executeQuery()) {
+
+                if (rs.next()) {
+                    System.out.println(
+                            "JAVA SERVER: " + rs.getString("server_name"));
+                    System.out.println(
+                            "JAVA DATABASE: " + rs.getString("database_name"));
+                }
+            }
+
+            System.out.println("===== ALL REVIEWS IN DATABASE =====");
+            System.out.println("Product ID: " + productId);
+
+            try (PreparedStatement ps = conn.prepareStatement(debugSql)) {
+
+                ps.setInt(1, productId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+
+                    while (rs.next()) {
+                        System.out.println(
+                                "Review ID: " + rs.getInt("review_id")
+                                + " | SKU: " + rs.getInt("sku_id")
+                                + " | Rating: " + rs.getInt("rating")
+                                + " | Hidden: " + rs.getObject("is_hidden")
+                        );
+                    }
+                }
+            }
+
+            System.out.println("===== VISIBLE REVIEWS =====");
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setInt(1, productId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+
+                    while (rs.next()) {
+
+                        ProductReview review = mapReview(rs);
+                        reviews.add(review);
+
+                        System.out.println(
+                                "Visible Review ID: " + review.getReviewId()
+                        );
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Lỗi tải đánh giá cho sản phẩm ID " + productId, e);
+        }
+
+        // Lấy ảnh sau khi đã đọc xong danh sách đánh giá.
+        for (ProductReview review : reviews) {
+            review.setImages(
+                    getReviewImages(review.getReviewId())
+            );
+        }
+
+        System.out.println("TOTAL VISIBLE REVIEWS: " + reviews.size());
+        System.out.println("=================================");
+
+        return reviews;
+    }
+
+    // =====================================================
     // GET AVERAGE RATING
     // =====================================================
     public double getAverageRating(int skuId) {
 
         String sql = "SELECT AVG(CAST(rating AS FLOAT)) AS average_rating "
                 + "FROM PRODUCT_REVIEWS "
-                + "WHERE sku_id = ?"
+                + "WHERE sku_id = ? "
                 + "AND is_hidden = 0";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -378,7 +481,7 @@ public class ProductReviewDAO extends DBContext {
 
         String sql = "SELECT COUNT(*) AS total "
                 + "FROM PRODUCT_REVIEWS "
-                + "WHERE sku_id = ?"
+                + "WHERE sku_id = ? "
                 + "AND is_hidden = 0";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -388,6 +491,38 @@ public class ProductReviewDAO extends DBContext {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("total");
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    // =====================================================
+    // COUNT PURCHASES BY PRODUCT
+    // =====================================================
+    public int getPurchaseCountByProductId(int productId) {
+
+        String sql = "SELECT COUNT(DISTINCT oi.order_item_id) AS purchase_count "
+                + "FROM dbo.ORDER_ITEM oi "
+                + "JOIN dbo.PRODUCT_SKU ps "
+                + "ON oi.sku_id = ps.sku_id "
+                + "JOIN dbo.[ORDER] o "
+                + "ON oi.order_id = o.order_id "
+                + "WHERE ps.product_id = ? "
+                + "AND UPPER(LTRIM(RTRIM(o.order_status))) "
+                + "IN ('COMPLETED', 'DELIVERED')";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, productId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("purchase_count");
                 }
             }
 
@@ -460,5 +595,31 @@ public class ProductReviewDAO extends DBContext {
         }
 
         return review;
+    }
+
+    public int countRecentReviews(int userId) {
+
+        String sql
+                = "SELECT COUNT(*) AS total "
+                + "FROM dbo.PRODUCT_REVIEWS "
+                + "WHERE user_id = ? "
+                + "AND created_at >= DATEADD(MINUTE, -10, GETDATE())";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("total");
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Không thể kiểm tra tần suất đánh giá", e);
+        }
+
+        return 0;
     }
 }
