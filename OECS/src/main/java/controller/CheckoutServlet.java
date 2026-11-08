@@ -22,6 +22,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -268,7 +269,7 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         double subtotal = calculateSubtotal(cartItems);
-        double shippingFee = 0;
+        double shippingFee = OrderService.calculateShippingFee(BigDecimal.valueOf(subtotal)).doubleValue();
         double discount = 0;
 
         Voucher appliedVoucher =
