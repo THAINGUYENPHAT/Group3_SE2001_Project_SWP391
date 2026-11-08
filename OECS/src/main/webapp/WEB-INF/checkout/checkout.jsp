@@ -84,6 +84,61 @@
     }
 
 
+    .checkout-summary .summary-line {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: baseline;
+        column-gap: 16px;
+        margin-bottom: 18px;
+        color: #475569;
+    }
+
+    .checkout-summary .summary-amount {
+        color: #1e293b;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .checkout-summary .summary-shipping-note {
+        grid-column: 1 / -1;
+        margin: 6px 0 0;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .checkout-summary .summary-free {
+        color: #15803d;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .checkout-summary .summary-discount {
+        color: #15803d;
+    }
+
+    .checkout-summary .summary-total {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px 16px;
+        margin: 6px 0 24px;
+        padding-top: 20px;
+        border-top: 1px solid #e2e8f0;
+        color: #1e293b;
+    }
+
+    .checkout-summary .checkout-total {
+        margin-left: auto;
+        font-size: clamp(22px, 2vw, 26px);
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
     .sticky-summary {
 
         position: sticky;
@@ -794,107 +849,52 @@
 
     <div class="col-lg-4">
 
-        <div class="card checkout-card shadow-sm sticky-summary">
+        <div class="card checkout-card checkout-summary shadow-sm sticky-summary">
 
             <div class="card-body p-4">
 
 
-                <h5 class="fw-bold mb-4">
+                <h5 class="fw-bold mb-4">Thông tin thanh toán</h5>
 
-                    Thông tin thanh toán
-
-                </h5>
-
-
-                <div class="d-flex justify-content-between mb-3">
-
-                    <span>
-                        Tiền hàng
+                <div class="summary-line">
+                    <span>Tiền hàng</span>
+                    <span class="summary-amount">
+                        <fmt:formatNumber value="${subtotal}" type="number"
+                            groupingUsed="true" maxFractionDigits="0"/> đ
                     </span>
-
-                    <strong>
-
-                        <fmt:formatNumber
-                            value="${subtotal}"
-                            type="number"
-                            groupingUsed="true"
-                            maxFractionDigits="0"/>
-
-                        đ
-
-                    </strong>
-
                 </div>
 
-
-                <div class="d-flex justify-content-between mb-3">
-
-                    <span>
-                        Phí vận chuyển
-                    </span>
-
-                    <span>
-
-                        <fmt:formatNumber
-                            value="${shippingFee}"
-                            type="number"
-                            groupingUsed="true"
-                            maxFractionDigits="0"/>
-
-                        đ
-
-                    </span>
-
+                <div class="summary-line">
+                    <span>Phí vận chuyển</span>
+                    <c:choose>
+                        <c:when test="${shippingFee == 0}">
+                            <span class="summary-free">Miễn phí</span>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="summary-amount">
+                                <fmt:formatNumber value="${shippingFee}" type="number"
+                                    groupingUsed="true" maxFractionDigits="0"/> đ
+                            </span>
+                        </c:otherwise>
+                    </c:choose>
+                    <p class="summary-shipping-note">Miễn phí từ 5 triệu tiền hàng (trước giảm giá).</p>
                 </div>
 
-
-                <div class="d-flex justify-content-between mb-3">
-
-                    <span>
-                        Giảm giá
+                <div class="summary-line">
+                    <span>Giảm giá</span>
+                    <span class="summary-amount summary-discount">
+                        <c:if test="${discount > 0}">−</c:if><fmt:formatNumber
+                            value="${discount}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
                     </span>
-
-                    <span class="text-success">
-
-                        -
-
-                        <fmt:formatNumber
-                            value="${discount}"
-                            type="number"
-                            groupingUsed="true"
-                            maxFractionDigits="0"/>
-
-                        đ
-
-                    </span>
-
                 </div>
 
-
-                <hr>
-
-
-                <div class="d-flex justify-content-between align-items-center mb-4">
-
-                    <strong>
-                        Tổng thanh toán
-                    </strong>
-
-
+                <div class="summary-total">
+                    <strong>Tổng thanh toán</strong>
                     <span class="checkout-total">
-
-                        <fmt:formatNumber
-                            value="${totalAmount}"
-                            type="number"
-                            groupingUsed="true"
-                            maxFractionDigits="0"/>
-
-                        đ
-
+                        <fmt:formatNumber value="${totalAmount}" type="number"
+                            groupingUsed="true" maxFractionDigits="0"/> đ
                     </span>
-
                 </div>
-
 
                 <form
                     id="orderForm"

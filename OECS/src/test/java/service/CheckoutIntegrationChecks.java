@@ -61,6 +61,7 @@ public final class CheckoutIntegrationChecks {
                 servletGuards();
                 cancellationPolicyChecks();
                 refundWorkflowChecks();
+                shippingFeeChecks();
                 System.out.println("PASS: " + passed + " checkout/order integration assertions");
             } finally {
                 // Only the exact database created above is eligible for cleanup.
@@ -124,7 +125,7 @@ public final class CheckoutIntegrationChecks {
         check(scalar("SELECT COUNT(*) FROM dbo.CART_ITEMS WHERE cart_id=1") == 0, "cart cleared after success");
         check(scalar("SELECT COUNT(*) FROM dbo.VOUCHER_USAGES") == 1, "voucher consumed once");
         check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY") == 1, "one initial history entry");
-        check(scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + orderId) == 190000, "server total includes voucher");
+        check(scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + orderId) == 220000, "server total includes voucher and shipping");
         check(checkout.placeCodOrder(1, 1, token, null) == orderId, "replay works after cart emptied");
         return orderId;
     }
@@ -260,8 +261,8 @@ public final class CheckoutIntegrationChecks {
         check(scalar("SELECT COUNT(*) FROM dbo.ORDER_ITEM WHERE order_id=" + orderId) == 1
                 && scalar("SELECT quantity FROM dbo.ORDER_ITEM WHERE order_id=" + orderId) == 2,
                 "selected checkout deduplicates item IDs");
-        check(scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + orderId) == 390000,
-                "selected checkout applies voucher only to purchased items");
+        check(scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + orderId) == 420000,
+                "selected checkout applies voucher and shipping only to purchased items");
         check(scalar("SELECT COUNT(*) FROM dbo.CART_ITEMS WHERE cart_id=1") == 1
                 && scalar("SELECT quantity FROM dbo.CART_ITEMS WHERE cart_id=1 AND sku_id=2") == 3,
                 "unselected items stay in cart");
@@ -274,6 +275,39 @@ public final class CheckoutIntegrationChecks {
                 "cancelling selected checkout restores only purchased stock");
     }
 
+
+    private void shippingFeeChecks() throws Exception {
+        check(OrderService.calculateShippingFee(new BigDecimal("4999999")).intValueExact() == 30000,
+                "shipping costs 30000 below five million");
+        check(OrderService.calculateShippingFee(new BigDecimal("5000000")).signum() == 0,
+                "shipping is free at exactly five million");
+        check(OrderService.calculateShippingFee(new BigDecimal("5000001")).signum() == 0,
+                "shipping is free above five million");
+        execute("UPDATE dbo.PRODUCT_SKU SET price=4999999 WHERE sku_id=1");
+        int below = policyOrder(1);
+        check(scalar("SELECT shipping_fee FROM dbo.[ORDER] WHERE order_id=" + below) == 30000
+                && scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + below) == 5029999,
+                "order stores shipping and charges it even when final total crosses five million");
+        execute("UPDATE dbo.PRODUCT_SKU SET price=5000000 WHERE sku_id=1");
+        execute("INSERT INTO dbo.CART_ITEMS(cart_id,sku_id,quantity) VALUES (" + policyCart + ",1,1)");
+        int threshold = checkout.placeCodOrder(policyUser, policyAddress, UUID.randomUUID().toString(), "TEST10");
+        check(scalar("SELECT shipping_fee FROM dbo.[ORDER] WHERE order_id=" + threshold) == 0
+                && scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + threshold) == 4990000,
+                "voucher reducing total below threshold keeps free shipping");
+        execute("UPDATE dbo.PRODUCT_SKU SET price=5000001 WHERE sku_id=1");
+        int above = policyOrder(1);
+        check(scalar("SELECT shipping_fee FROM dbo.[ORDER] WHERE order_id=" + above) == 0
+                && scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + above) == 5000001,
+                "above-threshold order stores free shipping");
+        execute("UPDATE dbo.PRODUCT_SKU SET price=10000 WHERE sku_id=1");
+        execute("INSERT INTO dbo.CART_ITEMS(cart_id,sku_id,quantity) VALUES (" + policyCart + ",1,1)");
+        int discounted = checkout.placeCodOrder(policyUser, policyAddress, UUID.randomUUID().toString(), "TEST10");
+        check(scalar("SELECT shipping_fee FROM dbo.[ORDER] WHERE order_id=" + discounted) == 30000
+                && scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + discounted) == 30000,
+                "full merchandise discount still charges shipping");
+        check(scalar("SELECT shipping_fee FROM dbo.[ORDER] WHERE order_id=" + below) == 30000,
+                "existing order keeps its shipping snapshot after prices change");
+    }
 
     private int policyUser;
     private int policyAddress;

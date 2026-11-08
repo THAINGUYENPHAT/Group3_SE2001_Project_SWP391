@@ -23,6 +23,17 @@ import java.util.Map;
 
 public class OrderService {
 
+    private static final BigDecimal SHIPPING_FEE = new BigDecimal("30000");
+    private static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("5000000");
+
+    // Shipping eligibility uses the selected product subtotal before voucher discounts.
+    public static BigDecimal calculateShippingFee(BigDecimal subtotal) {
+        if (subtotal.compareTo(FREE_SHIPPING_THRESHOLD) >= 0) {
+            return BigDecimal.ZERO;
+        }
+        return SHIPPING_FEE;
+    }
+
     private final OrderPolicyDAO policy = new OrderPolicyDAO();
     private final OrderDAO orderDAO;
     private final CheckoutConnectionFactory connections;
@@ -383,7 +394,7 @@ public class OrderService {
                 );
 
                 // 6. Tinh tien tu du lieu database
-                BigDecimal shippingFee = BigDecimal.ZERO;
+                BigDecimal shippingFee = calculateShippingFee(subtotal);
 
                 BigDecimal totalAmount = subtotal
                         .add(shippingFee)
