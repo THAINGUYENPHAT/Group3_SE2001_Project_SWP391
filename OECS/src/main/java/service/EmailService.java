@@ -34,7 +34,6 @@ public class EmailService {
 
     public boolean sendResetPasswordEmail(String toEmail, String resetLink) {
 
-        // Kiểm tra cấu hình email
         if (FROM_EMAIL == null || FROM_EMAIL.isBlank()
                 || APP_PASSWORD == null || APP_PASSWORD.isBlank()) {
 
