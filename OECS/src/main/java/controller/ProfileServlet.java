@@ -20,7 +20,6 @@ public class ProfileServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(ProfileServlet.class.getName());
 
-    // Regex kiểm tra định dạng email
     private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
 
     private static final String PHONE_REGEX = "^0\\d{8,9}$";
@@ -67,15 +66,11 @@ public class ProfileServlet extends HttpServlet {
 
         try {
             if ("updateProfile".equals(action)) {
-                // ========================================================
-                // 1. XỬ LÝ CẬP NHẬT HỒ SƠ (PROFILE)
-                // ========================================================
-                // Trong doPost() -> if ("updateProfile".equals(action))
+                
                 String email = request.getParameter("email");
                 String phone = request.getParameter("phone");
                 String address = request.getParameter("address");
 
-                // Validation Email...
                 if (email == null || !Pattern.matches(EMAIL_REGEX, email.trim())) {
                     request.setAttribute("profileError", "Email không đúng định dạng!");
                     request.getRequestDispatcher("/WEB-INF/profile.jsp").forward(request, response);
@@ -92,7 +87,6 @@ public class ProfileServlet extends HttpServlet {
                     return;
                 }
 
-                // Check Email trùng...
                 if (!email.trim().equalsIgnoreCase(user.getEmail())) {
                     if (dao.checkUserExist("", email.trim())) {
                         request.setAttribute("profileError", "Email này đã được sử dụng!");
@@ -101,7 +95,6 @@ public class ProfileServlet extends HttpServlet {
                     }
                 }
 
-                // Cập nhật Profile vào DB
                 boolean isUpdated = dao.updateProfile(user.getUserId(), email.trim(), phone, address, user.getUsername());
 
                 if (isUpdated) {
@@ -116,9 +109,7 @@ public class ProfileServlet extends HttpServlet {
                 }
 
             } else if ("changePassword".equals(action)) {
-                // ========================================================
-                // 2. XỬ LÝ ĐỔI MẬT KHẨU (CHANGE PASSWORD)
-                // ========================================================
+               
                 String oldPassword = request.getParameter("oldPassword");
                 String newPassword = request.getParameter("newPassword");
                 String confirmPassword = request.getParameter("confirmPassword");

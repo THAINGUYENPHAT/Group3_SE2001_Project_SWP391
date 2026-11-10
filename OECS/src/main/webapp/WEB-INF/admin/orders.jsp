@@ -5,13 +5,11 @@
 <%@include file="/WEB-INF/include/header.jsp" %>
 
 <style>
-    /* ================= ORDER PAGE ================= */
     .order-page {
         width: 100%;
         padding-top: 5px;
     }
 
-    /* ================= PAGE HEADER ================= */
     .order-page-heading {
         display: flex;
         align-items: flex-end;
@@ -46,7 +44,6 @@
         font-weight: 700;
     }
 
-    /* ================= ORDER CARD ================= */
     .order-card {
         background: white;
         border: 1px solid #e1e8f0;
@@ -94,7 +91,6 @@
         font-size: 13px;
     }
 
-    /* ================= TABLE ================= */
     .order-table-container {
         width: 100%;
         overflow-x: auto;
@@ -144,7 +140,6 @@
         border-bottom: none;
     }
 
-    /* ================= COLUMNS ================= */
     .order-table th:nth-child(1), .order-table td:nth-child(1) { width: 9%; }
     .order-table th:nth-child(2), .order-table td:nth-child(2) { width: 8%; }
     .order-table th:nth-child(3), .order-table td:nth-child(3) { width: 16%; }
@@ -154,7 +149,6 @@
     .order-table th:nth-child(7), .order-table td:nth-child(7) { width: 15%; }
     .order-table th:nth-child(8), .order-table td:nth-child(8) { width: 10%; }
 
-    /* ================= CELLS ================= */
     .order-id-cell {
         color: #1677ff;
         font-size: 15px;
@@ -197,7 +191,6 @@
         font-size: 13px;
     }
 
-    /* ================= PAYMENT ================= */
     .payment-badge-order {
         display: inline-flex;
         align-items: center;
@@ -229,7 +222,6 @@
         white-space: nowrap;
     }
 
-    /* ================= BUTTON ================= */
     .detail-btn-order {
         display: inline-flex;
         align-items: center;
@@ -255,7 +247,6 @@
         transform: translateY(-1px);
     }
 
-    /* ================= EMPTY ================= */
     .empty-order-row td {
         height: 180px;
         text-align: center;
@@ -274,7 +265,6 @@
         font-size: 21px;
     }
 
-    /* ================= RESPONSIVE ================= */
     @media (max-width: 1250px) {
         .heading-title-order h1 { font-size: 28px; }
         .order-page-heading { align-items: flex-start; gap: 15px; }
@@ -291,10 +281,8 @@
     }
 </style>
 
-<!-- ================= ORDER PAGE ================= -->
 <div class="order-page">
 
-    <!-- ================= PAGE TITLE ================= -->
     <div class="order-page-heading">
         <div class="heading-title-order">
             <h1>Order Management</h1>
@@ -306,7 +294,6 @@
         </div>
     </div>
 
-    <!-- ================= ORDER CARD ================= -->
     <div class="order-card">
 
         <div class="order-card-header">
@@ -320,7 +307,6 @@
             </div>
         </div>
 
-        <!-- ================= TABLE ================= -->
         <div class="order-table-container">
             <table class="order-table">
                 <thead>
@@ -341,17 +327,14 @@
                         <c:when test="${not empty orders}">
                             <c:forEach var="order" items="${orders}">
                                 <tr>
-                                    <!-- ORDER ID -->
                                     <td class="order-id-cell">
                                         #${order.orderId}
                                     </td>
 
-                                    <!-- USER ID -->
                                     <td class="user-id-cell">
                                         ${order.userId}
                                     </td>
 
-                                    <!-- RECIPIENT -->
                                     <td class="recipient-cell">
                                         <c:choose>
                                             <c:when test="${not empty order.recipientName}">
@@ -363,17 +346,14 @@
                                         </c:choose>
                                     </td>
 
-                                    <!-- TOTAL -->
                                     <td class="amount-cell">
                                         <fmt:formatNumber value="${order.totalAmount}" type="number" groupingUsed="true" maxFractionDigits="0"/> ₫
                                     </td>
 
-                                    <!-- SHIPPING -->
                                     <td class="shipping-cell">
                                         <fmt:formatNumber value="${order.shippingFee}" type="number" groupingUsed="true" maxFractionDigits="0"/> ₫
                                     </td>
 
-                                    <!-- PAYMENT -->
                                     <td>
                                         <c:choose>
                                             <c:when test="${not empty order.paymentStatus}">
@@ -388,12 +368,10 @@
                                         </c:choose>
                                     </td>
 
-                                    <!-- DATE -->
                                     <td class="date-cell">
                                         <fmt:formatDate value="${order.createdAt}" pattern="dd/MM/yyyy HH:mm"/>
                                     </td>
 
-                                    <!-- ACTION -->
                                     <td>
                                         <a class="detail-btn-order" href="${pageContext.request.contextPath}/admin/orders/detail?id=${order.orderId}">
                                             Xem chi tiết →

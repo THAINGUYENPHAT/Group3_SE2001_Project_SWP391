@@ -32,7 +32,6 @@ public class BannerServlet extends HttpServlet {
 
     private final BannerDAO bannerDAO = new BannerDAO();
 
-    // Cho phep chu tieng Viet, chu cai, so, khoang trang va dau cau thong dung.
     private static final Pattern ALT_TEXT_PATTERN = Pattern.compile(
             "^[\\p{L}\\p{M}\\p{N}\\s.,!?()'’:;-]*$"
     );
@@ -49,7 +48,6 @@ public class BannerServlet extends HttpServlet {
         return uploadDirectory;
     }
 
-    // Xoa anh banner cu khi nguoi dung thay anh moi.
     private void deleteOldImage(String imageUrl) {
         if (imageUrl == null || !imageUrl.startsWith("uploads/banners/")) {
             return;
@@ -72,7 +70,6 @@ public class BannerServlet extends HttpServlet {
         }
     }
 
-    // Kiem tra mo ta banner
     private boolean isValidAltText(String altText) {
         if (altText == null) {
             return true;
@@ -84,7 +81,6 @@ public class BannerServlet extends HttpServlet {
                 && ALT_TEXT_PATTERN.matcher(altText).matches();
     }
 
-    // Kiem tra lien ket banner
     private boolean isValidTargetUrl(String targetUrl) {
         if (targetUrl == null || targetUrl.trim().isEmpty()) {
             return true;
@@ -99,7 +95,6 @@ public class BannerServlet extends HttpServlet {
             return false;
         }
 
-        // Khong cho phep khoang trang va ky tu dieu khien
         if (targetUrl.chars().anyMatch(
                 c -> Character.isWhitespace(c)
                 || Character.isISOControl(c))) {
@@ -109,7 +104,6 @@ public class BannerServlet extends HttpServlet {
         try {
             URI uri = URI.create(targetUrl);
 
-            // Chi chap nhan duong dan noi bo bat dau bang /
             if (targetUrl.startsWith("/")) {
                 return !uri.isAbsolute()
                         && uri.getRawAuthority() == null
@@ -117,7 +111,6 @@ public class BannerServlet extends HttpServlet {
                         && uri.getRawPath().startsWith("/");
             }
 
-            // URL ben ngoai chi chap nhan HTTPS
             return "https".equalsIgnoreCase(uri.getScheme())
                     && uri.getHost() != null
                     && !uri.getHost().isEmpty()
@@ -128,7 +121,6 @@ public class BannerServlet extends HttpServlet {
         }
     }
 
-    // Chuyen huong khi du lieu khong hop le
     private void redirectError(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -152,7 +144,6 @@ public class BannerServlet extends HttpServlet {
 
         String action = request.getParameter("action");
 
-        // Xu ly chinh sua banner
         if ("edit".equals(action)) {
             try {
                 int bannerId = Integer.parseInt(
@@ -190,7 +181,6 @@ public class BannerServlet extends HttpServlet {
             }
         }
 
-        // Xu ly xoa banner
         if ("delete".equals(action)) {
             String idValue = request.getParameter("id");
 
@@ -217,7 +207,6 @@ public class BannerServlet extends HttpServlet {
             return;
         }
 
-        // Xu ly bat/tat banner
         if ("toggle".equals(action)) {
             String idValue = request.getParameter("id");
 
@@ -248,7 +237,6 @@ public class BannerServlet extends HttpServlet {
             return;
         }
 
-        // Lay danh sach banner
         List<Banner> banners = bannerDAO.getAll();
         request.setAttribute("banners", banners);
 
@@ -265,7 +253,6 @@ public class BannerServlet extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
-        // Xu ly cap nhat banner
         String action = request.getParameter("action");
 
         if ("update".equals(action)) {
@@ -273,24 +260,20 @@ public class BannerServlet extends HttpServlet {
             return;
         }
 
-        // Xu ly them banner
         String altText = request.getParameter("altText");
         String targetUrl = request.getParameter("targetUrl");
         String orderValue = request.getParameter("displayOrder");
 
-        // 1. Kiem tra mo ta
         if (!isValidAltText(altText)) {
             redirectError(request, response, "invalidAlt");
             return;
         }
 
-        // 2. Kiem tra lien ket
         if (!isValidTargetUrl(targetUrl)) {
             redirectError(request, response, "invalidUrl");
             return;
         }
 
-        // 3. Kiem tra thu tu hien thi
         int displayOrder = 0;
 
         try {
@@ -312,7 +295,6 @@ public class BannerServlet extends HttpServlet {
             return;
         }
 
-        // 4. Kiem tra file anh
         Part imagePart = request.getPart("imageFile");
 
         if (imagePart == null || imagePart.getSize() == 0) {
@@ -363,7 +345,6 @@ public class BannerServlet extends HttpServlet {
             return;
         }
 
-        // 5. Luu file anh
         String fileName = UUID.randomUUID() + extension;
 
         Path uploadDirectory = getUploadDirectory();
@@ -387,7 +368,6 @@ public class BannerServlet extends HttpServlet {
             );
         }
 
-        // 6. Luu thong tin banner vao database
         Banner banner = new Banner();
 
         banner.setImageUrl("uploads/banners/" + fileName);
@@ -414,7 +394,6 @@ public class BannerServlet extends HttpServlet {
         );
     }
 
-    // Cap nhat banner
     private void updateBanner(
             HttpServletRequest request,
             HttpServletResponse response
@@ -484,7 +463,6 @@ public class BannerServlet extends HttpServlet {
         String imageUrl = oldBanner.getImageUrl();
         Path newImagePath = null;
 
-        // Chi upload anh moi khi nguoi dung co chon file.
         if (imagePart != null && imagePart.getSize() > 0) {
 
             String contentType = imagePart.getContentType();
@@ -568,7 +546,6 @@ public class BannerServlet extends HttpServlet {
                 ? null : targetUrl.trim()
         );
 
-        // Giu nguyen trang thai bat/tat hien tai.
         banner.setActive(oldBanner.isActive());
 
         banner.setDisplayOrder(displayOrder);
@@ -582,7 +559,6 @@ public class BannerServlet extends HttpServlet {
             return;
         }
 
-        // Chi xoa anh cu sau khi database cap nhat thanh cong.
         if (newImagePath != null) {
             deleteOldImage(oldBanner.getImageUrl());
         }

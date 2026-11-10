@@ -27,9 +27,7 @@ public class ResetPasswordServlet extends HttpServlet {
     private final AuditLogService auditLogService
             = new AuditLogService();
 
-    // =====================================================
-    // GET - USER BẤM LINK TRONG EMAIL
-    // =====================================================
+   
     @Override
     protected void doGet(HttpServletRequest request,
             HttpServletResponse response)
@@ -55,7 +53,6 @@ public class ResetPasswordServlet extends HttpServlet {
             PasswordResetToken resetToken
                     = passwordResetService.validateToken(token);
 
-            // Token không tồn tại / hết hạn / đã sử dụng
             if (resetToken == null) {
 
                 request.setAttribute(
@@ -70,7 +67,6 @@ public class ResetPasswordServlet extends HttpServlet {
                 return;
             }
 
-            // Token hợp lệ -> gửi token sang JSP
             request.setAttribute("token", token);
 
             request.getRequestDispatcher("/WEB-INF/reset-password.jsp")
@@ -94,9 +90,7 @@ public class ResetPasswordServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // POST - ĐỔI MẬT KHẨU
-    // =====================================================
+    
     @Override
     protected void doPost(HttpServletRequest request,
             HttpServletResponse response)
@@ -108,9 +102,7 @@ public class ResetPasswordServlet extends HttpServlet {
         String newPassword = request.getParameter("newPassword");
         String confirmPassword = request.getParameter("confirmPassword");
 
-        // =================================================
-        // 1. KIỂM TRA TOKEN
-        // =================================================
+       
         if (token == null || token.trim().isEmpty()) {
 
             request.setAttribute(
@@ -124,9 +116,7 @@ public class ResetPasswordServlet extends HttpServlet {
             return;
         }
 
-        // =================================================
-        // 2. KIỂM TRA MẬT KHẨU RỖNG
-        // =================================================
+      
         if (newPassword == null
                 || newPassword.trim().isEmpty()
                 || confirmPassword == null
@@ -145,9 +135,7 @@ public class ResetPasswordServlet extends HttpServlet {
             return;
         }
 
-        // =================================================
-        // 3. KIỂM TRA ĐỘ DÀI
-        // =================================================
+       
         if (newPassword.length() < 6) {
 
             request.setAttribute(
@@ -163,9 +151,7 @@ public class ResetPasswordServlet extends HttpServlet {
             return;
         }
 
-        // =================================================
-        // 4. KIỂM TRA XÁC NHẬN MẬT KHẨU
-        // =================================================
+       
         if (!newPassword.equals(confirmPassword)) {
 
             request.setAttribute(
@@ -183,9 +169,7 @@ public class ResetPasswordServlet extends HttpServlet {
 
         try {
 
-            // =================================================
-            // 5. RESET PASSWORD
-            // =================================================
+            
             PasswordResetToken resetToken
                     = passwordResetService.validateToken(token);
 
@@ -224,9 +208,7 @@ public class ResetPasswordServlet extends HttpServlet {
                 return;
             }
 
-            // =================================================
-            // 6. THÀNH CÔNG -> VỀ LOGIN
-            // =================================================
+          
             HttpSession session = request.getSession();
 
             session.setAttribute(

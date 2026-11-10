@@ -33,7 +33,6 @@
                     </div>
                 </div>
 
-                <!-- Error message -->
                 <c:if test="${not empty errorMessage}">
                     <div class="alert alert-danger" role="alert">
                         <i class="bi bi-exclamation-circle me-2"></i>
@@ -41,13 +40,11 @@
                     </div>
                 </c:if>
 
-                <!-- Form -->
                 <form action="${pageContext.request.contextPath}/category"
                       method="POST">
 
                     <input type="hidden" name="action" value="edit"/>
 
-                    <!-- Category ID -->
                     <div class="mb-4">
                         <label for="category-id"
                                class="form-label fw-semibold text-dark">
@@ -62,7 +59,6 @@
                                readonly/>
                     </div>
 
-                    <!-- Category name -->
                     <div class="mb-4">
                         <label for="category-name"
                                class="form-label fw-semibold text-dark">
@@ -82,7 +78,6 @@
                         </div>
                     </div>
 
-                    <!-- Parent category -->
                     <div class="mb-4">
                         <label for="parent-id"
                                class="form-label fw-semibold text-dark">
@@ -122,7 +117,6 @@
                         </div>
                     </div>
 
-                    <!-- Buttons -->
                     <div class="d-flex gap-2 pt-3 mt-4 border-top">
                         <button type="submit"
                                 class="btn btn-primary btn-lg fs-6 px-4">

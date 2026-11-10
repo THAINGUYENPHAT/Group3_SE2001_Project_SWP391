@@ -54,7 +54,6 @@ public class ReturnExchangeServlet extends HttpServlet {
 
         HttpSession session = request.getSession();
 
-        // Kiểm tra thông báo gửi yêu cầu thành công
         String successMessage =
                 (String) session.getAttribute("returnSuccessMessage");
 
@@ -192,7 +191,6 @@ public class ReturnExchangeServlet extends HttpServlet {
                     items
             );
 
-            // Lưu thông báo thành công vào session
             HttpSession session = request.getSession();
 
             session.setAttribute(
@@ -202,7 +200,6 @@ public class ReturnExchangeServlet extends HttpServlet {
 
             session.setAttribute("returnSuccessOrderId", orderId);
 
-            // Quay lại chính trang tạo yêu cầu, không về my-orders
             response.sendRedirect(
                     request.getContextPath()
                     + "/return-exchange?orderId=" + orderId);

@@ -127,7 +127,6 @@
         gap: 10px;
     }
 
-    /* ================= NOTIFICATION ================= */
 
     .return-form-page .error-message {
         display: flex;
@@ -189,7 +188,6 @@
         }
     }
 
-    /* ================= VALIDATION TOAST ================= */
 
     .return-form-page .validation-toast {
         display: flex;
@@ -233,7 +231,6 @@
         pointer-events: none;
     }
 
-    /* ================= SUCCESS NOTIFICATION ================= */
 
     .return-form-page .success-message {
         display: flex;
@@ -324,7 +321,6 @@
 
 <div class="return-form-page">
 
-    <!-- SUCCESS NOTIFICATION -->
     <c:if test="${not empty successMessage}">
         <div class="success-message notification" role="status">
             <span class="notification-icon">✓</span>
@@ -334,7 +330,6 @@
         </div>
     </c:if>
 
-    <!-- PAGE HEADER -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
             <h3 class="fw-bold text-dark mb-1">
@@ -349,7 +344,6 @@
         
     </div>
 
-    <!-- SUCCESS SCREEN -->
     <c:choose>
         <c:when test="${not empty successMessage}">
             <div class="success-panel">
@@ -379,7 +373,6 @@
         </c:when>
 
         <c:otherwise>
-            <!-- INFORMATION -->
             <div class="notice-box mb-4">
                 <div class="fw-bold mb-1">
                     <i class="bi bi-info-circle-fill me-2"></i>
@@ -390,7 +383,6 @@
                 Vui lòng chọn đúng sản phẩm và số lượng cần trả.
             </div>
 
-            <!-- ERROR NOTIFICATION -->
             <c:if test="${not empty errorMessage}">
                 <div class="error-message notification" role="alert">
                     <span class="notification-icon">!</span>
@@ -400,14 +392,12 @@
                 </div>
             </c:if>
 
-            <!-- RETURN / EXCHANGE FORM -->
             <form method="post"
                   action="${pageContext.request.contextPath}/return-exchange"
                   id="returnExchangeForm">
 
                 <input type="hidden" name="orderId" value="${orderId}">
 
-                <!-- REQUEST INFORMATION -->
                 <div class="form-card">
                     <h5 class="section-title">
                         <i class="bi bi-receipt text-primary me-2"></i>
@@ -428,7 +418,6 @@
                     </div>
                 </div>
 
-                <!-- PRODUCT SELECTION -->
                 <div class="form-card">
                     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
                         <h5 class="section-title mb-0">
@@ -489,7 +478,6 @@
                                                 </div>
                                             </div>
 
-                                            <!-- EXCHANGE FIELD -->
                                             <div class="exchange-field"
                                                  data-order-item-id="${item.orderItemId}">
 
@@ -538,7 +526,6 @@
                     </c:choose>
                 </div>
 
-                <!-- REASON -->
                 <div class="form-card">
                     <h5 class="section-title">
                         <i class="bi bi-chat-left-text text-primary me-2"></i>
@@ -579,7 +566,6 @@
 </div>
 
 <script>
-    // ================= NOTIFICATION =================
 
     document.querySelectorAll(".notification").forEach(function (message) {
         setTimeout(function () {
@@ -591,10 +577,8 @@
         }, 3500);
     });
 
-    // ================= VALIDATION TOAST =================
 
     function showValidationToast(message) {
-        // Xóa thông báo cũ nếu đang tồn tại
         document.querySelectorAll(".validation-toast").forEach(function (toast) {
             toast.remove();
         });
@@ -624,7 +608,6 @@
         }, 3500);
     }
 
-    // ================= RETURN / EXCHANGE =================
 
     const requestType = document.getElementById("requestType");
     const form = document.getElementById("returnExchangeForm");
@@ -665,7 +648,6 @@
 
     requestType.addEventListener("change", updateExchangeFields);
 
-    // ================= FORM VALIDATION =================
 
     form.addEventListener("submit", function (event) {
         const selectedItems = document.querySelectorAll(

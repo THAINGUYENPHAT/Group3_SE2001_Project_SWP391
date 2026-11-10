@@ -166,7 +166,6 @@ public class BrandServlet extends HttpServlet {
                     return;
                 }
 
-                // Dem so san pham cua thuong hieu
                 int productCount = dao.countProductsByBrandId(id);
 
                 request.setAttribute("brand", selectedBrand);
@@ -410,7 +409,6 @@ public class BrandServlet extends HttpServlet {
                     return;
                 }
 
-                // Kiem tra lai truoc khi xoa
                 int productCount = dao.countProductsByBrandId(id);
 
                 if (productCount > 0) {

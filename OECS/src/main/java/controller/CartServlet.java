@@ -33,9 +33,7 @@ public class CartServlet extends HttpServlet {
             = new VoucherDAO();
 
 
-    // =====================================================
-    // GET
-    // =====================================================
+    
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -56,12 +54,7 @@ public class CartServlet extends HttpServlet {
         }
 
 
-        /*
-         * Giữ tương thích với link cũ:
-         *
-         * /cart?action=remove
-         * /cart?action=clear
-         */
+      
         String action
                 = request.getParameter(
                         "action"
@@ -100,9 +93,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // POST
-    // =====================================================
+   
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -192,9 +183,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // SHOW CART
-    // =====================================================
+    
     private void showCart(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -235,9 +224,7 @@ public class CartServlet extends HttpServlet {
         }
 
 
-        // =================================================
-        // SELECTED ITEMS
-        // =================================================
+        
 
         List<Integer> selectedIds
                 = getSelectedIdsFromSession(
@@ -252,10 +239,7 @@ public class CartServlet extends HttpServlet {
                 );
 
 
-        /*
-         * Chưa có selection:
-         * mặc định tick tất cả item còn hàng.
-         */
+        
         if (selectedIds.isEmpty()
                 && !cartItems.isEmpty()) {
 
@@ -277,9 +261,7 @@ public class CartServlet extends HttpServlet {
         );
 
 
-        // =================================================
-        // SELECTED TOTAL
-        // =================================================
+        
 
         double selectedTotal = 0;
 
@@ -295,9 +277,7 @@ public class CartServlet extends HttpServlet {
         }
 
 
-        // =================================================
-        // AVAILABLE VOUCHERS
-        // =================================================
+        
 
         List<Voucher> availableVouchers
                 = voucherDAO
@@ -307,9 +287,7 @@ public class CartServlet extends HttpServlet {
                         );
 
 
-        // =================================================
-        // APPLIED VOUCHER
-        // =================================================
+        
 
         Voucher appliedVoucher
                 = (Voucher)
@@ -369,9 +347,6 @@ public class CartServlet extends HttpServlet {
                 );
 
 
-        // =================================================
-        // ATTRIBUTES
-        // =================================================
 
         request.setAttribute(
                 "cartItems",
@@ -428,9 +403,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // ADD ITEM
-    // =====================================================
+    
     private void addItem(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -499,10 +472,7 @@ public class CartServlet extends HttpServlet {
                     "Đã thêm sản phẩm vào giỏ hàng."
             );
 
-            /*
-             * Reset selection để lần vào cart sau
-             * mặc định tick tất cả.
-             */
+            
             session.removeAttribute(
                     "checkoutSelectedItemIds"
             );
@@ -524,9 +494,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // UPDATE ITEM
-    // =====================================================
+
     private void updateItem(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -609,9 +577,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // REMOVE
-    // =====================================================
+   
     private void removeItem(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -688,9 +654,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // CLEAR
-    // =====================================================
+   
     private void clearCart(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -737,9 +701,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // APPLY VOUCHER
-    // =====================================================
+    
     private void applyVoucher(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -876,9 +838,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // REMOVE VOUCHER
-    // =====================================================
+  
     private void removeVoucher(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -944,9 +904,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // SANITIZE SELECTION
-    // =====================================================
+    
     private List<Integer> sanitizeSelectedIds(
             List<CartItem> cartItems,
             List<Integer> selectedIds) {
@@ -979,9 +937,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // SESSION IDS
-    // =====================================================
+
     @SuppressWarnings("unchecked")
     private List<Integer> getSelectedIdsFromSession(
             HttpSession session) {
@@ -1004,9 +960,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // REMOVE ID FROM SESSION
-    // =====================================================
+   
     private void removeSelectedId(
             HttpSession session,
             int cartItemId) {
@@ -1031,9 +985,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // PARSE SELECTED IDS
-    // =====================================================
+    
     private List<Integer> parseSelectedIds(
             String[] values) {
 
@@ -1066,9 +1018,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // TOTAL
-    // =====================================================
+  
     private double calculateSubtotal(
             List<CartItem> items) {
 
@@ -1087,9 +1037,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // USER
-    // =====================================================
+   
     private User getLoggedInUser(
             HttpServletRequest request) {
 
@@ -1114,9 +1062,7 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // PARSE
-    // =====================================================
+  
     private int parsePositiveInt(
             String value) {
 
@@ -1138,9 +1084,6 @@ public class CartServlet extends HttpServlet {
     }
 
 
-    // =====================================================
-    // REDIRECT
-    // =====================================================
     private void redirectCart(
             HttpServletRequest request,
             HttpServletResponse response)

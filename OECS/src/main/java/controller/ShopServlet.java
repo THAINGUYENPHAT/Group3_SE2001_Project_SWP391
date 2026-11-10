@@ -33,24 +33,18 @@ public class ShopServlet extends HttpServlet {
         ShopDAO shopDao = new ShopDAO();
 
         if ("detail".equals(action)) {
-            // Xử lý xem chi tiết sản phẩm
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
                 Product product = shopDao.getProductDetail(id);
 
                 if (product != null) {
-                    // =========================================================
-                    // SỬA LỖI Ở ĐÂY: Gọi DAO lấy danh sách ảnh phụ rồi set vào Product
-                    // =========================================================
+                    
                     List<ProductImage> galleryImages = shopDao.getProductImages(id);
                     product.setGalleryImages(galleryImages);
-                    // =========================================================
 
                     List<ProductSku> skus = shopDao.getProductSkus(id);
                     List<ProductSpec> specs = shopDao.getProductSpecs(id);
 
-                    // Lấy đánh giá của tất cả phiên bản thuộc sản phẩm
-                    // Lấy tất cả đánh giá theo sản phẩm
                     ProductReviewDAO reviewDao = new ProductReviewDAO();
 
                     List<ProductReview> reviews
@@ -69,9 +63,7 @@ public class ShopServlet extends HttpServlet {
 
                     System.out.println("==================================");
 
-                    // Lấy số lượt mua
                     int purchaseCount = reviewDao.getPurchaseCountByProductId(id);
-                    // Tính điểm trung bình
                     int totalReviews = reviews.size();
                     int ratingSum = 0;
 
@@ -83,13 +75,11 @@ public class ShopServlet extends HttpServlet {
                             ? (double) ratingSum / totalReviews
                             : 0.0;
 
-                    // Dữ liệu sản phẩm
                     request.setAttribute("product", product);
                     request.setAttribute("skus", skus);
                     request.setAttribute("specs", specs);
                     request.setAttribute("purchaseCount", purchaseCount);
 
-                    // Dữ liệu đánh giá
                     request.setAttribute("reviews", reviews);
                     request.setAttribute("totalReviews", totalReviews);
                     request.setAttribute("averageRating", averageRating);
@@ -112,22 +102,17 @@ public class ShopServlet extends HttpServlet {
             }
 
         } else {
-            // ==========================================
-            // XỬ LÝ LỌC & HIỂN THỊ DANH SÁCH (CATALOG)
-            // ==========================================
+           
             String keyword = request.getParameter("keyword");
             String[] categoryIds = request.getParameterValues("categoryId");
             String priceRange = request.getParameter("priceRange");
             String sort = request.getParameter("sort");
 
-            // Lấy dữ liệu qua hàm tìm kiếm / lọc trong DAO
             List<Product> catalog = shopDao.getFilteredCatalog(keyword, categoryIds, priceRange, sort);
 
-            // Gửi dữ liệu danh sách sản phẩm sang JSP
             request.setAttribute("catalog", catalog);
             request.setAttribute("searchKeyword", keyword);
 
-            // Gửi trạng thái filter để giữ nguyên nút "checked" trên UI
             if (categoryIds != null) {
                 request.setAttribute("selectedCats", Arrays.asList(categoryIds));
             }

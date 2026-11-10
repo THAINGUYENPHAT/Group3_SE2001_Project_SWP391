@@ -22,9 +22,7 @@ public class UserServlet extends HttpServlet {
             = Logger.getLogger(UserServlet.class.getName());
     private final AuditLogService auditLogService = new AuditLogService();
 
-    // =====================================================
-    // CHECK PERMISSION - ADMIN ONLY
-    // =====================================================
+
     private boolean checkPermission(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -59,9 +57,7 @@ public class UserServlet extends HttpServlet {
         return true;
     }
 
-    // =====================================================
-    // GET
-    // =====================================================
+   
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -79,9 +75,7 @@ public class UserServlet extends HttpServlet {
         UserDAO dao = new UserDAO();
         HttpSession session = request.getSession();
 
-        // =================================================
-        // LIST USER
-        // =================================================
+     
         if (view == null || "list".equals(view)) {
 
             String keyword = request.getParameter("keyword");
@@ -116,9 +110,6 @@ public class UserServlet extends HttpServlet {
                     "/WEB-INF/user/list.jsp"
             ).forward(request, response);
 
-            // =================================================
-            // CREATE USER
-            // =================================================
         } else if ("create".equals(view)) {
 
             request.setAttribute(
@@ -139,9 +130,7 @@ public class UserServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // POST
-    // =====================================================
+  
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -159,9 +148,7 @@ public class UserServlet extends HttpServlet {
         UserDAO dao = new UserDAO();
         HttpSession session = request.getSession();
 
-        // =================================================
-        // CREATE USER
-        // =================================================
+        
         if ("create".equals(action)) {
 
             String username
@@ -320,7 +307,6 @@ public class UserServlet extends HttpServlet {
                                 "loggedInUser"
                         );
 
-                // Không cho Admin tự khóa chính mình
                 if (loggedInUser != null
                         && loggedInUser.getUserId() == id) {
 

@@ -569,13 +569,11 @@ public class CategoryServlet extends HttpServlet {
         }
     }
 
-    // Kiem tra ten danh muc: chu cai, chu so va khoang trang
     private boolean isValidCategoryName(String name) {
         return name != null
                 && name.matches("^[\\p{L}\\p{M}\\p{N} ]+$");
     }
 
-    // Hien thi loi va giu lai ten vua nhap khi tao danh muc
     private void forwardCreateWithError(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -593,7 +591,6 @@ public class CategoryServlet extends HttpServlet {
         ).forward(request, response);
     }
 
-    // Hien thi loi va giu lai ten vua nhap khi sua danh muc
     private void forwardEditWithError(
             HttpServletRequest request,
             HttpServletResponse response,

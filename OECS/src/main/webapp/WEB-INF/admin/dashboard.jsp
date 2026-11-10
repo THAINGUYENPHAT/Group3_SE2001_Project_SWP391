@@ -5,10 +5,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <style>
-/* ============================================
-   OECS ADMIN DASHBOARD
-   Scoped CSS
-   ============================================ */
+
 
 .oecs-dashboard {
     width: 100%;
@@ -21,7 +18,6 @@
     box-sizing: border-box;
 }
 
-/* PAGE HEADING */
 
 .oecs-dashboard .db-heading {
     display: flex;
@@ -58,7 +54,6 @@
     font-weight: 700;
 }
 
-/* COMMON CARD */
 
 .oecs-dashboard .db-card {
     min-width: 0;

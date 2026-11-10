@@ -19,7 +19,6 @@ public class RegisterServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(RegisterServlet.class.getName());
 
-    // Regex kiểm tra định dạng email
     private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
     private static final String PHONE_REGEX = "^0\\d{8,9}$";
 
@@ -28,9 +27,7 @@ public class RegisterServlet extends HttpServlet {
             throws ServletException, IOException {
 
         try {
-            // =====================================================
-            // 1. KIỂM TRA ĐĂNG NHẬP TRƯỚC ĐÓ
-            // =====================================================
+           
             HttpSession session = request.getSession(false);
             if (session != null && session.getAttribute("loggedInUser") != null) {
                 User user = (User) session.getAttribute("loggedInUser");
@@ -42,9 +39,7 @@ public class RegisterServlet extends HttpServlet {
                 return;
             }
 
-            // =====================================================
-            // 2. HIỂN THỊ TRANG ĐĂNG KÝ
-            // =====================================================
+           
             request.getRequestDispatcher("/WEB-INF/register.jsp").forward(request, response);
 
         } catch (Exception e) {
@@ -65,15 +60,12 @@ public class RegisterServlet extends HttpServlet {
         String password = request.getParameter("password");
         String confirmPassword = request.getParameter("confirmPassword");
 
-        // Giữ lại dữ liệu đã nhập trên form khi có lỗi
         request.setAttribute("username", username);
         request.setAttribute("email", email);
         request.setAttribute("phone", phone);
 
         try {
-            // =====================================================
-            // 1. VALIDATION ĐỊNH DẠNG DỮ LIỆU
-            // =====================================================
+            
             if (email == null || !Pattern.matches(EMAIL_REGEX, email.trim())) {
                 request.setAttribute("errorMessage", "Email không đúng định dạng (Ví dụ: user@example.com)!");
                 request.getRequestDispatcher("/WEB-INF/register.jsp").forward(request, response);
@@ -102,9 +94,7 @@ public class RegisterServlet extends HttpServlet {
                 return;
             }
 
-            // =====================================================
-            // 2. KIỂM TRA TRÙNG LẶP USERNAME / EMAIL
-            // =====================================================
+            
             UserDAO dao = new UserDAO();
             if (dao.checkUserExist(username, email.trim())) {
                 request.setAttribute("errorMessage", "Tên đăng nhập hoặc Email đã tồn tại!");
@@ -112,9 +102,7 @@ public class RegisterServlet extends HttpServlet {
                 return;
             }
 
-            // =====================================================
-            // 3. THỰC THI ĐĂNG KÝ VÀO DB
-            // =====================================================
+            
             boolean isSuccess = dao.register(username, email.trim(), password, phone.trim());
 
             if (isSuccess) {

@@ -38,9 +38,7 @@ public class VoucherServlet extends HttpServlet {
                     "yyyy-MM-dd'T'HH:mm"
             );
 
-    // =====================================================
-    // INIT
-    // =====================================================
+   
     @Override
     public void init()
             throws ServletException {
@@ -49,14 +47,6 @@ public class VoucherServlet extends HttpServlet {
                 = new VoucherDAO();
     }
 
-    // =====================================================
-    // GET
-    //
-    // /staff/voucher
-    // /staff/voucher?view=create
-    // /staff/voucher?view=edit&id=1
-    // /staff/voucher?view=delete&id=1
-    // =====================================================
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -67,7 +57,6 @@ public class VoucherServlet extends HttpServlet {
                 "UTF-8"
         );
 
-        // Chỉ Staff
         if (!checkStaff(
                 request,
                 response
@@ -137,9 +126,7 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // POST
-    // =====================================================
+    
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -150,7 +137,6 @@ public class VoucherServlet extends HttpServlet {
                 "UTF-8"
         );
 
-        // Chỉ Staff
         if (!checkStaff(
                 request,
                 response
@@ -215,9 +201,7 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // CHECK STAFF
-    // =====================================================
+   
     private boolean checkStaff(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -277,27 +261,22 @@ public class VoucherServlet extends HttpServlet {
         return true;
     }
 
-    // =====================================================
-    // LIST
-    // =====================================================
+    
     private void showList(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        // Tất cả Voucher
         request.setAttribute(
                 "vouchers",
                 voucherDAO.getAllVouchers()
         );
 
-        // Số mã Voucher đã từng được sử dụng
         request.setAttribute(
                 "usedVoucherCount",
                 voucherDAO.countUsedVouchers()
         );
 
-        // Chỉ lấy lịch sử sử dụng trong 7 ngày gần nhất
         request.setAttribute(
                 "recentVoucherUsages",
                 voucherDAO.getRecentVoucherUsages()
@@ -311,9 +290,6 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-// SHOW ALL VOUCHER USAGE HISTORY
-// =====================================================
     private void showUsage(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -332,9 +308,6 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // SHOW CREATE
-    // =====================================================
     private void showCreate(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -348,9 +321,7 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // CREATE
-    // =====================================================
+  
     private void createVoucher(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -444,9 +415,7 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // SHOW EDIT
-    // =====================================================
+
     private void showEdit(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -536,9 +505,7 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // UPDATE
-    // =====================================================
+   
     private void updateVoucher(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -679,9 +646,7 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // SHOW DELETE
-    // =====================================================
+    
     private void showDelete(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -743,9 +708,7 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // DELETE
-    // =====================================================
+
     private void deleteVoucher(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -832,16 +795,13 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // GET FORM DATA
-    // =====================================================
+   
     private Voucher getVoucherFromRequest(
             HttpServletRequest request) {
 
         Voucher voucher
                 = new Voucher();
 
-        // CODE
         String code
                 = request.getParameter(
                         "code"
@@ -858,7 +818,6 @@ public class VoucherServlet extends HttpServlet {
                 code
         );
 
-        // TYPE
         String discountType
                 = request.getParameter(
                         "discountType"
@@ -876,7 +835,6 @@ public class VoucherServlet extends HttpServlet {
                 discountType
         );
 
-        // VALUE
         double discountValue
                 = Double.parseDouble(
                         request.getParameter(
@@ -888,7 +846,6 @@ public class VoucherServlet extends HttpServlet {
                 discountValue
         );
 
-        // MIN ORDER
         double minOrderValue
                 = Double.parseDouble(
                         request.getParameter(
@@ -900,7 +857,6 @@ public class VoucherServlet extends HttpServlet {
                 minOrderValue
         );
 
-        // DATE
         Timestamp validFrom
                 = parseTimestamp(
                         request.getParameter(
@@ -924,7 +880,6 @@ public class VoucherServlet extends HttpServlet {
         );
         ;
 
-        // MAX DISCOUNT
         Double maxDiscount
                 = parseNullableDouble(
                         request.getParameter(
@@ -947,7 +902,6 @@ public class VoucherServlet extends HttpServlet {
             );
         }
 
-        // USAGE LIMIT
         Integer usageLimit
                 = parseNullableInteger(
                         request.getParameter(
@@ -959,7 +913,6 @@ public class VoucherServlet extends HttpServlet {
                 usageLimit
         );
 
-        // PER USER
         Integer perUserLimit
                 = parseNullableInteger(
                         request.getParameter(
@@ -974,14 +927,11 @@ public class VoucherServlet extends HttpServlet {
         return voucher;
     }
 
-    // =====================================================
-    // VALIDATE
-    // =====================================================
+
     private String validateVoucher(
             Voucher voucher,
             boolean isUpdate) {
 
-        // CODE
         if (voucher.getCode() == null
                 || voucher.getCode()
                         .trim()
@@ -990,7 +940,6 @@ public class VoucherServlet extends HttpServlet {
             return "Mã Voucher không được để trống.";
         }
 
-        // DUPLICATE
         boolean duplicate;
 
         if (isUpdate) {
@@ -1016,7 +965,6 @@ public class VoucherServlet extends HttpServlet {
             return "Mã Voucher đã tồn tại.";
         }
 
-        // TYPE
         if (!"AMOUNT".equalsIgnoreCase(
                 voucher.getDiscountType()
         )
@@ -1027,14 +975,12 @@ public class VoucherServlet extends HttpServlet {
             return "Loại giảm giá không hợp lệ.";
         }
 
-        // VALUE
         if (voucher.getDiscountValue()
                 <= 0) {
 
             return "Giá trị giảm phải lớn hơn 0.";
         }
 
-        // PERCENT
         if ("PERCENT".equalsIgnoreCase(
                 voucher.getDiscountType()
         )
@@ -1044,7 +990,6 @@ public class VoucherServlet extends HttpServlet {
             return "Phần trăm giảm không được vượt quá 100%.";
         }
 
-        // MAX
         if ("PERCENT".equalsIgnoreCase(
                 voucher.getDiscountType()
         )
@@ -1056,14 +1001,12 @@ public class VoucherServlet extends HttpServlet {
             return "Giảm tối đa phải lớn hơn 0.";
         }
 
-        // MIN ORDER
         if (voucher.getMinOrderValue()
                 < 0) {
 
             return "Giá trị đơn tối thiểu không hợp lệ.";
         }
 
-        // DATE
         if (voucher.getValidFrom()
                 == null
                 || voucher.getValidTo()
@@ -1081,7 +1024,6 @@ public class VoucherServlet extends HttpServlet {
             return "Thời gian kết thúc phải sau thời gian bắt đầu.";
         }
 
-        // USAGE
         if (voucher.getUsageLimit()
                 != null
                 && voucher.getUsageLimit()
@@ -1090,7 +1032,6 @@ public class VoucherServlet extends HttpServlet {
             return "Tổng lượt sử dụng phải lớn hơn 0.";
         }
 
-        // PER USER
         if (voucher.getPerUserLimit()
                 != null
                 && voucher.getPerUserLimit()
@@ -1112,9 +1053,7 @@ public class VoucherServlet extends HttpServlet {
         return null;
     }
 
-    // =====================================================
-    // TIMESTAMP
-    // =====================================================
+ 
     private Timestamp parseTimestamp(
             String value) {
 
@@ -1135,9 +1074,7 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // NULLABLE DOUBLE
-    // =====================================================
+  
     private Double parseNullableDouble(
             String value) {
 
@@ -1152,9 +1089,7 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // NULLABLE INT
-    // =====================================================
+    
     private Integer parseNullableInteger(
             String value) {
 
@@ -1169,9 +1104,7 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // SUCCESS
-    // =====================================================
+   
     private void setSuccessMessage(
             HttpServletRequest request,
             String message) {
@@ -1183,9 +1116,7 @@ public class VoucherServlet extends HttpServlet {
                 );
     }
 
-    // =====================================================
-    // ERROR
-    // =====================================================
+  
     private void setErrorMessage(
             HttpServletRequest request,
             String message) {
@@ -1197,9 +1128,7 @@ public class VoucherServlet extends HttpServlet {
                 );
     }
 
-    // =====================================================
-    // REDIRECT LIST
-    // =====================================================
+   
     private void redirectList(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -1211,9 +1140,7 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // REDIRECT CREATE
-    // =====================================================
+  
     private void redirectCreate(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -1225,9 +1152,7 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // REDIRECT EDIT
-    // =====================================================
+   
     private void redirectEdit(
             HttpServletRequest request,
             HttpServletResponse response,

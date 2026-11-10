@@ -64,12 +64,10 @@ public class ProductSkuServlet extends HttpServlet {
 
             if ("create".equals(action)) {
                 String skuCode = request.getParameter("skuCode").trim();
-                // Xóa dấu chấm phân cách hàng nghìn trước khi parse
                 String priceStr = request.getParameter("priceStr").replace(".", "");
                 double price = Double.parseDouble(priceStr);
                 int stock = Integer.parseInt(request.getParameter("stock"));
 
-                // Kiểm tra trùng mã SKU
                 if (skuDao.checkSkuCodeExists(skuCode)) {
                     request.getSession().setAttribute("errorMsg", "Mã SKU '" + skuCode + "' đã tồn tại! Vui lòng nhập mã khác.");
                     response.sendRedirect(request.getContextPath() + "/product-sku?productId=" + productId);
@@ -90,7 +88,6 @@ public class ProductSkuServlet extends HttpServlet {
                 double price = Double.parseDouble(priceStr);
                 int stock = Integer.parseInt(request.getParameter("stock"));
 
-                // Kiểm tra trùng mã SKU (ngoại trừ chính nó)
                 if (skuDao.checkSkuCodeExistsForUpdate(skuCode, skuId)) {
                     request.getSession().setAttribute("errorMsg", "Mã SKU '" + skuCode + "' đã bị trùng với một phiên bản khác!");
                     response.sendRedirect(request.getContextPath() + "/product-sku?productId=" + productId);

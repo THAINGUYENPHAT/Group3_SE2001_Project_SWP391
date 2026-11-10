@@ -24,18 +24,16 @@ import java.util.UUID;
 
 @WebServlet(name = "ProductServlet", urlPatterns = {"/product"})
 @MultipartConfig(
-        fileSizeThreshold = 1024 * 1024 * 2, // 2MB
-        maxFileSize = 1024 * 1024 * 10, // 10MB
-        maxRequestSize = 1024 * 1024 * 50 // 50MB
+        fileSizeThreshold = 1024 * 1024 * 2, 
+        maxFileSize = 1024 * 1024 * 10, 
+        maxRequestSize = 1024 * 1024 * 50 
 )
 public class ProductServlet extends HttpServlet {
 
     private final AuditLogService auditLogService
             = new AuditLogService();
 
-    // =========================================================
-    // GET (Hiển thị giao diện)
-    // =========================================================
+    
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -73,12 +71,9 @@ public class ProductServlet extends HttpServlet {
                     return;
                 }
 
-                // ===============================================
-                // LẤY DANH SÁCH ẢNH PHỤ HIỂN THỊ LÊN FORM EDIT
-                // ===============================================
+                
                 List<model.ProductImage> galleryImages = productDao.getProductImages(id);
                 product.setGalleryImages(galleryImages);
-                // ===============================================
 
                 BrandDAO brandDao = new BrandDAO();
                 CategoryDAO categoryDao = new CategoryDAO();
@@ -113,9 +108,7 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    // =========================================================
-    // POST (Xử lý dữ liệu form)
-    // =========================================================
+    
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -127,9 +120,7 @@ public class ProductServlet extends HttpServlet {
         String nameRegex = "^[\\p{L}\\p{N}\\s\\-]+$";
 
         try {
-            // =====================================================
-            // ACTION: CREATE
-            // =====================================================
+           
             if ("create".equals(action)) {
                 String name = request.getParameter("name").trim();
                 int categoryId = Integer.parseInt(request.getParameter("categoryId"));
@@ -148,19 +139,15 @@ public class ProductServlet extends HttpServlet {
                     return;
                 }
 
-                // Xử lý upload ảnh chính (Ảnh nền)
                 String imageUrl = uploadImage(request);
 
-                // Xử lý upload ảnh phụ (Nhiều ảnh)
                 List<String> galleryUrls = uploadMultipleImages(request, "galleryFiles");
 
                 Product newProduct = new Product(categoryId, brandId, name, description, imageUrl);
 
-                // GỌI HÀM insertReturnId ĐỂ LẤY ID SẢN PHẨM VỪA TẠO
                 int newProductId = productDao.insertReturnId(newProduct);
 
                 if (newProductId > 0) {
-                    // Nếu có ảnh phụ, lưu vào bảng PRODUCT_IMAGES
                     if (!galleryUrls.isEmpty()) {
                         productDao.insertGalleryImages(newProductId, galleryUrls);
                     }
@@ -168,9 +155,7 @@ public class ProductServlet extends HttpServlet {
                 } else {
                     response.sendRedirect(request.getContextPath() + "/product?view=create&error=true");
                 }
-            } // =====================================================
-            // ACTION: EDIT
-            // =====================================================
+            } 
             else if ("edit".equals(action)) {
                 int id = Integer.parseInt(request.getParameter("id"));
                 String name = request.getParameter("name").trim();
@@ -178,9 +163,7 @@ public class ProductServlet extends HttpServlet {
                 int brandId = Integer.parseInt(request.getParameter("brandId"));
                 String description = request.getParameter("description");
 
-                // ========================================================
-                // Lấy danh sách ID các ảnh phụ cần xóa và gọi DAO xóa chúng
-                // ========================================================
+               
                 String[] deleteImageIds = request.getParameterValues("deleteImageIds");
                 if (deleteImageIds != null) {
                     for (String imageIdStr : deleteImageIds) {
@@ -191,7 +174,6 @@ public class ProductServlet extends HttpServlet {
                         }
                     }
                 }
-                // ========================================================
 
                 if (!name.matches(nameRegex)) {
                     request.getSession().setAttribute("errorMsg", "Tên sản phẩm không hợp lệ! Chỉ được dùng chữ cái, số, khoảng trắng và dấu gạch ngang (-).");
@@ -205,10 +187,8 @@ public class ProductServlet extends HttpServlet {
                     return;
                 }
 
-                // Upload ảnh chính mới (nếu có thay đổi)
                 String imageUrl = uploadImage(request);
 
-                // Upload các ảnh phụ MỚI TẢI THÊM (nếu có)
                 List<String> galleryUrls = uploadMultipleImages(request, "galleryFiles");
 
                 Product product = new Product();
@@ -222,7 +202,6 @@ public class ProductServlet extends HttpServlet {
                 int result = productDao.update(product);
 
                 if (result > 0) {
-                    // Nếu có upload ảnh phụ mới, thêm nó vào bảng PRODUCT_IMAGES
                     if (!galleryUrls.isEmpty()) {
                         productDao.insertGalleryImages(id, galleryUrls);
                     }
@@ -230,9 +209,7 @@ public class ProductServlet extends HttpServlet {
                 } else {
                     response.sendRedirect(request.getContextPath() + "/product?view=edit&id=" + id + "&error=true");
                 }
-            } // =====================================================
-            // ACTION: DELETE
-            // =====================================================
+            } 
             else if ("delete".equals(action)) {
                 int id = Integer.parseInt(request.getParameter("id"));
                 int result = productDao.delete(id);
@@ -252,9 +229,7 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    // =========================================================
-    // 1. HÀM HỖ TRỢ UPLOAD 1 ẢNH (Ảnh đại diện chính)
-    // =========================================================
+  
     private String uploadImage(HttpServletRequest request) throws IOException, ServletException {
         Part filePart = request.getPart("imageFile");
 
@@ -275,9 +250,7 @@ public class ProductServlet extends HttpServlet {
         return null;
     }
 
-    // =========================================================
-    // 2. HÀM HỖ TRỢ UPLOAD NHIỀU ẢNH (Ảnh phụ / Gallery)
-    // =========================================================
+    
     private List<String> uploadMultipleImages(HttpServletRequest request, String partName) throws IOException, ServletException {
         List<String> imageUrls = new ArrayList<>();
         String uploadPath = request.getServletContext().getRealPath("") + File.separator + "uploads" + File.separator + "products";
@@ -287,7 +260,6 @@ public class ProductServlet extends HttpServlet {
             uploadDir.mkdirs();
         }
 
-        // Lấy tất cả các file từ request
         for (Part part : request.getParts()) {
             if (part.getName().equals(partName) && part.getSize() > 0) {
                 String fileName = part.getSubmittedFileName();

@@ -254,7 +254,6 @@
                 align-items: center;
                 justify-content: center;
             }
-            /* --- CSS CHO SEARCH SUGGESTION --- */
             .search-suggestions {
                 position: absolute;
                 top: 110%;
@@ -314,7 +313,6 @@
                 color: #94a3b8;
                 font-size: 0.9rem;
             }
-            /* Dropdown section headings - improve readability */
             .dropdown-menu-dark .dropdown-header {
                 color: #60A5FA !important;
                 font-size: 0.75rem;
@@ -324,7 +322,6 @@
                 padding-bottom: 0.5rem;
             }
 
-            /* Bố cục mặc định cho các trang */
             .page-main {
                 width: 100%;
                 max-width: 1440px;
@@ -332,7 +329,6 @@
                 padding: 1.5rem;
             }
 
-            /* Trang chủ được phép sử dụng toàn bộ chiều rộng */
             .page-main.home-main {
                 max-width: none;
                 padding: 0;
@@ -478,9 +474,7 @@
 
                         <c:choose>
 
-                            <%-- =====================================================
-                                 STAFF + ADMIN -> HIỆN PHÂN HỆ QUẢN TRỊ
-                                 ===================================================== --%>
+                            
                             <c:when test="${sessionScope.loggedInUser.staff
                                             or sessionScope.loggedInUser.admin}">
 
@@ -500,7 +494,6 @@
                                         <ul class="dropdown-menu dropdown-menu-dark shadow-lg border-secondary mt-2 p-2"
                                             style="min-width: 270px;">
 
-                                            <%-- ================= ADMIN ONLY ================= --%>
                                             <c:if test="${sessionScope.loggedInUser.admin}">
 
                                                 <li>
@@ -560,7 +553,6 @@
                                                 <li><a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/staff/payment-refunds">Đối soát hoàn tiền</a></li>
                                             </c:if>
 
-                                            <%-- ================= STAFF ONLY ================= --%>
                                             <c:if test="${sessionScope.loggedInUser.staff}">
 
                                                 <li>
@@ -682,13 +674,11 @@
                     <div class="header-search-wrapper d-none d-md-block flex-grow-1 px-3">
                         <form action="${pageContext.request.contextPath}/shop" method="GET" class="position-relative mb-0">
                             <i class="bi bi-search position-absolute text-secondary" style="left: 14px; top: 50%; transform: translateY(-50%);"></i>
-                            <!-- Đổi placeholder và thêm thuộc tính name="keyword" -->
                             <input type="text" name="keyword" id="headerSearchInput" class="form-control header-search-input" 
                                    placeholder="Tìm kiếm tên, danh mục..." autocomplete="off"
                                    value="<c:out value='${param.keyword}' />">
                             <span class="search-shortcut-badge">Enter ↵</span>
 
-                            <!-- Khu vực hiển thị kết quả AJAX -->
                             <div id="searchSuggestions" class="search-suggestions d-none"></div>
                         </form>
                         <div class="search-quick-tags">
@@ -701,7 +691,6 @@
 
                     <div class="d-flex align-items-center gap-2.5">
 
-                        <%-- Giỏ hàng: chỉ hiển thị cho Customer --%>
                         <c:if test="${sessionScope.loggedInUser.customer}">
                             <a href="${pageContext.request.contextPath}/cart"
                                class="header-icon-btn me-2"
@@ -787,9 +776,7 @@
                 </div>
             </div>
         </header>
-        <!-- AJAX SEARCH SCRIPT -->
         <script>
-            // Hàm mã hóa ký tự đặc biệt thành HTML Entities (Chặn XSS)
             function escapeHTML(str) {
                 if (!str)
                     return '';
@@ -833,13 +820,10 @@
                                                     ? new Intl.NumberFormat('vi-VN').format(item.price) + ' ₫'
                                                     : 'Liên hệ';
 
-                                            // SỬ DỤNG HÀM ESCAPE TRƯỚC KHI IN RA GIAO DIỆN
                                             const safeName = escapeHTML(item.name);
 
-                                            // XỬ LÝ HÌNH ẢNH SẢN PHẨM: Hiển thị ảnh nếu có, ngược lại hiện hộp mặc định
                                             let imageHtml = '';
                                             if (item.imageUrl && item.imageUrl.trim() !== '') {
-                                                // Bảo mật XSS cho URL ảnh
                                                 const safeImgUrl = escapeHTML(item.imageUrl);
                                                 imageHtml = `<img src="${pageContext.request.contextPath}/\${safeImgUrl}" alt="\${safeName}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;">`;
                                             } else {
@@ -866,7 +850,6 @@
                     }, 300);
                 });
 
-                // Ẩn hộp thoại khi click ra ngoài
                 document.addEventListener('click', function (e) {
                     if (!searchInput.contains(e.target) && !searchSuggestions.contains(e.target)) {
                         searchSuggestions.classList.add('d-none');
@@ -998,8 +981,6 @@
 
                                           await loadCount();
 
-                                          // TODO: thay bằng URL trang chi tiết đơn hàng
-                                          // thực tế của OECS sau khi xác nhận route.
                                           if (n.orderId != null) {
                                               window.location.href =
                                                       contextPath + '/my-orders/detail?id='

@@ -25,9 +25,7 @@ public class ForgotPasswordServlet extends HttpServlet {
     private final EmailService emailService
             = new EmailService();
 
-    // =====================================================
-    // GET - HIỂN THỊ FORM QUÊN MẬT KHẨU
-    // =====================================================
+    
     @Override
     protected void doGet(HttpServletRequest request,
             HttpServletResponse response)
@@ -37,9 +35,6 @@ public class ForgotPasswordServlet extends HttpServlet {
                 .forward(request, response);
     }
 
-    // =====================================================
-    // POST - XỬ LÝ YÊU CẦU QUÊN MẬT KHẨU
-    // =====================================================
     @Override
     protected void doPost(HttpServletRequest request,
             HttpServletResponse response)
@@ -49,7 +44,6 @@ public class ForgotPasswordServlet extends HttpServlet {
 
         String email = request.getParameter("email");
 
-        // Kiểm tra email rỗng
         if (email == null || email.trim().isEmpty()) {
 
             request.setAttribute(
@@ -66,7 +60,6 @@ public class ForgotPasswordServlet extends HttpServlet {
         email = email.trim();
 
         try {
-            // Kiểm tra email tồn tại trong hệ thống
             if (!emailService.emailExists(email)) {
                 request.setAttribute(
                         "errorMessage",
@@ -81,25 +74,18 @@ public class ForgotPasswordServlet extends HttpServlet {
 
             try {
 
-                // =================================================
-                // 1. TẠO RESET TOKEN
-                // =================================================
+                
                 String token
                         = passwordResetService.createResetToken(email);
 
                 if (token != null) {
 
-                    // =============================================
-                    // 2. TẠO LINK RESET PASSWORD
-                    // =============================================
                     String resetLink = buildResetLink(
                             request,
                             token
                     );
 
-                    // =============================================
-                    // 3. GỬI EMAIL
-                    // =============================================
+               
                     boolean sent
                             = emailService.sendResetPasswordEmail(
                                     email,
@@ -118,9 +104,7 @@ public class ForgotPasswordServlet extends HttpServlet {
                     }
 
                 }
-                // =============================================
-                // 4. GỬI EMAIL THÀNH CÔNG
-                // =============================================
+              
                 request.setAttribute(
                         "successMessage",
                         "Nếu email tồn tại trong hệ thống, "
@@ -151,9 +135,7 @@ public class ForgotPasswordServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // TẠO ĐƯỜNG LINK RESET PASSWORD
-    // =====================================================
+  
     private String buildResetLink(
             HttpServletRequest request,
             String token) {

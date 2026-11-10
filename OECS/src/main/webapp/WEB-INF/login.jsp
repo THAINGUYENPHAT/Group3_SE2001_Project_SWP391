@@ -7,7 +7,6 @@
         <div class="col-md-6 col-lg-5 col-xl-4">
             <div class="card shadow-sm border-0 rounded-3">
                 <div class="card-body p-4">
-                    <!-- TIÊU ĐỀ -->
                     <div class="text-center mb-4">
                         <h3 class="fw-bold text-primary">
                             Đăng Nhập
@@ -15,7 +14,6 @@
                         <p class="text-muted small">Chào mừng bạn quay trở lại!</p>
                     </div>
 
-                    <!-- THÔNG BÁO LỖI ĐĂNG NHẬP -->
                     <c:if test="${not empty errorMessage}">
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="bi bi-exclamation-triangle-fill me-2"></i><c:out value="${errorMessage}"/>
@@ -23,17 +21,14 @@
                         </div>
                     </c:if>
 
-                    <!-- THÔNG BÁO ĐĂNG XUẤT THÀNH CÔNG -->
                     <c:if test="${not empty sessionScope.logoutMessage}">
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <i class="bi bi-check-circle-fill me-2"></i><c:out value="${sessionScope.logoutMessage}"/>
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
-                        <%-- Xóa thông báo khỏi session sau khi đã hiển thị --%>
                         <c:remove var="logoutMessage" scope="session"/>
                     </c:if>
 
-                    <!-- THÔNG BÁO RESET PASSWORD THÀNH CÔNG -->
                     <c:if test="${not empty sessionScope.resetPasswordMessage}">
                         <div class="alert alert-success alert-dismissible fade show"
                              role="alert">
@@ -53,7 +48,6 @@
                         <c:remove var="resetPasswordMessage" scope="session"/>
                     </c:if>
 
-                    <!-- FORM ĐĂNG NHẬP -->
                     <form action="${pageContext.request.contextPath}/login" method="post">
                         <div class="mb-3">
                             <label for="username" class="form-label fw-semibold">Tên đăng nhập / Email</label>
@@ -85,7 +79,6 @@
 
                     <hr class="my-4">
 
-                    <!-- CHUYỂN HƯỚNG ĐĂNG KÝ -->
                     <div class="text-center small">
                         Chưa có tài khoản? 
                         <a href="${pageContext.request.contextPath}/register" class="fw-bold text-decoration-none text-primary">
@@ -116,5 +109,4 @@
     });
 </script>
 
-<%-- Nhúng Footer chung của dự án --%>
 <%@include file="/WEB-INF/include/footer.jsp" %>

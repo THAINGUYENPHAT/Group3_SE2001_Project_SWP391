@@ -69,10 +69,8 @@
 
 <div class="container my-5">
     <div class="row g-4">
-        <!-- SIDEBAR TRÁI: THÔNG TIN TỔNG QUAN & MENU -->
         <div class="col-lg-3 col-md-4">
             <div class="profile-sidebar p-4 text-center">
-                <!-- Avatar tự động từ ký tự đầu tên -->
                 <div class="profile-avatar-circle mb-3">
                     <c:out value="${sessionScope.loggedInUser.username.substring(0, 1).toUpperCase()}"/>
                 </div>
@@ -84,7 +82,6 @@
                     <i class="bi bi-envelope me-1"></i><c:out value="${sessionScope.loggedInUser.email}"/>
                 </p>
 
-                <!-- Badge Vai trò -->
                 <span class="badge ${sessionScope.loggedInUser.adminOrStaff ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-success-subtle text-success border border-success-subtle'} rounded-pill px-3 py-2 mb-4">
                     <i class="bi ${sessionScope.loggedInUser.adminOrStaff ? 'bi-shield-check' : 'bi-person'} me-1"></i>
                     <c:out value="${sessionScope.loggedInUser.roleName}"/>
@@ -92,7 +89,6 @@
 
                 <hr class="my-3 text-muted">
 
-                <!-- Navigation Tabs -->
                 <div class="nav flex-column nav-pills profile-nav" id="v-pills-tab" role="tablist" aria-orientation="vertical">
                     <button class="nav-link text-start active" id="v-pills-profile-tab" data-bs-toggle="pill" data-bs-target="#v-pills-profile" type="button" role="tab">
                         <i class="bi bi-person-gear me-2"></i>Thông tin cá nhân
@@ -104,12 +100,10 @@
             </div>
         </div>
 
-        <!-- NỘI DUNG PHẢI: FORM CHI TIẾT -->
         <div class="col-lg-9 col-md-8">
             <div class="profile-content-card p-4 p-md-5">
                 <div class="tab-content" id="v-pills-tabContent">
                     
-                    <!-- TAB 1: THÔNG TIN CÁ NHÂN -->
                     <div class="tab-pane fade show active" id="v-pills-profile" role="tabpanel">
                         <div class="border-bottom pb-3 mb-4 d-flex align-items-center justify-content-between">
                             <div>
@@ -118,7 +112,6 @@
                             </div>
                         </div>
 
-                        <!-- THÔNG BÁO -->
                         <c:if test="${not empty profileSuccess}">
                             <div class="alert alert-success alert-dismissible fade show" role="alert">
                                 <i class="bi bi-check-circle-fill me-2"></i><c:out value="${profileSuccess}"/>
@@ -177,14 +170,12 @@
                         </form>
                     </div>
 
-                    <!-- TAB 2: ĐỔI MẬT KHẨU -->
                     <div class="tab-pane fade" id="v-pills-password" role="tabpanel">
                         <div class="border-bottom pb-3 mb-4">
                             <h4 class="fw-bold text-dark mb-1">Đổi Mật Khẩu</h4>
                             <p class="text-muted small mb-0">Nên sử dụng mật khẩu mạnh gồm chữ cái, chữ số và ký tự đặc biệt</p>
                         </div>
 
-                        <!-- THÔNG BÁO -->
                         <c:if test="${not empty pwdSuccess}">
                             <div class="alert alert-success alert-dismissible fade show" role="alert">
                                 <i class="bi bi-check-circle-fill me-2"></i><c:out value="${pwdSuccess}"/>
@@ -270,7 +261,6 @@
             }
         });
 
-        // Tự động giữ active tab "Đổi mật khẩu" nếu vừa gửi form Đổi mật khẩu có lỗi/thành công
         <c:if test="${not empty pwdSuccess || not empty pwdError}">
             const pwdTabTrigger = new bootstrap.Tab(document.querySelector('#v-pills-password-tab'));
             pwdTabTrigger.show();
@@ -278,5 +268,4 @@
     });
 </script>
 
-<%-- Nhúng Footer chung --%>
 <%@include file="/WEB-INF/include/footer.jsp" %>

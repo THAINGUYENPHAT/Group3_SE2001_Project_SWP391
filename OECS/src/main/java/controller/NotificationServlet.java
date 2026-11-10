@@ -48,7 +48,6 @@ public class NotificationServlet extends HttpServlet {
             return;
         }
 
-        // Đổi getUserId() nếu model.User của bạn dùng tên getter khác.
         int userId = user.getUserId();
         String action = request.getParameter("action");
 

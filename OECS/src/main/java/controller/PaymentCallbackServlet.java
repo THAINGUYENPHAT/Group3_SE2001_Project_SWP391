@@ -50,13 +50,11 @@ public class PaymentCallbackServlet extends HttpServlet {
 
         String path = request.getServletPath();
 
-        // Return hien thi ket qua da xac minh; IPN van cap nhat don hang.
         if (path.endsWith("/return")) {
             showReturnResult(request, response);
             return;
         }
 
-        // VNPay gui IPN bang GET
         if (!"/payment/vnpay/ipn".equals(path)) {
             response.setHeader("Allow", "POST");
             response.sendError(
@@ -75,7 +73,6 @@ public class PaymentCallbackServlet extends HttpServlet {
             for (Map.Entry<String, String[]> entry
                     : request.getParameterMap().entrySet()) {
 
-                // Chan tham so trung ten
                 if (entry.getValue().length != 1) {
                     throw new IllegalArgumentException(
                             "Tham số callback bị trùng."
@@ -88,7 +85,6 @@ public class PaymentCallbackServlet extends HttpServlet {
                 );
             }
 
-            // Xac minh chu ky truoc khi cap nhat database
             if (!PaymentGateway.verifyVnp(params)) {
                 sendVnpResponse(response, "97");
                 return;
@@ -103,7 +99,6 @@ public class PaymentCallbackServlet extends HttpServlet {
                             params.get("vnp_TransactionStatus")
                     );
 
-            // So tien VNPay tra ve da nhan 100
             BigDecimal amount = new BigDecimal(
                     params.get("vnp_Amount")
             ).movePointLeft(2);
@@ -224,7 +219,6 @@ public class PaymentCallbackServlet extends HttpServlet {
 
         response.setHeader("Cache-Control", "no-store");
 
-        // MoMo gui IPN bang POST JSON
         if (!"/payment/momo/ipn".equals(
                 request.getServletPath()
         )) {
@@ -238,7 +232,6 @@ public class PaymentCallbackServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
 
         try {
-            // Gioi han kich thuoc callback
             char[] buffer = new char[16385];
 
             int total = 0;
@@ -284,7 +277,6 @@ public class PaymentCallbackServlet extends HttpServlet {
                 }
             }
 
-            // Xac minh merchant, requestId va chu ky
             if (!PaymentGateway.verifyMomo(params)) {
                 response.sendError(
                         HttpServletResponse.SC_BAD_REQUEST
@@ -307,7 +299,6 @@ public class PaymentCallbackServlet extends HttpServlet {
                     "0".equals(providerCode)
             );
 
-            // Da xu ly hoac callback lap da thanh cong
             if ("00".equals(result)
                     || "02".equals(result)) {
 

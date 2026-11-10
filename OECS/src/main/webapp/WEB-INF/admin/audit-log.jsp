@@ -5,7 +5,6 @@
 
 <%@include file="/WEB-INF/include/header.jsp"%>
 
-<!-- Page Header -->
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
     <div>
         <h3 class="fw-bold text-dark mb-1">
@@ -17,10 +16,8 @@
     </div>
 </div>
 
-<!-- Statistics -->
 <div class="row g-3 mb-4">
 
-    <!-- Total Logs -->
     <div class="col-12 col-md-4">
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-center">
@@ -45,7 +42,6 @@
         </div>
     </div>
 
-    <!-- Security -->
     <div class="col-12 col-md-4">
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-center">
@@ -70,7 +66,6 @@
         </div>
     </div>
 
-    <!-- Administration -->
     <div class="col-12 col-md-4">
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-center">
@@ -97,10 +92,8 @@
 
 </div>
 
-<!-- Main Card -->
 <div class="card-custom overflow-hidden">
 
-    <!-- Toolbar -->
     <div class="p-3 border-bottom">
 
         <form action="${pageContext.request.contextPath}/admin/audit-log"
@@ -119,7 +112,6 @@
                 </div>
             </div>
 
-            <!-- Action -->
             <div class="col-12 col-md-3">
 
                 <select name="action"
@@ -253,7 +245,6 @@
 
             </div>
 
-            <!-- Entity -->
             <div class="col-12 col-md-3">
 
                 <select name="entityType"
@@ -307,7 +298,6 @@
 
             </div>
 
-            <!-- Buttons -->
             <div class="col-12 col-md-2 d-flex gap-2">
 
                 <button type="submit"
@@ -330,7 +320,6 @@
 
     </div>
 
-    <!-- Table -->
     <div class="table-responsive">
 
         <table class="table table-custom align-middle">
@@ -357,14 +346,12 @@
 
                             <tr>
 
-                                <!-- Log ID -->
                             <td>
                             <span class="badge bg-light text-secondary border">
                                 #${log.logId}
                             </span>
                             </td>
 
-                            <!-- Created At -->
                             <td>
                                 <div class="text-dark">
                                     <fmt:formatDate
@@ -379,7 +366,6 @@
                                 </small>
                             </td>
 
-                            <!-- Actor -->
                             <td>
                                 <c:choose>
 
@@ -404,7 +390,6 @@
                             </c:choose>
                             </td>
 
-                            <!-- Action -->
                             <td>
                                 <c:choose>
 
@@ -466,7 +451,6 @@
                             </c:choose>
                             </td>
 
-                            <!-- Entity -->
                             <td>
 
                             <span class="badge bg-info-subtle text-info border border-info-subtle">
@@ -481,7 +465,6 @@
 
                             </td>
 
-                            <!-- Description -->
                             <td style="min-width: 220px;">
 
                                 <c:choose>
@@ -502,7 +485,6 @@
 
                             </td>
 
-                            <!-- IP -->
                             <td>
 
                                 <c:choose>
@@ -558,7 +540,6 @@
 
     </div>
 
-    <!-- Card Footer -->
     <div class="p-3 border-top bg-white">
 
         <span class="text-muted fs-7">

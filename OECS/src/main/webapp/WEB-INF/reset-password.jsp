@@ -9,7 +9,6 @@
             <div class="card shadow-sm border-0 rounded-3">
                 <div class="card-body p-4">
 
-                    <!-- TIÊU ĐỀ -->
                     <div class="text-center mb-4">
                         <h3 class="fw-bold text-primary">
                             Đặt lại mật khẩu
@@ -20,7 +19,6 @@
                         </p>
                     </div>
 
-                    <!-- THÔNG BÁO LỖI -->
                     <c:if test="${not empty errorMessage}">
                         <div class="alert alert-danger alert-dismissible fade show"
                              role="alert">
@@ -37,18 +35,15 @@
                         </div>
                     </c:if>
 
-                    <!-- CHỈ HIỆN FORM KHI TOKEN HỢP LỆ -->
                     <c:if test="${not empty token}">
 
                         <form action="${pageContext.request.contextPath}/reset-password"
                               method="post">
 
-                            <!-- TOKEN ẨN -->
                             <input type="hidden"
                                    name="token"
                                    value="<c:out value='${token}'/>">
 
-                            <!-- MẬT KHẨU MỚI -->
                             <div class="mb-3">
 
                                 <label for="newPassword"
@@ -83,7 +78,6 @@
 
                             </div>
 
-                            <!-- XÁC NHẬN MẬT KHẨU -->
                             <div class="mb-3">
 
                                 <label for="confirmPassword"
@@ -118,7 +112,6 @@
 
                             </div>
 
-                            <!-- NÚT SUBMIT -->
                             <div class="d-grid mt-4">
 
                                 <button type="submit"
@@ -137,7 +130,6 @@
 
                     <hr class="my-4">
 
-                    <!-- QUAY LẠI LOGIN -->
                     <div class="text-center small">
 
                         <a href="${pageContext.request.contextPath}/login"
@@ -178,7 +170,6 @@
         const confirmPasswordIcon =
                 document.getElementById('confirmPasswordIcon');
 
-        // Hiện / ẩn mật khẩu mới
         if (toggleNewPassword && newPassword && newPasswordIcon) {
 
             toggleNewPassword.addEventListener('click', function () {
@@ -195,7 +186,6 @@
             });
         }
 
-        // Hiện / ẩn mật khẩu xác nhận
         if (toggleConfirmPassword
                 && confirmPassword
                 && confirmPasswordIcon) {

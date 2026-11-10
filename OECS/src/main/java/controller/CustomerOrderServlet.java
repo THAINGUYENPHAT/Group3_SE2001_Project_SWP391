@@ -148,13 +148,11 @@ public class CustomerOrderServlet extends HttpServlet {
                 request.setAttribute("order", order);
                 request.setAttribute("refunds", new dao.PaymentRefundDAO().findForCustomer(id, user.getUserId()));
 
-// Kiểm tra khách hàng có được gửi yêu cầu đổi/trả mới không.
                 request.setAttribute(
                         "canRequestReturnExchange",
                         returnExchangeDAO.canRequest(id, user.getUserId())
                 );
 
-// Lấy yêu cầu đổi/trả mới nhất của đơn hàng.
                 request.setAttribute(
                         "latestReturnExchangeRequest",
                         returnExchangeDAO.getLatestRequestByOrder(

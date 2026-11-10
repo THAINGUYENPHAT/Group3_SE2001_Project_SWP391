@@ -84,9 +84,7 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // SESSION USER
-    // =====================================================
+   
     private User getLoggedInUser(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
 
@@ -97,10 +95,7 @@ public class ReviewServlet extends HttpServlet {
         return (User) session.getAttribute("loggedInUser");
     }
 
-    // =====================================================
-    // SHOW CREATE
-    // /review?view=create&orderItemId=1
-    // =====================================================
+   
     private void showCreate(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -162,9 +157,7 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // CREATE REVIEW
-    // =====================================================
+    
     private void createReview(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -220,9 +213,7 @@ public class ReviewServlet extends HttpServlet {
             }
             
             
-            // ============================================
-            // CHỐNG SPAM NỘI DUNG ĐÁNH GIÁ
-            // ============================================
+           
             if (containsSpam(comment)) {
                 setError(request,
                         "Bình luận chứa liên kết quảng cáo "
@@ -231,9 +222,6 @@ public class ReviewServlet extends HttpServlet {
                 return;
             }
 
-            // ============================================
-            // GIỚI HẠN 3 ĐÁNH GIÁ TRONG 10 PHÚT
-            // ============================================
             int recentReviews =
                     reviewDAO.countRecentReviews(user.getUserId());
 
@@ -278,10 +266,7 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // SHOW EDIT
-    // /review?view=edit&id=1
-    // =====================================================
+    
     private void showEdit(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -307,9 +292,7 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // UPDATE REVIEW
-    // =====================================================
+  
     private void updateReview(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -367,10 +350,7 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // SHOW DELETE
-    // /review?view=delete&id=1
-    // =====================================================
+    
     private void showDelete(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -396,9 +376,7 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // DELETE REVIEW
-    // =====================================================
+   
     private void deleteReview(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -432,9 +410,7 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // SAVE REVIEW IMAGES
-    // =====================================================
+    
     private void saveReviewImages(
             HttpServletRequest request,
             int reviewId)
@@ -491,9 +467,7 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // FILE EXTENSION
-    // =====================================================
+    
     private String getFileExtension(String fileName) {
         int dot = fileName.lastIndexOf('.');
 
@@ -504,9 +478,7 @@ public class ReviewServlet extends HttpServlet {
         return fileName.substring(dot).toLowerCase();
     }
 
-    // =====================================================
-    // ALLOWED IMAGE
-    // =====================================================
+
     private boolean isAllowedImage(String extension) {
         return ".jpg".equals(extension)
                 || ".jpeg".equals(extension)
@@ -514,23 +486,17 @@ public class ReviewServlet extends HttpServlet {
                 || ".webp".equals(extension);
     }
 
-    // =====================================================
-    // SUCCESS MESSAGE
-    // =====================================================
+    
     private void setSuccess(HttpServletRequest request, String message) {
         request.getSession().setAttribute("successMessage", message);
     }
 
-    // =====================================================
-    // ERROR MESSAGE
-    // =====================================================
+   
     private void setError(HttpServletRequest request, String message) {
         request.getSession().setAttribute("errorMessage", message);
     }
 
-    // =====================================================
-    // REDIRECT CREATE
-    // =====================================================
+    
     private void redirectCreate(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -544,9 +510,7 @@ public class ReviewServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // REDIRECT EDIT
-    // =====================================================
+    
     private void redirectEdit(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -560,9 +524,7 @@ public class ReviewServlet extends HttpServlet {
         );
     }
 
-    // =====================================================
-    // REDIRECT ORDERS
-    // =====================================================
+    
     private void redirectOrders(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -572,7 +534,6 @@ public class ReviewServlet extends HttpServlet {
                 request.getContextPath() + "/my-orders"
         );
     }
-    //kiểm tra spam và nội dung bình luận
 
     private boolean containsSpam(String comment) {
 
@@ -582,12 +543,10 @@ public class ReviewServlet extends HttpServlet {
 
         String text = comment.trim();
 
-        // Chặn link quảng cáo trong bình luận.
         if (text.matches("(?is).*\\b(?:https?://|www\\.).*")) {
             return true;
         }
 
-        // Phát hiện một ký tự bị lặp quá nhiều lần.
         if (text.matches("(?s).*(.)\\1{29,}.*")) {
             return true;
         }

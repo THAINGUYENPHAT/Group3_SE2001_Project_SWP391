@@ -110,7 +110,6 @@ public class StaffReturnExchangeServlet extends HttpServlet {
                 ? null
                 : (User) session.getAttribute("loggedInUser");
 
-        // AuthFilter cũng kiểm tra quyền Staff.
         if (staff == null || !staff.isStaff()) {
             response.sendRedirect(contextPath + "/login");
             return;

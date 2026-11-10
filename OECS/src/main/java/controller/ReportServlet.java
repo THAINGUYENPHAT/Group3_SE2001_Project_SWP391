@@ -42,16 +42,13 @@ public class ReportServlet extends HttpServlet {
 
         try {
 
-            // ==============================================
-            // 1. GET DATE PARAMETERS
-            // ==============================================
+           
             String startDateParam =
                     request.getParameter("startDate");
 
             String endDateParam =
                     request.getParameter("endDate");
 
-            // Default: today
             String today = LocalDate.now().toString();
 
             if (startDateParam == null
@@ -64,9 +61,7 @@ public class ReportServlet extends HttpServlet {
                 endDateParam = today;
             }
 
-            // ==============================================
-            // 2. VALIDATE DATE RANGE
-            // ==============================================
+           
             LocalDate startDate = null;
             LocalDate endDate = null;
             String filterError = null;
@@ -85,9 +80,7 @@ public class ReportServlet extends HttpServlet {
                         "Invalid date format. Please select valid dates.";
             }
 
-            // ==============================================
-            // 3. INITIALIZE REPORT DATA
-            // ==============================================
+           
             BigDecimal totalRevenue = BigDecimal.ZERO;
 
             int completedOrders = 0;
@@ -105,57 +98,46 @@ public class ReportServlet extends HttpServlet {
             List<Object[]> topSellingProducts =
                     new ArrayList<>();
 
-            // ==============================================
-            // 4. LOAD DATA WHEN DATE RANGE IS VALID
-            // ==============================================
+          
             if (filterError == null) {
 
-                // Total revenue from COMPLETED orders
                 totalRevenue =
                         reportDAO.getTotalRevenueByRange(
                                 startDate, endDate
                         );
 
-                // Completed orders
                 completedOrders =
                         reportDAO.getCompletedOrdersByRange(
                                 startDate, endDate
                         );
 
-                // Total products sold
                 totalProductsSold =
                         reportDAO.getTotalProductsSoldByRange(
                                 startDate, endDate
                         );
 
-                // Revenue grouped by date
                 revenueByDate =
                         reportDAO.getRevenueByDateRange(
                                 startDate, endDate
                         );
 
-                // Average order value
                 averageOrderValue =
                         reportDAO.getAverageOrderValueByRange(
                                 startDate, endDate
                         );
 
-                // Orders grouped by status
                 orderStatusStats =
                         reportDAO.getOrderStatusByRange(
                                 startDate, endDate
                         );
 
-                // Top 5 products by quantity sold
                 topSellingProducts =
                         reportDAO.getTopSellingProductsByRange(
                                 startDate, endDate
                         );
             }
 
-            // ==============================================
-            // 5. SEND KPI DATA TO JSP
-            // ==============================================
+            
             request.setAttribute(
                     "totalRevenue", totalRevenue
             );
@@ -172,9 +154,7 @@ public class ReportServlet extends HttpServlet {
                     "averageOrderValue", averageOrderValue
             );
 
-            // ==============================================
-            // 6. SEND TABLE DATA TO JSP
-            // ==============================================
+            
             request.setAttribute(
                     "revenueByDate", revenueByDate
             );
@@ -187,9 +167,7 @@ public class ReportServlet extends HttpServlet {
                     "topSellingProducts", topSellingProducts
             );
 
-            // ==============================================
-            // 7. SEND FILTER INFORMATION
-            // ==============================================
+           
             request.setAttribute(
                     "startDate", startDateParam
             );
@@ -202,9 +180,7 @@ public class ReportServlet extends HttpServlet {
                     "filterError", filterError
             );
 
-            // ==============================================
-            // 8. FORWARD TO REPORT JSP
-            // ==============================================
+          
             request.getRequestDispatcher(
                     "/WEB-INF/admin/report.jsp"
             ).forward(request, response);
