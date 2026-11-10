@@ -143,7 +143,6 @@
         </div>
     </div>
 
-    <!-- BẢNG BÁO CÁO -->
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3">
             <h5 class="fw-bold mb-0">Báo cáo đánh giá</h5>

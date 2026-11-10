@@ -4,7 +4,6 @@
 
 <%@include file="/WEB-INF/include/header.jsp"%>
 
-<!-- Page Header -->
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
     <div>
         <h3 class="fw-bold text-dark mb-1">
@@ -22,7 +21,6 @@
     </a>
 </div>
 
-<!-- Statistics -->
 <div class="row g-3 mb-4">
     <div class="col-12 col-md-4">
         <div class="stat-card">
@@ -91,7 +89,6 @@
     </div>
 </div>
 
-<!-- Alerts -->
 <c:if test="${not empty message}">
     <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
         <i class="bi bi-check-circle me-2"></i>${message}
@@ -106,10 +103,8 @@
     </div>
 </c:if>
 
-<!-- Main Card -->
 <div class="card-custom overflow-hidden">
 
-    <!-- Toolbar & Search -->
     <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
         <form action="${pageContext.request.contextPath}/user"
               method="get"
@@ -125,7 +120,6 @@
         </form>
     </div>
 
-    <!-- Table -->
     <div class="table-responsive">
         <table class="table table-custom align-middle">
             <thead>
@@ -146,28 +140,23 @@
                     <c:when test="${not empty userList}">
                         <c:forEach items="${userList}" var="user">
                             <tr>
-                                <!-- ID -->
                             <td>
                             <span class="badge bg-light text-secondary border">
                                 #${user.userId}
                             </span>
                             </td>
-
-                            <!-- Username -->
                             <td>
                                 <div class="fw-bold text-dark">
                                     ${user.username}
                                 </div>
                             </td>
 
-                            <!-- Email -->
                             <td>
                             <span class="text-muted">
                                 ${user.email}
                             </span>
                             </td>
 
-                            <!-- Phone -->
                             <td>
                                 <c:choose>
                                     <c:when test="${not empty user.phone}">
@@ -183,7 +172,6 @@
                             </c:choose>
                             </td>
 
-                            <!-- Role -->
                             <td>
                             <span class="badge bg-info-subtle text-info border border-info-subtle">
                                 <i class="bi bi-person-badge me-1"></i>
@@ -191,7 +179,6 @@
                             </span>
                             </td>
 
-                            <!-- Status -->
                             <td>
                                 <c:choose>
                                     <c:when test="${user.active}">
@@ -207,14 +194,12 @@
                             </c:choose>
                             </td>
 
-                            <!-- Created At -->
                             <td>
                             <span class="text-muted">
                                 ${user.createdAt}
                             </span>
                             </td>
 
-                            <!-- Actions -->
                             <td class="text-end">
 
                                 <c:choose>
@@ -308,7 +293,6 @@
         </table>
     </div>
 
-    <!-- Footer -->
     <div class="p-3 border-top bg-white">
         <span class="text-muted fs-7">
             Hiển thị <strong>${not empty userList ? fn:length(userList) : 0}</strong> người dùng

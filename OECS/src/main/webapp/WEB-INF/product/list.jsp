@@ -4,7 +4,6 @@
 
 <%@include file="/WEB-INF/include/header.jsp"%>
 
-<!-- Page Header -->
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
     <div>
         <h3 class="fw-bold text-dark mb-1">Quản lý Sản Phẩm</h3>
@@ -16,7 +15,6 @@
     </a>
 </div>
 
-<!-- Statistics -->
 <div class="row g-3 mb-4">
     <div class="col-12 col-md-4">
         <div class="stat-card">
@@ -64,16 +62,13 @@
     </div>
 </div>
 
-<!-- Main Card -->
 <div class="card-custom overflow-hidden">
 
-    <!-- Toolbar: Đã sửa thành Form GET cho phép tìm kiếm -->
     <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
         <form action="${pageContext.request.contextPath}/product" method="GET" class="search-box mb-0 d-flex gap-2" style="min-width: 350px;">
             <input type="hidden" name="view" value="list">
             <div class="position-relative flex-grow-1">
                 <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                <!-- FIX XSS TẠI THANH TÌM KIẾM -->
                 <input type="text" name="search" value="<c:out value='${param.search}' />" class="form-control ps-5" placeholder="Tìm tên sản phẩm, danh mục, hãng...">
             </div>
             <button type="submit" class="btn btn-primary">Tìm kiếm</button>
@@ -85,7 +80,6 @@
         </form>
     </div>
 
-    <!-- Table -->
     <div class="table-responsive">
         <table class="table table-custom align-middle">
             <thead>
@@ -104,12 +98,10 @@
                     <c:when test="${not empty productList}">
                         <c:forEach items="${productList}" var="product">
                             <tr>
-                                <!-- ID -->
                                 <td>
                                     <span class="badge bg-light text-secondary border">#${product.productId}</span>
                                 </td>
 
-                                <!-- HÌNH ẢNH -->
                                 <td>
                                     <c:choose>
                                         <c:when test="${not empty product.imageUrl}">
@@ -123,19 +115,15 @@
                                     </c:choose>
                                 </td>
 
-                                <!-- Product Name -->
                                 <td>
-                                    <!-- FIX XSS TẠI TÊN SẢN PHẨM -->
                                     <div class="fw-bold text-dark"><c:out value="${product.productName}" /></div>
                                     <small class="text-muted">Ngày: <c:out value="${product.createdAt}" /></small>
                                 </td>
 
-                                <!-- Category -->
                                 <td>
                                     <c:choose>
                                         <c:when test="${product.category != null}">
                                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
-                                                <!-- FIX XSS TẠI TÊN DANH MỤC -->
                                                 <i class="bi bi-folder me-1"></i> <c:out value="${product.category.categoryName}" />
                                             </span>
                                         </c:when>
@@ -143,12 +131,10 @@
                                     </c:choose>
                                 </td>
 
-                                <!-- Brand -->
                                 <td>
                                     <c:choose>
                                         <c:when test="${product.brand != null}">
                                             <span class="badge bg-info-subtle text-info border border-info-subtle">
-                                                <!-- FIX XSS TẠI TÊN THƯƠNG HIỆU -->
                                                 <c:out value="${product.brand.brandName}" />
                                             </span>
                                         </c:when>
@@ -156,7 +142,6 @@
                                     </c:choose>
                                 </td>
 
-                                <!-- Actions -->
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-1">
                                         <a href="${pageContext.request.contextPath}/product-sku?productId=${product.productId}" class="btn btn-sm btn-light text-success border rounded-2" title="Quản lý SKU (Giá & Tồn kho)">
@@ -188,7 +173,6 @@
         </table>
     </div>
 
-    <!-- Footer -->
     <div class="p-3 border-top bg-white">
         <span class="text-muted fs-7">
             Hiển thị <strong>${not empty productList ? fn:length(productList) : 0}</strong> sản phẩm

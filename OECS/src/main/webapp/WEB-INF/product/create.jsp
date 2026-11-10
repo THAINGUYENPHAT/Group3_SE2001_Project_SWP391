@@ -16,7 +16,6 @@
         <div class="card shadow-sm border-0 rounded-4">
             <div class="card-body p-4 p-md-5">
 
-                <!-- Header -->
                 <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
                     <div class="bg-primary bg-opacity-10 text-primary rounded d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
                         <i class="bi bi-box-seam fs-4"></i>
@@ -27,7 +26,6 @@
                     </div>
                 </div>
 
-                <!-- Error Messages -->
                 <c:if test="${not empty sessionScope.errorMsg}">
                     <div class="alert alert-danger">
                         <i class="bi bi-exclamation-triangle me-2"></i>
@@ -43,22 +41,18 @@
                     </div>
                 </c:if>
 
-                <!-- Bắt buộc phải có enctype="multipart/form-data" -->
                 <form action="${pageContext.request.contextPath}/product" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="create">
 
-                    <!-- Product Name -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">
                             Tên Sản Phẩm <span class="text-danger">*</span>
                         </label>
-                        <!-- FIX XSS: Dùng c:out để giữ lại text an toàn nếu form bị lỗi tải lại -->
                         <input type="text" name="name" class="form-control form-control-lg" 
                                placeholder="VD: iPhone 17 Pro Max" 
                                value="<c:out value='${param.name}' />" required>
                     </div>
 
-                    <!-- Category -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">
                             Danh Mục <span class="text-danger">*</span>
@@ -66,7 +60,6 @@
                         <select name="categoryId" class="form-select form-select-lg" required>
                             <option value="">-- Chọn danh mục --</option>
                             <c:forEach items="${categoryList}" var="category">
-                                <!-- FIX XSS: Dùng c:out bọc tên danh mục lấy từ DB -->
                                 <option value="${category.categoryId}" ${param.categoryId == category.categoryId ? 'selected' : ''}>
                                     <c:out value="${category.categoryName}" />
                                 </option>
@@ -74,7 +67,6 @@
                         </select>
                     </div>
 
-                    <!-- Brand -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">
                             Thương Hiệu <span class="text-danger">*</span>
@@ -82,7 +74,6 @@
                         <select name="brandId" class="form-select form-select-lg" required>
                             <option value="">-- Chọn thương hiệu --</option>
                             <c:forEach items="${brandList}" var="brand">
-                                <!-- FIX XSS: Dùng c:out bọc tên thương hiệu lấy từ DB -->
                                 <option value="${brand.brandId}" ${param.brandId == brand.brandId ? 'selected' : ''}>
                                     <c:out value="${brand.brandName}" />
                                 </option>
@@ -90,31 +81,25 @@
                         </select>
                     </div>
 
-                    <!-- Hình Ảnh Chính (Hiển thị list) -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Hình ảnh Đại diện <span class="text-danger">*</span></label>
                         <input type="file" name="imageFile" class="form-control form-control-lg" accept="image/png, image/jpeg, image/jpg, image/webp" required>
                         <div class="form-text">Ảnh hiển thị bên ngoài danh sách sản phẩm. Tối đa 10MB.</div>
                     </div>
 
-                    <!-- NÂNG CẤP: Hình ảnh Phụ (Nhiều ảnh cho Detail) -->
                     <div class="mb-4 p-3 bg-light border rounded-3">
                         <label class="form-label fw-semibold text-primary">Các Hình ảnh Phụ (Xem chi tiết)</label>
-                        <!-- Thuộc tính multiple cho phép chọn nhiều file -->
                         <input type="file" name="galleryFiles" class="form-control" accept="image/png, image/jpeg, image/jpg, image/webp" multiple>
                         <div class="form-text text-muted">
                             <i class="bi bi-info-circle me-1"></i> Giữ phím <b>Ctrl</b> (Windows) hoặc <b>Cmd</b> (Mac) để chọn nhiều ảnh cùng lúc.
                         </div>
                     </div>
 
-                    <!-- Description -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Mô Tả</label>
-                        <!-- FIX XSS: Dùng c:out để hiển thị lại mô tả an toàn -->
                         <textarea name="description" class="form-control" rows="5" placeholder="Nhập mô tả sản phẩm..."><c:out value="${param.description}" /></textarea>
                     </div>
 
-                    <!-- Buttons -->
                     <div class="d-flex gap-2 pt-3 mt-4 border-top">
                         <button type="submit" class="btn btn-primary btn-lg px-4">
                             <i class="bi bi-check-lg me-1"></i> Lưu Sản Phẩm

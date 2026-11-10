@@ -160,7 +160,6 @@
                 <input type="hidden" name="action" value="update">
                 <input type="hidden" name="reviewId" value="${review.reviewId}">
 
-                <!-- RATING -->
                 <div class="mb-4">
                     <label class="form-label">
                         Đánh giá
@@ -184,7 +183,6 @@
                     </div>
                 </div>
 
-                <!-- COMMENT -->
                 <div class="mb-4">
                     <label class="form-label">
                         Nội dung đánh giá
@@ -192,7 +190,6 @@
                     <textarea name="comment" class="form-control" rows="6" maxlength="2000">${review.comment}</textarea>
                 </div>
 
-                <!-- IMAGES -->
                 <c:if test="${not empty review.images}">
                     <div class="mb-4">
                         <label class="form-label">
@@ -206,7 +203,6 @@
                     </div>
                 </c:if>
 
-                <!-- BUTTONS -->
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn-save">
                         <i class="bi bi-check-lg me-1"></i>

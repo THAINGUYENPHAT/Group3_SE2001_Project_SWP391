@@ -149,7 +149,6 @@
 
             </div>
 
-            <!-- RATING -->
             <h5 class="fw-bold mb-3">
                 Chất lượng sản phẩm
             </h5>
@@ -173,7 +172,6 @@
                 </strong>
             </p>
 
-            <!-- COMMENT -->
             <h5 class="fw-bold mb-3">
                 Nhận xét
             </h5>
@@ -182,7 +180,6 @@
                 value="${review.comment}"
                 default="Không có nhận xét chi tiết."/></div>
 
-            <!-- IMAGES -->
             <c:if test="${not empty review.images}">
 
                 <h5 class="fw-bold mt-4 mb-3">
@@ -209,7 +206,6 @@
 
         </div>
 
-        <!-- BUTTONS -->
         <div class="review-detail-actions">
 
             <a href="${pageContext.request.contextPath}/my-orders"

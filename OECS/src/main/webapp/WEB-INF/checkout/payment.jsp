@@ -2,7 +2,6 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ include file="/WEB-INF/include/header.jsp" %>
-<%-- Keep the server clock in the view so a reloaded JSP also works with an older servlet. --%>
 <jsp:useBean id="paymentClock" class="java.util.Date" scope="page"/>
 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/payment.css">
 

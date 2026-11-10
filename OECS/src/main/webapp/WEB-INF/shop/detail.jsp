@@ -61,7 +61,6 @@
         color: #495057;
         font-weight: 600;
     }
-    /* Thêm style làm đẹp cho thanh cuộn thumbnail */
     .thumb-scroll::-webkit-scrollbar {
         height: 6px;
     }
@@ -70,7 +69,6 @@
         border-radius: 10px;
     }
 
-    /* NEW STYLES FOR READ MORE/LESS */
     .description-container {
         position: relative;
     }
@@ -84,7 +82,7 @@
     }
 
     .product-description-content.collapsed {
-        max-height: 250px; /* Adjust this value to change the initial visible height */
+        max-height: 250px; 
     }
 
     .description-overlay {
@@ -92,14 +90,14 @@
         bottom: 0;
         left: 0;
         width: 100%;
-        height: 100px; /* Height of the fade effect */
+        height: 100px; 
         background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
         display: flex;
         align-items: flex-end;
         justify-content: center;
         padding-bottom: 10px;
         transition: opacity 0.3s ease-out;
-        pointer-events: none; /* Let clicks pass through the gradient to the content if needed, though button is what we want clicked */
+        pointer-events: none; 
     }
 
     .description-overlay.hidden {
@@ -109,8 +107,8 @@
 
     .toggle-description-btn {
         position: relative;
-        z-index: 10; /* Ensure button is above overlay */
-        pointer-events: auto; /* Re-enable pointer events for the button */
+        z-index: 10; 
+        pointer-events: auto; 
         margin-top: 15px;
     }
 
@@ -118,7 +116,6 @@
 
 <div class="detail-page">
     <div class="container">
-        <!-- Breadcrumb -->
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="${pageContext.request.contextPath}/shop" class="text-decoration-none">Sản phẩm</a></li>
@@ -132,10 +129,8 @@
         </nav>
 
         <div class="row g-5 mb-5">
-            <!-- Left: Hình ảnh (ĐÃ ĐƯỢC NÂNG CẤP ĐỂ HIỂN THỊ ALBUM) -->
             <div class="col-lg-5">
                 <div class="sticky-top" style="top: 20px;">
-                    <!-- Ảnh Lớn -->
                     <div class="gallery-placeholder mb-3">
                         <c:choose>
                             <c:when test="${not empty product.imageUrl}">
@@ -147,18 +142,15 @@
                         </c:choose>
                     </div>
 
-                    <!-- Danh sách ảnh nhỏ (Thumbnails) -->
                     <c:if test="${not empty product.imageUrl}">
                         <div class="d-flex gap-2 thumb-scroll" style="overflow-x: auto; padding-bottom: 8px;">
 
-                            <!-- 1. Thumbnail Ảnh chính -->
                             <img src="${pageContext.request.contextPath}/${product.imageUrl}" 
                                  class="img-thumbnail flex-shrink-0 gallery-thumb" 
                                  style="width: 80px; height: 80px; object-fit: cover; cursor: pointer; border: 2px solid #0d6efd;"
                                  onclick="changeMainImage(this)"
                                  alt="Ảnh chính">
 
-                            <!-- 2. Thumbnail Các ảnh phụ (nếu có) -->
                             <c:if test="${not empty product.galleryImages}">
                                 <c:forEach items="${product.galleryImages}" var="img">
                                     <img src="${pageContext.request.contextPath}/${img.imageUrl}" 
@@ -177,7 +169,6 @@
                 </div>
             </div>
 
-            <!-- Right: Thông tin & Đặt hàng -->
             <div class="col-lg-7">
                 <div class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2 mb-3 fw-bold">
                     <i class="bi bi-patch-check-fill me-1"></i> Chính hãng ${product.brand.brandName}
@@ -199,7 +190,6 @@
                         </div>
                     </div>
 
-                    <!-- Lựa chọn phiên bản (SKU) -->
                     <form action="${pageContext.request.contextPath}/cart" method="POST">
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="productId" value="${product.productId}">
@@ -221,7 +211,6 @@
                         </c:forEach>
                     </div>
 
-                    <!-- Nút mua hàng -->
                     <div class="d-flex gap-3">
                         <button type="submit" class="btn btn-primary btn-lg flex-grow-1 fw-bold" id="btnAddToCart" ${empty skus ? 'disabled' : ''}>
                             <i class="bi bi-cart-plus me-2"></i>THÊM VÀO GIỎ
@@ -231,7 +220,6 @@
             </div>
         </div>
 
-        <!-- Section: Thông số kỹ thuật -->
         <div class="row">
             <div class="col-lg-8 mx-auto">
                 <h3 class="fw-bold mb-4 border-bottom pb-3">Thông số kỹ thuật</h3>
@@ -255,7 +243,6 @@
             </div>
         </div>
 
-        <!-- Section: Mô tả sản phẩm (ĐÃ THÊM TÍNH NĂNG XEM THÊM/ẨN BỚT) -->
         <div class="row mt-5">
             <div class="col-lg-8 mx-auto">
                 <h3 class="fw-bold mb-4 border-bottom pb-3">Tổng quan sản phẩm</h3>
@@ -265,7 +252,6 @@
                         ${product.description}
                     </div>
 
-                    <!-- Lớp phủ mờ (fade) -->
                     <div class="description-overlay" id="descOverlay"></div>
                 </div>
 
@@ -277,13 +263,11 @@
             </div>
         </div>
 
-        <!-- Section: Đánh giá và bình luận -->
         <div class="row mt-5">
             <div class="col-lg-8 mx-auto">
                 <div class="border-bottom pb-3 mb-4">
                     <h3 class="fw-bold mb-3">Đánh giá &amp; bình luận</h3>
 
-                    <!-- Thống kê sản phẩm -->
                     <div class="d-flex flex-wrap gap-4 mb-3">
 
                         <div>
@@ -358,7 +342,6 @@
 
                             <p class="mb-3" style="white-space: pre-line;"><c:out value="${review.comment}"/></p>
 
-                            <!-- Ảnh đính kèm đánh giá -->
                             <c:if test="${not empty review.images}">
                                 <div class="d-flex flex-wrap gap-2">
                                     <c:forEach items="${review.images}" var="image">
@@ -467,26 +450,20 @@
 </div>
 </div>
 
-<!-- Javascript xử lý đổi giá và đổi ảnh Gallery -->
 <script>
-    // Hàm xử lý đổi ảnh Gallery 
     function changeMainImage(thumbElement) {
-        // Đổi src của ảnh lớn
         document.getElementById('mainProductImage').src = thumbElement.src;
 
-        // Reset viền và độ mờ của tất cả các ảnh nhỏ
         let allThumbs = document.querySelectorAll('.gallery-thumb');
         allThumbs.forEach(t => {
             t.style.border = '1px solid #dee2e6';
             t.classList.add('opacity-50');
         });
 
-        // Highlight ảnh đang được chọn
         thumbElement.style.border = '2px solid #0d6efd';
         thumbElement.classList.remove('opacity-50');
     }
 
-    // JS có sẵn xử lý SKU (Giữ nguyên)
     document.addEventListener("DOMContentLoaded", function () {
         const skuRadios = document.querySelectorAll('.sku-radio');
         const displayPrice = document.getElementById('displayPrice');
@@ -495,15 +472,12 @@
 
         skuRadios.forEach(radio => {
             radio.addEventListener('change', function () {
-                // Lấy giá trị data
                 const price = parseFloat(this.getAttribute('data-price'));
                 const stock = parseInt(this.getAttribute('data-stock'));
 
-                // Format tiền tệ VNĐ
                 const formattedPrice = price.toLocaleString('vi-VN') + ' ₫';
                 displayPrice.innerHTML = formattedPrice;
 
-                // Cập nhật tồn kho
                 if (stock > 0) {
                     displayStock.innerHTML = `<i class="bi bi-box-seam me-1"></i>Còn \${stock} sản phẩm`;
                     displayStock.className = "text-success fw-medium mt-1";
@@ -516,33 +490,28 @@
             });
         });
 
-        // --- SCRIPT PARA ITI PANAG-EXPAND/COLLAPSE TI DESKRIPSION ---
         const descContent = document.getElementById('descContent');
         const descOverlay = document.getElementById('descOverlay');
         const btnToggleDesc = document.getElementById('btnToggleDesc');
 
-        // Kitaen no ti deskripsion ket napatpaut ngem iti nakabuklas a kadakkel (height)
         if (descContent.scrollHeight > descContent.clientHeight) {
-            btnToggleDesc.style.display = 'inline-block'; // Ipakita ti button no atiddog ti linaon
+            btnToggleDesc.style.display = 'inline-block'; 
         } else {
-            descOverlay.classList.add('hidden'); // Ilemmed ti fade effect no saan nga atiddog ti linaon
+            descOverlay.classList.add('hidden'); 
         }
 
         btnToggleDesc.addEventListener('click', function () {
             if (descContent.classList.contains('collapsed')) {
-                // Expand
                 descContent.classList.remove('collapsed');
                 descContent.style.maxHeight = descContent.scrollHeight + "px";
                 descOverlay.classList.add('hidden');
                 btnToggleDesc.innerHTML = 'Ẩn bớt <i class="bi bi-chevron-up ms-1"></i>';
             } else {
-                // Collapse
                 descContent.classList.add('collapsed');
-                descContent.style.maxHeight = "250px"; // Tapno ag-match iti CSS
+                descContent.style.maxHeight = "250px"; 
                 descOverlay.classList.remove('hidden');
                 btnToggleDesc.innerHTML = 'Xem thêm <i class="bi bi-chevron-down ms-1"></i>';
 
-                // Ag-scroll iti ngato ti deskripsion tapno saan a mapukaw ti panagkita
                 document.getElementById('descContainer').scrollIntoView({behavior: 'smooth', block: 'start'});
             }
         });

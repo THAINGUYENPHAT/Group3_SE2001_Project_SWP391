@@ -105,7 +105,6 @@
                 <input type="hidden" name="keyword" value="<c:out value='${searchKeyword}'/>">
             </c:if>
 
-            <!-- Sidebar Lọc -->
             <div class="col-lg-3 d-none d-lg-block">
                 <div class="card border-0 shadow-sm rounded-4 p-4 custom-sticky-sidebar">
                     <h5 class="fw-bold mb-3">Danh mục</h5>
@@ -163,14 +162,12 @@
                 </div>
             </div>
 
-            <!-- Main Product Grid -->
             <div class="col-lg-9">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h4 class="fw-bold m-0">Sản Phẩm Công Nghệ</h4>
                         <c:if test="${not empty searchKeyword}">
                             <div class="text-muted mt-1 fs-6">
-                                <!-- Inusar ti c:out ditoy tapno natalged a maiparang -->
                                 Kết quả tìm kiếm cho: <strong class="text-dark">"<c:out value='${searchKeyword}'/>"</strong>
                             </div>
                         </c:if>
@@ -190,10 +187,8 @@
                                 <div class="col-6 col-md-4">
                                     <a href="${pageContext.request.contextPath}/shop?action=detail&id=${item.productId}" class="product-card">
                                         <div class="product-image">
-                                            <!-- IPALITA TI LADAWAN NO ADDA -->
                                             <c:choose>
                                                 <c:when test="${not empty item.imageUrl}">
-                                                    <!-- Inusar ti c:out para iti alt ken title attributes no adda -->
                                                     <img src="${pageContext.request.contextPath}/${item.imageUrl}" alt="<c:out value='${item.productName}'/>" class="img-fluid" style="max-height: 100%; object-fit: contain;">
                                                 </c:when>
                                                 <c:otherwise>
@@ -202,7 +197,6 @@
                                             </c:choose>
                                         </div>
                                         <div class="product-info">
-                                            <!-- Inusar ti c:out para iti brand ken product name -->
                                             <div class="product-brand"><c:out value="${item.brand.brandName}"/></div>
                                             <div class="product-name"><c:out value="${item.productName}"/></div>
                                             <div class="product-price">

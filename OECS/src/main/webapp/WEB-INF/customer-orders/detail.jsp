@@ -194,14 +194,12 @@
 
     </div>
 
-    <%-- Quay lai danh sach don hang --%>
     <a class="purchase-back"
        href="${pageContext.request.contextPath}/my-orders">
         <i class="bi bi-arrow-left" aria-hidden="true"></i>
         Trở lại Đơn mua
     </a>
 
-    <%-- Tieu de don hang --%>
     <div class="purchase-heading">
         <div>
             <span class="purchase-eyebrow">THEO DÕI ĐƠN HÀNG</span>
@@ -230,7 +228,6 @@
         </a>
     </div>
 
-    <%-- Trang thai va tien trinh don hang --%>
     <c:choose>
         <c:when test="${order.orderStatus == 'CANCELLED'}">
             <div class="purchase-cancelled-banner">
@@ -283,7 +280,6 @@
     </c:choose>
 
 
-    <!-- RETURN / EXCHANGE REQUEST STATUS -->
     <c:if test="${not empty latestReturnExchangeRequest}">
         <c:choose>
             <c:when test="${latestReturnExchangeRequest.requestStatus == 'PENDING'}">
@@ -390,10 +386,8 @@
 
     <div class="purchase-detail-grid">
 
-        <%-- Cot thong tin don hang --%>
         <div>
 
-            <%-- Dia chi nhan hang --%>
 
             <c:if test="${not empty refunds}">
                 <section class="purchase-panel mb-3">
@@ -423,7 +417,6 @@
                 </p>
             </section>
 
-            <%-- Lich su trang thai --%>
             <section class="purchase-panel">
                 <h2>
                     <i class="bi bi-clock-history me-2" aria-hidden="true"></i>
@@ -452,7 +445,6 @@
                 </ol>
             </section>
 
-            <%-- Danh sach san pham --%>
             <section class="purchase-card"
                      aria-label="Sản phẩm đã mua">
 
@@ -530,7 +522,6 @@
                 </div>
             </section>
 
-            <%-- Thao tac tra hang --%>
             <c:if test="${canRequestReturnExchange}">
                 <div class="purchase-panel" style="margin-top: 20px;">
                     <h2>
@@ -565,7 +556,6 @@
             </c:if>
         </div>
 
-        <%-- Cot thong tin thanh toan --%>
         <aside class="purchase-panel"
                aria-labelledby="purchase-payment-title">
 
@@ -603,7 +593,6 @@
                 </strong>
             </div>
 
-            <%-- Phuong thuc va trang thai thanh toan --%>
             <div class="purchase-payment">
                 <p>
                     <strong>
@@ -640,7 +629,6 @@
                 </p>
             </div>
 
-            <%-- Cac thao tac theo trang thai don hang --%>
             <c:choose>
                 <c:when test="${order.orderStatus == 'PENDING_PAYMENT'}">
                     <a href="${pageContext.request.contextPath}/payment?id=${order.orderId}"

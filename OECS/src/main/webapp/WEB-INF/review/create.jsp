@@ -12,9 +12,6 @@
 </c:if>
 
 <style>
-    /* ==============================
-       OECS REVIEW PAGE
-       ============================== */
     .oe-review-page {
         max-width: 920px;
         margin: 28px auto 55px;
@@ -118,7 +115,6 @@
         margin-top: 9px;
     }
 
-    /* RATING */
     .oe-review-rating {
         display: flex;
         flex-direction: row-reverse;
@@ -164,7 +160,6 @@
         margin-top: 8px;
     }
 
-    /* UPLOAD */
     .oe-review-upload {
         border: 2px dashed #cbd5e1;
         background: #f8fafc;
@@ -215,7 +210,6 @@
         border: 1px solid #e2e8f0;
     }
 
-    /* COMMENT */
     .oe-review-label {
         font-weight: 650;
         font-size: 14px;
@@ -275,7 +269,6 @@
         margin-top: 6px;
     }
 
-    /* FOOTER */
     .oe-review-actions {
         display: flex;
         align-items: center;
@@ -367,13 +360,11 @@
 
 <main class="oe-review-page">
 
-    <!-- BACK -->
     <a class="oe-review-back" href="${backUrl}">
         <i class="bi bi-arrow-left"></i>
         Quay lại đơn hàng
     </a>
 
-    <!-- TITLE -->
     <div class="oe-review-heading">
         <h1>
             <i class="bi bi-star-fill text-warning me-2"></i>
@@ -382,7 +373,6 @@
         <p>Chia sẻ trải nghiệm mua sắm của bạn tại OECS.</p>
     </div>
 
-    <!-- ERROR -->
     <c:if test="${not empty sessionScope.errorMessage}">
         <div class="alert alert-danger" role="alert">
             <i class="bi bi-exclamation-circle me-2"></i>
@@ -401,7 +391,6 @@
                name="orderItemId"
                value="${orderItemId}">
 
-        <!-- PRODUCT INFO -->
         <section class="oe-review-card">
 
             <div class="oe-review-product">
@@ -437,7 +426,6 @@
 
         </section>
 
-        <!-- MAIN REVIEW -->
         <section class="oe-review-card">
 
             <div class="oe-review-card-body">
@@ -446,7 +434,6 @@
                     Đánh giá chất lượng sản phẩm
                 </h2>
 
-                <!-- RATING -->
                 <div class="mb-4">
 
                     <span class="oe-review-label">
@@ -508,7 +495,6 @@
 
                 </div>
 
-                <!-- IMAGE UPLOAD -->
                 <div class="mb-4">
 
                     <label class="oe-review-label">
@@ -550,7 +536,6 @@
 
                 </div>
 
-                <!-- COMMENT -->
                 <div>
 
                     <label for="oeReviewComment"
@@ -602,7 +587,6 @@
 
         </section>
 
-        <!-- ACTION BUTTONS -->
         <div class="oe-review-actions">
 
             <a class="oe-review-cancel"
@@ -628,9 +612,6 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
 
-        // =========================================
-        // RATING FEEDBACK
-        // =========================================
         const ratings = document.querySelectorAll(
                 'input[name="rating"]'
                 );
@@ -652,9 +633,6 @@
             });
         });
 
-        // =========================================
-        // COMMENT COUNTER
-        // =========================================
         const comment =
                 document.getElementById("oeReviewComment");
 
@@ -670,9 +648,6 @@
                 updateCommentCount
                 );
 
-        // =========================================
-        // SUGGESTION BUTTONS
-        // =========================================
         document.querySelectorAll(
                 ".oe-review-suggestion"
                 ).forEach(function (button) {
@@ -701,9 +676,6 @@
 
         });
 
-        // =========================================
-        // IMAGE PREVIEW
-        // =========================================
         const imageInput =
                 document.getElementById("oeReviewImages");
 
@@ -787,9 +759,6 @@
                 }
         );
 
-        // =========================================
-        // PREVENT DOUBLE SUBMIT
-        // =========================================
         const form =
                 document.getElementById("oeReviewForm");
 

@@ -7,7 +7,6 @@
 <div class="row justify-content-center">
     <div class="col-12 col-lg-10">
 
-        <!-- Nút quay lại -->
         <div class="mb-3">
             <a href="${pageContext.request.contextPath}/product?view=list" class="text-decoration-none text-muted fw-medium">
                 <i class="bi bi-arrow-left me-1"></i>
@@ -15,10 +14,8 @@
             </a>
         </div>
 
-        <!-- Vùng hiển thị thông báo lỗi/thành công -->
         <c:if test="${not empty sessionScope.errorMsg}">
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <!-- FIX XSS: Thông báo có thể chứa mã SKU độc hại -->
                 <i class="bi bi-exclamation-triangle-fill me-2"></i> <c:out value="${sessionScope.errorMsg}"/>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
@@ -26,7 +23,6 @@
         </c:if>
         <c:if test="${not empty sessionScope.successMsg}">
             <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <!-- FIX XSS -->
                 <i class="bi bi-check-circle-fill me-2"></i> <c:out value="${sessionScope.successMsg}"/>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
@@ -42,7 +38,6 @@
                     <div>
                         <h4 class="fw-bold mb-0">Quản lý SKU (Phiên bản sản phẩm)</h4>
                         <span class="text-muted fs-7">
-                            <!-- FIX XSS: Tên sản phẩm -->
                             Sản phẩm: <strong class="text-dark"><c:out value="${product.productName}"/></strong>
                         </span>
                     </div>
@@ -50,7 +45,6 @@
 
                 <hr>
 
-                <!-- Form Thêm SKU mới -->
                 <h6 class="fw-bold mb-3 mt-4">Thêm phiên bản / SKU mới</h6>
                 <form action="${pageContext.request.contextPath}/product-sku" method="POST" class="row g-3">
                     <input type="hidden" name="action" value="create">
@@ -63,7 +57,6 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold fs-7">Giá bán (VNĐ) <span class="text-danger">*</span></label>
-                        <!-- Đổi name thành priceStr, type thành text và thêm oninput -->
                         <input type="text" name="priceStr" class="form-control" placeholder="VD: 25.000.000" required oninput="formatPrice(this)">
                     </div>
                     <div class="col-md-3">
@@ -80,7 +73,6 @@
             </div>
         </div>
 
-        <!-- Bảng danh sách SKU hiện tại -->
         <div class="card shadow-sm border-0 rounded-4">
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -100,7 +92,6 @@
                                     <c:forEach items="${skuList}" var="sku">
                                         <tr>
                                             <td class="ps-4"><span class="badge bg-light text-secondary border">#${sku.skuId}</span></td>
-                                            <!-- FIX XSS: Mã SKU -->
                                             <td class="fw-bold text-dark"><c:out value="${sku.skuCode}"/></td>
                                             <td class="text-danger fw-semibold">
                                                 <fmt:formatNumber value="${sku.price}" pattern="#,### VNĐ"/>
@@ -119,12 +110,10 @@
                                                 </c:choose>
                                             </td>
                                             <td class="text-end pe-4">
-                                                <!-- Nút Sửa gọi Modal -->
                                                 <button type="button" class="btn btn-sm btn-light text-primary border rounded-2 me-1" data-bs-toggle="modal" data-bs-target="#editModal${sku.skuId}">
                                                     <i class="bi bi-pencil"></i> Sửa
                                                 </button>
 
-                                                <!-- Form Xóa SKU -->
                                                 <form action="${pageContext.request.contextPath}/product-sku" method="POST" class="d-inline">
                                                     <input type="hidden" name="action" value="delete">
                                                     <input type="hidden" name="productId" value="${product.productId}">
@@ -136,7 +125,6 @@
                                             </td>
                                         </tr>
 
-                                        <!-- Modal Sửa SKU -->
                                     <div class="modal fade" id="editModal${sku.skuId}" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -152,12 +140,10 @@
 
                                                         <div class="mb-3">
                                                             <label class="form-label fw-semibold">Mã SKU</label>
-                                                            <!-- FIX XSS: Thuộc tính value của thẻ input -->
                                                             <input type="text" name="skuCode" class="form-control" value="<c:out value='${sku.skuCode}'/>" required>
                                                         </div>
                                                         <div class="mb-3">
                                                             <label class="form-label fw-semibold">Giá bán (VNĐ)</label>
-                                                            <!-- Định dạng sẵn giá cũ lên input text -->
                                                             <input type="text" name="priceStr" class="form-control" 
                                                                    value="<fmt:formatNumber value="${sku.price}" pattern="#,###" />" 
                                                                    required oninput="formatPrice(this)">
@@ -175,7 +161,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <!-- Hết Modal Sửa SKU -->
 
                                 </c:forEach>
                             </c:when>
@@ -197,25 +182,20 @@
     </div>
 </div>
 
-<!-- Script Javascript định dạng tiền tệ -->
 <script>
     function formatPrice(input) {
-        // Lấy giá trị hiện tại, xóa toàn bộ các ký tự không phải là số
         let value = input.value.replace(/\D/g, '');
 
         if (value !== '') {
-            // Thêm dấu chấm phân cách hàng nghìn
             input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         } else {
             input.value = '';
         }
     }
 
-    // Đảm bảo chạy script một lần lúc vừa load form (để format lại các giá trị có sẵn)
     document.addEventListener("DOMContentLoaded", function () {
         const priceInputs = document.querySelectorAll('input[name="priceStr"]');
         priceInputs.forEach(input => {
-            // Thay thế dấu phẩy (nếu có do fmt:formatNumber sinh ra) thành dấu chấm cho đồng bộ JS
             input.value = input.value.replace(/,/g, '.');
         });
     });

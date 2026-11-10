@@ -132,7 +132,6 @@
 
             <div class="row g-3">
 
-                <%-- CODE --%>
                 <div class="col-md-6">
                     <label class="form-label">
                         Mã Voucher
@@ -144,7 +143,6 @@
                            required>
                 </div>
 
-                <%-- DISCOUNT TYPE --%>
                 <div class="col-md-6">
                     <label class="form-label">
                         Loại giảm giá
@@ -162,7 +160,6 @@
                     </select>
                 </div>
 
-                <%-- DISCOUNT VALUE --%>
                 <div class="col-md-6">
                     <label class="form-label">
                         Giá trị giảm
@@ -177,7 +174,6 @@
                            required>
                 </div>
 
-                <%-- MAX DISCOUNT --%>
                 <div class="col-md-6" id="maxDiscountGroup">
                     <label class="form-label">
                         Giảm tối đa
@@ -192,8 +188,6 @@
                         Chỉ áp dụng khi giảm theo phần trăm.
                     </div>
                 </div>
-
-                <%-- MIN ORDER VALUE --%>
                 <div class="col-md-6">
                     <label class="form-label">
                         Giá trị đơn tối thiểu
@@ -207,7 +201,6 @@
                            required>
                 </div>
 
-                <%-- USAGE LIMIT --%>
                 <div class="col-md-3">
                     <label class="form-label">
                         Tổng lượt sử dụng
@@ -222,7 +215,6 @@
                     </div>
                 </div>
 
-                <%-- PER USER LIMIT --%>
                 <div class="col-md-3">
                     <label class="form-label">
                         Giới hạn mỗi User
@@ -237,7 +229,6 @@
                     </div>
                 </div>
 
-                <%-- VALID FROM --%>
                 <div class="col-md-6">
                     <label class="form-label">
                         Thời gian bắt đầu
@@ -249,7 +240,6 @@
                            required>
                 </div>
 
-                <%-- VALID TO --%>
                 <div class="col-md-6">
                     <label class="form-label">
                         Thời gian kết thúc
