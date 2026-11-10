@@ -14,9 +14,6 @@ import java.util.List;
 
 public class CartDAO extends DBContext {
 
-    // =====================================================
-    // GET CART ID
-    // =====================================================
     public int getCartIdByUserId(int userId) {
 
         if (userId <= 0) {
@@ -49,9 +46,7 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // CREATE CART
-    // =====================================================
+   
     public int createCart(int userId) {
 
         if (userId <= 0) {
@@ -101,9 +96,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // GET OR CREATE
-    // =====================================================
     public int getOrCreateCart(int userId) {
 
         int cartId
@@ -117,9 +109,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // GET ALL ITEMS
-    // =====================================================
     public List<CartItem> getCartItems(int cartId) {
 
         List<CartItem> list
@@ -172,9 +161,7 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // GET SELECTED ITEMS
-    // =====================================================
+   
     public List<CartItem> getCartItemsByIds(
             int cartId,
             List<Integer> cartItemIds) {
@@ -279,9 +266,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // EXISTS
-    // =====================================================
     public boolean exists(
             int cartId,
             int skuId) {
@@ -317,9 +301,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // STOCK
-    // =====================================================
     public int getStockQuantity(int skuId) {
 
         if (skuId <= 0) {
@@ -356,9 +337,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // CURRENT QUANTITY
-    // =====================================================
     public int getCurrentQuantity(
             int cartId,
             int skuId) {
@@ -395,9 +373,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // ADD TO CART
-    // =====================================================
     public boolean addToCart(
             int cartId,
             int skuId,
@@ -476,9 +451,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // GET SKU FROM CART ITEM
-    // =====================================================
     public int getSkuIdByCartItemId(
             int cartItemId,
             int cartId) {
@@ -515,9 +487,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // UPDATE QUANTITY
-    // =====================================================
     public boolean updateQuantity(
             int cartItemId,
             int cartId,
@@ -568,9 +537,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // LEGACY UPDATE
-    // =====================================================
     public boolean updateQuantity(
             int cartItemId,
             int quantity) {
@@ -611,9 +577,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // DELETE
-    // =====================================================
     public boolean deleteCartItem(
             int cartItemId,
             int cartId) {
@@ -640,9 +603,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // LEGACY DELETE
-    // =====================================================
     public boolean deleteCartItem(
             int cartItemId) {
 
@@ -666,9 +626,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // CLEAR
-    // =====================================================
     public boolean clearCart(int cartId) {
 
         if (cartId <= 0) {
@@ -697,9 +654,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // TOTAL CART
-    // =====================================================
     public double getCartTotal(int cartId) {
 
         if (cartId <= 0) {
@@ -740,9 +694,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // TOTAL SELECTED ITEMS
-    // =====================================================
     public double getCartTotalByIds(
             int cartId,
             List<Integer> cartItemIds) {
@@ -765,9 +716,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // DELETE SELECTED ITEMS
-    // =====================================================
     public boolean deleteCartItemsByIds(
             int cartId,
             List<Integer> cartItemIds) {
@@ -833,9 +781,6 @@ public class CartDAO extends DBContext {
     }
 
 
-    // =====================================================
-    // MAP
-    // =====================================================
     private CartItem mapCartItem(
             ResultSet rs)
             throws SQLException {

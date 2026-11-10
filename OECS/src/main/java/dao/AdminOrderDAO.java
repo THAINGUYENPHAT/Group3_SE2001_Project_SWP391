@@ -18,9 +18,7 @@ public class AdminOrderDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(AdminOrderDAO.class.getName());
 
-    // =========================================================
-    // 1. LẤY DANH SÁCH ĐƠN HÀNG
-    // =========================================================
+   
     public List<Order> getList() {
 
         List<Order> list = new ArrayList<>();
@@ -65,7 +63,6 @@ public class AdminOrderDAO extends DBContext {
                         rs.getTimestamp("created_at")
                 );
 
-                // Status lấy từ ORDER_STATUS_HISTORY
                 order.setOrderStatus(
                         rs.getString("order_status")
                 );
@@ -86,9 +83,6 @@ public class AdminOrderDAO extends DBContext {
         return list;
     }
 
-    // =========================================================
-    // 2. LẤY CHI TIẾT ĐƠN HÀNG
-    // =========================================================
     public Order getById(int id) {
 
         String sql
@@ -171,9 +165,6 @@ public class AdminOrderDAO extends DBContext {
         return null;
     }
 
-    // =========================================================
-    // 3. LẤY CÁC SẢN PHẨM TRONG ĐƠN
-    // =========================================================
     public List<OrderItem> getItemsByOrderId(int orderId) {
 
         List<OrderItem> list = new ArrayList<>();
@@ -237,9 +228,6 @@ public class AdminOrderDAO extends DBContext {
         return list;
     }
 
-    // =========================================================
-    // 4. LẤY TRẠNG THÁI HIỆN TẠI
-    // =========================================================
     public String getCurrentStatus(int orderId) {
 
         String sql
@@ -336,7 +324,6 @@ public class AdminOrderDAO extends DBContext {
                 String paymentStatus;
                 boolean alreadyRestored;
 
-                // Lock đơn hàng trong suốt transaction
                 try (PreparedStatement ps
                         = conn.prepareStatement(selectSql)) {
 
@@ -381,11 +368,9 @@ public class AdminOrderDAO extends DBContext {
 
                 boolean isCancel = "CANCELLED".equals(next);
 
-                // Chuyển bước thông thường
                 boolean validNext
                         = next.equals(expectedNext);
 
-                // Hủy chỉ khi chưa xác nhận
                 boolean validCancel
                         = isCancel
                         && "PENDING_CONFIRMATION".equals(current)
@@ -398,7 +383,6 @@ public class AdminOrderDAO extends DBContext {
                     return false;
                 }
 
-                // Hoàn kho khi hủy đơn hợp lệ
                 if (validCancel) {
 
                     String itemsSql
@@ -465,7 +449,6 @@ public class AdminOrderDAO extends DBContext {
                     }
                 }
 
-                // Cập nhật trạng thái + thời điểm
                 try (PreparedStatement ps
                         = conn.prepareStatement(updateSql)) {
 
@@ -481,7 +464,6 @@ public class AdminOrderDAO extends DBContext {
                     }
                 }
 
-                // Ghi lịch sử cùng transaction
                 try (PreparedStatement ps
                         = conn.prepareStatement(historySql)) {
 

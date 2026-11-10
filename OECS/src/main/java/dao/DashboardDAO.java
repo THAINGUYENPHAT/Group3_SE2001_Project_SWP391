@@ -19,9 +19,6 @@ public class DashboardDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(DashboardDAO.class.getName());
 
-    // =====================================================
-    // 1. GIA TRI CAC DON DA HOAN THANH TRONG KY
-    // =====================================================
     public BigDecimal getTotalRevenueByRange(
             LocalDate start, LocalDate end) {
 
@@ -50,9 +47,6 @@ public class DashboardDAO extends DBContext {
                 "Truy vấn không trả về kết quả.");
     }
 
-    // =====================================================
-    // 2. TONG SO DON TAO TRONG KY
-    // =====================================================
     public int getTotalOrdersByRange(
             LocalDate start, LocalDate end) {
 
@@ -63,9 +57,6 @@ public class DashboardDAO extends DBContext {
         return countByRange(sql, start, end);
     }
 
-    // =====================================================
-    // 3. SO DON HIEN DA HOAN THANH
-    // =====================================================
     public int getCompletedOrdersByRange(
             LocalDate start, LocalDate end) {
 
@@ -77,9 +68,6 @@ public class DashboardDAO extends DBContext {
         return countByRange(sql, start, end);
     }
 
-    // =====================================================
-    // 4. SO DON HIEN DA HUY
-    // =====================================================
     public int getCancelledOrdersByRange(
             LocalDate start, LocalDate end) {
 
@@ -91,10 +79,6 @@ public class DashboardDAO extends DBContext {
         return countByRange(sql, start, end);
     }
 
-    // =====================================================
-    // 5. BIEU DO GIA TRI DON HOAN THANH THEO NGAY
-    // row = [ngay, giaTri]
-    // =====================================================
     public List<Object[]> getRevenueByDateRange(
             LocalDate start, LocalDate end) {
 
@@ -130,10 +114,6 @@ public class DashboardDAO extends DBContext {
         return result;
     }
 
-    // =====================================================
-    // 6. THONG KE TRANG THAI DON HANG TRONG KY
-    // row = [trangThai, soLuong]
-    // =====================================================
     public List<Object[]> getOrderStatusByRange(
             LocalDate start, LocalDate end) {
 
@@ -167,18 +147,6 @@ public class DashboardDAO extends DBContext {
         return result;
     }
 
-    // =====================================================
-    // 7. TOP 5 SAN PHAM BAN CHAY TRONG KY
-    //
-    // row[0] = product_id
-    // row[1] = product_name
-    // row[2] = image_url
-    // row[3] = min_price (gia niem yet hien tai)
-    // row[4] = total_sold
-    //
-    // MIN(price) duoc tinh tren TAT CA SKU cua san pham
-    // de hien thi nhan "Gia tu..."
-    // =====================================================
     public List<Object[]> getTopSellingProductsByRange(
             LocalDate start, LocalDate end) {
 
@@ -235,16 +203,7 @@ public class DashboardDAO extends DBContext {
         return result;
     }
 
-    // =====================================================
-    // 8. TINH TRANG TON KHO HIEN TAI THEO SKU
-    //
-    // row[0] = con hang (> 5)
-    // row[1] = sap het (1 den 5)
-    // row[2] = het hang (<= 0)
-    //
-    // Nguong 5 la quy tac can thong nhat voi nhom.
-    // KHONG loc theo ngay vi DB khong co ton kho lich su.
-    // =====================================================
+    
     public int[] getCurrentStockStatistics() {
 
         String sql
@@ -279,9 +238,7 @@ public class DashboardDAO extends DBContext {
                 "Không đọc được dữ liệu tồn kho.");
     }
 
-    // =====================================================
-    // HELPER: DEM DON THEO KHOANG NGAY
-    // =====================================================
+    
     private int countByRange(
             String sql, LocalDate start, LocalDate end) {
 
@@ -304,7 +261,6 @@ public class DashboardDAO extends DBContext {
                 "Truy vấn đếm không trả về kết quả.");
     }
 
-    // Lay ca ngay bat dau va ngay ket thuc
     private void setRange(
             PreparedStatement ps,
             LocalDate start,
@@ -323,18 +279,7 @@ public class DashboardDAO extends DBContext {
                 message + ". Không thể tải dữ liệu.", ex);
     }
 
-    // =====================================================
-    // DANH SACH SKU SAP HET HOAC HET HANG
-    // 0      = Het hang
-    // 1 - 5  = Sap het
-    //
-    // row[0] = sku_id
-    // row[1] = sku_code
-    // row[2] = product_name
-    // row[3] = image_url
-    // row[4] = stock_quantity
-    // row[5] = price
-    // =====================================================
+    
     public List<Object[]> getLowStockProducts() {
 
         List<Object[]> result = new ArrayList<>();

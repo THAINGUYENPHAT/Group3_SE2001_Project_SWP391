@@ -43,7 +43,7 @@ public class AdminOrderServlet extends HttpServlet {
         String path = request.getPathInfo();
 
         if (path != null && "/detail".equals(path)) {
-            // 1. CHI TIẾT ĐƠN HÀNG
+            
             try {
                 int orderId = Integer.parseInt(
                         request.getParameter("id")
@@ -90,7 +90,7 @@ public class AdminOrderServlet extends HttpServlet {
             }
 
         } else {
-            // 2. DANH SÁCH ĐƠN HÀNG
+            
             try {
                 List<Order> orders = orderDAO.getList();
 
@@ -154,8 +154,7 @@ public class AdminOrderServlet extends HttpServlet {
 
             } else if ("nextStep".equals(action)) {
 
-                // Backend tự xác định bước tiếp theo.
-                // Không nhận trạng thái do người dùng tự chọn.
+                
                 if ("CONFIRMED".equals(current)) {
                     nextStatus = "PACKING";
                     successMessage = "Đơn hàng đã chuyển sang đóng gói!";
@@ -171,8 +170,7 @@ public class AdminOrderServlet extends HttpServlet {
 
             } else if ("cancel".equals(action)) {
 
-                // Chỉ nhận yêu cầu hủy khi chưa xác nhận.
-                // DAO vẫn phải kiểm tra thanh toán và hoàn kho.
+               
                 if ("PENDING_CONFIRMATION".equals(current)) {
                     nextStatus = "CANCELLED";
                     successMessage = "Hủy đơn hàng thành công!";

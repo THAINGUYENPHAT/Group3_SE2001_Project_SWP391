@@ -30,7 +30,6 @@ public final class PaymentGateway {
     private PaymentGateway() {
     }
 
-    // Doc cau hinh tu JVM property hoac bien moi truong
     public static String config(String key) {
         String value = System.getProperty(key, System.getenv(key));
 
@@ -43,7 +42,6 @@ public final class PaymentGateway {
         return value.trim();
     }
 
-    // Kiem tra cau hinh truoc khi tao don thanh toan online
     public static void requireConfigured(String method) {
         if ("COD".equals(method)) {
             return;
@@ -78,7 +76,6 @@ public final class PaymentGateway {
         }
     }
 
-    // Dung de bat/tat lua chon thanh toan tren giao dien
     public static boolean available(String method) {
         try {
             requireConfigured(method);
@@ -88,7 +85,6 @@ public final class PaymentGateway {
         }
     }
 
-    // Tao chu ky HMAC
     public static String hmac(
             String algorithm,
             String secret,
@@ -124,7 +120,6 @@ public final class PaymentGateway {
         }
     }
 
-    // So sanh chu ky
     public static boolean equalSignature(
             String expected,
             String actual
@@ -144,7 +139,6 @@ public final class PaymentGateway {
         );
     }
 
-    // Sap xep va ma hoa tham so theo quy tac VNPay
     public static String vnpCanonical(
             Map<String, String> params
     ) {
@@ -171,7 +165,6 @@ public final class PaymentGateway {
                 .replaceAll("/+$", "");
     }
 
-    // Chi su dung endpoint SANDBOX, khong dung production
     public static String create(
             String method,
             String ref,
@@ -209,7 +202,6 @@ public final class PaymentGateway {
                     config("VNPAY_TMN_CODE")
             );
 
-            // VNPay yeu cau so tien nhan 100
             params.put(
                     "vnp_Amount",
                     Long.toString(
@@ -259,7 +251,6 @@ public final class PaymentGateway {
                     + signature;
         }
 
-        // Tao yeu cau thanh toan MoMo Test
         Map<String, String> params = new TreeMap<>();
 
         params.put(
@@ -372,7 +363,6 @@ public final class PaymentGateway {
         return paymentUrl.toString();
     }
 
-    // Chuoi ky cua MoMo: sap xep key, khong URL encode
     public static String raw(Map<String, String> params) {
         StringJoiner result = new StringJoiner("&");
 
@@ -384,7 +374,6 @@ public final class PaymentGateway {
         return result.toString();
     }
 
-    // Xac minh callback VNPay
     public static boolean verifyVnp(
             Map<String, String> params
     ) {
@@ -400,7 +389,6 @@ public final class PaymentGateway {
         );
     }
 
-    // Xac minh callback MoMo
     public static boolean verifyMomo(
             Map<String, String> params
     ) {

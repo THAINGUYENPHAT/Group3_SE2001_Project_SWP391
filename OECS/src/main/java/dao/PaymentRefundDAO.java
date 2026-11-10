@@ -86,7 +86,6 @@ public class PaymentRefundDAO {
         if (trimmed.length() > 150 || ("SUCCESS".equals(nextStatus) && trimmed.isEmpty())) {
             throw new IllegalArgumentException("Cần mã tham chiếu hoàn tiền thực tế, tối đa 150 ký tự.");
         }
-        // Compare-and-set prevents two staff requests from overwriting each other.
         String sql = "UPDATE dbo.PAYMENT_REFUND SET refund_status = ?, "
                 + "provider_refund_id = CASE WHEN ? = 'SUCCESS' THEN ? ELSE provider_refund_id END, "
                 + "completed_at = CASE WHEN ? = 'SUCCESS' THEN SYSUTCDATETIME() ELSE NULL END, "

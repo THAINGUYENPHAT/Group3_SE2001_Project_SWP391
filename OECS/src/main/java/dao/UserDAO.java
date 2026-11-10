@@ -21,9 +21,7 @@ public class UserDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(UserDAO.class.getName());
 
-    // =========================================================
-    // LOGIN
-    // =========================================================
+   
     public User login(String account, String rawPassword) {
 
         String sql
@@ -392,13 +390,10 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    // =========================================================
-    // UPDATE PROFILE
-    // =========================================================
+    
     public boolean updateProfile(int userId, String email, String phone, String address, String fullName) {
         String updateProfileSql = "UPDATE [USER] SET email = ?, phone = ? WHERE user_id = ?";
 
-        // Câu lệnh kiểm tra xem người dùng đã có địa chỉ mặc định chưa
         String checkAddrSql = "SELECT address_id FROM ADDRESSBOOK WHERE user_id = ? AND is_default = 1";
         String updateAddrSql = "UPDATE ADDRESSBOOK SET address_line = ?, phone_number = ? WHERE user_id = ? AND is_default = 1";
         String insertAddrSql = "INSERT INTO ADDRESSBOOK (user_id, recipient_name, phone_number, address_line, is_default) VALUES (?, ?, ?, ?, 1)";
@@ -406,9 +401,8 @@ public class UserDAO extends DBContext {
         Connection conn = null;
         try {
             conn = getConnection();
-            conn.setAutoCommit(false); // Dùng Transaction để đảm bảo tính toàn vẹn dữ liệu
+            conn.setAutoCommit(false); 
 
-            // 1. Cập nhật USER
             try (PreparedStatement psUser = conn.prepareStatement(updateProfileSql)) {
                 psUser.setString(1, email);
                 psUser.setString(2, phone);
@@ -416,7 +410,6 @@ public class UserDAO extends DBContext {
                 psUser.executeUpdate();
             }
 
-            // 2. Cập nhật hoặc Thêm mới Địa chỉ vào ADDRESSBOOK
             if (address != null && !address.trim().isEmpty()) {
                 boolean hasDefaultAddr = false;
                 try (PreparedStatement psCheck = conn.prepareStatement(checkAddrSql)) {
@@ -446,7 +439,7 @@ public class UserDAO extends DBContext {
                 }
             }
 
-            conn.commit(); // Xắc nhận lưu thay đổi
+            conn.commit(); 
             return true;
         } catch (SQLException ex) {
             if (conn != null) {

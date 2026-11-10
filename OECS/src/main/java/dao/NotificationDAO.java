@@ -18,7 +18,6 @@ public class NotificationDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(NotificationDAO.class.getName());
 
-    // CREATE ORDER STATUS NOTIFICATION
     public boolean createOrderStatusNotification(
             int orderId, String status) {
 
@@ -49,8 +48,6 @@ public class NotificationDAO extends DBContext {
         return false;
     }
 
-    // CREATE RETURN/EXCHANGE NOTIFICATION
-    // Uses the existing transaction connection from ReturnExchangeDAO.
     public void createReturnExchangeNotification(
             Connection conn,
             int userId,
@@ -85,7 +82,6 @@ public class NotificationDAO extends DBContext {
         }
     }
 
-    // COUNT UNREAD NOTIFICATIONS
     public int countUnread(int userId) {
 
         String sql = "SELECT COUNT(*) "
@@ -111,7 +107,6 @@ public class NotificationDAO extends DBContext {
         return 0;
     }
 
-    // GET LATEST NOTIFICATIONS
     public List<Notification> findLatest(int userId) {
 
         List<Notification> list = new ArrayList<>();
@@ -164,7 +159,6 @@ public class NotificationDAO extends DBContext {
         return list;
     }
 
-    // MARK NOTIFICATION AS READ
     public boolean markAsRead(int notificationId, int userId) {
 
         String sql = "UPDATE dbo.NOTIFICATION "

@@ -24,7 +24,6 @@ public class PaymentExpiryListener
 
     private ScheduledExecutorService worker;
 
-    // Khoi dong job khi ung dung bat dau chay
     @Override
     public void contextInitialized(ServletContextEvent event) {
 
@@ -41,7 +40,6 @@ public class PaymentExpiryListener
                 }
         );
 
-        // Quet ngay khi khoi dong, sau do moi 30 giay
         worker.scheduleWithFixedDelay(
                 () -> {
                     try {
@@ -65,7 +63,6 @@ public class PaymentExpiryListener
         );
     }
 
-    // Dung job khi ung dung tat hoac deploy lai
     @Override
     public void contextDestroyed(ServletContextEvent event) {
 

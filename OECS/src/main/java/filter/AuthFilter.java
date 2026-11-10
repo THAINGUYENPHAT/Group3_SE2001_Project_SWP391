@@ -23,7 +23,6 @@ import model.User;
 )
 public class AuthFilter implements Filter {
 
-    // Cac duong dan khong yeu cau dang nhap
     private static final List<String> PUBLIC_URLS = Arrays.asList(
             "",
             "/",
@@ -44,7 +43,6 @@ public class AuthFilter implements Filter {
             "/payment/momo/return"
     );
 
-    // Chi Customer duoc truy cap
     private static final List<String> CUSTOMER_URLS = Arrays.asList(
             "/cart",
             "/review",
@@ -59,7 +57,6 @@ public class AuthFilter implements Filter {
             "/review/report"
     );
 
-    // Chi Staff duoc truy cap
     private static final List<String> STAFF_URLS = Arrays.asList(
             "/brand",
             "/category",
@@ -73,7 +70,6 @@ public class AuthFilter implements Filter {
             "/staff/payment-refunds"
     );
 
-    // Chi Admin duoc truy cap
     private static final List<String> ADMIN_URLS = Arrays.asList(
             "/admin/dashboard",
             "/admin/report",
@@ -82,14 +78,12 @@ public class AuthFilter implements Filter {
             "/admin/audit-log"
     );
 
-    // Moi user da dang nhap deu duoc truy cap
     private static final List<String> AUTHENTICATED_URLS
             = Arrays.asList(
                     "/profile",
                     "/notification"
             );
 
-    // Tai nguyen tinh
     private static final List<String> PUBLIC_PREFIXES
             = Arrays.asList(
                     "/assets/",
@@ -130,7 +124,6 @@ public class AuthFilter implements Filter {
                 ? null
                 : (User) session.getAttribute("loggedInUser");
 
-        // 1. Cho phep trang cong khai va tai nguyen tinh
         boolean isPublicUrl = PUBLIC_URLS.contains(relativePath);
 
         boolean isStaticResource = PUBLIC_PREFIXES.stream()
@@ -141,7 +134,6 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // 2. Chua dang nhap thi chuyen den Login
         if (user == null) {
             if (session == null) {
                 session = httpRequest.getSession(true);
@@ -166,13 +158,11 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // 3. Duong dan danh cho moi user da dang nhap
         if (AUTHENTICATED_URLS.contains(relativePath)) {
             chain.doFilter(request, response);
             return;
         }
 
-        // 4. Kiem tra quyen Customer
         boolean isCustomerUrl
                 = CUSTOMER_URLS.contains(relativePath);
 
@@ -198,7 +188,6 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // 5. Kiem tra quyen Staff
         boolean isStaffUrl
                 = STAFF_URLS.contains(relativePath)
                 || relativePath.startsWith("/admin/orders/")
@@ -224,7 +213,6 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // 6. Kiem tra quyen Admin
         boolean isAdminUrl
                 = ADMIN_URLS.contains(relativePath);
 
@@ -248,7 +236,6 @@ public class AuthFilter implements Filter {
             return;
         }
 
-        // 7. URL khong thuoc bat ky nhom nao -> tu choi
         session.setAttribute(
                 "toastMessage",
                 "Đường dẫn không hợp lệ hoặc bạn không có quyền truy cập!"

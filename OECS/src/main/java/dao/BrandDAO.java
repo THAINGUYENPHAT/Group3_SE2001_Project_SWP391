@@ -20,7 +20,6 @@ public class BrandDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(BrandDAO.class.getName());
 
-    // Lay danh sach tat ca brand
     public List<Brand> getList() {
         List<Brand> list = new ArrayList<>();
 
@@ -49,7 +48,6 @@ public class BrandDAO extends DBContext {
         return list;
     }
 
-    // Tim brand theo ID
     public Brand getById(int id) {
         String sql = "SELECT brand_id, brand_name, logo_url "
                 + "FROM BRAND "
@@ -77,8 +75,6 @@ public class BrandDAO extends DBContext {
         return null;
     }
 
-    // excludeId = 0: kiem tra khi them moi
-    // excludeId = ID hien tai: kiem tra khi cap nhat
     public boolean isNameExists(String name, int excludeId) {
         String sql = "SELECT COUNT(*) "
                 + "FROM BRAND "
@@ -106,7 +102,6 @@ public class BrandDAO extends DBContext {
         return false;
     }
 
-    // Dem so san pham thuoc mot brand
     public int countProductsByBrandId(int brandId) {
         String sql = "SELECT COUNT(*) "
                 + "FROM PRODUCT "
@@ -131,7 +126,6 @@ public class BrandDAO extends DBContext {
         return 0;
     }
 
-    // Dem so san pham cua nhieu brand trong mot truy van
     public Map<Integer, Integer> getProductCounts(List<Brand> brandList) {
         Map<Integer, Integer> productCounts = new HashMap<>();
 
@@ -175,7 +169,6 @@ public class BrandDAO extends DBContext {
             throw new RuntimeException("Cannot count products by brands", e);
         }
 
-        // Brand khong co san pham se co gia tri 0
         for (Brand brand : brandList) {
             productCounts.putIfAbsent(brand.getBrandId(), 0);
         }
@@ -183,7 +176,6 @@ public class BrandDAO extends DBContext {
         return productCounts;
     }
 
-    // Them brand moi
     public int insert(Brand brand) {
         String sql = "INSERT INTO BRAND (brand_name, logo_url) "
                 + "VALUES (?, ?)";
@@ -202,7 +194,6 @@ public class BrandDAO extends DBContext {
         }
     }
 
-    // Cap nhat brand
     public int edit(Brand brand) {
         String sql = "UPDATE BRAND "
                 + "SET brand_name = ?, logo_url = ? "
@@ -223,7 +214,6 @@ public class BrandDAO extends DBContext {
         }
     }
 
-    // Xoa brand theo ID
     public int delete(Brand brand) {
         String sql = "DELETE FROM BRAND WHERE brand_id = ?";
 
@@ -240,7 +230,6 @@ public class BrandDAO extends DBContext {
         }
     }
 
-    // Tim thuong hieu theo ten
     public List<Brand> searchByName(String keyword) {
         List<Brand> list = new ArrayList<>();
 
@@ -274,7 +263,6 @@ public class BrandDAO extends DBContext {
         return list;
     }
 
-    // Lay danh sach brand theo trang
     public List<Brand> getListByPage(int page, int pageSize) {
         List<Brand> list = new ArrayList<>();
 
@@ -307,7 +295,6 @@ public class BrandDAO extends DBContext {
         return list;
     }
 
-    // Tim brand theo ten va phan trang
     public List<Brand> searchByNameAndPage(
             String keyword, int page, int pageSize) {
 
@@ -344,7 +331,6 @@ public class BrandDAO extends DBContext {
         return list;
     }
 
-    // Dem tong so brand theo tu khoa
     public int countSearchResults(String keyword) {
         String sql = "SELECT COUNT(*) "
                 + "FROM BRAND "
@@ -369,7 +355,6 @@ public class BrandDAO extends DBContext {
         return 0;
     }
 
-    // Dem tong so thuong hieu
     public int countBrands() {
         String sql = "SELECT COUNT(*) FROM BRAND";
 

@@ -26,7 +26,6 @@ public class OrderService {
     private static final BigDecimal SHIPPING_FEE = new BigDecimal("30000");
     private static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("5000000");
 
-    // Shipping eligibility uses the selected product subtotal before voucher discounts.
     public static BigDecimal calculateShippingFee(BigDecimal subtotal) {
         if (subtotal.compareTo(FREE_SHIPPING_THRESHOLD) >= 0) {
             return BigDecimal.ZERO;
@@ -47,7 +46,6 @@ public class OrderService {
         this.orderDAO = new OrderDAO(connections);
     }
 
-    // Thong tin san pham trong gio hang
     private static final class CartLine {
 
         final int cartItemId;
@@ -68,7 +66,6 @@ public class OrderService {
         }
     }
 
-    // Ket qua kiem tra voucher
     private static final class VoucherResult {
 
         final Integer id;
@@ -80,7 +77,6 @@ public class OrderService {
         }
     }
 
-    // Giu chu ky ham cu de cac class cu van bien dich duoc
     @Deprecated
     public int placeCodOrder(
             int userId,
@@ -127,7 +123,6 @@ public class OrderService {
         );
     }
 
-    // Tuong thich voi luong COD cu
     public int placeCodOrder(
             int userId,
             int addressId,
@@ -143,7 +138,6 @@ public class OrderService {
         );
     }
 
-    // Tuong thich voi checkout COD co san pham duoc chon
     public int placeCodOrder(
             int userId,
             int addressId,
@@ -161,7 +155,6 @@ public class OrderService {
         );
     }
 
-    // Dat hang chung cho COD, VNPAY va MOMO
     public int placeOrder(
             int userId,
             int addressId,
@@ -184,7 +177,6 @@ public class OrderService {
             );
         }
 
-        // null chi dung cho ham tuong thich checkout toan bo gio
         boolean selectedMode = selectedCartItemIds != null;
         List<Integer> selectedIds = new ArrayList<>();
 
@@ -215,7 +207,6 @@ public class OrderService {
 
             try {
                 policy.lockCustomer(conn, userId);
-                // 1. Khoa gio hang de chan dat trung dong thoi
                 int cartId;
 
                 String sql
@@ -237,7 +228,6 @@ public class OrderService {
                     }
                 }
 
-                // 2. Token da tao don thi tra ve don cu
                 Integer existingOrderId = orderDAO.findIdByToken(
                         conn,
                         userId,
@@ -251,7 +241,6 @@ public class OrderService {
 
                 policy.requireAllowed(conn, userId);
 
-                // 3. Kiem tra dia chi va luu thong tin nguoi nhan
                 Order order = new Order();
                 order.setUserId(userId);
                 order.setAddressId(addressId);
@@ -286,7 +275,6 @@ public class OrderService {
                     }
                 }
 
-                // 4. Lay dung cac san pham duoc chon
                 List<CartLine> lines = new ArrayList<>();
                 BigDecimal subtotal = BigDecimal.ZERO;
 
@@ -385,7 +373,6 @@ public class OrderService {
                     throw new IllegalArgumentException("Mỗi đơn được mua tối đa 5 sản phẩm tính theo tổng số lượng.");
                 }
 
-                // 5. Khoa va kiem tra voucher trong transaction
                 VoucherResult voucher = lockAndCalculateVoucher(
                         conn,
                         userId,
@@ -393,7 +380,6 @@ public class OrderService {
                         subtotal
                 );
 
-                // 6. Tinh tien tu du lieu database
                 BigDecimal shippingFee = calculateShippingFee(subtotal);
 
                 BigDecimal totalAmount = subtotal
@@ -401,7 +387,6 @@ public class OrderService {
                         .subtract(voucher.discount)
                         .max(BigDecimal.ZERO);
 
-                // 7. Tru ton kho; don online giu hang bang cach nay
                 sql
                         = "UPDATE dbo.PRODUCT_SKU "
                         + "SET stock_quantity = stock_quantity - ? "
@@ -423,7 +408,6 @@ public class OrderService {
                     }
                 }
 
-                // 8. Tao don hang
                 order.setShippingFee(shippingFee);
                 order.setDiscountAmount(voucher.discount);
                 order.setTotalAmount(totalAmount);
@@ -457,7 +441,6 @@ public class OrderService {
                     );
                 }
 
-                // Han thanh toan online: 15 phut, luu UTC
                 if (pendingPayment) {
                     sql
                             = "UPDATE dbo.[ORDER] "
@@ -478,7 +461,6 @@ public class OrderService {
                     }
                 }
 
-                // 9. Luu gia va so luong tai thoi diem dat
                 for (CartLine line : lines) {
                     orderDAO.insertItem(
                             conn,
@@ -489,14 +471,12 @@ public class OrderService {
                     );
                 }
 
-                // 10. Luu lich su trang thai ban dau
                 orderDAO.addHistory(
                         conn,
                         orderId,
                         order.getOrderStatus()
                 );
 
-                // 11. Ghi nhan luot su dung voucher
                 if (voucher.id != null) {
                     sql
                             = "INSERT INTO dbo.VOUCHER_USAGES "
@@ -518,7 +498,6 @@ public class OrderService {
                     }
                 }
 
-                // 12. Chi xoa cac san pham vua dat khoi gio
                 sql
                         = "DELETE FROM dbo.CART_ITEMS "
                         + "WHERE cart_id = ? AND cart_item_id = ?";
@@ -537,7 +516,6 @@ public class OrderService {
                     }
                 }
 
-                // 13. Hoan tat toan bo transaction
                 conn.commit();
                 return orderId;
 
@@ -553,7 +531,6 @@ public class OrderService {
         }
     }
 
-    // Kiem tra dieu kien, gioi han luot dung va tinh giam gia
     private VoucherResult lockAndCalculateVoucher(
             Connection conn,
             int userId,
@@ -617,7 +594,6 @@ public class OrderService {
             );
         }
 
-        // Dem luot su dung khi van dang giu khoa voucher
         sql
                 = "SELECT COUNT_BIG(*) AS total_used, "
                 + "COALESCE(SUM(CASE WHEN user_id = ? "
@@ -681,7 +657,6 @@ public class OrderService {
         return new VoucherResult(voucherId, discount);
     }
 
-    // Huy COD theo luong cu; don online dang cho do PaymentDAO xu ly
     public boolean cancelOrderByCustomer(
             int userId,
             int orderId
@@ -764,7 +739,6 @@ public class OrderService {
                     }
                 }
 
-                // Gom cac dong cung SKU va hoan kho theo thu tu
                 List<int[]> quantities = new ArrayList<>();
 
                 sql
@@ -862,7 +836,6 @@ public class OrderService {
         }
     }
 
-    // Lay lich su kem nhan hien thi
     public List<Map<String, Object>> findHistory(
             int orderId,
             int userId
@@ -881,7 +854,6 @@ public class OrderService {
         return history;
     }
 
-    // Chuan hoa trang thai cu va moi
     public static String normalizeStatus(String status) {
         if (status == null) {
             return "";
@@ -919,7 +891,6 @@ public class OrderService {
         );
     }
 
-    // Cac tab tren trang Don mua
     public static Map<String, String> purchaseTabs() {
         Map<String, String> tabs = new LinkedHashMap<>();
 
@@ -962,7 +933,6 @@ public class OrderService {
         }
     }
 
-    // Dem so don theo tung tab
     public static Map<String, Long> purchaseTabCounts(
             Map<String, Long> statuses
     ) {
@@ -993,7 +963,6 @@ public class OrderService {
         return counts;
     }
 
-    // Tao cac buoc theo doi giao hang
     public static List<Map<String, Object>> trackingSteps(
             Order order,
             List<Map<String, Object>> history
@@ -1014,7 +983,6 @@ public class OrderService {
                 : status
         );
 
-        // Don huy hoac cho thanh toan khong hien nhu da giao
         if (current < 0) {
             return Collections.emptyList();
         }

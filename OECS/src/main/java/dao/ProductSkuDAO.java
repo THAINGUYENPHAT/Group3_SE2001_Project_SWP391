@@ -14,7 +14,6 @@ import java.util.logging.Logger;
 
 public class ProductSkuDAO extends DBContext {
 
-    // Lấy danh sách SKU theo Product ID
     public List<ProductSku> getByProductId(int productId) {
         List<ProductSku> list = new ArrayList<>();
         String sql = "SELECT sku_id, product_id, sku_code, price, stock_quantity "
@@ -40,7 +39,6 @@ public class ProductSkuDAO extends DBContext {
         return list;
     }
 
-    // Thêm SKU mới
     public int insert(ProductSku sku) {
         String sql = "INSERT INTO PRODUCT_SKU (product_id, sku_code, price, stock_quantity) VALUES (?, ?, ?, ?)";
         try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -57,7 +55,6 @@ public class ProductSkuDAO extends DBContext {
         }
     }
 
-    // Xóa SKU
     public int delete(int skuId) {
         String sql = "DELETE FROM PRODUCT_SKU WHERE sku_id = ?";
         try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -68,15 +65,13 @@ public class ProductSkuDAO extends DBContext {
             return 0;
         }
     }
-    // Thêm vào trong class ProductSkuDAO
 
-    // Kiểm tra SKU Code đã tồn tại chưa (dùng khi Thêm mới)
     public boolean checkSkuCodeExists(String skuCode) {
         String sql = "SELECT 1 FROM PRODUCT_SKU WHERE sku_code = ?";
         try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, skuCode);
             try (ResultSet rs = ps.executeQuery()) {
-                return rs.next(); // Trả về true nếu đã tồn tại
+                return rs.next(); 
             }
         } catch (SQLException ex) {
             Logger.getLogger(ProductSkuDAO.class.getName()).log(Level.SEVERE, null, ex);
@@ -84,7 +79,6 @@ public class ProductSkuDAO extends DBContext {
         return false;
     }
 
-    // Kiểm tra SKU Code đã tồn tại chưa (dùng khi Cập nhật - bỏ qua chính nó)
     public boolean checkSkuCodeExistsForUpdate(String skuCode, int excludeSkuId) {
         String sql = "SELECT 1 FROM PRODUCT_SKU WHERE sku_code = ? AND sku_id != ?";
         try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -99,7 +93,6 @@ public class ProductSkuDAO extends DBContext {
         return false;
     }
 
-    // Cập nhật SKU
     public int update(ProductSku sku) {
         String sql = "UPDATE PRODUCT_SKU SET sku_code = ?, price = ?, stock_quantity = ? WHERE sku_id = ?";
         try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {

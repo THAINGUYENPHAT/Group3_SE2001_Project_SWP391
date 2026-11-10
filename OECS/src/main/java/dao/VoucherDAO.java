@@ -17,9 +17,6 @@ import java.util.List;
 
 public class VoucherDAO extends DBContext {
 
-    // =====================================================
-    // GET ALL VOUCHERS
-    // =====================================================
     public List<Voucher> getAllVouchers() {
 
         List<Voucher> list
@@ -61,9 +58,6 @@ public class VoucherDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // GET VOUCHER BY ID
-    // =====================================================
     public Voucher getVoucherById(
             int voucherId) {
 
@@ -110,9 +104,6 @@ public class VoucherDAO extends DBContext {
         return null;
     }
 
-    // =====================================================
-    // GET AVAILABLE VOUCHERS
-    // =====================================================
     public List<Voucher> getAvailableVouchers(
             double orderTotal,
             int userId) {
@@ -133,12 +124,9 @@ public class VoucherDAO extends DBContext {
                 + "v.usage_limit, "
                 + "v.per_user_limit "
                 + "FROM VOUCHER v "
-                // Voucher đang trong thời gian sử dụng
                 + "WHERE v.valid_from <= GETDATE() "
                 + "AND v.valid_to >= GETDATE() "
-                // Đủ giá trị đơn tối thiểu
                 + "AND v.min_order_value <= ? "
-                // Tổng số lần sử dụng chưa vượt giới hạn
                 + "AND ( "
                 + "v.usage_limit IS NULL "
                 + "OR ( "
@@ -147,7 +135,6 @@ public class VoucherDAO extends DBContext {
                 + "WHERE vu.voucher_id = v.voucher_id "
                 + ") < v.usage_limit "
                 + ") "
-                // User chưa vượt giới hạn cá nhân
                 + "AND ( "
                 + "v.per_user_limit IS NULL "
                 + "OR ( "
@@ -194,9 +181,6 @@ public class VoucherDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // GET VALID VOUCHER BY CODE
-    // =====================================================
     public Voucher getValidVoucher(
             String code,
             double orderTotal,
@@ -225,7 +209,6 @@ public class VoucherDAO extends DBContext {
                 + "AND v.valid_from <= GETDATE() "
                 + "AND v.valid_to >= GETDATE() "
                 + "AND v.min_order_value <= ? "
-                // Tổng usage
                 + "AND ( "
                 + "v.usage_limit IS NULL "
                 + "OR ( "
@@ -234,7 +217,6 @@ public class VoucherDAO extends DBContext {
                 + "WHERE vu.voucher_id = v.voucher_id "
                 + ") < v.usage_limit "
                 + ") "
-                // Usage của user
                 + "AND ( "
                 + "v.per_user_limit IS NULL "
                 + "OR ( "
@@ -283,9 +265,6 @@ public class VoucherDAO extends DBContext {
         return null;
     }
 
-    // =====================================================
-    // GET AVAILABLE VOUCHER BY ID
-    // =====================================================
     public Voucher getAvailableVoucherById(
             int voucherId,
             double orderTotal,
@@ -308,9 +287,6 @@ public class VoucherDAO extends DBContext {
         );
     }
 
-    // =====================================================
-    // CHECK CODE EXISTS
-    // =====================================================
     public boolean existsCode(
             String code) {
 
@@ -350,9 +326,6 @@ public class VoucherDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // CHECK CODE EXISTS EXCEPT CURRENT ID
-    // =====================================================
     public boolean existsCodeExceptId(
             String code,
             int voucherId) {
@@ -399,9 +372,6 @@ public class VoucherDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // INSERT VOUCHER
-    // =====================================================
     public boolean insertVoucher(
             Voucher voucher) {
 
@@ -462,7 +432,6 @@ public class VoucherDAO extends DBContext {
                     voucher.getDiscountValue()
             );
 
-            // MAX DISCOUNT
             if (voucher.getMaxDiscount() == null) {
 
                 ps.setNull(
@@ -478,7 +447,6 @@ public class VoucherDAO extends DBContext {
                 );
             }
 
-            // USAGE LIMIT
             if (voucher.getUsageLimit() == null) {
 
                 ps.setNull(
@@ -494,7 +462,6 @@ public class VoucherDAO extends DBContext {
                 );
             }
 
-            // PER USER LIMIT
             if (voucher.getPerUserLimit() == null) {
 
                 ps.setNull(
@@ -520,9 +487,6 @@ public class VoucherDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // UPDATE VOUCHER
-    // =====================================================
     public boolean updateVoucher(
             Voucher voucher) {
 
@@ -579,7 +543,6 @@ public class VoucherDAO extends DBContext {
                     voucher.getDiscountValue()
             );
 
-            // MAX DISCOUNT
             if (voucher.getMaxDiscount() == null) {
 
                 ps.setNull(
@@ -595,7 +558,6 @@ public class VoucherDAO extends DBContext {
                 );
             }
 
-            // USAGE LIMIT
             if (voucher.getUsageLimit() == null) {
 
                 ps.setNull(
@@ -611,7 +573,6 @@ public class VoucherDAO extends DBContext {
                 );
             }
 
-            // PER USER LIMIT
             if (voucher.getPerUserLimit() == null) {
 
                 ps.setNull(
@@ -642,9 +603,6 @@ public class VoucherDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // DELETE VOUCHER
-    // =====================================================
     public boolean deleteVoucher(
             int voucherId) {
 
@@ -672,9 +630,6 @@ public class VoucherDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // CALCULATE DISCOUNT
-    // =====================================================
     public double calculateDiscount(
             Voucher voucher,
             double orderTotal) {
@@ -687,9 +642,6 @@ public class VoucherDAO extends DBContext {
 
         double discount = 0;
 
-        // =========================
-        // FIXED AMOUNT
-        // =========================
         if ("AMOUNT".equalsIgnoreCase(
                 voucher.getDiscountType()
         )) {
@@ -697,9 +649,6 @@ public class VoucherDAO extends DBContext {
             discount
                     = voucher.getDiscountValue();
 
-            // =========================
-            // PERCENT
-            // =========================
         } else if ("PERCENT".equalsIgnoreCase(
                 voucher.getDiscountType()
         )) {
@@ -710,10 +659,6 @@ public class VoucherDAO extends DBContext {
                     / 100.0;
 
 
-            /*
-             * Nếu có max discount
-             * thì không được vượt quá.
-             */
             if (voucher.getMaxDiscount() != null
                     && discount
                     > voucher.getMaxDiscount()) {
@@ -724,18 +669,13 @@ public class VoucherDAO extends DBContext {
         }
 
 
-        /*
-         * Không được âm.
-         */
         if (discount < 0) {
 
             discount = 0;
         }
 
 
-        /*
-         * Không được giảm nhiều hơn tổng đơn.
-         */
+        
         if (discount > orderTotal) {
 
             discount
@@ -745,9 +685,6 @@ public class VoucherDAO extends DBContext {
         return discount;
     }
 
-    // =====================================================
-    // SAVE VOUCHER USAGE
-    // =====================================================
     public boolean saveVoucherUsage(
             int voucherId,
             int orderId,
@@ -788,17 +725,7 @@ public class VoucherDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // COUNT USED VOUCHERS
-    //
-    // Đếm số MÃ Voucher khác nhau đã từng được dùng.
-    //
-    // Ví dụ:
-    // TECH10 dùng 10 lần
-    // SAVE200K dùng 3 lần
-    //
-    // => count = 2
-    // =====================================================
+    
     public int countUsedVouchers() {
 
         String sql
@@ -824,13 +751,7 @@ public class VoucherDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // COUNT ALL USAGE RECORDS
-    //
-    // Đếm tổng lượt sử dụng Voucher.
-    //
-    // Không phải số Voucher khác nhau.
-    // =====================================================
+    
     public int countAllVoucherUsages() {
 
         String sql
@@ -856,9 +777,7 @@ public class VoucherDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // COUNT USAGE LAST 7 DAYS
-    // =====================================================
+    
     public int countVoucherUsageLast7Days() {
 
         String sql
@@ -886,12 +805,7 @@ public class VoucherDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // GET RECENT VOUCHER USAGES
-    //
-    // Chỉ lấy 7 ngày gần nhất.
-    // Dùng cho trang Voucher chính.
-    // =====================================================
+    
     public List<VoucherUsageDTO> getRecentVoucherUsages() {
 
         List<VoucherUsageDTO> list
@@ -933,15 +847,7 @@ public class VoucherDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // GET ALL VOUCHER USAGES
-    //
-    // Dùng cho:
-    //
-    // /staff/voucher?view=usage
-    //
-    // Hiển thị toàn bộ lịch sử cũ.
-    // =====================================================
+    
     public List<VoucherUsageDTO> getAllVoucherUsages() {
 
         List<VoucherUsageDTO> list
@@ -981,12 +887,7 @@ public class VoucherDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // GET VOUCHER USAGES BY VOUCHER
-    //
-    // Có thể dùng sau này để xem riêng lịch sử
-    // của một mã Voucher.
-    // =====================================================
+ 
     public List<VoucherUsageDTO> getVoucherUsagesByVoucherId(
             int voucherId) {
 
@@ -1037,9 +938,7 @@ public class VoucherDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // COUNT USAGE BY VOUCHER
-    // =====================================================
+   
     public int countUsageByVoucherId(
             int voucherId) {
 
@@ -1076,9 +975,7 @@ public class VoucherDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // COUNT USAGE BY USER + VOUCHER
-    // =====================================================
+ 
     public int countUsageByUser(
             int voucherId,
             int userId) {
@@ -1122,9 +1019,7 @@ public class VoucherDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // MAP VOUCHER
-    // =====================================================
+    
     private Voucher mapVoucher(
             ResultSet rs)
             throws SQLException {
@@ -1174,9 +1069,7 @@ public class VoucherDAO extends DBContext {
                 )
         );
 
-        // =========================
-        // MAX DISCOUNT
-        // =========================
+      
         Object maxDiscount
                 = rs.getObject(
                         "max_discount"
@@ -1190,9 +1083,7 @@ public class VoucherDAO extends DBContext {
                         )
         );
 
-        // =========================
-        // USAGE LIMIT
-        // =========================
+      
         Object usageLimit
                 = rs.getObject(
                         "usage_limit"
@@ -1206,9 +1097,7 @@ public class VoucherDAO extends DBContext {
                         )
         );
 
-        // =========================
-        // PER USER LIMIT
-        // =========================
+        
         Object perUserLimit
                 = rs.getObject(
                         "per_user_limit"
@@ -1225,9 +1114,7 @@ public class VoucherDAO extends DBContext {
         return voucher;
     }
 
-    // =====================================================
-    // MAP VOUCHER USAGE
-    // =====================================================
+    
     private VoucherUsageDTO mapVoucherUsage(
             ResultSet rs)
             throws SQLException {
