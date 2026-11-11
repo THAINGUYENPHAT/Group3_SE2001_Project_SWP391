@@ -25,8 +25,6 @@
         overflow-y: auto;
     }
 
-    /* ================= HEADER ================= */
-
     .topbar {
         height: 70px;
         background: #0d162b;
@@ -83,8 +81,6 @@
         background: #20c878;
     }
 
-    /* ================= PAGE ================= */
-
     .page {
         min-height: calc(100vh - 70px);
         padding: 22px 38px 28px;
@@ -126,8 +122,6 @@
         background: #dcecff;
     }
 
-    /* ================= MAIN GRID ================= */
-
     .main-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -163,8 +157,6 @@
         padding: 18px;
         flex: 1;
     }
-
-    /* ================= ORDER INFO ================= */
 
     .info-grid {
         display: grid;
@@ -217,8 +209,6 @@
         font-size: 19px;
         font-weight: 700;
     }
-
-    /* ================= MANAGEMENT ================= */
 
     .current-status {
         background: #f5f9ff;
@@ -317,8 +307,6 @@
         margin-top: 5px;
     }
 
-    /* ================= PRODUCTS ================= */
-
     .products-card {
         min-height: 220px;
     }
@@ -370,8 +358,6 @@
         font-weight: 600;
     }
 
-    /* ================= RESPONSIVE ================= */
-
     @media (max-width: 900px) {
         .page {
             padding: 16px;
@@ -381,8 +367,6 @@
             grid-template-columns: 1fr;
         }
     }
-
-    /* ================= NOTIFICATION ================= */
 
     .success-message,
     .error-message {
@@ -481,9 +465,6 @@
             padding: 12px 14px;
         }
     }
-
-
-    /* ================= CANCEL CONFIRM MODAL ================= */
 
     .modal-overlay {
         position: fixed;
@@ -605,13 +586,9 @@
 
 <body>
 
-    <!-- ================= PAGE ================= -->
-
-
     <main class="page">
 
 
-        <!-- SUCCESS NOTIFICATION -->
         <c:if test="${not empty sessionScope.successMessage}">
             <div class="success-message notification" role="status">
                 <span class="notification-icon">✓</span>
@@ -622,7 +599,6 @@
             <c:remove var="successMessage" scope="session" />
         </c:if>
 
-        <!-- ERROR NOTIFICATION -->
         <c:if test="${not empty sessionScope.errorMessage}">
             <div class="error-message notification" role="alert">
                 <span class="notification-icon">!</span>
@@ -635,8 +611,6 @@
 
 
 
-        <!-- TITLE -->
-
         <div class="page-title">
             <div>
                 <h1>Order #${order.orderId}</h1>
@@ -648,11 +622,7 @@
             </a>
         </div>
 
-        <!-- ================= TOP ================= -->
-
         <div class="main-grid">
-
-            <!-- ================= ORDER INFO ================= -->
 
             <div class="card">
                 <div class="card-header">
@@ -719,8 +689,6 @@
                 </div>
             </div>
 
-            <!-- ================= MANAGEMENT ================= -->
-
             <div class="card">
                 <div class="card-header">
                     <h2>Quản lý đơn hàng</h2>
@@ -741,8 +709,6 @@
                         </span>
                     </div>
 
-
-                    <!-- XỬ LÝ ĐƠN HÀNG THEO TỪNG BƯỚC -->
                     <c:choose>
 
                         <c:when test="${status eq 'PENDING_CONFIRMATION'
@@ -864,8 +830,6 @@
 
                     </c:choose>
 
-                    <!-- CHỈ CHO HỦY ĐƠN COD CHƯA THANH TOÁN,
-                         ĐANG CHỜ XÁC NHẬN -->
                     <c:if test="${(status eq 'PENDING_CONFIRMATION'
                                   or status eq 'PENDING')
                                   and order.paymentMethod eq 'COD'
@@ -895,7 +859,6 @@
 
 
 
-                    <!-- ================= PRODUCTS ================= -->
 
                     <div class="card products-card">
                         <div class="card-header">
@@ -967,7 +930,6 @@
                     </main>
 
 
-                    <!-- CANCEL CONFIRMATION MODAL -->
                     <div id="cancelModal" class="modal-overlay" role="dialog" aria-modal="true"
                          aria-labelledby="cancelModalTitle">
 

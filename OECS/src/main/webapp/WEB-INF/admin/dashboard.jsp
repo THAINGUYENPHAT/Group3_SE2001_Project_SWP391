@@ -78,8 +78,6 @@
     line-height: 1.65;
 }
 
-/* FILTER */
-
 .oecs-dashboard .db-filter {
     margin-bottom: 20px;
 }
@@ -168,8 +166,6 @@
     font-size: 13px;
 }
 
-/* KPI */
-
 .oecs-dashboard .db-kpi-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -242,8 +238,6 @@
     color: #dc2626;
 }
 
-/* REVENUE */
-
 .oecs-dashboard .db-revenue-card {
     margin-bottom: 20px;
 }
@@ -253,8 +247,6 @@
     width: 100%;
     height: 325px;
 }
-
-/* BOTTOM SECTION */
 
 .oecs-dashboard .db-two-columns {
     display: grid;
@@ -269,8 +261,6 @@
     height: 330px;
     position: relative;
 }
-
-/* TOP PRODUCTS */
 
 .oecs-dashboard .db-products {
     display: flex;
@@ -369,8 +359,6 @@
     font-size: 11px;
 }
 
-/* INVENTORY */
-
 .oecs-dashboard .db-stock-summary {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -424,8 +412,6 @@
     line-height: 1.65;
     margin: 10px 0 0;
 }
-
-/* LOW STOCK DETAILS */
 
 .oecs-dashboard .db-stock-details {
     margin-top: 25px;
@@ -497,8 +483,6 @@
     background: #fffbeb;
 }
 
-/* EMPTY STATE */
-
 .oecs-dashboard .db-empty {
     display: flex;
     flex-direction: column;
@@ -514,8 +498,6 @@
 .oecs-dashboard .db-empty i {
     font-size: 32px;
 }
-
-/* RESPONSIVE */
 
 @media (max-width: 1100px) {
 
@@ -572,13 +554,8 @@
 }
 </style>
 
-<!-- ============================================
-     MAIN DASHBOARD
-     ============================================ -->
 
 <div class="oecs-dashboard">
-
-    <!-- PAGE HEADER -->
 
     <div class="db-heading">
 
@@ -601,9 +578,6 @@
 
     </div>
 
-    <!-- ============================================
-         DATE FILTER
-         ============================================ -->
 
     <div class="db-card db-filter">
 
@@ -669,8 +643,6 @@
 
         </form>
 
-        <!-- CLIENT VALIDATION MESSAGE -->
-
         <div id="dashboardDateError"
              class="db-error"
              role="alert"
@@ -682,8 +654,7 @@
 
         </div>
 
-        <!-- SERVER VALIDATION MESSAGE -->
-
+        
         <c:if test="${not empty dateError}">
 
             <div class="db-error" role="alert">
@@ -701,13 +672,10 @@
 
     </div>
 
-    <!-- ============================================
-         FOUR KPI
-         ============================================ -->
+   
 
     <div class="db-kpi-grid">
 
-        <!-- KPI 1: COMPLETED ORDER VALUE -->
 
         <div class="db-card db-kpi">
 
@@ -737,8 +705,6 @@
 
         </div>
 
-        <!-- KPI 2: TOTAL ORDERS -->
-
         <div class="db-card db-kpi">
 
             <div class="db-kpi-content">
@@ -767,8 +733,6 @@
 
         </div>
 
-        <!-- KPI 3: COMPLETED ORDERS -->
-
         <div class="db-card db-kpi">
 
             <div class="db-kpi-content">
@@ -796,8 +760,6 @@
             </div>
 
         </div>
-
-        <!-- KPI 4: CANCELLED ORDERS -->
 
         <div class="db-card db-kpi">
 
@@ -829,9 +791,6 @@
 
     </div>
 
-    <!-- ============================================
-         REVENUE CHART
-         ============================================ -->
 
     <div class="db-card db-revenue-card">
 
@@ -877,13 +836,8 @@
 
     </div>
 
-    <!-- ============================================
-         ORDER STATUS + TOP 5 PRODUCTS
-         ============================================ -->
 
     <div class="db-two-columns">
-
-        <!-- ORDER STATUS -->
 
         <div class="db-card">
 
@@ -926,8 +880,6 @@
             </c:choose>
 
         </div>
-
-        <!-- TOP 5 PRODUCTS -->
 
         <div class="db-card">
 
@@ -977,8 +929,6 @@
                                     #${loop.index + 1}
                                 </div>
 
-                                <!-- PRODUCT IMAGE -->
-
                                 <div class="db-product-image">
 
                                     <c:choose>
@@ -1019,8 +969,6 @@
 
                                 </div>
 
-                                <!-- PRODUCT NAME AND PRICE -->
-
                                 <div class="db-product-info">
 
                                     <div class="db-product-name">
@@ -1055,8 +1003,6 @@
 
                                 </div>
 
-                                <!-- TOTAL SOLD -->
-
                                 <div class="db-product-sold">
 
                                     <strong>
@@ -1085,10 +1031,6 @@
 
     </div>
 
-    <!-- ============================================
-         INVENTORY OVERVIEW + PRODUCT DETAILS
-         ============================================ -->
-
     <div class="db-card">
 
         <h2 class="db-card-title">
@@ -1104,11 +1046,7 @@
             Không áp dụng bộ lọc ngày.
         </p>
 
-        <!-- STOCK KPI -->
-
         <div class="db-stock-summary">
-
-            <!-- AVAILABLE -->
 
             <div class="db-stock-item">
 
@@ -1130,8 +1068,6 @@
 
             </div>
 
-            <!-- LOW STOCK -->
-
             <div class="db-stock-item">
 
                 <div class="db-stock-label">
@@ -1151,8 +1087,6 @@
                 </div>
 
             </div>
-
-            <!-- OUT OF STOCK -->
 
             <div class="db-stock-item">
 
@@ -1175,8 +1109,6 @@
             </div>
 
         </div>
-
-        <!-- STOCK DISTRIBUTION BAR -->
 
         <c:choose>
 
@@ -1230,10 +1162,6 @@
 
         </c:choose>
 
-        <!-- =====================================
-             LOW STOCK DETAILS
-             ===================================== -->
-
         <div class="db-stock-details">
 
             <h3 class="db-card-title">
@@ -1277,8 +1205,6 @@
 
                             <div class="db-stock-product">
 
-                                <!-- IMAGE -->
-
                                 <div class="db-product-image">
 
                                     <c:choose>
@@ -1319,7 +1245,6 @@
 
                                 </div>
 
-                                <!-- NAME + SKU + PRICE -->
 
                                 <div class="db-stock-product-info">
 
@@ -1363,7 +1288,6 @@
 
                                 </div>
 
-                                <!-- QUANTITY + STOCK STATUS -->
 
                                 <div class="db-stock-product-right">
 
@@ -1427,18 +1351,12 @@
 
 </div>
 
-<!-- ============================================
-     CHART.JS
-     ============================================ -->
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // ============================================
-    // 1. VALIDATE DATE FILTER
-    // ============================================
 
     const filterForm =
             document.getElementById("dashboardFilterForm");
@@ -1502,10 +1420,6 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     }
 
-    // ============================================
-    // 2. FORMAT VND
-    // ============================================
-
     function formatVND(value) {
 
         return new Intl.NumberFormat("vi-VN", {
@@ -1515,9 +1429,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }).format(value);
     }
 
-    // ============================================
-    // 3. REVENUE DATA FROM SERVLET
-    // ============================================
 
     const revenueData = [
 
@@ -1677,10 +1588,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // ============================================
-    // 4. ORDER STATUS DATA FROM SERVLET
-    // ============================================
-
     const orderStatusData = [
 
         <c:forEach
@@ -1758,9 +1665,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 0
             );
 
-        // ========================================
-        // PLUGIN: TOTAL ORDERS IN CENTER
-        // ========================================
 
         const centerTotalPlugin = {
 
@@ -1809,9 +1713,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         };
 
-        // ========================================
-        // CREATE DOUGHNUT CHART
-        // ========================================
 
         new Chart(statusCanvas, {
 
