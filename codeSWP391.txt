@@ -51372,3 +51372,1192 @@ public class ReturnExchangeService {
         </plugins>
     </build>
 </project>
+
+DB
+USE master;
+GO
+
+IF DB_ID(N'OECS') IS NOT NULL
+BEGIN
+    ALTER DATABASE OECS SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE OECS;
+END;
+GO
+
+CREATE DATABASE OECS;
+GO
+
+USE OECS;
+GO
+
+-- 1. USER AND ROLE MANAGEMENT
+CREATE TABLE ROLES (
+    role_id INT IDENTITY(1,1) PRIMARY KEY,
+    role_name NVARCHAR(50) NOT NULL UNIQUE,
+    description NVARCHAR(MAX)
+);
+
+CREATE TABLE [USER] (
+    user_id INT IDENTITY(1,1) PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    created_at DATETIME2 DEFAULT GETDATE(),
+    is_active BIT NOT NULL CONSTRAINT DF_USER_IsActive DEFAULT (1)
+);
+
+CREATE TABLE USER_ROLES (
+    user_id INT NOT NULL,
+    role_id INT NOT NULL,
+    CONSTRAINT PK_USER_ROLES PRIMARY KEY (user_id, role_id),
+    CONSTRAINT FK_UserRoles_User FOREIGN KEY (user_id)
+        REFERENCES [USER](user_id) ON DELETE CASCADE,
+    CONSTRAINT FK_UserRoles_Role FOREIGN KEY (role_id)
+        REFERENCES ROLES(role_id) ON DELETE CASCADE
+);
+
+CREATE TABLE STAFF (
+    staff_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    department NVARCHAR(100),
+    position NVARCHAR(100),
+    CONSTRAINT FK_Staff_User FOREIGN KEY (user_id)
+        REFERENCES [USER](user_id) ON DELETE CASCADE
+);
+
+-- 2. ADDRESS BOOK
+CREATE TABLE ADDRESSBOOK (
+    address_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    recipient_name NVARCHAR(100) NOT NULL,
+    phone_number VARCHAR(20) NOT NULL,
+    address_line NVARCHAR(MAX) NOT NULL,
+    is_default BIT DEFAULT (0),
+    is_deleted BIT NOT NULL
+        CONSTRAINT DF_ADDRESSBOOK_is_deleted DEFAULT (0),
+    CONSTRAINT FK_AddressBook_User FOREIGN KEY (user_id)
+        REFERENCES [USER](user_id) ON DELETE CASCADE
+);
+
+-- 3. PRODUCT CATALOG
+CREATE TABLE CATEGORY (
+    category_id INT IDENTITY(1,1) PRIMARY KEY,
+    category_name NVARCHAR(100) NOT NULL,
+    parent_id INT NULL,
+    CONSTRAINT FK_Category_Parent FOREIGN KEY (parent_id)
+        REFERENCES CATEGORY(category_id)
+);
+
+CREATE TABLE BRAND (
+    brand_id INT IDENTITY(1,1) PRIMARY KEY,
+    brand_name NVARCHAR(100) NOT NULL,
+    logo_url VARCHAR(2048)
+);
+
+CREATE TABLE PRODUCT (
+    product_id INT IDENTITY(1,1) PRIMARY KEY,
+    category_id INT NOT NULL,
+    brand_id INT NOT NULL,
+    product_name NVARCHAR(255) NOT NULL,
+    description NVARCHAR(MAX),
+    created_at DATETIME2 DEFAULT GETDATE(),
+    image_url VARCHAR(2048) NULL,
+    CONSTRAINT FK_Product_Category FOREIGN KEY (category_id)
+        REFERENCES CATEGORY(category_id),
+    CONSTRAINT FK_Product_Brand FOREIGN KEY (brand_id)
+        REFERENCES BRAND(brand_id)
+);
+
+CREATE TABLE ATTRIBUTE (
+    attribute_id INT IDENTITY(1,1) PRIMARY KEY,
+    attribute_name NVARCHAR(100) NOT NULL
+);
+
+CREATE TABLE PRODUCT_SPECIFICATION (
+    product_id INT NOT NULL,
+    attribute_id INT NOT NULL,
+    value NVARCHAR(255) NOT NULL,
+    CONSTRAINT PK_PRODUCT_SPECIFICATION
+        PRIMARY KEY (product_id, attribute_id),
+    CONSTRAINT FK_Spec_Product FOREIGN KEY (product_id)
+        REFERENCES PRODUCT(product_id) ON DELETE CASCADE,
+    CONSTRAINT FK_Spec_Attribute FOREIGN KEY (attribute_id)
+        REFERENCES ATTRIBUTE(attribute_id) ON DELETE CASCADE
+);
+
+CREATE TABLE PRODUCT_SKU (
+    sku_id INT IDENTITY(1,1) PRIMARY KEY,
+    product_id INT NOT NULL,
+    sku_code VARCHAR(100) NOT NULL UNIQUE,
+    price DECIMAL(18,2) NOT NULL,
+    stock_quantity INT DEFAULT (0),
+    created_at DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT FK_SKU_Product FOREIGN KEY (product_id)
+        REFERENCES PRODUCT(product_id) ON DELETE CASCADE
+);
+
+CREATE TABLE PRODUCT_IMAGES (
+    image_id INT IDENTITY(1,1) PRIMARY KEY,
+    product_id INT NOT NULL,
+    image_url VARCHAR(2048) NOT NULL,
+    created_at DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT FK_ProductImages_Product FOREIGN KEY (product_id) 
+        REFERENCES PRODUCT(product_id) ON DELETE CASCADE
+);
+
+-- 4. CART
+CREATE TABLE CART (
+    cart_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    created_at DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT FK_Cart_User FOREIGN KEY (user_id)
+        REFERENCES [USER](user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE CART_ITEMS (
+    cart_item_id INT IDENTITY(1,1) PRIMARY KEY,
+    cart_id INT NOT NULL,
+    sku_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT (1),
+    CONSTRAINT FK_CartItems_Cart FOREIGN KEY (cart_id)
+        REFERENCES CART(cart_id) ON DELETE CASCADE,
+    CONSTRAINT FK_CartItems_SKU FOREIGN KEY (sku_id)
+        REFERENCES PRODUCT_SKU(sku_id) ON DELETE CASCADE
+);
+
+-- 5. SHIPPING
+CREATE TABLE SHIPPING_PARTNER (
+    partner_id INT IDENTITY(1,1) PRIMARY KEY,
+    partner_name NVARCHAR(100) NOT NULL,
+    contact_phone VARCHAR(20)
+);
+
+-- 6. VOUCHER
+CREATE TABLE VOUCHER (
+    voucher_id INT IDENTITY(1,1) PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    min_order_value DECIMAL(18,2) NOT NULL
+        CONSTRAINT DF_Voucher_MinOrder DEFAULT (0),
+    valid_from DATETIME2 NOT NULL,
+    valid_to DATETIME2 NOT NULL,
+    discount_type VARCHAR(20) NOT NULL,
+    discount_value DECIMAL(18,2) NOT NULL,
+    max_discount DECIMAL(18,2) NULL,
+    usage_limit INT NULL,
+    per_user_limit INT NULL,
+
+    CONSTRAINT CK_Voucher_DiscountType
+        CHECK (discount_type IN ('AMOUNT', 'PERCENT')),
+    CONSTRAINT CK_Voucher_DiscountValue
+        CHECK (discount_value > 0),
+    CONSTRAINT CK_Voucher_MinOrder
+        CHECK (min_order_value >= 0),
+    CONSTRAINT CK_Voucher_ValidDate
+        CHECK (valid_to > valid_from),
+    CONSTRAINT CK_Voucher_MaxDiscount
+        CHECK (max_discount IS NULL OR max_discount > 0),
+    CONSTRAINT CK_Voucher_UsageLimit
+        CHECK (usage_limit IS NULL OR usage_limit > 0),
+    CONSTRAINT CK_Voucher_PerUserLimit
+        CHECK (per_user_limit IS NULL OR per_user_limit > 0),
+    CONSTRAINT CK_Voucher_PerUserVsTotal
+        CHECK (
+            usage_limit IS NULL
+            OR per_user_limit IS NULL
+            OR per_user_limit <= usage_limit
+        ),
+    CONSTRAINT CK_Voucher_MaxDiscountType
+        CHECK (discount_type = 'PERCENT' OR max_discount IS NULL)
+);
+
+-- 7. ORDER
+CREATE TABLE [ORDER] (
+    order_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    address_id INT NOT NULL,
+    shipping_partner_id INT,
+    total_amount DECIMAL(18,2) NOT NULL,
+    shipping_fee DECIMAL(18,2) DEFAULT (0),
+    created_at DATETIME2 DEFAULT GETDATE(),
+    order_status VARCHAR(30) NULL,
+    payment_method VARCHAR(20) NULL,
+    payment_status VARCHAR(30) NULL,
+    payment_expires_at DATETIME2 NULL,
+    recipient_name NVARCHAR(100) NULL,
+    recipient_phone VARCHAR(20) NULL,
+    shipping_address NVARCHAR(MAX) NULL,
+    discount_amount DECIMAL(18,2) NULL,
+    stock_restored_at DATETIME2 NULL,
+    checkout_token VARCHAR(64) NULL,
+    delivered_at DATETIME2 NULL,
+
+    CONSTRAINT FK_Order_User FOREIGN KEY (user_id)
+        REFERENCES [USER](user_id),
+    CONSTRAINT FK_Order_Address FOREIGN KEY (address_id)
+        REFERENCES ADDRESSBOOK(address_id),
+    CONSTRAINT FK_Order_ShippingPartner FOREIGN KEY (shipping_partner_id)
+        REFERENCES SHIPPING_PARTNER(partner_id)
+);
+
+CREATE TABLE ORDER_ITEM (
+    order_item_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL,
+    sku_id INT NOT NULL,
+    price DECIMAL(18,2) NOT NULL,
+    quantity INT NOT NULL,
+    CONSTRAINT FK_OrderItem_Order FOREIGN KEY (order_id)
+        REFERENCES [ORDER](order_id) ON DELETE CASCADE,
+    CONSTRAINT FK_OrderItem_SKU FOREIGN KEY (sku_id)
+        REFERENCES PRODUCT_SKU(sku_id)
+);
+
+CREATE TABLE ORDER_STATUS_HISTORY (
+    status_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL,
+    status NVARCHAR(50) NOT NULL,
+    updated_at DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT FK_StatusHistory_Order FOREIGN KEY (order_id)
+        REFERENCES [ORDER](order_id) ON DELETE CASCADE
+);
+
+CREATE TABLE VOUCHER_USAGES (
+    usage_id INT IDENTITY(1,1) PRIMARY KEY,
+    voucher_id INT NOT NULL,
+    order_id INT NOT NULL,
+    user_id INT NOT NULL,
+    used_at DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT FK_VoucherUsage_Voucher FOREIGN KEY (voucher_id)
+        REFERENCES VOUCHER(voucher_id),
+    CONSTRAINT FK_VoucherUsage_Order FOREIGN KEY (order_id)
+        REFERENCES [ORDER](order_id),
+    CONSTRAINT FK_VoucherUsage_User FOREIGN KEY (user_id)
+        REFERENCES [USER](user_id)
+);
+
+-- 8. NOTIFICATION
+CREATE TABLE NOTIFICATION (
+    notification_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    order_id INT NULL,
+    title NVARCHAR(200) NOT NULL,
+    message NVARCHAR(500) NOT NULL,
+    is_read BIT NOT NULL CONSTRAINT DF_Notification_IsRead DEFAULT (0),
+    created_at DATETIME2 NOT NULL
+        CONSTRAINT DF_Notification_CreatedAt DEFAULT (GETDATE()),
+
+    CONSTRAINT FK_Notification_User FOREIGN KEY (user_id)
+        REFERENCES [USER](user_id) ON DELETE CASCADE,
+    CONSTRAINT FK_Notification_Order FOREIGN KEY (order_id)
+        REFERENCES [ORDER](order_id) ON DELETE SET NULL
+);
+
+CREATE INDEX IX_Notification_User_CreatedAt
+    ON NOTIFICATION(user_id, created_at DESC);
+
+CREATE INDEX IX_Notification_User_Unread
+    ON NOTIFICATION(user_id, is_read)
+    WHERE is_read = 0;
+
+-- 9. COD SETTLEMENT
+CREATE TABLE COD_SETTLEMENTS (
+    settlement_id INT IDENTITY(1,1) PRIMARY KEY,
+    partner_id INT NOT NULL,
+    total_cod_amount DECIMAL(18,2) NOT NULL,
+    settlement_date DATETIME2 DEFAULT GETDATE(),
+    status NVARCHAR(50) DEFAULT N'PENDING',
+    CONSTRAINT FK_CODSettlement_Partner FOREIGN KEY (partner_id)
+        REFERENCES SHIPPING_PARTNER(partner_id)
+);
+
+-- 10. PRODUCT REVIEWS
+CREATE TABLE PRODUCT_REVIEWS (
+    review_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    order_item_id INT NOT NULL,
+    sku_id INT NOT NULL,
+    rating INT CHECK (rating BETWEEN 1 AND 5),
+    comment NVARCHAR(MAX),
+    created_at DATETIME2 DEFAULT GETDATE(),
+    is_hidden BIT NOT NULL
+        CONSTRAINT DF_PRODUCT_REVIEWS_is_hidden DEFAULT (0),
+
+    CONSTRAINT FK_Review_User FOREIGN KEY (user_id)
+        REFERENCES [USER](user_id),
+    CONSTRAINT FK_Review_OrderItem FOREIGN KEY (order_item_id)
+        REFERENCES ORDER_ITEM(order_item_id),
+    CONSTRAINT FK_Review_SKU FOREIGN KEY (sku_id)
+        REFERENCES PRODUCT_SKU(sku_id)
+);
+
+CREATE TABLE REVIEW_IMAGES (
+    image_id INT IDENTITY(1,1) PRIMARY KEY,
+    review_id INT NOT NULL,
+    image_url NVARCHAR(2048) NOT NULL,
+    CONSTRAINT FK_ReviewImages_Review FOREIGN KEY (review_id)
+        REFERENCES PRODUCT_REVIEWS(review_id) ON DELETE CASCADE
+);
+
+CREATE TABLE REVIEW_REPORTS (
+    report_id INT IDENTITY(1,1) PRIMARY KEY,
+    review_id INT NOT NULL,
+    reported_by INT NOT NULL,
+    reason NVARCHAR(500) NOT NULL,
+    report_status VARCHAR(20) NOT NULL
+        CONSTRAINT DF_REVIEW_REPORTS_status DEFAULT ('PENDING'),
+    created_at DATETIME2 NOT NULL
+        CONSTRAINT DF_REVIEW_REPORTS_created_at DEFAULT (GETDATE()),
+    resolved_by INT NULL,
+    resolved_at DATETIME2 NULL,
+
+    CONSTRAINT CK_REVIEW_REPORTS_status
+        CHECK (report_status IN ('PENDING', 'RESOLVED', 'REJECTED')),
+    CONSTRAINT FK_REVIEW_REPORTS_review FOREIGN KEY (review_id)
+        REFERENCES PRODUCT_REVIEWS(review_id),
+    CONSTRAINT FK_REVIEW_REPORTS_reporter FOREIGN KEY (reported_by)
+        REFERENCES [USER](user_id),
+    CONSTRAINT FK_REVIEW_REPORTS_resolver FOREIGN KEY (resolved_by)
+        REFERENCES [USER](user_id)
+);
+
+CREATE INDEX IX_REVIEW_REPORTS_status_created
+    ON REVIEW_REPORTS(report_status, created_at DESC);
+
+CREATE UNIQUE INDEX UX_REVIEW_REPORTS_one_pending_per_user
+    ON REVIEW_REPORTS(review_id, reported_by)
+    WHERE report_status = 'PENDING';
+
+CREATE INDEX IX_PRODUCT_REVIEWS_sku_hidden_created
+    ON PRODUCT_REVIEWS(sku_id, is_hidden, created_at DESC);
+
+-- 11. SUPPLIERS AND PURCHASE ORDERS
+CREATE TABLE SUPPLIERS (
+    supplier_id INT IDENTITY(1,1) PRIMARY KEY,
+    supplier_name NVARCHAR(150) NOT NULL,
+    contact_email VARCHAR(100),
+    phone VARCHAR(20),
+    address NVARCHAR(MAX)
+);
+
+CREATE TABLE PURCHASE_ORDERS (
+    po_id INT IDENTITY(1,1) PRIMARY KEY,
+    supplier_id INT NOT NULL,
+    total_cost DECIMAL(18,2) NOT NULL,
+    created_at DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT FK_PO_Supplier FOREIGN KEY (supplier_id)
+        REFERENCES SUPPLIERS(supplier_id)
+);
+
+CREATE TABLE PURCHASE_ORDER_ITEMS (
+    po_item_id INT IDENTITY(1,1) PRIMARY KEY,
+    po_id INT NOT NULL,
+    sku_id INT NOT NULL,
+    unit_cost DECIMAL(18,2) NOT NULL,
+    quantity INT NOT NULL,
+    CONSTRAINT FK_POItems_PO FOREIGN KEY (po_id)
+        REFERENCES PURCHASE_ORDERS(po_id) ON DELETE CASCADE,
+    CONSTRAINT FK_POItems_SKU FOREIGN KEY (sku_id)
+        REFERENCES PRODUCT_SKU(sku_id)
+);
+
+-- 12. PAYMENT TRANSACTIONS
+CREATE TABLE PAYMENT_TRANSACTION (
+    transaction_id BIGINT IDENTITY(1,1)
+        CONSTRAINT PK_PAYMENT_TRANSACTION PRIMARY KEY,
+    order_id INT NOT NULL,
+    payment_method VARCHAR(20) NOT NULL,
+    amount DECIMAL(18,2) NOT NULL,
+    transaction_code VARCHAR(100) NOT NULL,
+    provider_transaction_id VARCHAR(150) NULL,
+    status VARCHAR(30) NOT NULL
+        CONSTRAINT DF_PaymentTransaction_Status DEFAULT ('PENDING'),
+    provider_response_code VARCHAR(100) NULL,
+    created_at DATETIME2 NOT NULL
+        CONSTRAINT DF_PaymentTransaction_Created DEFAULT (SYSUTCDATETIME()),
+    completed_at DATETIME2 NULL,
+    pay_url NVARCHAR(2048) NULL,
+
+    CONSTRAINT FK_PaymentTransaction_Order FOREIGN KEY (order_id)
+        REFERENCES [ORDER](order_id),
+    CONSTRAINT UQ_PaymentTransaction_Code UNIQUE (transaction_code),
+    CONSTRAINT CK_PaymentTransaction_Method
+        CHECK (payment_method IN ('VNPAY', 'MOMO')),
+    CONSTRAINT CK_PaymentTransaction_Amount CHECK (amount >= 0),
+    CONSTRAINT CK_PaymentTransaction_Status
+        CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'EXPIRED'))
+);
+
+CREATE TABLE ORDER_CUSTOMER_POLICY (
+    user_id INT NOT NULL PRIMARY KEY REFERENCES [USER](user_id),
+    violation_count INT NOT NULL DEFAULT (0),
+    blocked_until DATETIME2 NULL,
+    CONSTRAINT CK_OrderCustomerPolicy_Count CHECK (violation_count BETWEEN 0 AND 3)
+);
+
+CREATE TABLE ORDER_CUSTOMER_CANCELLATION (
+    order_id INT NOT NULL PRIMARY KEY REFERENCES [ORDER](order_id),
+    user_id INT NOT NULL REFERENCES [USER](user_id),
+    quantity BIGINT NOT NULL CHECK (quantity > 0),
+    cancelled_at DATETIME2 NOT NULL DEFAULT (SYSUTCDATETIME())
+);
+CREATE INDEX IX_OrderCustomerCancellation_UserTime
+    ON ORDER_CUSTOMER_CANCELLATION(user_id, cancelled_at) INCLUDE (quantity);
+
+
+CREATE TABLE PAYMENT_REFUND (
+    refund_id BIGINT IDENTITY(1,1)
+        CONSTRAINT PK_PAYMENT_REFUND PRIMARY KEY,
+    transaction_id BIGINT NOT NULL,
+    refund_amount DECIMAL(18,2) NOT NULL,
+    refund_status VARCHAR(30) NOT NULL
+        CONSTRAINT DF_PaymentRefund_Status DEFAULT ('PENDING'),
+    provider_refund_id VARCHAR(150) NULL,
+    processed_by INT NULL REFERENCES [USER](user_id),
+    updated_at DATETIME2 NULL,
+    reason NVARCHAR(500) NULL,
+    requested_at DATETIME2 NOT NULL
+        CONSTRAINT DF_PaymentRefund_Requested DEFAULT (SYSUTCDATETIME()),
+    completed_at DATETIME2 NULL,
+
+    CONSTRAINT FK_PaymentRefund_Transaction FOREIGN KEY (transaction_id)
+        REFERENCES PAYMENT_TRANSACTION(transaction_id),
+    CONSTRAINT CK_PaymentRefund_Amount CHECK (refund_amount > 0),
+    CONSTRAINT CK_PaymentRefund_Status
+        CHECK (refund_status IN ('PENDING', 'PROCESSING', 'SUCCESS', 'FAILED'))
+);
+
+CREATE UNIQUE INDEX UX_Payment_Provider_Success
+    ON PAYMENT_TRANSACTION(payment_method, provider_transaction_id)
+    WHERE status = 'SUCCESS' AND provider_transaction_id IS NOT NULL;
+
+CREATE UNIQUE INDEX UX_Payment_Refund_Transaction
+    ON PAYMENT_REFUND(transaction_id);
+
+CREATE INDEX IX_PaymentTransaction_Order
+    ON PAYMENT_TRANSACTION(order_id, created_at DESC);
+
+CREATE INDEX IX_Order_Expiry
+    ON [ORDER](order_status, payment_expires_at);
+
+CREATE UNIQUE INDEX UX_Order_CheckoutToken
+    ON [ORDER](checkout_token)
+    WHERE checkout_token IS NOT NULL;
+
+-- 13. PASSWORD RESET
+CREATE TABLE PASSWORD_RESET_TOKEN (
+    reset_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    expires_at DATETIME2 NOT NULL,
+    used_at DATETIME2 NULL,
+    created_at DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT FK_PasswordReset_User FOREIGN KEY (user_id)
+        REFERENCES [USER](user_id) ON DELETE CASCADE
+);
+
+-- 14. AUDIT LOG
+CREATE TABLE AUDIT_LOG (
+    log_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    actor_user_id INT NULL,
+    actor_identifier VARCHAR(150) NULL,
+    action VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id BIGINT NULL,
+    description NVARCHAR(500) NULL,
+    ip_address VARCHAR(45) NULL,
+    created_at DATETIME2 NOT NULL
+        CONSTRAINT DF_AuditLog_CreatedAt DEFAULT (GETDATE()),
+
+    CONSTRAINT FK_AuditLog_Actor FOREIGN KEY (actor_user_id)
+        REFERENCES [USER](user_id) ON DELETE SET NULL
+);
+
+-- 15. BANNER
+CREATE TABLE BANNER (
+    banner_id INT IDENTITY(1,1) PRIMARY KEY,
+    image_url NVARCHAR(2048) NOT NULL,
+    alt_text NVARCHAR(255) NULL,
+    target_url NVARCHAR(2048) NULL,
+    is_active BIT NOT NULL DEFAULT (1),
+    display_order INT NOT NULL DEFAULT (0),
+    created_at DATETIME2 NOT NULL DEFAULT (SYSDATETIME())
+);
+
+-- 16. RETURN / EXCHANGE REQUEST
+CREATE TABLE RETURN_REQUEST (
+    request_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL,
+    user_id INT NOT NULL,
+    request_type VARCHAR(20) NOT NULL,
+    reason NVARCHAR(1000) NOT NULL,
+    request_status VARCHAR(20) NOT NULL DEFAULT ('PENDING'),
+    created_at DATETIME2 NOT NULL DEFAULT (GETDATE()),
+    reviewed_by INT NULL,
+    reviewed_at DATETIME2 NULL,
+    staff_note NVARCHAR(1000) NULL,
+
+    CONSTRAINT FK_RETURN_REQUEST_ORDER FOREIGN KEY (order_id)
+        REFERENCES [ORDER](order_id),
+    CONSTRAINT FK_RETURN_REQUEST_USER FOREIGN KEY (user_id)
+        REFERENCES [USER](user_id),
+    CONSTRAINT FK_RETURN_REQUEST_REVIEWER FOREIGN KEY (reviewed_by)
+        REFERENCES [USER](user_id),
+    CONSTRAINT CK_RETURN_REQUEST_TYPE
+        CHECK (request_type IN ('RETURN', 'EXCHANGE')),
+    CONSTRAINT CK_RETURN_REQUEST_STATUS
+        CHECK (request_status IN ('PENDING', 'APPROVED', 'REJECTED'))
+);
+
+CREATE TABLE RETURN_REQUEST_ITEM (
+    request_item_id INT IDENTITY(1,1) PRIMARY KEY,
+    request_id INT NOT NULL,
+    order_item_id INT NOT NULL,
+    quantity INT NOT NULL,
+    exchange_sku_id INT NULL,
+
+    CONSTRAINT FK_RETURN_REQUEST_ITEM_REQUEST FOREIGN KEY (request_id)
+        REFERENCES RETURN_REQUEST(request_id),
+    CONSTRAINT FK_RETURN_REQUEST_ITEM_ORDER_ITEM FOREIGN KEY (order_item_id)
+        REFERENCES ORDER_ITEM(order_item_id),
+    CONSTRAINT FK_RETURN_REQUEST_ITEM_EXCHANGE_SKU FOREIGN KEY (exchange_sku_id)
+        REFERENCES PRODUCT_SKU(sku_id),
+    CONSTRAINT CK_RETURN_REQUEST_ITEM_QUANTITY CHECK (quantity > 0)
+);
+
+CREATE TABLE RETURN_REQUEST_HISTORY (
+    history_id INT IDENTITY(1,1) PRIMARY KEY,
+    request_id INT NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    updated_by INT NULL,
+    note NVARCHAR(1000) NULL,
+    updated_at DATETIME2 NOT NULL DEFAULT (GETDATE()),
+
+    CONSTRAINT FK_RETURN_REQUEST_HISTORY_REQUEST FOREIGN KEY (request_id)
+        REFERENCES RETURN_REQUEST(request_id),
+    CONSTRAINT FK_RETURN_REQUEST_HISTORY_USER FOREIGN KEY (updated_by)
+        REFERENCES [USER](user_id)
+);
+GO
+USE OECS;
+GO
+
+-- 1. ROLES AND USERS
+INSERT INTO ROLES (role_name, description)
+VALUES
+(N'ADMIN', N'Quản trị viên hệ thống - Toàn quyền'),
+(N'STAFF', N'Nhân viên vận hành và xử lý đơn hàng'),
+(N'CUSTOMER', N'Khách hàng mua sắm'),
+(N'GUEST', N'Khách truy cập chưa đăng nhập');
+
+INSERT INTO [USER] (username, email, password_hash, phone)
+VALUES
+('admin', 'admin@oecs.com', 'e10adc3949ba59abbe56e057f20f883e', '0901111111'),
+('staff', 'khang.staff@oecs.com', 'e10adc3949ba59abbe56e057f20f883e', '0902222222'),
+('user', 'phat.user@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', '0903333333'),
+('customer', 'lan.nguyen@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', '0904444444');
+
+INSERT INTO USER_ROLES (user_id, role_id)
+VALUES (1, 1), (2, 2), (3, 3), (4, 3);
+
+INSERT INTO STAFF (user_id, department, position)
+VALUES (2, N'Phòng Vận Hành', N'Chuyên viên kiểm duyệt đơn');
+
+-- 2. ADDRESS BOOK
+INSERT INTO ADDRESSBOOK
+    (user_id, recipient_name, phone_number, address_line, is_default)
+VALUES
+(3, N'Trần Phát', '0903333333',
+ N'123 Đường 3/2, Phường Xuân Khánh, Quận Ninh Kiều, Cần Thơ', 1),
+(3, N'Trần Phát (Văn phòng)', '0903333333',
+ N'456 Nguyễn Văn Cừ, Phường An Khánh, Ninh Kiều, Cần Thơ', 0),
+(4, N'Nguyễn Thị Lan', '0904444444',
+ N'789 Lê Duẩn, Quận 1, TP. Hồ Chí Minh', 1);
+
+-- 3. CATEGORIES
+INSERT INTO CATEGORY (category_name, parent_id)
+VALUES
+(N'Điện thoại & Thiết bị di động', NULL),
+(N'Máy tính & Laptop', NULL),
+(N'Phụ kiện', NULL),
+(N'Smartphone', 1),
+(N'Tai nghe', 1),
+(N'Sạc điện thoại', 1),
+(N'Cáp sạc', 1),
+(N'Laptop Văn Phòng', 2),
+(N'Laptop Gaming', 2),
+(N'Chuột', 3),
+(N'Bàn phím', 3),
+(N'Webcam', 3),
+(N'Balo Laptop', 3);
+
+-- 4. BRANDS
+INSERT INTO BRAND (brand_name, logo_url)
+VALUES
+(N'Apple', 'https://cdn.oecs.com/brands/apple.png'),
+(N'Samsung', 'https://cdn.oecs.com/brands/samsung.png'),
+(N'Lenovo', 'https://cdn.oecs.com/brands/lenovo.png'),
+(N'Logitech', 'https://cdn.oecs.com/brands/logitech.png'),
+(N'Sony', 'https://cdn.oecs.com/brands/sony.png'),
+(N'JBL', 'https://cdn.oecs.com/brands/jbl.png'),
+(N'ASUS', 'https://cdn.oecs.com/brands/asus.png'),
+(N'HP', 'https://cdn.oecs.com/brands/hp.png'),
+(N'Dell', 'https://cdn.oecs.com/brands/dell.png'),
+(N'Razer', 'https://cdn.oecs.com/brands/razer.png'),
+(N'Anker', 'https://cdn.oecs.com/brands/anker.png');
+
+-- 5. PRODUCTS (Toàn bộ 31 sản phẩm đầu tiên được viết bài Mô tả cực kỳ chi tiết, chuẩn HTML)
+INSERT INTO PRODUCT (category_id, brand_id, product_name, description)
+VALUES
+(4, 1, N'iPhone 15 Pro', N'<h2>Khung viền Titanium siêu nhẹ, siêu bền bỉ</h2><p><strong>iPhone 15 Pro</strong> là bước nhảy vọt về thiết kế với chất liệu Titanium chuẩn hàng không vũ trụ. Sự thay đổi này không chỉ mang lại cảm giác cầm nắm cực kỳ nhẹ nhàng mà còn vô cùng bền bỉ.</p><ul><li><strong>Vi xử lý A17 Pro:</strong> Con chip 3nm đầu tiên, chiến mượt mọi tựa game AAA di động.</li><li><strong>Camera 48MP:</strong> Nâng cấp cảm biến thế hệ mới, hỗ trợ chụp đêm xuất sắc và quay video ProRes 4K60fps.</li><li><strong>Cổng sạc Type-C mới:</strong> Tốc độ truyền tải dữ liệu USB 3 lên tới 10Gbps, đồng bộ dễ dàng với mọi thiết bị.</li></ul>'),
+(4, 1, N'iPhone 15 Pro Max', N'<h2>Kỷ nguyên nhiếp ảnh di động đỉnh cao</h2><p><strong>iPhone 15 Pro Max</strong> sở hữu màn hình cực đại 6.7 inch và khung viền Titanium đẳng cấp. Đây là mẫu máy hội tụ tất cả những gì tinh túy nhất của Apple ở thời điểm hiện tại.</p><ul><li><strong>Zoom quang học 5x độc quyền:</strong> Đưa mọi khung hình ở xa vào tầm mắt sắc nét nhất nhờ thấu kính tetraprism.</li><li><strong>Pin cực trâu:</strong> Tối ưu hóa cực tốt, cho thời lượng xem video liên tục lên đến 29 giờ.</li><li><strong>Nút Tác vụ (Action Button):</strong> Thay thế cần gạt rung truyền thống, truy cập nhanh ứng dụng yêu thích chỉ bằng 1 nút nhấn.</li></ul>'),
+(4, 1, N'iPhone 16 Pro', N'<h2>Thế hệ Pro, được tiếp sức bởi Apple Intelligence</h2><p><strong>iPhone 16 Pro</strong> mang đến viền màn hình mỏng nhất từng có và bổ sung sức mạnh AI toàn diện, giúp bạn viết lách, sáng tạo và làm việc một cách thông minh hơn bao giờ hết.</p><ul><li><strong>Màn hình 6.3 inch:</strong> Kích thước được gia tăng, hiển thị đã mắt hơn mà vẫn vừa vặn trong lòng bàn tay.</li><li><strong>Camera Ultra Wide 48MP:</strong> Bắt trọn góc rộng với độ chi tiết đến kinh ngạc, chụp macro sắc nét tuyệt đối.</li><li><strong>Camera Control:</strong> Nút bấm cơ học hoàn toàn mới hỗ trợ lấy nét, thu phóng và chụp ảnh chuyên nghiệp như một nhiếp ảnh gia thực thụ.</li></ul>'),
+(4, 1, N'iPhone 16 Pro Max', N'<h2>Màn hình 6.9 inch cực đại, hiệu năng vô song</h2><p><strong>iPhone 16 Pro Max</strong> là chiếc iPhone lớn nhất và mạnh nhất, được trang bị chip A18 Pro đột phá cùng viên pin có dung lượng lớn nhất trong lịch sử Apple.</p><ul><li><strong>Chip A18 Pro:</strong> Bứt phá mọi giới hạn hiệu năng, vận hành Apple Intelligence siêu tốc, siêu mượt.</li><li><strong>Xử lý AI thông minh:</strong> Tự động tóm tắt tin nhắn, chỉnh sửa ảnh nâng cao và tạo hình ảnh AI theo ngữ cảnh.</li><li><strong>Studio Audio:</strong> Hệ thống 4 micro chuẩn studio, có khả năng lọc tiếng ồn bằng AI để thu âm chuyên nghiệp khi quay phim.</li></ul>'),
+(4, 2, N'Samsung Galaxy S24 Ultra', N'<h2>Tuyệt tác thiết kế Titan, Quyền năng Galaxy AI</h2><p><strong>Samsung Galaxy S24 Ultra</strong> trang bị khung viền Titan siêu cao cấp cùng bút S-Pen huyền thoại. Chiếc điện thoại này kết hợp cùng sức mạnh AI tích hợp sâu, thay đổi hoàn toàn cách bạn thao tác hằng ngày.</p><ul><li><strong>Circle to Search:</strong> Khoanh tròn bất kỳ vật thể nào trên màn hình bằng tay hoặc S-Pen để tìm kiếm thông tin ngay tức thì.</li><li><strong>Camera 200MP Mắt Thần Bóng Đêm:</strong> Công nghệ ProVisual Engine giúp chụp đêm rực rỡ, zoom quang 5x nhưng chất lượng chuẩn studio.</li><li><strong>Live Translate:</strong> Dịch thuật hai chiều trực tiếp khi gọi điện thoại không cần kết nối mạng.</li></ul>'),
+(4, 2, N'Samsung Galaxy S24 Plus', N'<h2>Màn hình QHD+ sắc nét, Hiệu năng đỉnh cao</h2><p><strong>Samsung Galaxy S24 Plus</strong> mang đến trải nghiệm màn hình phẳng lớn 6.7 inch rực rỡ chuẩn QHD+ và viên pin được nâng cấp mạnh mẽ giúp bạn sử dụng cả ngày dài mà không lo sạc lại.</p><ul><li><strong>Thiết kế Armor Aluminum:</strong> Chắc chắn, bóng bẩy, viền màn hình siêu mỏng liền mạch tinh tế.</li><li><strong>Trợ lý Note Assist:</strong> Tính năng AI siêu việt tự động tóm tắt, sắp xếp và định dạng ghi chú trong chớp mắt.</li><li><strong>Pin 4900mAh:</strong> Hỗ trợ sạc siêu nhanh 45W, không bao giờ để gián đoạn cuộc vui của bạn.</li></ul>'),
+(4, 2, N'Samsung Galaxy A55 5G', N'<h2>Thiết kế viền kim loại cao cấp, chống nước IP67</h2><p><strong>Galaxy A55 5G</strong> nâng tầm phân khúc cận cao cấp của Samsung với mặt lưng kính sang trọng, khung viền kim loại cứng cáp và hệ thống camera chống rung quang học OIS cực kỳ xịn sò.</p><ul><li><strong>Camera Nightography 50MP:</strong> Cảm biến điểm ảnh lớn giúp chụp đêm sáng rõ, màu sắc chân thực, ít nhiễu hạt.</li><li><strong>Màn hình Super AMOLED 120Hz:</strong> Trải nghiệm vuốt chạm mượt mà, độ sáng cao 1000 nits thách thức ánh nắng gắt.</li><li><strong>Bảo mật Knox Vault:</strong> Chứng nhận bảo mật cao cấp, bảo vệ dữ liệu cá nhân, mật khẩu an toàn tuyệt đối khỏi sự tấn công phần cứng.</li></ul>'),
+(4, 2, N'Samsung Galaxy A35 5G', N'<h2>Màn hình Infinity-O mượt mà, Pin siêu khủng</h2><p><strong>Galaxy A35 5G</strong> là sự cân bằng hoàn hảo giữa thiết kế hiện đại Key Island, hiệu năng ổn định và mức giá cực kỳ phải chăng dành cho người dùng trẻ tuổi, học sinh, sinh viên.</p><ul><li><strong>Màn hình Super AMOLED 6.6 inch:</strong> Không gian giải trí đắm chìm, sống động, hỗ trợ Vision Booster chống chói.</li><li><strong>Pin 5000mAh bền bỉ:</strong> Hoạt động liên tục suốt 2 ngày với các tác vụ cơ bản.</li><li><strong>Camera 50MP chống rung OIS:</strong> Chụp ảnh ổn định sắc nét, hỗ trợ quay video không rung lắc dù bạn đang di chuyển.</li></ul>'),
+(5, 1, N'AirPods Pro 2', N'<h2>Âm thanh đắm chìm, chống ồn chủ động gấp đôi</h2><p><strong>AirPods Pro 2</strong> với sức mạnh cốt lõi từ con chip H2 tiên tiến, mang đến trải nghiệm âm thanh không gian (Spatial Audio) cá nhân hóa và khả năng triệt tiêu tiếng ồn xuất sắc nhất thế giới tai nghe In-ear.</p><ul><li><strong>Chống ồn chủ động (ANC):</strong> Loại bỏ tạp âm hiệu quả gấp 2 lần so với thế hệ trước.</li><li><strong>Xuyên âm thích ứng thông minh:</strong> Tự động nhận diện và giảm thiểu tiếng ồn chói tai đột ngột (như tiếng còi xe, công trường) khi bạn đang ở chế độ xuyên âm.</li><li><strong>Điều khiển cảm ứng vuốt:</strong> Tiện lợi tăng giảm âm lượng trực tiếp trên thân tai nghe mà không cần rút điện thoại.</li></ul>'),
+(5, 1, N'AirPods 4', N'<h2>Thiết kế Open-ear mới vừa vặn, Âm thanh nâng tầm</h2><p><strong>AirPods 4</strong> là phiên bản cải tiến mang lại sự thoải mái tối đa khi đeo trong thời gian dài (nhờ thiết kế open-ear không mút cao su) cùng chất lượng đàm thoại trong trẻo nhờ kiến trúc âm học mới.</p><ul><li><strong>Chip H2 mạnh mẽ:</strong> Xử lý âm thanh tính toán vượt trội, kết nối với hệ sinh thái Apple cực nhanh.</li><li><strong>Chống nước và bụi IP54:</strong> Hoàn toàn yên tâm đeo đi mưa nhẹ hoặc tập luyện thể thao đổ mồ hôi.</li><li><strong>Pin 30 giờ:</strong> Hộp sạc nhỏ gọn nhất từ trước đến nay, hỗ trợ sạc phổ quát qua cổng USB-C tiện lợi.</li></ul>'),
+(5, 2, N'Samsung Galaxy Buds3 Pro', N'<h2>Âm thanh Hi-Fi 24bit sống động như phòng thu</h2><p><strong>Galaxy Buds3 Pro</strong> đánh dấu sự thay đổi thiết kế ngoạn mục với thân tai nghe dạng ống tam giác góc cạnh, dải đèn Blade Light cá tính và khả năng chống ồn AI thông minh xuất sắc.</p><ul><li><strong>Adaptive ANC:</strong> Phân tích thói quen đeo và tự động điều chỉnh mức độ chống ồn tối ưu nhất theo môi trường xung quanh.</li><li><strong>Âm thanh đa chiều 360 Audio:</strong> Trải nghiệm nghe nhạc, xem phim như bạn đang ngồi ở vị trí trung tâm rạp hát.</li><li><strong>Phiên dịch viên AI:</strong> Hỗ trợ nghe dịch trực tiếp theo thời gian thực (Live Translate) thông qua điện thoại Galaxy.</li></ul>'),
+(5, 2, N'Samsung Galaxy Buds FE', N'<h2>Chất âm bùng nổ, Thiết kế vừa vặn hoàn hảo</h2><p><strong>Galaxy Buds FE</strong> là dòng tai nghe Fan Edition mang thiết kế công thái học đi kèm bộ đệm cánh (wing-tips) giúp bám cực sát vào vành tai, mang lại trải nghiệm nghe nhạc liên tục không gây rơi rớt hay đau nhức.</p><ul><li><strong>Bass sâu và có lực:</strong> Củ loa tinh chỉnh một màng cho âm trầm bùng nổ, mạnh mẽ.</li><li><strong>Chống ồn ANC xịn sò:</strong> Loại bỏ các tạp âm tĩnh hiệu quả, giúp bạn tập trung tối đa làm việc hoặc giải trí.</li><li><strong>Pin lên đến 30 giờ:</strong> Giải trí không gián đoạn, hỗ trợ kết nối chuyển đổi thông minh Auto Switch.</li></ul>'),
+(6, 1, N'Apple USB-C 20W Power Adapter', N'<h2>Sạc nhanh, an toàn cho mọi thiết bị hệ sinh thái Apple</h2><p>Củ sạc <strong>Apple 20W USB-C</strong> mang đến khả năng sạc tốc độ cao, giúp nạp đầy 50% pin iPhone chỉ trong vòng 30 phút. Hàng chính hãng đảm bảo dòng điện ổn định tuyệt đối, chống tình trạng phồng hay chai pin.</p><ul><li><strong>Công suất 20W chuẩn xác:</strong> Sạc nhanh tức thì cho các thế hệ iPhone, iPad.</li><li><strong>Tương thích đa dạng:</strong> Dùng cực tốt để sạc tối ưu cho hộp sạc AirPods, Apple Watch hay iPad.</li><li><strong>Thiết kế nhỏ gọn:</strong> Thiết kế chấu sạc gập (tùy thị trường) dễ dàng mang theo trong balo đi mọi nơi.</li></ul>'),
+(6, 2, N'Samsung 25W USB-C Fast Charger', N'<h2>Sạc siêu tốc 25W chuẩn Power Delivery 3.0</h2><p>Củ sạc <strong>Samsung 25W</strong> hỗ trợ công nghệ sạc cực nhanh Super Fast Charging độc quyền, giúp sạc đầy điện thoại Galaxy trong thời gian ngắn nhất mà không làm quá nhiệt hay hư hại thiết bị.</p><ul><li><strong>Chuẩn sạc PD (Power Delivery) 3.0:</strong> Phân phối điện năng thông minh, giao tiếp với máy để cấp đúng điện áp cần thiết.</li><li><strong>Đa tương thích xuất sắc:</strong> Sạc tốt và an toàn cho smartphone Android, tablet, tai nghe không dây.</li><li><strong>Bảo vệ dòng điện nhiều lớp:</strong> Chống đoản mạch, chống quá dòng, chống tĩnh điện an toàn tuyệt đối.</li></ul>'),
+(7, 1, N'Apple USB-C Charge Cable 1m', N'<h2>Đồng bộ dữ liệu và sạc nhanh chóng, thiết kế dây bọc dù mới</h2><p>Cáp sạc <strong>Apple USB-C 1m</strong> chính hãng với thiết kế bọc dù chống rối mới nhất, chịu lực uốn cong cực tốt. Rất thích hợp sử dụng cho các dòng iPhone 15, 16 series, iPad Pro và MacBook thế hệ mới.</p><ul><li><strong>Chất liệu bọc dù bền bỉ:</strong> Khắc phục nhược điểm ố vàng và đứt gãy lõi cáp truyền thống của Apple.</li><li><strong>Hỗ trợ sạc lên đến 60W:</strong> Sạc tốt cho cả MacBook Air và iPad Pro ở tốc độ cao nhất.</li><li><strong>Truyền dữ liệu ổn định:</strong> Đạt tốc độ tiêu chuẩn USB 2.0 (480Mbps) cho phép đồng bộ ảnh và tài liệu nhanh.</li></ul>'),
+(7, 1, N'Apple USB-C to Lightning Cable', N'<h2>Sạc nhanh chuẩn MFi cho các dòng iPhone đời cũ</h2><p>Cáp <strong>USB-C to Lightning</strong> chính hãng Apple giúp bạn tận dụng tối đa các củ sạc 20W/30W chuẩn Type-C để kích hoạt công nghệ sạc nhanh cho các dòng iPhone 14 trở về trước.</p><ul><li><strong>Chứng nhận MFi:</strong> Con chip xác thực tích hợp bên trong tương thích hoàn hảo và bảo vệ hệ sinh thái thiết bị Apple của bạn.</li><li><strong>Chiều dài 1 mét chuẩn mực:</strong> Tiện dụng đặt trên bàn làm việc, gọn gàng không quá vướng víu.</li><li><strong>Sạc nhanh PD hiệu quả:</strong> Đẩy nhanh tiến độ sạc, đầy 50% pin chỉ trong vòng 30 phút cắm sạc.</li></ul>'),
+(7, 2, N'Samsung USB-C Cable 1m', N'<h2>Cáp C-to-C chính hãng, truyền tải điện năng cực cao</h2><p>Cáp sạc <strong>Samsung USB-C 1m</strong> màu đen nhám đặc trưng, hoàn thiện đúc khối chắc chắn, dẫn điện cực kỳ ổn định, hỗ trợ hoàn hảo cho các chuẩn sạc nhanh 25W và 45W cao cấp nhất của hãng.</p><ul><li><strong>Chịu tải dòng điện lên đến 3A:</strong> Sạc siêu tốc an toàn, không bị nghẽn điện áp.</li><li><strong>Tốc độ đồng bộ cực nhanh:</strong> Chép file giữa máy tính và điện thoại nhanh chóng, cắm Samsung Dex xuất hình ảnh ổn định.</li><li><strong>Đầu cáp bọc nhựa đúc đặc:</strong> Chống gập gãy phần cổ cáp, bảo vệ chân Type-C bền bỉ.</li></ul>'),
+(8, 3, N'Lenovo IdeaPad Slim 3', N'<h2>Mỏng nhẹ, cơ động, đáp ứng hoàn hảo mọi nhu cầu cơ bản</h2><p><strong>Lenovo IdeaPad Slim 3</strong> là dòng laptop quốc dân cho giới văn phòng và học sinh, sinh viên. Máy có thiết kế mỏng nhẹ ấn tượng, vỏ ngoài màu xám bạc thanh lịch. Cấu hình đủ sức giải quyết cực kỳ mượt mà các tác vụ Word, Excel, lướt web và xem phim.</p><ul><li><strong>Vi xử lý Intel Core i3 gen 13:</strong> Hiệu năng ổn định, chạy mát, thời lượng pin tiết kiệm cực kỳ.</li><li><strong>RAM 8GB đa nhiệm tốt:</strong> Cho phép bạn mở nhiều tab Chrome và xử lý văn bản cùng lúc.</li><li><strong>Màn hình 15.6 inch FHD viền mỏng:</strong> Lớp phủ chống chói Anti-Glare bảo vệ mắt khi dùng lâu.</li></ul>'),
+(8, 3, N'Lenovo ThinkBook 14', N'<h2>Chuẩn mực doanh nhân trẻ, bảo mật công nghệ tối ưu</h2><p><strong>Lenovo ThinkBook 14</strong> sở hữu thiết kế vỏ nhôm hai tông màu (Dual-tone) cực kỳ thu hút và sang trọng. Bàn phím hành trình gõ cực êm ái đặc trưng và tích hợp cảm biến vân tay ở nút nguồn, mang lại sự chuyên nghiệp cho môi trường công sở.</p><ul><li><strong>Vi xử lý Intel Core i5 gen 13:</strong> Xử lý nhanh gọn báo cáo tài chính, phần mềm doanh nghiệp nặng.</li><li><strong>RAM 16GB chuẩn mới:</strong> Đa nhiệm siêu tốc, chuyển đổi qua lại giữa hàng chục ứng dụng không độ trễ.</li><li><strong>Bảo mật cấp độ phần cứng TPM 2.0:</strong> Mã hóa dữ liệu an toàn, chống lại các rủi ro đánh cắp qua mạng.</li></ul>'),
+(8, 3, N'Lenovo IdeaPad 5', N'<h2>Cân bằng hoàn hảo giữa hiệu năng và thiết kế đa dụng</h2><p><strong>Lenovo IdeaPad 5</strong> được trang bị bộ vi xử lý AMD Ryzen thế hệ mới cực kỳ mạnh mẽ, thời lượng pin dài, vô cùng phù hợp cho sinh viên Công nghệ hoặc người làm Marketing cần một thiết bị đa dụng, màn hình lớn nhưng không quá cồng kềnh.</p><ul><li><strong>Chip AMD Ryzen 5 đa nhân:</strong> Tích hợp card đồ họa Radeon xử lý tốt các tác vụ Photoshop, Canva mượt mà.</li><li><strong>Pin cực khỏe:</strong> Thời lượng sử dụng thực tế ấn tượng, hỗ trợ sạc nhanh Rapid Charge xua tan nỗi lo về pin.</li><li><strong>Âm thanh công nghệ Dolby Audio:</strong> Âm trầm ấm, phát to rõ ràng giúp giải trí xem phim cực đã.</li></ul>'),
+(9, 3, N'Lenovo LOQ 15', N'<h2>Sát thủ cấu hình chiến mượt mọi Game trong phân khúc phổ thông</h2><p><strong>Lenovo LOQ 15</strong> là dòng laptop gaming hoàn toàn mới kế thừa DNA thiết kế và sức mạnh của dòng Legion cao cấp. Thiết kế hầm hố vừa đủ, khe tản nhiệt siêu lớn phía sau giúp máy luôn mát, chiến mượt các tựa game eSport và AAA ở mức đồ họa cao.</p><ul><li><strong>Card rời RTX 4050 6GB:</strong> Kiến trúc Ada Lovelace mới nhất, hỗ trợ DLSS 3 và Ray Tracing chân thực.</li><li><strong>Màn hình 144Hz chuẩn gaming:</strong> Phản hồi hình ảnh nhanh nhạy, không xé hình trong các pha vẩy chuột.</li><li><strong>Tích hợp chip AI LA1:</strong> Trí tuệ nhân tạo Lenovo AI Engine+ tự động phân bổ tài nguyên giúp tối đa mức FPS.</li></ul>'),
+(9, 3, N'Lenovo Legion 5', N'<h2>Cỗ máy chiến game thực thụ, cấu hình chuẩn eSport quốc tế</h2><p><strong>Lenovo Legion 5</strong> tiếp tục định nghĩa lại chuẩn mực laptop gaming tầm trung với hệ thống tản nhiệt kép Coldfront 5.0, bàn phím TrueStrike gõ siêu nảy và một thiết kế vuông vức vừa có thể chơi game, vừa mang đi làm việc cực kỳ sang trọng.</p><ul><li><strong>Card đồ họa RTX 4060 8GB TGP cao:</strong> Bung sức mạnh tối đa, cân tốt việc Render làm phim 4K hay thiết kế 3D.</li><li><strong>Màn hình WQHD 165Hz (100% sRGB):</strong> Trải nghiệm thị giác bùng nổ, chuẩn màu phục vụ thiết kế đồ họa tuyệt đối.</li><li><strong>Đa dạng cổng kết nối:</strong> Bố trí thông minh phía sau mặt lưng, giúp góc làm việc của bạn không bị vướng víu dây dợ.</li></ul>'),
+(9, 3, N'Lenovo Legion Pro 5', N'<h2>Đỉnh cao sức mạnh, không thỏa hiệp ở bất cứ cấu hình nào</h2><p><strong>Lenovo Legion Pro 5</strong> là một quái vật hiệu năng thực sự dành cho giới làm nghề chuyên nghiệp và Hardcore Gamer. Khung viền kim loại cực kỳ chắc chắn, hệ thống tản nhiệt pha nhiệt lỏng siêu cấp mang lại nhiệt độ cực lý tưởng dù máy hoạt động 100% công suất.</p><ul><li><strong>CPU Intel Core i9-14900HX:</strong> Sức mạnh 24 nhân 32 luồng siêu khủng khiếp, render đồ họa chỉ là chuyện nhỏ.</li><li><strong>GPU RTX 4070 8GB VRAM:</strong> Dư sức gánh mọi tựa game 2K hiện nay ở mức đồ họa Ultra mượt mà nhất.</li><li><strong>Màn hình WQXGA 240Hz 500 Nits:</strong> Siêu rực rỡ, tích hợp chống xé hình G-Sync, mang lại lợi thế phản xạ tuyệt đối trong giao tranh.</li></ul>'),
+(10, 3, N'Lenovo Legion M300 RGB', N'<h2>Chuột gaming công thái học đối xứng, nhẹ nhàng linh hoạt</h2><p><strong>Lenovo Legion M300</strong> có thiết kế hoàn hảo cho những game thủ thuận tay phải lẫn tay trái. Cảm biến quang học chính xác cao kết hợp nút bấm nảy giòn giúp bạn tự tin lia chuột và xử lý tình huống nhanh nhạy trong các tựa game bắn súng FPS.</p><ul><li><strong>Độ phân giải siêu nhạy 8000 DPI:</strong> Mắt đọc Pixart xử lý thông tin chuẩn xác.</li><li><strong>Đèn LED RGB rực rỡ:</strong> Tùy chỉnh màu sắc cá tính ở phần logo rực sáng.</li><li><strong>Grip hông bọc cao su:</strong> Tăng cường độ bám, chống trượt khi tay ra mồ hôi do căng thẳng.</li></ul>'),
+(10, 3, N'Lenovo Legion M600 Wireless', N'<h2>Không dây siêu tốc độ, chính xác từng milimet</h2><p><strong>Legion M600</strong> mang đến kết nối không dây 2.4GHz không có một chút độ trễ nào. Cấu trúc cân bằng trọng lượng thông minh mang lại cảm giác vẩy chuột nhẹ tênh và tự do hoàn toàn tuyệt đối trên mặt bàn di.</p><ul><li><strong>Cảm biến cực khủng 16000 DPI:</strong> Hỗ trợ tốc độ theo dõi lên tới 400 IPS.</li><li><strong>Thời lượng pin 200 giờ:</strong> Chơi game quên ngày tháng, sạc nhanh qua cổng USB-C.</li><li><strong>Kết nối linh hoạt 3 chế độ:</strong> Hỗ trợ dùng dây cáp vừa sạc vừa chơi, đầu thu USB Receiver 2.4G và cả Bluetooth siêu tiện dụng.</li></ul>'),
+(11, 3, N'Lenovo Legion K300 RGB', N'<h2>Bàn phím cơ màng êm ái nhưng nảy lửa trong từng pha bấm</h2><p><strong>Lenovo Legion K300</strong> có thiết kế nguyên khối tối giản, độ êm khi gõ cực tốt giúp bạn chiến game đêm khuya không gây ồn ào. Hệ thống đèn nền LED RGB 5 vùng tùy chỉnh mượt mà biến góc máy của bạn thêm phần sinh động.</p><ul><li><strong>Tính năng Anti-ghosting 24 phím:</strong> Đảm bảo không bị sót phím khi nhấn combo nhiều kỹ năng cùng lúc.</li><li><strong>Thiết kế phím bấm hơi lõm:</strong> Ôm ngón tay, hành trình phím sâu cho độ phản hồi cực chân thật.</li><li><strong>Lỗ thoát nước thông minh:</strong> Chống tràn hiệu quả nếu bạn lỡ tay làm đổ nước lọc hay cafe lên phím.</li></ul>'),
+(11, 3, N'Lenovo Go Wireless Split Keyboard', N'<h2>Thiết kế công thái học tách đôi, giải pháp bảo vệ ống cổ tay hoàn hảo</h2><p><strong>Lenovo Go Wireless Split Keyboard</strong> là bàn phím không dây sinh ra dành cho giới văn phòng, lập trình viên thường xuyên gõ code. Thiết kế tách đôi hình chữ V nhô cao giúp hai cổ tay luôn giữ ở góc độ tự nhiên nhất, giảm thiểu tối đa triệu chứng chấn thương ống cổ tay.</p><ul><li><strong>Nệm kê tay làm từ vật liệu Cork tự nhiên:</strong> Êm ái tuyệt vời, thân thiện với môi trường, đặc tính chống thấm và chống ẩm mồ hôi.</li><li><strong>Phím cắt kéo (Scissor switch):</strong> Mang lại cảm giác gõ tĩnh âm mượt mà, độ nảy và phản hồi rất tốt.</li><li><strong>Kết nối không dây đa thiết bị:</strong> Ghép đôi nhanh qua đầu thu USB-C hoặc dùng Bluetooth để chuyển đổi giữa PC, điện thoại, máy tính bảng.</li></ul>'),
+(12, 3, N'Lenovo 300 FHD Webcam', N'<h2>Ghi hình 1080p sắc nét, giải pháp họp trực tuyến dễ dàng</h2><p><strong>Lenovo 300 FHD Webcam</strong> là phụ kiện nâng cấp chất lượng hình ảnh ngay tức thì cho những chiếc laptop đời cũ hoặc máy bàn. Sở hữu ống kính rộng 95 độ kết hợp micro kép thu âm đa hướng nhạy bén, mọi hình ảnh của bạn luôn sáng rõ trong mắt đồng nghiệp.</p><ul><li><strong>Độ phân giải thực tế 1080p:</strong> Rõ nét từng sợi tóc, tự động cân bằng sáng (Auto White Balance) ngay cả trong phòng tối.</li><li><strong>Nắp che vật lý an toàn:</strong> Dễ dàng trượt lẫy để che kín ống kính, bảo mật sự riêng tư tuyệt đối khi không sử dụng.</li><li><strong>Cắm là chạy (Plug-and-play):</strong> Không cần tải driver phức tạp, tương thích hoàn hảo mọi hệ điều hành qua cổng USB-A phổ biến.</li></ul>'),
+(12, 3, N'Lenovo Performance FHD Webcam', N'<h2>Chất lượng truyền phát chuyên nghiệp 60fps mượt mà như thật</h2><p><strong>Lenovo Performance FHD</strong> là mẫu webcam chuẩn phòng studio thu nhỏ dành cho giới Streamer, Youtuber hoặc các cấp quản lý cần hình ảnh họp trực tuyến cao cấp. Tốc độ khung hình thực lên tới 60fps mang lại video không hề có hiện tượng bóng mờ khi chuyển động mạnh.</p><ul><li><strong>Hỗ trợ chuẩn nhận diện khuôn mặt bảo mật (Windows Hello):</strong> Giúp bạn mở khóa máy tính an toàn, thông minh và cực kỳ nhanh chóng.</li><li><strong>Lấy nét tự động cực nhanh (Auto Focus):</strong> Luôn giữ khuôn mặt bạn nổi bật và sắc nét dù bạn tiến gần hay lùi xa màn hình.</li><li><strong>Dây cáp chuẩn USB-C rời tiện lợi:</strong> Giúp băng thông truyền hình ảnh rộng hơn và hạn chế tình trạng giật lag.</li></ul>'),
+(13, 3, N'Lenovo Laptop Backpack 15.6"', N'<h2>Balo văn phòng thanh lịch, chống sốc an toàn cho laptop</h2><p>Balo <strong>Lenovo 15.6 inch</strong> có phong cách thiết kế vô cùng gọn gàng, tinh giản, cực kỳ phù hợp cho học sinh và giới văn phòng mang đi làm hằng ngày. Balo làm từ lớp vải sợi nhân tạo có tính năng chống thấm nước nhẹ, duy trì form cứng cáp và khó bám bụi bẩn.</p><ul><li><strong>Khoang chứa thông minh:</strong> Ngăn đựng laptop 15.6 inch riêng biệt lót bông chống sốc chống trầy hiệu quả.</li><li><strong>Trọng lượng siêu nhẹ (chỉ 0.5kg):</strong> Tối giản lớp đệm thừa, không gây ra cảm giác đau mỏi vai nếu phải di chuyển nhiều trên tàu xe.</li><li><strong>Ngăn ẩn bí mật:</strong> Bố trí một ngăn khóa kéo an toàn ép sát vào lưng để đựng ví tiền, giấy tờ hay điện thoại quan trọng.</li></ul>'),
+(13, 3, N'Lenovo Legion Gaming Backpack', N'<h2>Balo hầm hố, sức chứa khổng lồ vác trọn thế giới Game thủ</h2><p><strong>Lenovo Legion Backpack</strong> sở hữu một thiết kế như "áo giáp" cứng cáp ở mặt trước, giúp bảo vệ an toàn tối đa cho chiếc laptop gaming đắt tiền của bạn khỏi mọi cú va đập rủi ro nhất. Form dáng đậm chất góc cạnh của hệ sinh thái Legion.</p><ul><li><strong>Khoang chứa ngoại cỡ (vừa laptop 17 inch):</strong> Đủ rộng để bạn đựng cả phím cơ full-size, chuột, tấm lót, tai nghe chùm đầu và cả bộ sạc gạch siêu bự.</li><li><strong>Vải chống đứt rách cường độ cao:</strong> Độ bền siêu việt, lớp lót chống sốc trong túi được làm rất dày bao bọc quanh thân máy.</li><li><strong>Quai đeo nệm đúc EVA xịn sò:</strong> Cấu trúc phân tán lực đều qua vai, lưng có mút thoáng khí dày cộp không lo tụ mồ hôi lưng khi đeo đi phượt.</li></ul>');
+
+-- 6. PRODUCT ATTRIBUTES
+INSERT INTO ATTRIBUTE (attribute_name)
+VALUES
+(N'Màn hình'),
+(N'RAM'),
+(N'Dung lượng lưu trữ'),
+(N'Chip xử lý (CPU)'),
+(N'Card đồ họa (GPU)'),
+(N'Hệ điều hành'),
+(N'Pin'),
+(N'Kết nối'),
+(N'Tính năng'),
+(N'Màu sắc'),
+(N'Kích thước'),
+(N'Trọng lượng'),
+(N'Độ phân giải'),
+(N'DPI'),
+(N'Loại kết nối');
+
+-- 7. PRODUCT SPECIFICATIONS
+INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value)
+VALUES
+(1, 1, N'6.1 inch Super Retina XDR OLED'),
+(1, 4, N'Apple A17 Pro'),
+(2, 1, N'6.7 inch Super Retina XDR OLED'),
+(2, 4, N'Apple A17 Pro'),
+(3, 1, N'6.3 inch Super Retina XDR OLED'),
+(3, 4, N'Apple A18 Pro'),
+(4, 1, N'6.9 inch Super Retina XDR OLED'),
+(4, 4, N'Apple A18 Pro'),
+(5, 1, N'6.8 inch Dynamic AMOLED 2X'),
+(5, 4, N'Snapdragon 8 Gen 3 for Galaxy'),
+(6, 1, N'6.7 inch Dynamic AMOLED 2X'),
+(6, 4, N'Exynos 2400'),
+(7, 1, N'6.6 inch Super AMOLED'),
+(7, 4, N'Exynos 1480'),
+(8, 1, N'6.6 inch Super AMOLED'),
+(8, 4, N'Exynos 1380'),
+(9, 9, N'Chống ồn chủ động (ANC)'),
+(9, 8, N'Bluetooth 5.3'),
+(10, 9, N'Âm thanh không gian cá nhân hóa'),
+(10, 8, N'Bluetooth 5.3'),
+(11, 9, N'Chống ồn chủ động (ANC), Galaxy AI'),
+(11, 8, N'Bluetooth 5.4'),
+(12, 9, N'Chống ồn chủ động (ANC)'),
+(12, 8, N'Bluetooth 5.2'),
+(13, 15, N'USB-C'),
+(13, 9, N'Sạc nhanh 20W'),
+(14, 15, N'USB-C'),
+(14, 9, N'Sạc nhanh siêu tốc 25W'),
+(15, 15, N'USB-C to USB-C'),
+(15, 11, N'1 mét'),
+(16, 15, N'USB-C to Lightning'),
+(16, 11, N'1 mét'),
+(17, 15, N'USB-C to USB-C'),
+(17, 11, N'1 mét'),
+(18, 1, N'15.6 inch FHD'),
+(18, 2, N'8GB DDR4'),
+(18, 4, N'Intel Core i3-1315U'),
+(19, 1, N'14 inch WUXGA'),
+(19, 2, N'16GB DDR5'),
+(19, 4, N'Intel Core i5-1335U'),
+(20, 1, N'15.6 inch FHD'),
+(20, 2, N'16GB DDR4'),
+(20, 4, N'AMD Ryzen 5 7530U'),
+(21, 1, N'15.6 inch FHD 144Hz'),
+(21, 2, N'16GB DDR5'),
+(21, 4, N'Intel Core i5-13420H'),
+(21, 5, N'NVIDIA GeForce RTX 4050 6GB'),
+(22, 1, N'15.6 inch WQHD 165Hz'),
+(22, 2, N'16GB DDR5'),
+(22, 4, N'AMD Ryzen 7 7735HS'),
+(22, 5, N'NVIDIA GeForce RTX 4060 8GB'),
+(23, 1, N'16 inch WQXGA 240Hz'),
+(23, 2, N'32GB DDR5'),
+(23, 4, N'Intel Core i9-14900HX'),
+(23, 5, N'NVIDIA GeForce RTX 4070 8GB'),
+(24, 14, N'Lên đến 8000 DPI'),
+(24, 15, N'Có dây (USB-A)'),
+(25, 14, N'Lên đến 16000 DPI'),
+(25, 15, N'Không dây (Wireless/Bluetooth)'),
+(26, 9, N'LED RGB 5 vùng'),
+(26, 15, N'Có dây (USB-A)'),
+(27, 9, N'Thiết kế công thái học (Split)'),
+(27, 15, N'Không dây'),
+(28, 13, N'1080p FHD'),
+(28, 15, N'USB-A'),
+(29, 13, N'1080p FHD 60fps'),
+(29, 15, N'USB-C'),
+(30, 11, N'Vừa laptop 15.6 inch'),
+(30, 12, N'0.5 kg'),
+(31, 11, N'Vừa laptop 17 inch'),
+(31, 12, N'0.8 kg');
+
+-- 8. PRODUCT SKU
+INSERT INTO PRODUCT_SKU (product_id, sku_code, price, stock_quantity)
+VALUES
+(1, 'IP15P-128-BLK', 27990000, 15),
+(1, 'IP15P-256-SLV', 30990000, 10),
+(5, 'SS-S24U-256-GRY', 29990000, 20),
+(21, 'LOQ-15-16GB-512GB', 21490000, 8),
+(2, 'IP15PM-256-NAT', 33990000, 12),
+(3, 'IP16P-128-BLK', 28990000, 20),
+(4, 'IP16PM-256-DES', 34990000, 25),
+(6, 'SS-S24P-256-BLK', 25990000, 15),
+(7, 'SS-A55-128-BLU', 9990000, 30),
+(8, 'SS-A35-128-YLW', 8290000, 35),
+(9, 'APP-AP2-WHT', 5990000, 50),
+(10, 'APP-AP4-WHT', 3490000, 45),
+(11, 'SS-B3P-SLV', 4990000, 40),
+(12, 'SS-BFE-BLK', 1990000, 60),
+(13, 'APP-20W-WHT', 550000, 100),
+(14, 'SS-25W-BLK', 390000, 100),
+(15, 'APP-C2C-1M', 450000, 80),
+(16, 'APP-C2L-1M', 490000, 80),
+(17, 'SS-C2C-1M', 250000, 90),
+(18, 'LEN-IDP3-I3', 10490000, 15),
+(19, 'LEN-TB14-I5', 16990000, 12),
+(20, 'LEN-IDP5-R5', 14490000, 10),
+(22, 'LEN-LEG5-R7', 32990000, 5),
+(23, 'LEN-LEG5P-I9', 45990000, 3),
+(24, 'LEN-M300-BLK', 690000, 40),
+(25, 'LEN-M600-BLK', 1490000, 25),
+(26, 'LEN-K300-BLK', 890000, 30),
+(27, 'LEN-GOW-GRY', 1990000, 20),
+(28, 'LEN-W300-BLK', 750000, 35),
+(29, 'LEN-WPF-BLK', 1250000, 15),
+(30, 'LEN-BP15-BLK', 450000, 50),
+(31, 'LEN-BPG17-BLK', 890000, 40);
+
+-- 9. CARTS
+INSERT INTO CART (user_id)
+VALUES (3), (4);
+
+INSERT INTO CART_ITEMS (cart_id, sku_id, quantity)
+VALUES (1, 2, 1), (2, 4, 1);
+
+-- 10. SHIPPING PARTNERS
+INSERT INTO SHIPPING_PARTNER (partner_name, contact_phone)
+VALUES
+(N'Giao Hàng Nhanh (GHN)', '19001201'),
+(N'Viettel Post', '19008095'),
+(N'Giao Hàng Tiết Kiệm (GHTK)', '18006092');
+
+-- 11. VOUCHERS
+INSERT INTO VOUCHER
+    (code, min_order_value, valid_from, valid_to, discount_type,
+     discount_value, max_discount, usage_limit, per_user_limit)
+VALUES
+('OECSHELLO', 10000000, '2026-01-01', '2026-12-31 23:59:59',
+ 'AMOUNT', 500000, NULL, 100, 1),
+('OECSVIP20', 25000000, '2026-01-01', '2026-12-31 23:59:59',
+ 'PERCENT', 20, 1000000, 50, 1),
+('TECH10', 5000000, '2026-01-01', '2026-12-31 23:59:59',
+ 'PERCENT', 10, 500000, 200, 2),
+('SAVE200K', 3000000, '2026-01-01', '2026-12-31 23:59:59',
+ 'AMOUNT', 200000, NULL, NULL, 1);
+
+-- 12. INITIAL ORDERS
+INSERT INTO [ORDER]
+    (user_id, address_id, shipping_partner_id, total_amount, shipping_fee)
+VALUES
+(3, 1, 1, 27530000, 40000),
+(4, 3, 2, 29990000, 0);
+
+INSERT INTO ORDER_ITEM (order_id, sku_id, price, quantity)
+VALUES
+(1, 1, 27990000, 1),
+(2, 3, 29990000, 1);
+
+INSERT INTO ORDER_STATUS_HISTORY (order_id, status)
+VALUES
+(1, N'Pending'),
+(1, N'Shipping'),
+(1, N'Completed'),
+(2, N'Pending'),
+(2, N'Shipping');
+
+INSERT INTO VOUCHER_USAGES (voucher_id, order_id, user_id)
+VALUES (1, 1, 3);
+
+INSERT INTO COD_SETTLEMENTS (partner_id, total_cod_amount, status)
+VALUES
+(1, 27530000, N'COMPLETED'),
+(2, 29990000, N'PENDING');
+
+INSERT INTO PRODUCT_REVIEWS (user_id, order_item_id, sku_id, rating, comment)
+VALUES
+(3, 1, 1, 5, N'Hàng giao cực nhanh tại Cần Thơ, đóng gói cẩn thận, máy chuẩn mới 100%!'),
+(4, 2, 3, 4, N'Điện thoại mượt, camera chụp đêm rất nét nhưng pin hơi nhanh tụt.');
+
+-- 13. SUPPLIERS AND PURCHASE ORDERS
+INSERT INTO SUPPLIERS (supplier_name, contact_email, phone, address)
+VALUES
+(N'Công ty TNHH Apple Việt Nam', 'supply@apple.com.vn',
+ '02839999999', N'Quận 1, TP. Hồ Chí Minh'),
+(N'Nhà phân phối Synnex FPT', 'contact@synnexfpt.com.vn',
+ '02473006666', N'Quận Cầu Giấy, Hà Nội');
+
+INSERT INTO PURCHASE_ORDERS (supplier_id, total_cost)
+VALUES (1, 240000000), (2, 180000000);
+
+INSERT INTO PURCHASE_ORDER_ITEMS (po_id, sku_id, unit_cost, quantity)
+VALUES
+(1, 1, 24000000, 10),
+(2, 4, 18000000, 10);
+
+-- 14. ADDITIONAL ORDERS
+-- Thứ tự INSERT được giữ để order_id tương ứng từ 3 đến 16.
+INSERT INTO [ORDER]
+(
+    user_id, address_id, shipping_partner_id, total_amount, shipping_fee,
+    created_at, order_status, payment_method, payment_status,
+    payment_expires_at, recipient_name, recipient_phone,
+    shipping_address, discount_amount
+)
+SELECT
+    v.user_id,
+    v.address_id,
+    v.shipping_partner_id,
+    v.total_amount,
+    v.shipping_fee,
+    v.created_at,
+    v.order_status,
+    v.payment_method,
+    v.payment_status,
+    v.payment_expires_at,
+    a.recipient_name,
+    a.phone_number,
+    a.address_line,
+    v.discount_amount
+FROM (VALUES
+    (3, 3, 1, 1, 43490000.00, 40000.00, '2026-10-08T11:30:00', 'COMPLETED', 'COD', 'PAID', NULL, 500000.00),
+    (4, 4, 3, 2, 31940000.00, 0.00, '2026-08-12T14:20:00', 'COMPLETED', 'VNPAY', 'PAID', NULL, 1000000.00),
+    (5, 3, 2, 3, 3590000.00, 30000.00, '2026-08-20T10:15:00', 'COMPLETED', 'MOMO', 'PAID', NULL, 0.00),
+    (6, 4, 3, 1, 28990000.00, 40000.00, '2026-08-25T16:40:00', 'CANCELLED', 'COD', 'CANCELLED', NULL, 0.00),
+    (7, 3, 1, 2, 16990000.00, 30000.00, '2026-09-01T08:10:00', 'PENDING_CONFIRMATION', 'COD', 'UNPAID', NULL, 0.00),
+    (8, 4, 3, 1, 29990000.00, 40000.00, '2026-09-03T11:25:00', 'CONFIRMED', 'COD', 'UNPAID', NULL, 0.00),
+    (9, 3, 2, 3, 21490000.00, 30000.00, '2026-09-05T13:45:00', 'PACKING', 'VNPAY', 'PAID', NULL, 0.00),
+    (10, 4, 3, 2, 34990000.00, 0.00, '2026-09-10T15:00:00', 'SHIPPING', 'MOMO', 'PAID', NULL, 500000.00),
+    (11, 3, 1, 1, 45990000.00, 40000.00, '2026-09-15T09:05:00', 'COMPLETED', 'VNPAY', 'PAID', NULL, 1000000.00),
+    (12, 4, 3, 3, 8290000.00, 30000.00, '2026-09-20T18:30:00', 'COMPLETED', 'COD', 'PAID', NULL, 0.00),
+    (13, 3, 2, 1, 5990000.00, 30000.00, '2026-09-25T12:15:00', 'CANCELLED', 'COD', 'CANCELLED', NULL, 0.00),
+    (14, 4, 3, 2, 10490000.00, 40000.00, '2026-10-01T20:10:00', 'COMPLETED', 'COD', 'PAID', NULL, 0.00),
+    (15, 3, 1, 1, 690000.00, 30000.00, '2026-10-03T09:00:00', 'PENDING_CONFIRMATION', 'COD', 'UNPAID', DATEADD(HOUR, 24, '2026-10-03T09:00:00'), 0.00),
+    (16, 4, 3, 3, 1490000.00, 30000.00, '2026-10-04T10:30:00', 'CONFIRirmed', 'VNPAY', 'PAID', NULL, 0.00)
+) v (
+    n, user_id, address_id, shipping_partner_id, total_amount, shipping_fee,
+    created_at, order_status, payment_method, payment_status,
+    payment_expires_at, discount_amount
+)
+JOIN ADDRESSBOOK a ON a.address_id = v.address_id;
+GO
+
+-- 15. ORDER ITEMS FOR ADDITIONAL ORDERS
+INSERT INTO ORDER_ITEM (order_id, sku_id, price, quantity)
+VALUES
+(3, 1, 27990000, 1),
+(3, 3, 29990000, 1),
+(3, 9, 5990000, 1),
+(4, 21, 21490000, 1),
+(4, 24, 690000, 2),
+(5, 10, 3490000, 1),
+(6, 3, 29990000, 1),
+(7, 19, 16990000, 1),
+(8, 3, 29990000, 1),
+(9, 4, 21490000, 1),
+(10, 7, 9990000, 1),
+(10, 9, 5990000, 1),
+(11, 23, 45990000, 1),
+(11, 25, 1490000, 1),
+(12, 8, 8290000, 1),
+(13, 9, 5990000, 1),
+(14, 18, 10490000, 1),
+(15, 24, 690000, 1),
+(16, 25, 1490000, 1);
+
+-- 16. ORDER STATUS HISTORY
+INSERT INTO ORDER_STATUS_HISTORY (order_id, status, updated_at)
+VALUES
+(3, N'Pending', '2026-10-08T11:30:00'),
+(3, N'Confirmed', '2026-10-08T12:00:00'),
+(3, N'Packing', '2026-10-08T13:00:00'),
+(3, N'Shipping', '2026-10-09T08:00:00'),
+(3, N'Completed', '2026-10-10T15:30:00'),
+(4, N'Pending', '2026-08-12T14:20:00'),
+(4, N'Confirmed', '2026-08-12T15:00:00'),
+(4, N'Packing', '2026-08-13T09:00:00'),
+(4, N'Shipping', '2026-08-13T16:00:00'),
+(4, N'Completed', '2026-08-14T14:30:00'),
+(5, N'Pending', '2026-08-20T10:15:00'),
+(5, N'Confirmed', '2026-08-20T11:00:00'),
+(5, N'Packing', '2026-08-20T13:00:00'),
+(5, N'Shipping', '2026-08-21T09:00:00'),
+(5, N'Completed', '2026-08-21T16:00:00'),
+(6, N'Pending', '2026-08-25T16:40:00'),
+(6, N'Cancelled', '2026-08-25T17:10:00'),
+(7, N'Pending', '2026-09-01T08:10:00'),
+(8, N'Pending', '2026-09-03T11:25:00'),
+(8, N'Confirmed', '2026-09-03T13:00:00'),
+(9, N'Pending', '2026-09-05T13:45:00'),
+(9, N'Confirmed', '2026-09-05T14:00:00'),
+(9, N'Packing', '2026-09-05T16:00:00'),
+(10, N'Pending', '2026-09-10T15:00:00'),
+(10, N'Confirmed', '2026-09-10T16:00:00'),
+(10, N'Packing', '2026-09-11T09:00:00'),
+(10, N'Shipping', '2026-09-11T15:00:00'),
+(11, N'Pending', '2026-09-15T09:05:00'),
+(11, N'Confirmed', '2026-09-15T10:00:00'),
+(11, N'Packing', '2026-09-15T11:00:00'),
+(11, N'Shipping', '2026-09-16T08:00:00'),
+(11, N'Completed', '2026-09-17T17:00:00'),
+(12, N'Pending', '2026-09-20T18:30:00'),
+(12, N'Confirmed', '2026-09-20T19:00:00'),
+(12, N'Packing', '2026-09-21T08:00:00'),
+(12, N'Shipping', '2026-09-21T15:00:00'),
+(12, N'Completed', '2026-09-22T10:00:00'),
+(13, N'Pending', '2026-09-25T12:15:00'),
+(13, N'Cancelled', '2026-09-25T13:00:00'),
+(14, N'Pending', '2026-10-01T20:10:00'),
+(14, N'Confirmed', '2026-10-01T20:30:00'),
+(14, N'Packing', '2026-10-02T08:00:00'),
+(14, N'Shipping', '2026-10-02T15:00:00'),
+(14, N'Completed', '2026-10-03T10:00:00'),
+(15, N'Pending', '2026-10-03T09:00:00'),
+(16, N'Pending', '2026-10-04T10:30:00'),
+(16, N'Confirmed', '2026-10-04T11:00:00');
+GO
+
+-- 17. SYNCHRONIZE ORDER RECIPIENT INFORMATION
+UPDATE o
+SET
+    o.recipient_name = a.recipient_name,
+    o.recipient_phone = a.phone_number,
+    o.shipping_address = a.address_line,
+    o.payment_status = 'UNKNOWN'
+FROM dbo.[ORDER] o
+JOIN dbo.ADDRESSBOOK a ON a.address_id = o.address_id;
+
+-- 18. SYNCHRONIZE ORDER STATUS FROM HISTORY
+;WITH latest AS (
+    SELECT
+        order_id,
+        status,
+        ROW_NUMBER() OVER (
+            PARTITION BY order_id
+            ORDER BY updated_at DESC, status_id DESC
+        ) AS rn
+    FROM dbo.ORDER_STATUS_HISTORY
+)
+UPDATE o
+SET o.order_status =
+    CASE UPPER(l.status)
+        WHEN 'PENDING' THEN 'PENDING_CONFIRMATION'
+        WHEN 'SHIPPING' THEN 'SHIPPING'
+        WHEN 'COMPLETED' THEN 'COMPLETED'
+        WHEN 'CONFIRMED' THEN 'CONFIRMED'
+        WHEN 'CANCELLED' THEN 'CANCELLED'
+        ELSE 'PENDING_CONFIRMATION'
+    END
+FROM dbo.[ORDER] o
+JOIN latest l ON l.order_id = o.order_id AND l.rn = 1;
+GO
+
+-- 19. ADDITIONAL BRANDS
+INSERT INTO BRAND (brand_name, logo_url)
+SELECT v.brand_name, v.logo_url
+FROM (VALUES
+    (N'Garmin', 'https://cdn.oecs.com/brands/garmin.png'),
+    (N'Xiaomi', 'https://cdn.oecs.com/brands/xiaomi.png'),
+    (N'Canon', 'https://cdn.oecs.com/brands/canon.png'),
+    (N'Fujifilm', 'https://cdn.oecs.com/brands/fujifilm.png')
+) v(brand_name, logo_url)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM BRAND b
+    WHERE b.brand_name = v.brand_name
+);
+GO
+
+-- 20. ADDITIONAL CATEGORIES
+IF NOT EXISTS (
+    SELECT 1 FROM CATEGORY WHERE category_name = N'Dong ho thong minh'
+)
+    INSERT INTO CATEGORY (category_name, parent_id)
+    VALUES (N'Dong ho thong minh', 1);
+
+IF NOT EXISTS (
+    SELECT 1 FROM CATEGORY WHERE category_name = N'May anh'
+)
+    INSERT INTO CATEGORY (category_name, parent_id)
+    VALUES (N'May anh', NULL);
+
+IF NOT EXISTS (
+    SELECT 1 FROM CATEGORY WHERE category_name = N'May anh Mirrorless'
+)
+    INSERT INTO CATEGORY (category_name, parent_id)
+    SELECT N'May anh Mirrorless', category_id
+    FROM CATEGORY
+    WHERE category_name = N'May anh';
+
+IF NOT EXISTS (
+    SELECT 1 FROM CATEGORY WHERE category_name = N'May anh Compact'
+)
+    INSERT INTO CATEGORY (category_name, parent_id)
+    SELECT N'May anh Compact', category_id
+    FROM CATEGORY
+    WHERE category_name = N'May anh';
+GO
+
+-- 21. ADDITIONAL PRODUCTS
+INSERT INTO PRODUCT (category_id, brand_id, product_name, description)
+SELECT c.category_id, b.brand_id, v.product_name, v.description
+FROM (VALUES
+    (N'Dong ho thong minh', N'Apple', N'Apple Watch SE 2',
+     N'<h2>Năng động, thông minh và thân thiện với túi tiền</h2><p><strong>Apple Watch SE 2</strong> sở hữu những tính năng cốt lõi của Apple Watch với mức giá cực kỳ dễ tiếp cận. Khung viền nhôm bền bỉ, màn hình Retina sắc nét cùng khả năng theo dõi sức khỏe toàn diện như đo nhịp tim, theo dõi giấc ngủ và phát hiện té ngã. Đây là người bạn đồng hành hoàn hảo cho cuộc sống năng động.</p><ul><li>Chip S8 mạnh mẽ, xử lý mượt mà.</li><li>Chống nước 50m, thoải mái bơi lội.</li><li>Kết nối liền mạch với hệ sinh thái Apple.</li></ul>'),
+
+    (N'Dong ho thong minh', N'Samsung', N'Samsung Galaxy Watch7',
+     N'<h2>Bứt phá giới hạn, thấu hiểu sức khỏe</h2><p><strong>Samsung Galaxy Watch7</strong> mang đến thiết kế mặt tròn thời thượng cùng cảm biến BioActive thế hệ mới. Đo lường chính xác các chỉ số cơ thể (BIA), theo dõi giấc ngủ chuyên sâu bằng AI và cảnh báo nhịp tim bất thường.</p><ul><li>Màn hình Super AMOLED rực rỡ dưới mọi điều kiện sáng.</li><li>Vi xử lý 3nm đầu tiên trên smartwatch.</li><li>GPS kép (L1+L5) định vị siêu chuẩn xác.</li></ul>'),
+
+    (N'Dong ho thong minh', N'Garmin', N'Garmin Forerunner 165',
+     N'<h2>Huấn luyện viên cá nhân trên cổ tay</h2><p><strong>Garmin Forerunner 165</strong> là chiếc đồng hồ chạy bộ chuyên nghiệp trang bị màn hình AMOLED rực rỡ. Máy cung cấp các bài tập gợi ý hàng ngày, theo dõi Pace, nhịp tim và đo lường độ phục hồi của cơ thể sau mỗi buổi tập.</p><ul><li>Thời lượng pin lên đến 11 ngày ở chế độ smartwatch.</li><li>Hơn 25 môn thể thao trong nhà và ngoài trời.</li><li>Garmin Coach: Giáo án tập luyện miễn phí.</li></ul>'),
+
+    (N'Tai nghe', N'Sony', N'Sony WH-1000XM5',
+     N'<h2>Chống ồn đỉnh cao, âm thanh tuyệt hảo</h2><p><strong>Sony WH-1000XM5</strong> hội tụ tinh hoa công nghệ âm thanh của Sony. Thiết kế mới nhẹ nhàng hơn, kết hợp 2 chip xử lý và 8 micro giúp triệt tiêu tiếng ồn môi trường một cách hoàn hảo. Màng loa 30mm tinh chỉnh đặc biệt mang lại chất âm Hi-Res cực kỳ chi tiết.</p><ul><li>Thời lượng pin 30 giờ, sạc nhanh 3 phút nghe 3 giờ.</li><li>Tính năng Speak-to-Chat thông minh.</li><li>Kết nối 2 thiết bị cùng lúc.</li></ul>'),
+
+    (N'Tai nghe', N'JBL', N'JBL Tune 770NC',
+     N'<h2>Trải nghiệm âm nhạc không giới hạn</h2><p><strong>JBL Tune 770NC</strong> nổi bật với công nghệ chống ồn chủ động (ANC) và chất âm JBL Pure Bass trứ danh. Thiết kế over-ear êm ái giúp bạn chìm đắm vào thế giới âm nhạc mà không bị xao nhãng bởi tiếng ồn xung quanh.</p><ul><li>Pin siêu khủng lên đến 70 giờ (khi tắt ANC).</li><li>Bluetooth 5.3 với LE Audio tiên tiến.</li><li>Điều chỉnh EQ qua ứng dụng JBL Headphones.</li></ul>'),
+
+    (N'Tai nghe', N'Samsung', N'Samsung Galaxy Buds3 Pro',
+     N'<h2>Âm thanh Hi-Fi không dây chân thực</h2><p><strong>Galaxy Buds3 Pro</strong> sở hữu thiết kế công thái học hoàn toàn mới có dải đèn LED độc đáo. Hỗ trợ âm thanh độ phân giải cao 24-bit/96kHz, mang lại chất âm sống động như phòng thu. Công nghệ Galaxy AI tự động tinh chỉnh chống ồn (ANC) theo môi trường.</p><ul><li>Chống ồn chủ động thông minh (Adaptive ANC).</li><li>Amply kép cho mỗi bên tai nghe.</li><li>Dịch thuật trực tiếp (Live Translate) ngay trên tai nghe.</li></ul>'),
+
+    (N'May anh Mirrorless', N'Canon', N'Canon EOS R50',
+     N'<h2>Nhỏ gọn, sáng tạo không giới hạn</h2><p><strong>Canon EOS R50</strong> là chiếc máy ảnh mirrorless APS-C lý tưởng cho người mới bắt đầu và Vlogger. Cảm biến 24.2MP kết hợp chip DIGIC X mang lại hình ảnh sắc nét, màu sắc rực rỡ đặc trưng của Canon. Khả năng lấy nét Dual Pixel CMOS AF II nhận diện thông minh chủ thể (người, động vật, xe cộ).</p><ul><li>Quay video 4K 30p không crop.</li><li>Màn hình cảm ứng xoay lật linh hoạt.</li><li>Tính năng Advanced A+ chụp đẹp mọi khoảnh khắc.</li></ul>'),
+
+    (N'May anh Mirrorless', N'Sony', N'Sony Alpha A6400',
+     N'<h2>Tốc độ bắt nét đỉnh cao</h2><p><strong>Sony Alpha A6400</strong> nổi tiếng với hệ thống lấy nét tự động siêu tốc chỉ 0.02 giây và tính năng Real-time Eye AF (lấy nét mắt theo thời gian thực). Cảm biến APS-C 24.2MP mang lại dải nhạy sáng rộng và chi tiết ấn tượng. Thân máy hợp kim magie bền bỉ, chống chịu thời tiết tốt.</p><ul><li>Quay video 4K HDR (HLG) chất lượng cao.</li><li>Màn hình lật 180 độ phù hợp quay Vlog.</li><li>Chụp liên tục 11 khung hình/giây.</li></ul>'),
+
+    (N'May anh Mirrorless', N'Fujifilm', N'Fujifilm X-S20',
+     N'<h2>Thiết kế hoài cổ, công nghệ hiện đại</h2><p><strong>Fujifilm X-S20</strong> mang đến trải nghiệm nhiếp ảnh tuyệt vời với cảm biến X-Trans CMOS 4 26.1MP. Chế độ Vlog chuyên dụng kết hợp cùng màu phim (Film Simulation) trứ danh của Fujifilm giúp bạn sáng tạo nội dung một cách đậm chất nghệ thuật ngay khi xuất hình mà không cần hậu kỳ nhiều.</p><ul><li>Chống rung IBIS 7 stops trong thân máy.</li><li>Quay video lên đến 6.2K/30p.</li><li>Pin NP-W235 dung lượng lớn, chụp 800 shot.</li></ul>')
+) v(category_name, brand_name, product_name, description)
+JOIN CATEGORY c ON c.category_name = v.category_name
+JOIN BRAND b ON b.brand_name = v.brand_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM PRODUCT p
+    WHERE p.product_name = v.product_name
+);
+GO
+
+-- 22. ADDITIONAL PRODUCT SPECIFICATIONS
+INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value)
+SELECT p.product_id, a.attribute_id, v.value
+FROM (VALUES
+    (N'Apple Watch SE 2', N'Màn hình', N'1.78 inch Retina OLED'),
+    (N'Apple Watch SE 2', N'Kết nối', N'Bluetooth, Wi-Fi, GPS'),
+    (N'Apple Watch SE 2', N'Tính năng', N'Theo doi van dong, nhip tim'),
+    (N'Samsung Galaxy Watch7', N'Màn hình', N'1.5 inch Super AMOLED'),
+    (N'Samsung Galaxy Watch7', N'Kết nối', N'Bluetooth, Wi-Fi, GPS'),
+    (N'Samsung Galaxy Watch7', N'Tính năng', N'Theo doi suc khoe va giac ngu'),
+    (N'Garmin Forerunner 165', N'Màn hình', N'1.2 inch AMOLED'),
+    (N'Garmin Forerunner 165', N'Kết nối', N'Bluetooth, GPS'),
+    (N'Garmin Forerunner 165', N'Tính năng', N'Theo doi chay bo va luyen tap'),
+    (N'Sony WH-1000XM5', N'Kết nối', N'Bluetooth, USB-C'),
+    (N'Sony WH-1000XM5', N'Tính năng', N'Chong on chu dong ANC'),
+    (N'Sony WH-1000XM5', N'Trọng lượng', N'250 g'),
+    (N'JBL Tune 770NC', N'Kết nối', N'Bluetooth, USB-C'),
+    (N'JBL Tune 770NC', N'Tính năng', N'Chong on chu dong ANC'),
+    (N'JBL Tune 770NC', N'Trọng lượng', N'232 g'),
+    (N'Samsung Galaxy Buds3 Pro', N'Kết nối', N'Bluetooth'),
+    (N'Samsung Galaxy Buds3 Pro', N'Tính năng', N'Chong on chu dong ANC'),
+    (N'Canon EOS R50', N'Độ phân giải', N'24.2 MP'),
+    (N'Canon EOS R50', N'Tính năng', N'Quay video 4K, lay net tu dong'),
+    (N'Canon EOS R50', N'Kết nối', N'Wi-Fi, Bluetooth'),
+    (N'Sony Alpha A6400', N'Độ phân giải', N'24.2 MP'),
+    (N'Sony Alpha A6400', N'Tính năng', N'Quay video 4K, lay net tu dong'),
+    (N'Sony Alpha A6400', N'Kết nối', N'Wi-Fi, Bluetooth'),
+    (N'Fujifilm X-S20', N'Độ phân giải', N'26.1 MP'),
+    (N'Fujifilm X-S20', N'Tính năng', N'Quay video 6.2K, chong rung trong than'),
+    (N'Fujifilm X-S20', N'Kết nối', N'Wi-Fi, Bluetooth')
+) v(product_name, attribute_name, value)
+JOIN PRODUCT p ON p.product_name = v.product_name
+JOIN ATTRIBUTE a ON a.attribute_name = v.attribute_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM PRODUCT_SPECIFICATION ps
+    WHERE ps.product_id = p.product_id
+      AND ps.attribute_id = a.attribute_id
+);
+GO
+
+-- 23. ADDITIONAL PRODUCT SKU
+INSERT INTO PRODUCT_SKU (product_id, sku_code, price, stock_quantity)
+SELECT p.product_id, v.sku_code, v.price, v.stock_quantity
+FROM (VALUES
+    (N'Apple Watch SE 2', 'WATCH-SE2-40', 5990000.00, 20),
+    (N'Samsung Galaxy Watch7', 'WATCH-GW7-44', 6990000.00, 15),
+    (N'Garmin Forerunner 165', 'WATCH-GARMIN-165', 6490000.00, 12),
+    (N'Sony WH-1000XM5', 'SONY-WH1000XM5', 6990000.00, 15),
+    (N'JBL Tune 770NC', 'JBL-T770NC', 2490000.00, 25),
+    (N'Samsung Galaxy Buds3 Pro', 'SS-BUDS3-PRO', 4990000.00, 20),
+    (N'Canon EOS R50', 'CAM-CANON-R50', 18990000.00, 8),
+    (N'Sony Alpha A6400', 'CAM-SONY-A6400', 16990000.00, 6),
+    (N'Fujifilm X-S20', 'CAM-FUJI-XS20', 28990000.00, 5)
+) v(product_name, sku_code, price, stock_quantity)
+JOIN PRODUCT p ON p.product_name = v.product_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM PRODUCT_SKU s
+    WHERE s.sku_code = v.sku_code
+);
+GO
+
+-- 24. PRODUCT IMAGES
+UPDATE PRODUCT
+SET image_url = CASE product_name
+    WHEN N'iPhone 15 Pro' THEN 'assets/images/products/iphone_15_pro.png'
+    WHEN N'iPhone 15 Pro Max' THEN 'assets/images/products/iphone-15-pro-max.png'
+    WHEN N'iPhone 16 Pro' THEN 'assets/images/products/iphone-16-pro.png'
+    WHEN N'iPhone 16 Pro Max' THEN 'assets/images/products/iphone-16-pro-max.png'
+    WHEN N'Samsung Galaxy S24 Ultra' THEN 'assets/images/products/s24-ult
