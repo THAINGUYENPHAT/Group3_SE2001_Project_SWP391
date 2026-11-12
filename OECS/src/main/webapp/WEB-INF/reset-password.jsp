@@ -34,6 +34,25 @@
                             </button>
                         </div>
                     </c:if>
+                    
+                    <c:if test="${empty token}">
+
+                        <div class="text-center mt-3">
+
+                            <p class="text-muted small mb-3">
+                                Bạn có thể yêu cầu một liên kết mới.
+                            </p>
+
+                            <a href="${pageContext.request.contextPath}/forgot-password"
+                               class="btn btn-outline-primary w-100 fw-semibold">
+                                <i class="bi bi-envelope-arrow-up me-1"></i>
+                                Gửi lại liên kết
+
+                            </a>
+
+                        </div>
+
+                    </c:if>
 
                     <c:if test="${not empty token}">
 

@@ -76,7 +76,7 @@ public class ForgotPasswordServlet extends HttpServlet {
 
                 
                 String token
-                        = passwordResetService.createResetToken(email);
+                        = passwordResetService.createResetToken(email, 15);
 
                 if (token != null) {
 

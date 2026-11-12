@@ -105,33 +105,154 @@
 
 <div class="card-custom overflow-hidden">
 
-    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+    <div class="p-3 border-bottom">
+
         <form action="${pageContext.request.contextPath}/user"
               method="get"
-              class="search-box w-100"
-              style="max-width: 350px;">
+              class="row g-2 align-items-end">
+
             <input type="hidden" name="view" value="list">
-            <i class="bi bi-search"></i>
-            <input type="text"
-                   name="keyword"
-                   value="${keyword}"
-                   class="form-control"
-                   placeholder="Tìm kiếm username, email, SĐT...">
+
+            <!-- Search -->
+            <div class="col-12 col-md-4">
+                <label class="form-label small fw-semibold">
+                    Tìm kiếm
+                </label>
+
+                <div class="input-group">
+                    <span class="input-group-text bg-light">
+                        <i class="bi bi-search"></i>
+                    </span>
+
+                    <input type="text"
+                           name="keyword"
+                           value="${keyword}"
+                           class="form-control"
+                           placeholder="Username, email, SĐT...">
+                </div>
+            </div>
+
+            <!-- Role -->
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold">
+                    Vai trò
+                </label>
+
+                <select name="role"
+                        class="form-select">
+
+                    <option value="">Tất cả</option>
+
+                    <option value="CUSTOMER"
+                            ${role eq 'CUSTOMER' ? 'selected' : ''}>
+                        Customer
+                    </option>
+
+                    <option value="STAFF"
+                            ${role eq 'STAFF' ? 'selected' : ''}>
+                        Staff
+                    </option>
+
+                    <option value="ADMIN"
+                            ${role eq 'ADMIN' ? 'selected' : ''}>
+                        Admin
+                    </option>
+
+                </select>
+            </div>
+
+            <!-- Status -->
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold">
+                    Trạng thái
+                </label>
+
+                <select name="status"
+                        class="form-select">
+
+                    <option value="">Tất cả</option>
+
+                    <option value="active"
+                            ${status eq 'active' ? 'selected' : ''}>
+                        Active
+                    </option>
+
+                    <option value="locked"
+                            ${status eq 'locked' ? 'selected' : ''}>
+                        Locked
+                    </option>
+
+                </select>
+            </div>
+
+            <!-- Sort -->
+            <div class="col-6 col-md-2">
+                <label class="form-label small fw-semibold">
+                    Sắp xếp
+                </label>
+
+                <select name="sort"
+                        class="form-select">
+
+                    <option value="newest"
+                            ${sort eq 'newest' ? 'selected' : ''}>
+                        Mới nhất
+                    </option>
+
+                    <option value="oldest"
+                            ${sort eq 'oldest' ? 'selected' : ''}>
+                        Cũ nhất
+                    </option>
+
+                    <option value="username_asc"
+                            ${sort eq 'username_asc' ? 'selected' : ''}>
+                        Username A-Z
+                    </option>
+
+                    <option value="username_desc"
+                            ${sort eq 'username_desc' ? 'selected' : ''}>
+                        Username Z-A
+                    </option>
+
+                </select>
+            </div>
+
+            <!-- Buttons -->
+            <div class="col-6 col-md-2">
+                <div class="d-flex gap-2">
+
+                    <button type="submit"
+                            class="btn btn-primary flex-fill">
+                        <i class="bi bi-funnel me-1"></i>
+                        Lọc
+                    </button>
+
+                    <a href="${pageContext.request.contextPath}/user?view=list"
+                       class="btn btn-outline-secondary"
+                       title="Xóa bộ lọc">
+
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+
+                </div>
+            </div>
+
         </form>
+
     </div>
 
     <div class="table-responsive">
         <table class="table table-custom align-middle">
             <thead>
                 <tr>
-                <th style="width: 50px;">#</th>
-                <th>TÀI KHOẢN</th>
-                <th>EMAIL</th>
-                <th>SỐ ĐIỆN THOẠI</th>
-                <th>VAI TRÒ</th>
-                <th>TRẠNG THÁI</th>
-                <th>NGÀY TẠO</th>
-                <th style="width: 120px;" class="text-end">THAO TÁC</th>
+                    <th style="width: 50px;">#</th>
+                    <th>TÀI KHOẢN</th>
+                    <th>EMAIL</th>
+                    <th>SỐ ĐIỆN THOẠI</th>
+                    <th>VAI TRÒ</th>
+                    <th>TRẠNG THÁI</th>
+                    <th>NGÀY TẠO</th>
+                    <th style="width: 120px;" class="text-end">THAO TÁC</th>
                 </tr>
             </thead>
 
@@ -140,152 +261,152 @@
                     <c:when test="${not empty userList}">
                         <c:forEach items="${userList}" var="user">
                             <tr>
-                            <td>
-                            <span class="badge bg-light text-secondary border">
-                                #${user.userId}
-                            </span>
-                            </td>
-                            <td>
-                                <div class="fw-bold text-dark">
-                                    ${user.username}
-                                </div>
-                            </td>
-
-                            <td>
-                            <span class="text-muted">
-                                ${user.email}
-                            </span>
-                            </td>
-
-                            <td>
-                                <c:choose>
-                                    <c:when test="${not empty user.phone}">
-                                    <span class="text-muted">
-                                        ${user.phone}
+                                <td>
+                                    <span class="badge bg-light text-secondary border">
+                                        #${user.userId}
                                     </span>
-                                </c:when>
-                                <c:otherwise>
-                                    <span class="text-muted">
-                                        Chưa cập nhật
-                                    </span>
-                                </c:otherwise>
-                            </c:choose>
-                            </td>
-
-                            <td>
-                            <span class="badge bg-info-subtle text-info border border-info-subtle">
-                                <i class="bi bi-person-badge me-1"></i>
-                                ${user.roleName}
-                            </span>
-                            </td>
-
-                            <td>
-                                <c:choose>
-                                    <c:when test="${user.active}">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                        Active
-                                    </span>
-                                </c:when>
-                                <c:otherwise>
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
-                                        Locked
-                                    </span>
-                                </c:otherwise>
-                            </c:choose>
-                            </td>
-
-                            <td>
-                            <span class="text-muted">
-                                ${user.createdAt}
-                            </span>
-                            </td>
-
-                            <td class="text-end">
-
-                                <c:choose>
-
-                                    <c:when test="${user.userId eq sessionScope.loggedInUser.userId}">
-
-                                    <span class="text-muted small">
-                                        <i class="bi bi-person-check me-1"></i>
-                                        Tài khoản hiện tại
-                                    </span>
-
-                                </c:when>
-
-                                <c:otherwise>
-                                    <div class="d-inline-flex gap-1">
-
-                                        <form action="${pageContext.request.contextPath}/user"
-                                              method="post"
-                                              class="d-inline">
-
-                                            <input type="hidden"
-                                                   name="action"
-                                                   value="toggleStatus">
-
-                                            <input type="hidden"
-                                                   name="id"
-                                                   value="${user.userId}">
-
-                                            <c:choose>
-
-                                                <c:when test="${user.active}">
-
-                                                    <input type="hidden"
-                                                           name="active"
-                                                           value="false">
-
-                                                    <button type="submit"
-                                                            class="btn btn-sm btn-light text-danger border rounded-2"
-                                                            title="Khóa tài khoản">
-
-                                                        <i class="bi bi-lock"></i>
-
-                                                    </button>
-
-                                                </c:when>
-
-                                                <c:otherwise>
-
-                                                    <input type="hidden"
-                                                           name="active"
-                                                           value="true">
-
-                                                    <button type="submit"
-                                                            class="btn btn-sm btn-light text-success border rounded-2"
-                                                            title="Mở khóa tài khoản">
-
-                                                        <i class="bi bi-unlock"></i>
-
-                                                    </button>
-
-                                                </c:otherwise>
-
-                                            </c:choose>
-
-                                        </form>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">
+                                        ${user.username}
                                     </div>
-                                </c:otherwise>
+                                </td>
 
-                            </c:choose>
+                                <td>
+                                    <span class="text-muted">
+                                        ${user.email}
+                                    </span>
+                                </td>
 
-                            </td>
+                                <td>
+                                    <c:choose>
+                                        <c:when test="${not empty user.phone}">
+                                            <span class="text-muted">
+                                                ${user.phone}
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="text-muted">
+                                                Chưa cập nhật
+                                            </span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                        <i class="bi bi-person-badge me-1"></i>
+                                        ${user.roleName}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <c:choose>
+                                        <c:when test="${user.active}">
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                Active
+                                            </span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                                Locked
+                                            </span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
+
+                                <td>
+                                    <span class="text-muted">
+                                        ${user.createdAt}
+                                    </span>
+                                </td>
+
+                                <td class="text-end">
+
+                                    <c:choose>
+
+                                        <c:when test="${user.userId eq sessionScope.loggedInUser.userId}">
+
+                                            <span class="text-muted small">
+                                                <i class="bi bi-person-check me-1"></i>
+                                                Tài khoản hiện tại
+                                            </span>
+
+                                        </c:when>
+
+                                        <c:otherwise>
+                                            <div class="d-inline-flex gap-1">
+
+                                                <form action="${pageContext.request.contextPath}/user"
+                                                      method="post"
+                                                      class="d-inline">
+
+                                                    <input type="hidden"
+                                                           name="action"
+                                                           value="toggleStatus">
+
+                                                    <input type="hidden"
+                                                           name="id"
+                                                           value="${user.userId}">
+
+                                                    <c:choose>
+
+                                                        <c:when test="${user.active}">
+
+                                                            <input type="hidden"
+                                                                   name="active"
+                                                                   value="false">
+
+                                                            <button type="submit"
+                                                                    class="btn btn-sm btn-light text-danger border rounded-2"
+                                                                    title="Khóa tài khoản">
+
+                                                                <i class="bi bi-lock"></i>
+
+                                                            </button>
+
+                                                        </c:when>
+
+                                                        <c:otherwise>
+
+                                                            <input type="hidden"
+                                                                   name="active"
+                                                                   value="true">
+
+                                                            <button type="submit"
+                                                                    class="btn btn-sm btn-light text-success border rounded-2"
+                                                                    title="Mở khóa tài khoản">
+
+                                                                <i class="bi bi-unlock"></i>
+
+                                                            </button>
+
+                                                        </c:otherwise>
+
+                                                    </c:choose>
+
+                                                </form>
+                                            </div>
+                                        </c:otherwise>
+
+                                    </c:choose>
+
+                                </td>
                             </tr>
                         </c:forEach>
                     </c:when>
 
                     <c:otherwise>
                         <tr>
-                        <td colspan="8" class="text-center py-5">
-                            <i class="bi bi-people fs-1 text-secondary"></i>
-                            <p class="fw-medium mt-2 mb-1">
-                                Không tìm thấy người dùng nào
-                            </p>
-                            <small class="text-muted">
-                                Nhấn "Thêm người dùng" để tạo mới.
-                            </small>
-                        </td>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="bi bi-people fs-1 text-secondary"></i>
+                                <p class="fw-medium mt-2 mb-1">
+                                    Không tìm thấy người dùng nào
+                                </p>
+                                <small class="text-muted">
+                                    Nhấn "Thêm người dùng" để tạo mới.
+                                </small>
+                            </td>
                         </tr>
                     </c:otherwise>
                 </c:choose>

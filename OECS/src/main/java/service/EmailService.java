@@ -110,4 +110,120 @@ public class EmailService {
             return false;
         }
     }
+
+    public boolean sendAccountSetupEmail(
+            String toEmail,
+            String setupLink) {
+
+        if (FROM_EMAIL == null
+                || FROM_EMAIL.isBlank()
+                || APP_PASSWORD == null
+                || APP_PASSWORD.isBlank()) {
+
+            LOGGER.severe(
+                    "Thiếu cấu hình email!"
+            );
+
+            return false;
+        }
+
+        Properties properties
+                = new Properties();
+
+        properties.put(
+                "mail.smtp.auth",
+                "true"
+        );
+
+        properties.put(
+                "mail.smtp.starttls.enable",
+                "true"
+        );
+
+        properties.put(
+                "mail.smtp.host",
+                "smtp.gmail.com"
+        );
+
+        properties.put(
+                "mail.smtp.port",
+                "587"
+        );
+
+        Session session
+                = Session.getInstance(
+                        properties,
+                        new Authenticator() {
+
+                    @Override
+                    protected PasswordAuthentication
+                            getPasswordAuthentication() {
+
+                        return new PasswordAuthentication(
+                                FROM_EMAIL,
+                                APP_PASSWORD
+                        );
+                    }
+                });
+
+        try {
+
+            Message message
+                    = new MimeMessage(session);
+
+            message.setFrom(
+                    new InternetAddress(
+                            FROM_EMAIL
+                    )
+            );
+
+            message.setRecipients(
+                    Message.RecipientType.TO,
+                    InternetAddress.parse(
+                            toEmail
+                    )
+            );
+
+            message.setSubject(
+                    "Tài khoản OECS của bạn đã được tạo"
+            );
+
+            String content
+                    = "<h2>Chào mừng bạn đến với OECS</h2>"
+                    + "<p>Một tài khoản OECS đã được "
+                    + "tạo cho địa chỉ email này.</p>"
+                    + "<p>Vui lòng nhấn vào liên kết "
+                    + "bên dưới để thiết lập mật khẩu:</p>"
+                    + "<p>"
+                    + "<a href=\""
+                    + setupLink
+                    + "\">"
+                    + "Thiết lập mật khẩu"
+                    + "</a>"
+                    + "</p>"
+                    + "<p>Liên kết này có hiệu lực "
+                    + "trong 15 phút.</p>"
+                    + "<p>Sau khi thiết lập mật khẩu, "
+                    + "bạn có thể đăng nhập vào OECS.</p>";
+
+            message.setContent(
+                    content,
+                    "text/html; charset=UTF-8"
+            );
+
+            Transport.send(message);
+
+            return true;
+
+        } catch (MessagingException ex) {
+
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi gửi email thiết lập tài khoản!",
+                    ex
+            );
+
+            return false;
+        }
+    }
 }
