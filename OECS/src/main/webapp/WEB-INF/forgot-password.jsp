@@ -12,7 +12,7 @@
                     <div class="text-center mb-4">
 
                         <h3 class="fw-bold text-primary">
-                            Quên mật khẩu?
+                            Đặt lại mật khẩu
                         </h3>
 
                         <p class="text-muted small">

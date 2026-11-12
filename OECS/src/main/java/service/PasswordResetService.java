@@ -16,10 +16,8 @@ public class PasswordResetService {
     private final UserDAO userDAO = new UserDAO();
     private final PasswordResetDAO passwordResetDAO = new PasswordResetDAO();
 
-    private static final long TOKEN_EXPIRE_MINUTES = 15;
-
     
-    public String createResetToken(String email) throws Exception {
+    public String createResetToken(String email,  int expiryMinutes) throws Exception {
 
         if (email == null || email.trim().isEmpty()) {
             return null;
@@ -38,7 +36,7 @@ public class PasswordResetService {
         String tokenHash = hashToken(rawToken);
 
         long expireTime = System.currentTimeMillis()
-                + TOKEN_EXPIRE_MINUTES * 60 * 1000;
+                + expiryMinutes * 60 * 1000;
 
         Timestamp expiresAt = new Timestamp(expireTime);
 

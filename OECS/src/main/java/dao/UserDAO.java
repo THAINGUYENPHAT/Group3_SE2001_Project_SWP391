@@ -21,7 +21,6 @@ public class UserDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(UserDAO.class.getName());
 
-   
     public User login(String account, String rawPassword) {
 
         String sql
@@ -155,73 +154,117 @@ public class UserDAO extends DBContext {
         }
     }
 
-    public List<User> getAllUsers(String keyword) {
+    public List<User> getAllUsers(String keyword, String role, String status, String sort) {
 
-        List<User> list = new ArrayList<>();
+        List<User> userList = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
 
-        String sql
-                = "SELECT u.user_id, u.username, u.email, "
-                + "u.password_hash, u.phone, u.created_at, u.is_active, "
-                + "ISNULL(ur.role_id, 0) AS role_id, "
+        StringBuilder sql = new StringBuilder();
+
+        sql.append(
+                "SELECT "
+                + "u.user_id, "
+                + "u.username, "
+                + "u.email, "
+                + "u.phone, "
+                + "u.is_active, "
+                + "u.created_at, "
+                + "r.role_id, "
                 + "r.role_name "
                 + "FROM [USER] u "
-                + "LEFT JOIN USER_ROLES ur "
-                + "ON u.user_id = ur.user_id "
-                + "LEFT JOIN ROLES r "
-                + "ON ur.role_id = r.role_id "
-                + "WHERE u.username LIKE ? "
-                + "OR u.email LIKE ? "
-                + "OR u.phone LIKE ? "
-                + "ORDER BY u.created_at DESC";
+                + "LEFT JOIN USER_ROLES ur ON u.user_id = ur.user_id "
+                + "LEFT JOIN ROLES r ON ur.role_id = r.role_id "
+                + "WHERE 1 = 1 "
+        );
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
 
-            String searchPattern
-                    = "%" + (keyword != null
-                            ? keyword.trim()
-                            : "") + "%";
+            sql.append(
+                    "AND ("
+                    + "u.username LIKE ? "
+                    + "OR u.email LIKE ? "
+                    + "OR u.phone LIKE ?"
+                    + ") "
+            );
 
-            ps.setString(1, searchPattern);
-            ps.setString(2, searchPattern);
-            ps.setString(3, searchPattern);
+            String searchKeyword = "%" + keyword.trim() + "%";
 
-            try (ResultSet rs = ps.executeQuery()) {
+            params.add(searchKeyword);
+            params.add(searchKeyword);
+            params.add(searchKeyword);
+        }
+
+        if (role != null && !role.trim().isEmpty()) {
+
+            sql.append("AND r.role_name = ? ");
+
+            params.add(role.trim());
+        }
+
+        if ("active".equalsIgnoreCase(status)) {
+
+            sql.append("AND u.is_active = 1 ");
+
+        } else if ("locked".equalsIgnoreCase(status)) {
+
+            sql.append("AND u.is_active = 0 ");
+        }
+
+        if (sort == null || sort.trim().isEmpty()) {
+            sort = "newest";
+        }
+
+        switch (sort) {
+
+            case "oldest":
+                sql.append("ORDER BY u.created_at ASC ");
+                break;
+
+            case "username_asc":
+                sql.append("ORDER BY u.username ASC ");
+                break;
+
+            case "username_desc":
+                sql.append("ORDER BY u.username DESC ");
+                break;
+
+            case "newest":
+            default:
+                sql.append("ORDER BY u.created_at DESC ");
+                break;
+        }
+
+        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < params.size(); i++) {
+                statement.setObject(i + 1, params.get(i));
+            }
+
+            try (ResultSet rs = statement.executeQuery()) {
 
                 while (rs.next()) {
 
-                    int roleId = rs.getInt("role_id");
-                    String roleName = rs.getString("role_name");
-                    boolean active = rs.getBoolean("is_active");
+                    User user = new User();
 
-                    if (roleId == 0 || roleName == null) {
-                        roleName = "NO_ROLE";
-                    }
+                    user.setUserId(rs.getInt("user_id"));
+                    user.setUsername(rs.getString("username"));
+                    user.setEmail(rs.getString("email"));
+                    user.setPhone(rs.getString("phone"));
+                    user.setActive(rs.getBoolean("is_active"));
+                    user.setCreatedAt(rs.getTimestamp("created_at"));
+                    user.setRoleId(rs.getInt("role_id"));
+                    user.setRoleName(rs.getString("role_name"));
 
-                    User user = new User(
-                            rs.getInt("user_id"),
-                            rs.getString("username"),
-                            rs.getString("email"),
-                            rs.getString("password_hash"),
-                            rs.getString("phone"),
-                            rs.getTimestamp("created_at"),
-                            roleId,
-                            roleName,
-                            active
-                    );
-
-                    list.add(user);
+                    userList.add(user);
                 }
             }
 
-        } catch (SQLException ex) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi lấy danh sách người dùng!",
-                    ex
-            );
+        } catch (SQLException e) {
+
+            LOGGER.log(Level.SEVERE, "Lỗi khi lấy danh sách User!", e);
         }
 
-        return list;
+        return userList;
     }
 
     public User getUserById(int userId) {
@@ -390,7 +433,6 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    
     public boolean updateProfile(int userId, String email, String phone, String address, String fullName) {
         String updateProfileSql = "UPDATE [USER] SET email = ?, phone = ? WHERE user_id = ?";
 
@@ -401,7 +443,7 @@ public class UserDAO extends DBContext {
         Connection conn = null;
         try {
             conn = getConnection();
-            conn.setAutoCommit(false); 
+            conn.setAutoCommit(false);
 
             try (PreparedStatement psUser = conn.prepareStatement(updateProfileSql)) {
                 psUser.setString(1, email);
@@ -439,7 +481,7 @@ public class UserDAO extends DBContext {
                 }
             }
 
-            conn.commit(); 
+            conn.commit();
             return true;
         } catch (SQLException ex) {
             if (conn != null) {
