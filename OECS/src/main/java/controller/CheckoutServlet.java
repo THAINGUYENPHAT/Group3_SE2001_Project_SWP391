@@ -329,11 +329,6 @@ public class CheckoutServlet extends HttpServlet {
                 PaymentGateway.available("VNPAY")
         );
 
-        request.setAttribute(
-                "momoAvailable",
-                PaymentGateway.available("MOMO")
-        );
-
         request.getRequestDispatcher(
                 "/WEB-INF/checkout/checkout.jsp"
         ).forward(request, response);
