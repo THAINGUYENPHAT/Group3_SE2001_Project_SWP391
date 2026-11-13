@@ -1,4 +1,3 @@
-
 package dao;
 
 import db.DBContext;
@@ -21,9 +20,58 @@ public class NotificationDAO extends DBContext {
     public boolean createOrderStatusNotification(
             int orderId, String status) {
 
-        String title = "Cap nhat don hang #" + orderId;
-        String message = "Don hang #" + orderId
-                + " da duoc cap nhat trang thai: " + status + ".";
+        String title;
+        String message;
+
+        String normalizedStatus = status == null
+                ? ""
+                : status.trim().toUpperCase();
+
+        if (normalizedStatus.equals("CONFIRMED")) {
+
+            title = "Đơn hàng đã được xác nhận";
+            message = "Đơn hàng #" + orderId
+                    + " của bạn đã được xác nhận và đang được chuẩn bị.";
+
+        } else if (normalizedStatus.equals("PACKING")) {
+
+            title = "Đơn hàng đang được đóng gói";
+            message = "Đơn hàng #" + orderId
+                    + " đã được xác nhận và đang trong quá trình đóng gói.";
+
+        } else if (normalizedStatus.equals("SHIPPING")
+                || normalizedStatus.equals("SHIPPED")) {
+
+            title = "Đơn hàng đang được vận chuyển";
+            message = "Đơn hàng #" + orderId
+                    + " đã được bàn giao cho đơn vị vận chuyển. "
+                    + "Vui lòng chú ý điện thoại để nhận hàng.";
+
+        } else if (normalizedStatus.equals("DELIVERED")) {
+
+            title = "Đơn hàng đã giao thành công";
+            message = "Đơn hàng #" + orderId
+                    + " đã được giao thành công. "
+                    + "Cảm ơn bạn đã mua sắm tại OECS!";
+
+        } else if (normalizedStatus.equals("COMPLETED")) {
+
+            title = "Đơn hàng đã hoàn tất";
+            message = "Đơn hàng #" + orderId
+                    + " đã hoàn tất. Hy vọng bạn hài lòng với sản phẩm!";
+
+        } else if (normalizedStatus.equals("CANCELLED")
+                || normalizedStatus.equals("CANCELED")) {
+
+            title = "Đơn hàng đã bị hủy";
+            message = "Đơn hàng #" + orderId
+                    + " của bạn đã bị hủy. "
+                    + "Nếu cần hỗ trợ, vui lòng liên hệ nhân viên OECS.";
+
+        } else {
+            LOGGER.warning("Unsupported order status: " + status);
+            return false;
+        }
 
         String sql = "INSERT INTO dbo.NOTIFICATION "
                 + "(user_id, order_id, title, message) "
@@ -31,8 +79,7 @@ public class NotificationDAO extends DBContext {
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.order_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, title);
             ps.setString(2, message);
@@ -88,8 +135,7 @@ public class NotificationDAO extends DBContext {
                 + "FROM dbo.NOTIFICATION "
                 + "WHERE user_id = ? AND is_read = 0";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
 
@@ -118,8 +164,7 @@ public class NotificationDAO extends DBContext {
                 + "WHERE user_id = ? "
                 + "ORDER BY created_at DESC, notification_id DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
 
@@ -166,8 +211,7 @@ public class NotificationDAO extends DBContext {
                 + "WHERE notification_id = ? "
                 + "AND user_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, notificationId);
             ps.setInt(2, userId);

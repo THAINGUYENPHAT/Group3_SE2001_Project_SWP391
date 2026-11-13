@@ -550,10 +550,6 @@
 
 
                                             <c:if test="${sessionScope.loggedInUser.staff}">
-                                                <li><a class="dropdown-item rounded-2 py-2" href="${pageContext.request.contextPath}/staff/payment-refunds">Đối soát hoàn tiền</a></li>
-                                            </c:if>
-
-                                            <c:if test="${sessionScope.loggedInUser.staff}">
 
                                                 <li>
                                                     <h6 class="dropdown-header text-uppercase text-muted fw-bold"
