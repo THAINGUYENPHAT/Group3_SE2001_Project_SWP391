@@ -760,7 +760,7 @@
                     </div>
                 </label>
 
-                <label class="d-block border rounded-3 p-3 mb-3">
+                <label class="d-block border rounded-3 p-3">
                     <input
                         type="radio"
                         name="paymentMethod"
@@ -785,30 +785,6 @@
                     </div>
                 </label>
 
-                <label class="d-block border rounded-3 p-3">
-                    <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="MOMO"
-                        form="orderForm"
-                        ${momoAvailable ? '' : 'disabled'}>
-
-                    <span class="fw-semibold ms-2">
-                        MoMo — Thử nghiệm
-                    </span>
-
-                    <div class="text-muted small ms-4 mt-1">
-                        <c:choose>
-                            <c:when test="${momoAvailable}">
-                                Thanh toán qua MoMo Test.
-                                Đơn hàng được giữ trong 15 phút.
-                            </c:when>
-                            <c:otherwise>
-                                Chưa cấu hình tài khoản MoMo Test.
-                            </c:otherwise>
-                        </c:choose>
-                    </div>
-                </label>
 
 
             </div>
