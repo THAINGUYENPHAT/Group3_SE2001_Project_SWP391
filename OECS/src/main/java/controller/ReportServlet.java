@@ -49,16 +49,16 @@ public class ReportServlet extends HttpServlet {
             String endDateParam =
                     request.getParameter("endDate");
 
-            String today = LocalDate.now().toString();
+            LocalDate defaultEnd = LocalDate.now();
 
             if (startDateParam == null
                     || startDateParam.trim().isEmpty()) {
-                startDateParam = today;
+                startDateParam = defaultEnd.minusDays(29).toString();
             }
 
             if (endDateParam == null
                     || endDateParam.trim().isEmpty()) {
-                endDateParam = today;
+                endDateParam = defaultEnd.toString();
             }
 
            

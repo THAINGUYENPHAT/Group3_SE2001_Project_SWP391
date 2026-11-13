@@ -618,6 +618,8 @@
                             Đã thanh toán
                         </c:when>
 
+                        <c:when test="${order.paymentStatus == 'REFUND_PENDING'}">Đang chờ xử lý hoàn tiền</c:when>
+                        <c:when test="${order.paymentStatus == 'REFUNDED'}">Đã hoàn tiền</c:when>
                         <c:when test="${order.paymentStatus == 'UNPAID'}">
                             Chưa thanh toán
                         </c:when>

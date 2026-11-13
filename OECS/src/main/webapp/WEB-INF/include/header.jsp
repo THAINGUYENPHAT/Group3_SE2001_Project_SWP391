@@ -889,6 +889,7 @@
 
                               badge.textContent = count > 99 ? '99+' : String(count);
                               badge.hidden = count === 0;
+                              total.textContent = count > 0 ? count + ' chưa đọc' : '';
                           } catch (error) {
                               console.error('Cannot load notification count.', error);
                           }
@@ -924,10 +925,7 @@
                                   return;
                               }
 
-                              const unread = notifications.filter(n => !n.read).length;
-                              total.textContent = unread > 0
-                                      ? unread + ' chưa đọc'
-                                      : '';
+                              await loadCount();
 
                               notifications.forEach(n => {
                                   const item = document.createElement('button');

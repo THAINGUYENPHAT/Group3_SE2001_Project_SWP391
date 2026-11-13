@@ -48,6 +48,7 @@ public class NotificationServlet extends HttpServlet {
             return;
         }
 
+        response.setHeader("Cache-Control", "no-store");
         int userId = user.getUserId();
         String action = request.getParameter("action");
 
@@ -86,7 +87,7 @@ public class NotificationServlet extends HttpServlet {
                         .append(",\"createdAt\":\"")
                         .append(escapeJson(
                                 n.getCreatedAt() == null
-                                ? "" : n.getCreatedAt().toString()))
+                                ? "" : n.getFormattedCreatedAt()))
                         .append("\"}");
                 }
 

@@ -287,7 +287,7 @@ public class AdminOrderDAO extends DBContext {
 
         String next = normalizeStatus(requestedStatus);
 
-        if (next == null || "PENDING_CONFIRMATION".equals(next)) {
+        if (next == null || "PENDING_CONFIRMATION".equals(next) || "CANCELLED".equals(next)) {
             return false;
         }
 

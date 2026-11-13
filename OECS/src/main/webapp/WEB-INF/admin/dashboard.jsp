@@ -4,8 +4,26 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
+
 <style>
 
+
+.flatpickr-calendar {
+    z-index: 99999 !important;
+    font-family: "Inter", sans-serif;
+}
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+.oecs-dashboard .db-date-field input[readonly] {
+    cursor: pointer;
+    background: #fff;
+}
 
 .oecs-dashboard {
     width: 100%;
@@ -1372,6 +1390,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const errorText =
             document.getElementById("dashboardDateErrorText");
+
+    if (typeof flatpickr === "function" && startInput && endInput) {
+        const options = {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            allowInput: false,
+            disableMobile: true,
+            locale: flatpickr.l10ns.vn || "default",
+            appendTo: document.body
+        };
+        if (!startInput._flatpickr) flatpickr(startInput, options);
+        if (!endInput._flatpickr) flatpickr(endInput, options);
+    }
 
     function clearError() {
         errorBox.style.display = "none";

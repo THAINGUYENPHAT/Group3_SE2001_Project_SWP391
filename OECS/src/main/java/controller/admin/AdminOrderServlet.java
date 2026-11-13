@@ -41,6 +41,8 @@ public class AdminOrderServlet extends HttpServlet {
             throws ServletException, IOException {
 
         String path = request.getPathInfo();
+        if (request.getSession().getAttribute("staffOrderToken") == null)
+            request.getSession().setAttribute("staffOrderToken", java.util.UUID.randomUUID().toString());
 
         if (path != null && "/detail".equals(path)) {
             
@@ -131,6 +133,29 @@ public class AdminOrderServlet extends HttpServlet {
         }
 
         String action = request.getParameter("action");
+        Object expected = request.getSession().getAttribute("staffOrderToken");
+        if (!(expected instanceof String) || !expected.equals(request.getParameter("csrfToken"))) {
+            response.sendError(403, "Yêu cầu không hợp lệ. Vui lòng tải lại trang.");
+            return;
+        }
+        if ("cancel".equals(action)) {
+            try {
+                User staff = (User) request.getSession().getAttribute("loggedInUser");
+                service.OrderCancellationService cancellation = new service.OrderCancellationService();
+                String result = cancellation.staffCancel(staff.getUserId(), orderId);
+                auditLogService.log(staff, "CANCEL_ORDER", "ORDER", (long)orderId, "Staff cancellation: " + result, request);
+                request.getSession().setAttribute("successMessage", "UNCHANGED".equals(result)
+                        ? "Đơn hàng đã được hủy trước đó."
+                        : "Đã hủy đơn và hoàn kho. Hoàn tiền (nếu có) được theo dõi riêng.");
+            } catch (IllegalArgumentException e) {
+                request.getSession().setAttribute("errorMessage", e.getMessage());
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Cannot process cancellation", e);
+                request.getSession().setAttribute("errorMessage", "Chưa xử lý được yêu cầu. Vui lòng tải lại đơn và thử lại.");
+            }
+            response.sendRedirect(request.getContextPath() + "/admin/orders/detail?id=" + orderId);
+            return;
+        }
 
         try {
             String current = orderDAO.getCurrentStatus(orderId);

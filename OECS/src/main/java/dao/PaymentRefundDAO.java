@@ -91,16 +91,52 @@ public class PaymentRefundDAO {
                 + "completed_at = CASE WHEN ? = 'SUCCESS' THEN SYSUTCDATETIME() ELSE NULL END, "
                 + "processed_by = ?, updated_at = SYSUTCDATETIME() "
                 + "WHERE refund_id = ? AND refund_status = ?";
-        try (Connection c = connections.open(); PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, nextStatus);
-            ps.setString(2, nextStatus);
-            ps.setString(3, trimmed);
-            ps.setString(4, nextStatus);
-            ps.setInt(5, staffId);
-            ps.setLong(6, refundId);
-            ps.setString(7, expectedStatus);
-            if (ps.executeUpdate() != 1) {
-                throw new IllegalArgumentException("Yêu cầu đã được cập nhật. Hãy tải lại trang.");
+        try (Connection c = connections.open()) {
+            c.setAutoCommit(false);
+            try {
+                int orderId;
+                try (PreparedStatement lookup = c.prepareStatement("SELECT t.order_id FROM dbo.PAYMENT_REFUND r "
+                        + "JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE r.refund_id=?")) {
+                    lookup.setLong(1, refundId);
+                    try (ResultSet rs = lookup.executeQuery()) {
+                        if (!rs.next()) throw new IllegalArgumentException("Không tìm thấy yêu cầu hoàn tiền.");
+                        orderId = rs.getInt(1);
+                    }
+                }
+                // Match payment and cancellation lock ordering: order before refund.
+                try (PreparedStatement lock = c.prepareStatement("SELECT order_id FROM dbo.[ORDER] WITH (UPDLOCK,HOLDLOCK) WHERE order_id=?")) {
+                    lock.setInt(1, orderId);
+                    try (ResultSet rs = lock.executeQuery()) {
+                        if (!rs.next()) throw new IllegalArgumentException("Không tìm thấy đơn hàng.");
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(sql)) {
+
+                ps.setString(1, nextStatus);
+                ps.setString(2, nextStatus);
+                ps.setString(3, trimmed);
+                ps.setString(4, nextStatus);
+                ps.setInt(5, staffId);
+                ps.setLong(6, refundId);
+                ps.setString(7, expectedStatus);
+                if (ps.executeUpdate() != 1) {
+                    throw new IllegalArgumentException("Yêu cầu đã được cập nhật. Hãy tải lại trang.");
+                }
+                }
+                if ("SUCCESS".equals(nextStatus)) {
+                    try (PreparedStatement done = c.prepareStatement("UPDATE dbo.[ORDER] SET payment_status='REFUNDED' "
+                            + "WHERE order_id=? AND order_status='CANCELLED' AND payment_status='REFUND_PENDING' "
+                            + "AND NOT EXISTS (SELECT 1 FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
+                            + "ON t.transaction_id=r.transaction_id WHERE t.order_id=? AND r.refund_status<>'SUCCESS')")) {
+                        done.setInt(1, orderId);
+                        done.setInt(2, orderId);
+                        done.executeUpdate();
+                    }
+                }
+                c.commit();
+                } catch (SQLException | RuntimeException e) {
+                try { c.rollback(); } catch (SQLException rollback) { e.addSuppressed(rollback); }
+                throw e;
             }
         }
     }

@@ -59,6 +59,11 @@ public class Notification {
         this.read = read;
     }
 
+    public String getFormattedCreatedAt() {
+        return createdAt == null ? "" : createdAt.toLocalDateTime().format(
+                java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+    }
+
     public Timestamp getCreatedAt() {
         return createdAt;
     }
