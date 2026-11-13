@@ -35,28 +35,14 @@ public class ReturnExchangeDAO {
         return conn;
     }
 
+    public boolean canRequest(int orderId, int userId)
+            throws SQLException {
 
-    public boolean canRequest(int orderId, int userId) throws SQLException {
         String sql
-                = "SELECT 1 FROM dbo.[ORDER] o "
-                + "WHERE o.order_id = ? AND o.user_id = ? "
-                + "AND UPPER(LTRIM(RTRIM(o.order_status))) = 'COMPLETED' "
-                + "AND o.delivered_at IS NOT NULL "
-                + "AND o.delivered_at <= SYSDATETIME() "
-                + "AND o.delivered_at >= DATEADD(DAY, -7, SYSDATETIME()) "
-                + "AND ("
-                + "    SELECT COUNT(*) "
-                + "    FROM dbo.RETURN_REQUEST r "
-                + "    WHERE r.order_id = o.order_id "
-                + "    AND r.user_id = o.user_id "
-                + ") < 2 "
-                + "AND NOT EXISTS ("
-                + "    SELECT 1 FROM dbo.RETURN_REQUEST r "
-                + "    WHERE r.order_id = o.order_id "
-                + "    AND r.user_id = o.user_id "
-                + "    AND UPPER(LTRIM(RTRIM(r.request_status))) "
-                + "        IN ('PENDING', 'APPROVED')"
-                + ")";
+                = "SELECT 1 FROM dbo.[ORDER] "
+                + "WHERE order_id = ? AND user_id = ? "
+                + "AND UPPER(LTRIM(RTRIM(order_status))) "
+                + "IN ('COMPLETED', 'DELIVERED')";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -148,7 +134,6 @@ public class ReturnExchangeDAO {
         return skus;
     }
 
-
     public int createRequest(
             int orderId,
             int userId,
@@ -172,10 +157,8 @@ public class ReturnExchangeDAO {
         String orderSql
                 = "SELECT order_id FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE order_id = ? AND user_id = ? "
-                + "AND UPPER(LTRIM(RTRIM(order_status))) = 'COMPLETED' "
-                + "AND delivered_at IS NOT NULL "
-                + "AND delivered_at <= SYSDATETIME() "
-                + "AND delivered_at >= DATEADD(DAY, -7, SYSDATETIME())";
+                + "AND UPPER(LTRIM(RTRIM(order_status))) "
+                + "IN ('COMPLETED', 'DELIVERED')";
 
         String itemSql
                 = "SELECT oi.quantity, oi.sku_id, original.product_id "
