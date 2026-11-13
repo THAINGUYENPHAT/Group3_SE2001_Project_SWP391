@@ -17,15 +17,25 @@ public class NotificationDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(NotificationDAO.class.getName());
 
-    public boolean createOrderStatusNotification(
-            int orderId, String status) {
+    public boolean createOrderStatusNotification(int orderId, String status) {
+        try (Connection conn = getConnection()) {
+            return createOrderStatusNotification(conn, orderId, status);
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error creating order status notification", ex);
+            return false;
+        }
+    }
 
+    /** Reuse the caller's transaction without closing or committing its connection. */
+    public static boolean createOrderStatusNotification(Connection conn, int orderId, String status) throws SQLException {
+        if (conn == null || conn.isClosed()) throw new SQLException("Kết nối không hợp lệ.");
+        if (orderId <= 0) throw new IllegalArgumentException("Mã đơn hàng không hợp lệ.");
         String title;
         String message;
 
         String normalizedStatus = status == null
                 ? ""
-                : status.trim().toUpperCase();
+                : status.trim().toUpperCase(java.util.Locale.ROOT);
 
         if (normalizedStatus.equals("CONFIRMED")) {
 
@@ -79,7 +89,7 @@ public class NotificationDAO extends DBContext {
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.order_id = ?";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, title);
             ps.setString(2, message);
@@ -87,12 +97,7 @@ public class NotificationDAO extends DBContext {
 
             return ps.executeUpdate() > 0;
 
-        } catch (SQLException ex) {
-            LOGGER.log(Level.SEVERE,
-                    "Error creating order status notification", ex);
         }
-
-        return false;
     }
 
     public void createReturnExchangeNotification(
