@@ -3,8 +3,6 @@ package controller;
 import dao.BrandDAO;
 import dao.CategoryDAO;
 import dao.ProductDAO;
-import model.Brand;
-import model.Category;
 import model.Product;
 
 import jakarta.servlet.ServletException;
@@ -24,16 +22,14 @@ import java.util.UUID;
 
 @WebServlet(name = "ProductServlet", urlPatterns = {"/product"})
 @MultipartConfig(
-        fileSizeThreshold = 1024 * 1024 * 2, 
-        maxFileSize = 1024 * 1024 * 10, 
-        maxRequestSize = 1024 * 1024 * 50 
+        fileSizeThreshold = 1024 * 1024 * 2,
+        maxFileSize = 1024 * 1024 * 10,
+        maxRequestSize = 1024 * 1024 * 50
 )
 public class ProductServlet extends HttpServlet {
 
-    private final AuditLogService auditLogService
-            = new AuditLogService();
+    private final AuditLogService auditLogService = new AuditLogService();
 
-    
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -53,14 +49,17 @@ public class ProductServlet extends HttpServlet {
 
             request.setAttribute("productList", productList);
             request.getRequestDispatcher("/WEB-INF/product/list.jsp").forward(request, response);
+
         } else if ("create".equals(view)) {
             BrandDAO brandDao = new BrandDAO();
             CategoryDAO categoryDao = new CategoryDAO();
 
             request.setAttribute("brandList", brandDao.getList());
             request.setAttribute("categoryList", categoryDao.getList());
+            request.setAttribute("attributeList", productDao.getAllAttributes());
 
             request.getRequestDispatcher("/WEB-INF/product/create.jsp").forward(request, response);
+
         } else if ("edit".equals(view)) {
             try {
                 int id = Integer.parseInt(request.getParameter("id"));
@@ -71,7 +70,6 @@ public class ProductServlet extends HttpServlet {
                     return;
                 }
 
-                
                 List<model.ProductImage> galleryImages = productDao.getProductImages(id);
                 product.setGalleryImages(galleryImages);
 
@@ -81,6 +79,8 @@ public class ProductServlet extends HttpServlet {
                 request.setAttribute("product", product);
                 request.setAttribute("brandList", brandDao.getList());
                 request.setAttribute("categoryList", categoryDao.getList());
+                request.setAttribute("attributeList", productDao.getAllAttributes());
+                request.setAttribute("productSpecs", productDao.getProductSpecsForAdmin(id));
 
                 request.getRequestDispatcher("/WEB-INF/product/edit.jsp").forward(request, response);
 
@@ -108,7 +108,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -120,7 +119,6 @@ public class ProductServlet extends HttpServlet {
         String nameRegex = "^[\\p{L}\\p{N}\\s\\-]+$";
 
         try {
-           
             if ("create".equals(action)) {
                 String name = request.getParameter("name").trim();
                 int categoryId = Integer.parseInt(request.getParameter("categoryId"));
@@ -140,30 +138,34 @@ public class ProductServlet extends HttpServlet {
                 }
 
                 String imageUrl = uploadImage(request);
-
                 List<String> galleryUrls = uploadMultipleImages(request, "galleryFiles");
 
                 Product newProduct = new Product(categoryId, brandId, name, description, imageUrl);
-
                 int newProductId = productDao.insertReturnId(newProduct);
 
                 if (newProductId > 0) {
+                    // Lưu ảnh gallery
                     if (!galleryUrls.isEmpty()) {
                         productDao.insertGalleryImages(newProductId, galleryUrls);
                     }
+
+                    // LƯU THÔNG SỐ KỸ THUẬT (SPECS)
+                    String[] attributeIds = request.getParameterValues("attributeIds");
+                    String[] specValues = request.getParameterValues("specValues");
+                    productDao.saveProductSpecs(newProductId, attributeIds, specValues);
+
                     response.sendRedirect(request.getContextPath() + "/product?view=list");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/product?view=create&error=true");
                 }
-            } 
-            else if ("edit".equals(action)) {
+
+            } else if ("edit".equals(action)) {
                 int id = Integer.parseInt(request.getParameter("id"));
                 String name = request.getParameter("name").trim();
                 int categoryId = Integer.parseInt(request.getParameter("categoryId"));
                 int brandId = Integer.parseInt(request.getParameter("brandId"));
                 String description = request.getParameter("description");
 
-               
                 String[] deleteImageIds = request.getParameterValues("deleteImageIds");
                 if (deleteImageIds != null) {
                     for (String imageIdStr : deleteImageIds) {
@@ -188,7 +190,6 @@ public class ProductServlet extends HttpServlet {
                 }
 
                 String imageUrl = uploadImage(request);
-
                 List<String> galleryUrls = uploadMultipleImages(request, "galleryFiles");
 
                 Product product = new Product();
@@ -205,12 +206,17 @@ public class ProductServlet extends HttpServlet {
                     if (!galleryUrls.isEmpty()) {
                         productDao.insertGalleryImages(id, galleryUrls);
                     }
+
+                    String[] attributeIds = request.getParameterValues("attributeIds");
+                    String[] specValues = request.getParameterValues("specValues");
+                    productDao.saveProductSpecs(id, attributeIds, specValues);
+
                     response.sendRedirect(request.getContextPath() + "/product?view=list");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/product?view=edit&id=" + id + "&error=true");
                 }
-            } 
-            else if ("delete".equals(action)) {
+
+            } else if ("delete".equals(action)) {
                 int id = Integer.parseInt(request.getParameter("id"));
                 int result = productDao.delete(id);
 
@@ -229,7 +235,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-  
     private String uploadImage(HttpServletRequest request) throws IOException, ServletException {
         Part filePart = request.getPart("imageFile");
 
@@ -250,7 +255,6 @@ public class ProductServlet extends HttpServlet {
         return null;
     }
 
-    
     private List<String> uploadMultipleImages(HttpServletRequest request, String partName) throws IOException, ServletException {
         List<String> imageUrls = new ArrayList<>();
         String uploadPath = request.getServletContext().getRealPath("") + File.separator + "uploads" + File.separator + "products";
