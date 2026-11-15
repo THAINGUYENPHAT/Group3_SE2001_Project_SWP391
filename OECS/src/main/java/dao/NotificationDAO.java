@@ -26,7 +26,6 @@ public class NotificationDAO extends DBContext {
         }
     }
 
-    /** Reuse the caller's transaction without closing or committing its connection. */
     public static boolean createOrderStatusNotification(Connection conn, int orderId, String status) throws SQLException {
         if (conn == null || conn.isClosed()) throw new SQLException("Kết nối không hợp lệ.");
         if (orderId <= 0) throw new IllegalArgumentException("Mã đơn hàng không hợp lệ.");

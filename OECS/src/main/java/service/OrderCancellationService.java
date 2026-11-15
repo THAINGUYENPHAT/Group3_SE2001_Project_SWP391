@@ -8,10 +8,6 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 
-/**
- * Cancellation decisions, stock and refund records share the order lock and
- * transaction.
- */
 public class OrderCancellationService {
 
     private final CheckoutConnectionFactory connections;
@@ -24,10 +20,6 @@ public class OrderCancellationService {
         this.connections = connections;
     }
 
-    /**
-     * Staff may cancel before shipment. Repeated cancellation does not restore
-     * stock again.
-     */
     public String staffCancel(int staffId, int orderId) throws SQLException {
         if (staffId <= 0 || orderId <= 0) {
             throw new IllegalArgumentException("Thông tin đơn hàng không hợp lệ.");
@@ -78,7 +70,6 @@ public class OrderCancellationService {
                 }
                 String cancellationReason = timedOut ? "Hết thời hạn thanh toán online" : "Nhân viên hủy đơn hàng";
                 boolean refund = false;
-                // Never label a refund successful here. Staff reconcile using the existing refund screen.
                 try (PreparedStatement p = c.prepareStatement("SELECT t.transaction_id,t.amount FROM dbo.PAYMENT_TRANSACTION t WITH (UPDLOCK,HOLDLOCK) "
                         + "WHERE t.order_id=? AND t.status='SUCCESS' AND t.amount>0 ORDER BY t.transaction_id")) {
                     p.setInt(1, orderId);

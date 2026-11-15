@@ -86,9 +86,6 @@ public class CustomerOrderServlet extends HttpServlet {
 
         try {
 
-            // ========================================
-            // 1. DANH SÁCH ĐƠN HÀNG
-            // ========================================
             if ("/my-orders".equals(request.getServletPath())) {
 
                 Map<String, String> tabs
@@ -181,9 +178,6 @@ public class CustomerOrderServlet extends HttpServlet {
                 return;
             }
 
-            // ========================================
-            // 2. CHI TIẾT ĐƠN HÀNG
-            // ========================================
             int id = positiveId(request.getParameter("id"));
 
             if (id < 1) {
@@ -215,9 +209,6 @@ public class CustomerOrderServlet extends HttpServlet {
 
             request.setAttribute("order", order);
 
-            // ========================================
-            // 3. THÔNG TIN HOÀN TIỀN
-            // ========================================
             request.setAttribute(
                     "refunds",
                     paymentRefundDAO.findForCustomer(
@@ -226,18 +217,6 @@ public class CustomerOrderServlet extends HttpServlet {
                     )
             );
 
-            // ========================================
-            // 4. ĐỔI / TRẢ HÀNG
-            // ========================================
-            // Không sử dụng delivered_at vì database
-            // hiện tại không có cột này.
-            //
-            // Điều kiện tạm thời:
-            // - Đơn hàng thuộc tài khoản đăng nhập
-            // - Trạng thái COMPLETED hoặc DELIVERED
-            //
-            // Phần gửi yêu cầu vẫn do
-            // ReturnExchangeServlet/Service kiểm tra.
             String orderStatus = order.getOrderStatus();
 
             boolean canRequestReturnExchange
@@ -248,7 +227,6 @@ public class CustomerOrderServlet extends HttpServlet {
                     canRequestReturnExchange
             );
 
-// Lấy yêu cầu đổi/trả gần nhất.
             request.setAttribute(
                     "latestReturnExchangeRequest",
                     returnExchangeDAO.getLatestRequestByOrder(
@@ -257,10 +235,6 @@ public class CustomerOrderServlet extends HttpServlet {
                     )
             );
 
-            // ========================================
-            // 5. SẢN PHẨM ĐÃ MUA
-            // GIỮ CHỨC NĂNG RATING
-            // ========================================
             request.setAttribute(
                     "items",
                     orders.findItems(
@@ -269,9 +243,6 @@ public class CustomerOrderServlet extends HttpServlet {
                     )
             );
 
-            // ========================================
-            // 6. LỊCH SỬ TRẠNG THÁI
-            // ========================================
             List<Map<String, Object>> history
                     = service.findHistory(
                             id,
@@ -290,9 +261,6 @@ public class CustomerOrderServlet extends HttpServlet {
 
             request.setAttribute("history", history);
 
-            // ========================================
-            // 7. HIỂN THỊ CHI TIẾT
-            // ========================================
             request.getRequestDispatcher(
                     "/WEB-INF/customer-orders/detail.jsp"
             ).forward(request, response);
@@ -312,9 +280,6 @@ public class CustomerOrderServlet extends HttpServlet {
         }
     }
 
-    // ============================================
-    // 8. HỦY ĐƠN HÀNG
-    // ============================================
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -427,9 +392,6 @@ public class CustomerOrderServlet extends HttpServlet {
         );
     }
 
-    // ============================================
-    // 9. KIỂM TRA CUSTOMER ĐĂNG NHẬP
-    // ============================================
     private User customer(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -466,9 +428,6 @@ public class CustomerOrderServlet extends HttpServlet {
         return user;
     }
 
-    // ============================================
-    // 10. KIỂM TRA ID
-    // ============================================
     private int positiveId(String value) {
 
         try {

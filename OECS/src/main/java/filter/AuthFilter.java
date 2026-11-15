@@ -36,7 +36,6 @@ public class AuthFilter implements Filter {
             "/reset-password",
             "/favicon.ico",
             "/guide",
-            // Callback thanh toan tu cong sandbox
             "/payment/vnpay/ipn",
             "/payment/momo/ipn",
             "/payment/vnpay/return",
