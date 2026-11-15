@@ -43,10 +43,10 @@
                 <form action="${pageContext.request.contextPath}/product" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="edit">
 
-                    <div class="mb-4">
+<!--                    <div class="mb-4">
                         <label class="form-label fw-semibold">Mã Sản Phẩm</label>
                         <input type="text" name="id" class="form-control form-control-lg bg-light" value="${product.productId}" readonly>
-                    </div>
+                    </div>-->
 
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Tên Sản Phẩm <span class="text-danger">*</span></label>

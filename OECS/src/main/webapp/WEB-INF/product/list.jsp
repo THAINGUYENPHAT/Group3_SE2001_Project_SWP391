@@ -84,7 +84,7 @@
         <table class="table table-custom align-middle">
             <thead>
                 <tr>
-                    <th style="width: 50px;">#</th>
+<!--                    <th style="width: 50px;">#</th>-->
                     <th>HÌNH ẢNH</th>
                     <th>SẢN PHẨM</th>
                     <th>DANH MỤC</th>
@@ -98,9 +98,9 @@
                     <c:when test="${not empty productList}">
                         <c:forEach items="${productList}" var="product">
                             <tr>
-                                <td>
+<!--                                <td>
                                     <span class="badge bg-light text-secondary border">#${product.productId}</span>
-                                </td>
+                                </td>-->
 
                                 <td>
                                     <c:choose>
