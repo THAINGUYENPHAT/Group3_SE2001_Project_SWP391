@@ -49,20 +49,6 @@ public class ShopServlet extends HttpServlet {
 
                     List<ProductReview> reviews
                             = reviewDao.getReviewsByProductId(id);
-                    System.out.println("========== REVIEW DEBUG ==========");
-                    System.out.println("Product ID: " + id);
-                    System.out.println("Total reviews: " + reviews.size());
-
-                    for (ProductReview review : reviews) {
-                        System.out.println(
-                                "Review ID: " + review.getReviewId()
-                                + " | SKU ID: " + review.getSkuId()
-                                + " | Rating: " + review.getRating()
-                        );
-                    }
-
-                    System.out.println("==================================");
-
                     int purchaseCount = reviewDao.getPurchaseCountByProductId(id);
                     int totalReviews = reviews.size();
                     int ratingSum = 0;

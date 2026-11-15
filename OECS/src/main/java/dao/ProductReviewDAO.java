@@ -36,7 +36,6 @@ public class ProductReviewDAO extends DBContext {
         return -1;
     }
 
-    
     public boolean canReview(
             int userId,
             int orderItemId,
@@ -81,7 +80,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    
     public boolean alreadyReviewed(int orderItemId) {
 
         String sql = "SELECT review_id "
@@ -103,7 +101,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-   
     public int insertReview(ProductReview review) {
 
         String sql = "INSERT INTO PRODUCT_REVIEWS "
@@ -135,7 +132,6 @@ public class ProductReviewDAO extends DBContext {
         return -1;
     }
 
-   
     public boolean insertReviewImage(int reviewId, String imageUrl) {
 
         String sql = "INSERT INTO REVIEW_IMAGES (review_id, image_url) VALUES (?, ?)";
@@ -154,7 +150,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    
     public ProductReview getReviewByIdAndUserId(int reviewId, int userId) {
 
         String sql = "SELECT review_id, user_id, order_item_id, sku_id, "
@@ -183,7 +178,6 @@ public class ProductReviewDAO extends DBContext {
         return null;
     }
 
-    
     public List<String> getReviewImages(int reviewId) {
 
         List<String> images = new ArrayList<>();
@@ -210,7 +204,6 @@ public class ProductReviewDAO extends DBContext {
         return images;
     }
 
-    
     public boolean updateReview(ProductReview review) {
 
         String sql = "UPDATE PRODUCT_REVIEWS "
@@ -234,7 +227,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-   
     public boolean deleteReview(int reviewId, int userId) {
 
         String deleteImagesSql = "DELETE FROM REVIEW_IMAGES WHERE review_id = ?";
@@ -290,7 +282,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    
     public List<ProductReview> getReviewsBySkuId(int skuId) {
 
         List<ProductReview> reviews = new ArrayList<>();
@@ -321,23 +312,11 @@ public class ProductReviewDAO extends DBContext {
         return reviews;
     }
 
-    
     public List<ProductReview> getReviewsByProductId(int productId) {
 
         List<ProductReview> reviews = new ArrayList<>();
 
-       
-        String debugSql
-                = "SELECT pr.review_id, pr.sku_id, "
-                + "pr.rating, pr.is_hidden, ps.product_id "
-                + "FROM dbo.PRODUCT_REVIEWS pr "
-                + "JOIN dbo.PRODUCT_SKU ps "
-                + "ON pr.sku_id = ps.sku_id "
-                + "WHERE ps.product_id = ? "
-                + "ORDER BY pr.review_id";
-
-        String sql
-                = "SELECT pr.review_id, pr.user_id, "
+        String sql = "SELECT pr.review_id, pr.user_id, "
                 + "pr.order_item_id, pr.sku_id, "
                 + "pr.rating, pr.comment, pr.created_at "
                 + "FROM dbo.PRODUCT_REVIEWS pr "
@@ -347,63 +326,20 @@ public class ProductReviewDAO extends DBContext {
                 + "AND pr.is_hidden = 0 "
                 + "ORDER BY pr.created_at DESC, pr.review_id DESC";
 
-        try (Connection conn = getConnection()) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT SERVERPROPERTY('ServerName') AS server_name, "
-                    + "DB_NAME() AS database_name"); ResultSet rs = ps.executeQuery()) {
+            ps.setInt(1, productId);
 
-                if (rs.next()) {
-                    System.out.println(
-                            "JAVA SERVER: " + rs.getString("server_name"));
-                    System.out.println(
-                            "JAVA DATABASE: " + rs.getString("database_name"));
-                }
-            }
-
-            System.out.println("===== ALL REVIEWS IN DATABASE =====");
-            System.out.println("Product ID: " + productId);
-
-            try (PreparedStatement ps = conn.prepareStatement(debugSql)) {
-
-                ps.setInt(1, productId);
-
-                try (ResultSet rs = ps.executeQuery()) {
-
-                    while (rs.next()) {
-                        System.out.println(
-                                "Review ID: " + rs.getInt("review_id")
-                                + " | SKU: " + rs.getInt("sku_id")
-                                + " | Rating: " + rs.getInt("rating")
-                                + " | Hidden: " + rs.getObject("is_hidden")
-                        );
-                    }
-                }
-            }
-
-            System.out.println("===== VISIBLE REVIEWS =====");
-
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-
-                ps.setInt(1, productId);
-
-                try (ResultSet rs = ps.executeQuery()) {
-
-                    while (rs.next()) {
-
-                        ProductReview review = mapReview(rs);
-                        reviews.add(review);
-
-                        System.out.println(
-                                "Visible Review ID: " + review.getReviewId()
-                        );
-                    }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    reviews.add(mapReview(rs));
                 }
             }
 
         } catch (SQLException e) {
             throw new IllegalStateException(
-                    "Lỗi tải đánh giá cho sản phẩm ID " + productId, e);
+                    "Lỗi tải đánh giá cho sản phẩm ID "
+                    + productId, e);
         }
 
         for (ProductReview review : reviews) {
@@ -411,9 +347,6 @@ public class ProductReviewDAO extends DBContext {
                     getReviewImages(review.getReviewId())
             );
         }
-
-        System.out.println("TOTAL VISIBLE REVIEWS: " + reviews.size());
-        System.out.println("=================================");
 
         return reviews;
     }
@@ -442,7 +375,6 @@ public class ProductReviewDAO extends DBContext {
         return 0;
     }
 
-   
     public int countReviewsBySkuId(int skuId) {
 
         String sql = "SELECT COUNT(*) AS total "
@@ -467,7 +399,6 @@ public class ProductReviewDAO extends DBContext {
         return 0;
     }
 
-    
     public int getPurchaseCountByProductId(int productId) {
 
         String sql = "SELECT COUNT(DISTINCT oi.order_item_id) AS purchase_count "
@@ -497,7 +428,6 @@ public class ProductReviewDAO extends DBContext {
         return 0;
     }
 
-    
     private ProductReview mapReview(ResultSet rs) throws SQLException {
 
         ProductReview review = new ProductReview();
