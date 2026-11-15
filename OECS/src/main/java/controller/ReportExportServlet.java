@@ -39,44 +39,33 @@ import java.util.logging.Logger;
         urlPatterns = "/admin/report/export"
 )
 public class ReportExportServlet extends HttpServlet {
+    private static final Logger LOGGER = Logger.getLogger(ReportExportServlet.class.getName());
 
-    private static final Logger LOGGER
-            = Logger.getLogger(ReportExportServlet.class.getName());
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private static final DateTimeFormatter DATE_FORMAT
-            = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final String FONT_REGULAR = "/WEB-INF/fonts/NotoSans-Regular.ttf";
 
-    private static final String FONT_REGULAR
-            = "/WEB-INF/fonts/NotoSans-Regular.ttf";
-
-    private static final String FONT_BOLD
-            = "/WEB-INF/fonts/NotoSans-Bold.ttf";
+    private static final String FONT_BOLD = "/WEB-INF/fonts/NotoSans-Bold.ttf";
 
     private ReportDAO reportDAO;
 
-    private final AuditLogService auditLogService
-            = new AuditLogService();
+    private final AuditLogService auditLogService = new AuditLogService();
 
     @Override
     public void init() {
         reportDAO = new ReportDAO();
     }
 
-    
     @Override
     protected void doGet(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
+        String startParam = request.getParameter("startDate");
 
-        String startParam
-                = request.getParameter("startDate");
+        String endParam = request.getParameter("endDate");
 
-        String endParam
-                = request.getParameter("endDate");
-
-        String format
-                = request.getParameter("format");
+        String format = request.getParameter("format");
 
         if (format == null || format.trim().isEmpty()) {
             format = "excel";
@@ -84,11 +73,7 @@ public class ReportExportServlet extends HttpServlet {
 
         if (!format.equalsIgnoreCase("excel")
                 && !format.equalsIgnoreCase("pdf")) {
-
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Định dạng báo cáo không hợp lệ."
-            );
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Định dạng báo cáo không hợp lệ.");
             return;
         }
 
@@ -110,52 +95,26 @@ public class ReportExportServlet extends HttpServlet {
         try {
             startDate = LocalDate.parse(startParam);
             endDate = LocalDate.parse(endParam);
-
         } catch (DateTimeParseException e) {
-
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Ngày không hợp lệ."
-            );
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Ngày không hợp lệ.");
             return;
         }
 
         if (startDate.isAfter(endDate)) {
-
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "Ngày bắt đầu không được lớn hơn ngày kết thúc."
-            );
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Ngày bắt đầu không được lớn hơn ngày kết thúc.");
             return;
         }
 
         try {
-            ReportData data = loadReportData(
-                    startDate, endDate
-            );
             String exportFormat;
             if (format.equalsIgnoreCase("pdf")) {
-
-                exportPdf(
-                        response,
-                        startDate,
-                        endDate,
-                        data
-                );
+                exportPdf(response, startDate, endDate);
                 exportFormat = "PDF";
-
             } else {
-
-                exportExcel(
-                        response,
-                        startDate,
-                        endDate,
-                        data
-                );
+                exportExcel(response, startDate, endDate);
                 exportFormat = "EXCEL";
             }
-            User loggedInUser
-                    = (User) request.getSession()
+            User loggedInUser = (User) request.getSession()
                             .getAttribute("loggedInUser");
 
             auditLogService.log(
@@ -171,100 +130,34 @@ public class ReportExportServlet extends HttpServlet {
                     + endDate,
                     request
             );
-
         } catch (Exception e) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi xuất báo cáo OECS",
-                    e
-            );
+            LOGGER.log(Level.SEVERE, "Lỗi xuất báo cáo OECS", e);
 
             if (!response.isCommitted()) {
                 response.reset();
-                throw new ServletException(
-                        "Không thể xuất báo cáo.", e
-                );
+                throw new ServletException("Không thể xuất báo cáo.", e);
             }
 
-            throw new IOException(
-                    "Lỗi khi xuất báo cáo.", e
-            );
-
+            throw new IOException("Lỗi khi xuất báo cáo.", e);
         }
-
-    }
-
-    
-    private static class ReportData {
-
-        BigDecimal totalRevenue;
-        int completedOrders;
-        int totalProductsSold;
-        BigDecimal averageOrderValue;
-
-        List<Object[]> revenueByDate;
-        List<Object[]> orderStatusStats;
-        List<Object[]> topSellingProducts;
-    }
-
-    private ReportData loadReportData(
-            LocalDate startDate,
-            LocalDate endDate) {
-
-        ReportData data = new ReportData();
-
-        data.totalRevenue
-                = reportDAO.getTotalRevenueByRange(
-                        startDate, endDate
-                );
-
-        data.completedOrders
-                = reportDAO.getCompletedOrdersByRange(
-                        startDate, endDate
-                );
-
-        data.totalProductsSold
-                = reportDAO.getTotalProductsSoldByRange(
-                        startDate, endDate
-                );
-
-        data.averageOrderValue
-                = reportDAO.getAverageOrderValueByRange(
-                        startDate, endDate
-                );
-
-        data.revenueByDate
-                = reportDAO.getRevenueByDateRange(
-                        startDate, endDate
-                );
-
-        data.orderStatusStats
-                = reportDAO.getOrderStatusByRange(
-                        startDate, endDate
-                );
-
-        data.topSellingProducts
-                = reportDAO.getTopSellingProductsByRange(
-                        startDate, endDate
-                );
-
-        return data;
     }
 
     private void exportExcel(
             HttpServletResponse response,
             LocalDate startDate,
-            LocalDate endDate,
-            ReportData data) throws IOException {
+            LocalDate endDate) throws IOException {
+        BigDecimal totalRevenue = reportDAO.getTotalRevenueByRange(startDate, endDate);
+        int completedOrders = reportDAO.getCompletedOrdersByRange(startDate, endDate);
+        int totalProductsSold = reportDAO.getTotalProductsSoldByRange(startDate, endDate);
+        List<Object[]> revenueByDate = reportDAO.getRevenueByDateRange(startDate, endDate);
+        List<Object[]> orderStatusStats = reportDAO.getOrderStatusByRange(startDate, endDate);
+        List<Object[]> topSellingProducts = reportDAO.getTopSellingProductsByRange(startDate, endDate);
+        BigDecimal averageOrderValue = ReportDAO.calculateAverageOrderValue(totalRevenue, completedOrders);
 
         try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Bao cao kinh doanh");
 
-            Sheet sheet
-                    = workbook.createSheet("Bao cao kinh doanh");
-
-            org.apache.poi.ss.usermodel.Font titleFont
-                    = workbook.createFont();
+            org.apache.poi.ss.usermodel.Font titleFont = workbook.createFont();
 
             titleFont.setBold(true);
             titleFont.setFontName("Arial");
@@ -273,13 +166,11 @@ public class ReportExportServlet extends HttpServlet {
                     IndexedColors.DARK_BLUE.getIndex()
             );
 
-            CellStyle titleStyle
-                    = workbook.createCellStyle();
+            CellStyle titleStyle = workbook.createCellStyle();
 
             titleStyle.setFont(titleFont);
 
-            org.apache.poi.ss.usermodel.Font headerFont
-                    = workbook.createFont();
+            org.apache.poi.ss.usermodel.Font headerFont = workbook.createFont();
 
             headerFont.setBold(true);
             headerFont.setFontName("Arial");
@@ -287,8 +178,7 @@ public class ReportExportServlet extends HttpServlet {
                     IndexedColors.WHITE.getIndex()
             );
 
-            CellStyle headerStyle
-                    = workbook.createCellStyle();
+            CellStyle headerStyle = workbook.createCellStyle();
 
             headerStyle.setFont(headerFont);
 
@@ -296,24 +186,18 @@ public class ReportExportServlet extends HttpServlet {
                     IndexedColors.DARK_BLUE.getIndex()
             );
 
-            headerStyle.setFillPattern(
-                    FillPatternType.SOLID_FOREGROUND
-            );
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
-            headerStyle.setVerticalAlignment(
-                    VerticalAlignment.CENTER
-            );
+            headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 
-            CellStyle moneyStyle
-                    = workbook.createCellStyle();
+            CellStyle moneyStyle = workbook.createCellStyle();
 
             moneyStyle.setDataFormat(
                     workbook.createDataFormat()
                             .getFormat("#,##0.##")
             );
 
-            CellStyle percentStyle
-                    = workbook.createCellStyle();
+            CellStyle percentStyle = workbook.createCellStyle();
 
             percentStyle.setDataFormat(
                     workbook.createDataFormat()
@@ -327,9 +211,7 @@ public class ReportExportServlet extends HttpServlet {
 
             Cell titleCell = titleRow.createCell(0);
 
-            titleCell.setCellValue(
-                    "OECS - BÁO CÁO KINH DOANH"
-            );
+            titleCell.setCellValue("OECS - BÁO CÁO KINH DOANH");
 
             titleCell.setCellStyle(titleStyle);
 
@@ -349,71 +231,55 @@ public class ReportExportServlet extends HttpServlet {
 
             row++;
 
-            row = addSection(
-                    sheet, row, headerStyle,
-                    "TỔNG QUAN KINH DOANH"
-            );
+            row = addSection(sheet, row, headerStyle, "TỔNG QUAN KINH DOANH");
 
             addMoneyRow(
                     sheet, row++,
                     "Tổng doanh thu (VNĐ)",
-                    data.totalRevenue,
+                    totalRevenue,
                     moneyStyle
             );
 
             addNumberRow(
                     sheet, row++,
                     "Đơn hàng hoàn thành",
-                    data.completedOrders
+                    completedOrders
             );
 
             addNumberRow(
                     sheet, row++,
                     "Sản phẩm đã bán",
-                    data.totalProductsSold
+                    totalProductsSold
             );
 
             addMoneyRow(
                     sheet, row++,
                     "Giá trị đơn trung bình (VNĐ)",
-                    data.averageOrderValue,
+                    averageOrderValue,
                     moneyStyle
             );
 
             row++;
 
-            row = addSection(
-                    sheet, row, headerStyle,
-                    "THỐNG KÊ TRẠNG THÁI ĐƠN HÀNG"
-            );
+            row = addSection(sheet, row, headerStyle, "THỐNG KÊ TRẠNG THÁI ĐƠN HÀNG");
 
-            row = addTableHeader(
-                    sheet, row, headerStyle,
-                    "Trạng thái",
-                    "Số đơn hàng",
-                    "Tỷ lệ"
-            );
+            row = addTableHeader(sheet, row, headerStyle, "Trạng thái", "Số đơn hàng", "Tỷ lệ");
 
             int totalOrders = 0;
 
-            for (Object[] item : data.orderStatusStats) {
+            for (Object[] item : orderStatusStats) {
                 totalOrders += toInt(item[1]);
             }
 
-            if (data.orderStatusStats.isEmpty()) {
-
+            if (orderStatusStats.isEmpty()) {
                 addTextRow(
                         sheet, row++,
                         "Không có đơn hàng",
                         ""
                 );
-
             } else {
-
-                for (Object[] item : data.orderStatusStats) {
-
-                    String status
-                            = statusName(String.valueOf(item[0]));
+                for (Object[] item : orderStatusStats) {
+                    String status = statusName(String.valueOf(item[0]));
 
                     int count = toInt(item[1]);
 
@@ -438,32 +304,20 @@ public class ReportExportServlet extends HttpServlet {
 
             row++;
 
-            row = addSection(
-                    sheet, row, headerStyle,
-                    "TOP 5 SẢN PHẨM BÁN CHẠY"
-            );
+            row = addSection(sheet, row, headerStyle, "TOP 5 SẢN PHẨM BÁN CHẠY");
 
-            row = addTableHeader(
-                    sheet, row, headerStyle,
-                    "Hạng",
-                    "Tên sản phẩm",
-                    "Số lượng đã bán"
-            );
+            row = addTableHeader(sheet, row, headerStyle, "Hạng", "Tên sản phẩm", "Số lượng đã bán");
 
-            if (data.topSellingProducts.isEmpty()) {
-
+            if (topSellingProducts.isEmpty()) {
                 addTextRow(
                         sheet, row++,
                         "Không có sản phẩm bán ra",
                         ""
                 );
-
             } else {
-
                 int rank = 1;
 
-                for (Object[] item : data.topSellingProducts) {
-
+                for (Object[] item : topSellingProducts) {
                     Row excelRow = sheet.createRow(row++);
 
                     excelRow.createCell(0)
@@ -481,37 +335,24 @@ public class ReportExportServlet extends HttpServlet {
 
             row++;
 
-            row = addSection(
-                    sheet, row, headerStyle,
-                    "DOANH THU THEO NGÀY"
-            );
+            row = addSection(sheet, row, headerStyle, "DOANH THU THEO NGÀY");
 
-            row = addTableHeader(
-                    sheet, row, headerStyle,
-                    "Ngày",
-                    "Doanh thu (VNĐ)",
-                    "Số đơn hoàn thành"
-            );
+            row = addTableHeader(sheet, row, headerStyle, "Ngày", "Doanh thu (VNĐ)", "Số đơn hoàn thành");
 
-            if (data.revenueByDate.isEmpty()) {
-
+            if (revenueByDate.isEmpty()) {
                 addTextRow(
                         sheet, row++,
                         "Không có doanh thu",
                         ""
                 );
-
             } else {
-
-                for (Object[] item : data.revenueByDate) {
-
+                for (Object[] item : revenueByDate) {
                     Row excelRow = sheet.createRow(row++);
 
                     excelRow.createCell(0)
                             .setCellValue(formatDate(item[0]));
 
-                    Cell revenueCell
-                            = excelRow.createCell(1);
+                    Cell revenueCell = excelRow.createCell(1);
 
                     revenueCell.setCellValue(
                             toMoney(item[1]).doubleValue()
@@ -529,7 +370,7 @@ public class ReportExportServlet extends HttpServlet {
             addMoneyRow(
                     sheet, row++,
                     "TỔNG DOANH THU (VNĐ)",
-                    data.totalRevenue,
+                    totalRevenue,
                     moneyStyle
             );
 
@@ -567,18 +408,15 @@ public class ReportExportServlet extends HttpServlet {
         }
     }
 
-   
     private int addSection(
             Sheet sheet,
             int rowIndex,
             CellStyle style,
             String title) {
-
         Row row = sheet.createRow(rowIndex++);
         row.setHeightInPoints(24);
 
         for (int i = 0; i < 3; i++) {
-
             Cell cell = row.createCell(i);
             cell.setCellStyle(style);
 
@@ -595,12 +433,10 @@ public class ReportExportServlet extends HttpServlet {
             int rowIndex,
             CellStyle style,
             String... headers) {
-
         Row row = sheet.createRow(rowIndex++);
         row.setHeightInPoints(23);
 
         for (int i = 0; i < headers.length; i++) {
-
             Cell cell = row.createCell(i);
 
             cell.setCellValue(headers[i]);
@@ -615,7 +451,6 @@ public class ReportExportServlet extends HttpServlet {
             int rowIndex,
             String label,
             String value) {
-
         Row row = sheet.createRow(rowIndex);
 
         row.createCell(0).setCellValue(label);
@@ -627,7 +462,6 @@ public class ReportExportServlet extends HttpServlet {
             int rowIndex,
             String label,
             int value) {
-
         Row row = sheet.createRow(rowIndex);
 
         row.createCell(0).setCellValue(label);
@@ -640,7 +474,6 @@ public class ReportExportServlet extends HttpServlet {
             String label,
             BigDecimal value,
             CellStyle style) {
-
         Row row = sheet.createRow(rowIndex);
 
         row.createCell(0).setCellValue(label);
@@ -654,22 +487,20 @@ public class ReportExportServlet extends HttpServlet {
         cell.setCellStyle(style);
     }
 
-    
     private void exportPdf(
             HttpServletResponse response,
             LocalDate startDate,
-            LocalDate endDate,
-            ReportData data) throws IOException {
+            LocalDate endDate) throws IOException {
+        BigDecimal totalRevenue = reportDAO.getTotalRevenueByRange(startDate, endDate);
+        int completedOrders = reportDAO.getCompletedOrdersByRange(startDate, endDate);
+        int totalProductsSold = reportDAO.getTotalProductsSoldByRange(startDate, endDate);
+        List<Object[]> revenueByDate = reportDAO.getRevenueByDateRange(startDate, endDate);
+        List<Object[]> orderStatusStats = reportDAO.getOrderStatusByRange(startDate, endDate);
+        List<Object[]> topSellingProducts = reportDAO.getTopSellingProductsByRange(startDate, endDate);
+        BigDecimal averageOrderValue = ReportDAO.calculateAverageOrderValue(totalRevenue, completedOrders);
 
         try (
-                InputStream regularStream
-                = getServletContext().getResourceAsStream(
-                        FONT_REGULAR
-                ); InputStream boldStream
-                = getServletContext().getResourceAsStream(
-                        FONT_BOLD
-                )) {
-
+                InputStream regularStream = getServletContext().getResourceAsStream(FONT_REGULAR); InputStream boldStream = getServletContext().getResourceAsStream(FONT_BOLD)) {
                     if (regularStream == null || boldStream == null) {
                         throw new IOException(
                                 "Không tìm thấy NotoSans-Regular.ttf hoặc "
@@ -678,28 +509,12 @@ public class ReportExportServlet extends HttpServlet {
                     }
 
                     try (PDDocument document = new PDDocument()) {
+                        PDType0Font regular = PDType0Font.load(document, regularStream, true);
 
-                        PDType0Font regular
-                                = PDType0Font.load(
-                                        document,
-                                        regularStream,
-                                        true
-                                );
+                        PDType0Font bold = PDType0Font.load(document, boldStream, true);
 
-                        PDType0Font bold
-                                = PDType0Font.load(
-                                        document,
-                                        boldStream,
-                                        true
-                                );
-
-                        try (PdfWriter pdf = new PdfWriter(
-                                document, regular, bold
-                        )) {
-
-                            pdf.heading(
-                                    "OECS - BÁO CÁO KINH DOANH"
-                            );
+                        try (PdfWriter pdf = new PdfWriter(document, regular, bold)) {
+                            pdf.heading("OECS - BÁO CÁO KINH DOANH");
 
                             pdf.paragraph(
                                     "Thời gian: "
@@ -714,46 +529,39 @@ public class ReportExportServlet extends HttpServlet {
 
                             pdf.paragraph(
                                     "Tổng doanh thu: "
-                                    + formatMoney(data.totalRevenue)
+                                    + formatMoney(totalRevenue)
                                     + " VNĐ"
                             );
 
                             pdf.paragraph(
                                     "Đơn hàng hoàn thành: "
-                                    + data.completedOrders
+                                    + completedOrders
                             );
 
                             pdf.paragraph(
                                     "Sản phẩm đã bán: "
-                                    + data.totalProductsSold
+                                    + totalProductsSold
                             );
 
                             pdf.paragraph(
                                     "Giá trị đơn trung bình: "
-                                    + formatMoney(data.averageOrderValue)
+                                    + formatMoney(averageOrderValue)
                                     + " VNĐ"
                             );
 
                             pdf.space(14);
 
-                            pdf.section(
-                                    "2. THỐNG KÊ TRẠNG THÁI ĐƠN HÀNG"
-                            );
+                            pdf.section("2. THỐNG KÊ TRẠNG THÁI ĐƠN HÀNG");
 
                             int totalOrders = 0;
 
-                            for (Object[] item : data.orderStatusStats) {
+                            for (Object[] item : orderStatusStats) {
                                 totalOrders += toInt(item[1]);
                             }
 
-                            if (data.orderStatusStats.isEmpty()) {
-
-                                pdf.paragraph(
-                                        "Không có đơn hàng trong khoảng thời gian này."
-                                );
-
+                            if (orderStatusStats.isEmpty()) {
+                                pdf.paragraph("Không có đơn hàng trong khoảng thời gian này.");
                             } else {
-
                                 pdf.beginTable(
                                         new String[]{
                                             "Trạng thái",
@@ -763,8 +571,7 @@ public class ReportExportServlet extends HttpServlet {
                                         new float[]{220, 140, 140}
                                 );
 
-                                for (Object[] item : data.orderStatusStats) {
-
+                                for (Object[] item : orderStatusStats) {
                                     int count = toInt(item[1]);
 
                                     double percent = totalOrders > 0
@@ -776,29 +583,18 @@ public class ReportExportServlet extends HttpServlet {
                                                     String.valueOf(item[0])
                                             ),
                                             String.valueOf(count),
-                                            String.format(
-                                                    Locale.US,
-                                                    "%.1f%%",
-                                                    percent
-                                            )
+                                            String.format(Locale.US, "%.1f%%", percent)
                                     );
                                 }
                             }
 
                             pdf.space(14);
 
-                            pdf.section(
-                                    "3. TOP 5 SẢN PHẨM BÁN CHẠY"
-                            );
+                            pdf.section("3. TOP 5 SẢN PHẨM BÁN CHẠY");
 
-                            if (data.topSellingProducts.isEmpty()) {
-
-                                pdf.paragraph(
-                                        "Không có sản phẩm bán ra trong kỳ."
-                                );
-
+                            if (topSellingProducts.isEmpty()) {
+                                pdf.paragraph("Không có sản phẩm bán ra trong kỳ.");
                             } else {
-
                                 pdf.beginTable(
                                         new String[]{
                                             "Hạng",
@@ -810,8 +606,7 @@ public class ReportExportServlet extends HttpServlet {
 
                                 int rank = 1;
 
-                                for (Object[] item : data.topSellingProducts) {
-
+                                for (Object[] item : topSellingProducts) {
                                     pdf.tableRow(
                                             String.valueOf(rank++),
                                             String.valueOf(item[0]),
@@ -822,18 +617,11 @@ public class ReportExportServlet extends HttpServlet {
 
                             pdf.space(14);
 
-                            pdf.section(
-                                    "4. DOANH THU THEO NGÀY"
-                            );
+                            pdf.section("4. DOANH THU THEO NGÀY");
 
-                            if (data.revenueByDate.isEmpty()) {
-
-                                pdf.paragraph(
-                                        "Không có doanh thu trong khoảng thời gian này."
-                                );
-
+                            if (revenueByDate.isEmpty()) {
+                                pdf.paragraph("Không có doanh thu trong khoảng thời gian này.");
                             } else {
-
                                 pdf.beginTable(
                                         new String[]{
                                             "Ngày",
@@ -843,8 +631,7 @@ public class ReportExportServlet extends HttpServlet {
                                         new float[]{125, 245, 130}
                                 );
 
-                                for (Object[] item : data.revenueByDate) {
-
+                                for (Object[] item : revenueByDate) {
                                     pdf.tableRow(
                                             formatDate(item[0]),
                                             formatMoney(toMoney(item[1])),
@@ -857,7 +644,7 @@ public class ReportExportServlet extends HttpServlet {
 
                             pdf.section(
                                     "TỔNG DOANH THU: "
-                                    + formatMoney(data.totalRevenue)
+                                    + formatMoney(totalRevenue)
                                     + " VNĐ"
                             );
 
@@ -888,9 +675,7 @@ public class ReportExportServlet extends HttpServlet {
                 }
     }
 
-  
     private static class PdfWriter implements AutoCloseable {
-
         private static final float PAGE_TOP = 780;
         private static final float PAGE_BOTTOM = 48;
         private static final float LEFT = 47;
@@ -911,7 +696,6 @@ public class ReportExportServlet extends HttpServlet {
                 PDDocument document,
                 PDType0Font regularFont,
                 PDType0Font boldFont) throws IOException {
-
             this.document = document;
             this.regularFont = regularFont;
             this.boldFont = boldFont;
@@ -920,29 +704,21 @@ public class ReportExportServlet extends HttpServlet {
         }
 
         private void newPage() throws IOException {
-
             if (content != null) {
                 content.close();
             }
 
-            PDPage page
-                    = new PDPage(PDRectangle.A4);
+            PDPage page = new PDPage(PDRectangle.A4);
 
             document.addPage(page);
 
-            content = new PDPageContentStream(
-                    document, page
-            );
+            content = new PDPageContentStream(document, page);
 
             y = PAGE_TOP;
             pageNumber++;
 
             if (pageNumber > 1) {
-
-                drawText(
-                        "OECS - Báo cáo kinh doanh (tiếp)",
-                        LEFT, y, 10, true
-                );
+                drawText("OECS - Báo cáo kinh doanh (tiếp)", LEFT, y, 10, true);
 
                 y -= 29;
             }
@@ -950,9 +726,7 @@ public class ReportExportServlet extends HttpServlet {
 
         private void ensureSpace(float height)
                 throws IOException {
-
             if (y - height < PAGE_BOTTOM) {
-
                 newPage();
 
                 // Lặp lại tiêu đề bảng ở trang mới
@@ -963,54 +737,38 @@ public class ReportExportServlet extends HttpServlet {
         }
 
         void heading(String text) throws IOException {
-
             tableActive = false;
             ensureSpace(38);
 
-            drawText(
-                    text, LEFT, y, 16, true
-            );
+            drawText(text, LEFT, y, 16, true);
 
             y -= 36;
         }
 
         void section(String text) throws IOException {
-
             tableActive = false;
             ensureSpace(35);
 
-            drawText(
-                    text, LEFT, y, 11, true
-            );
+            drawText(text, LEFT, y, 11, true);
 
             y -= 26;
         }
 
         void paragraph(String text) throws IOException {
-
             tableActive = false;
 
-            List<String> lines = wrapText(
-                    text,
-                    regularFont,
-                    10,
-                    500
-            );
+            List<String> lines = wrapText(text, regularFont, 10, 500);
 
             for (String line : lines) {
-
                 ensureSpace(18);
 
-                drawText(
-                        line, LEFT, y, 10, false
-                );
+                drawText(line, LEFT, y, 10, false);
 
                 y -= 18;
             }
         }
 
         void space(float height) throws IOException {
-
             tableActive = false;
             ensureSpace(height);
 
@@ -1020,7 +778,6 @@ public class ReportExportServlet extends HttpServlet {
         void beginTable(
                 String[] headers,
                 float[] widths) throws IOException {
-
             tableActive = false;
 
             ensureSpace(25);
@@ -1033,11 +790,9 @@ public class ReportExportServlet extends HttpServlet {
         }
 
         private void drawTableHeader() throws IOException {
-
             float x = LEFT;
 
             for (int i = 0; i < tableHeaders.length; i++) {
-
                 drawText(
                         tableHeaders[i],
                         x, y, 9, true
@@ -1050,20 +805,15 @@ public class ReportExportServlet extends HttpServlet {
         }
 
         void tableRow(String... cells) throws IOException {
-
             if (!tableActive) {
-                throw new IOException(
-                        "Chưa khởi tạo bảng PDF."
-                );
+                throw new IOException("Chưa khởi tạo bảng PDF.");
             }
 
-            List<List<String>> wrapped
-                    = new ArrayList<>();
+            List<List<String>> wrapped = new ArrayList<>();
 
             int maxLines = 1;
 
             for (int i = 0; i < cells.length; i++) {
-
                 List<String> lines = wrapText(
                         cells[i],
                         regularFont,
@@ -1079,19 +829,16 @@ public class ReportExportServlet extends HttpServlet {
                 );
             }
 
-            float rowHeight
-                    = maxLines * 15 + 6;
+            float rowHeight = maxLines * 15 + 6;
 
             ensureSpace(rowHeight);
 
             float x = LEFT;
 
             for (int i = 0; i < wrapped.size(); i++) {
-
                 List<String> lines = wrapped.get(i);
 
                 for (int j = 0; j < lines.size(); j++) {
-
                     drawText(
                             lines.get(j),
                             x,
@@ -1113,12 +860,9 @@ public class ReportExportServlet extends HttpServlet {
                 float positionY,
                 int fontSize,
                 boolean bold) throws IOException {
+            PDType0Font font = bold ? boldFont : regularFont;
 
-            PDType0Font font
-                    = bold ? boldFont : regularFont;
-
-            String safeText
-                    = text == null ? "" : text;
+            String safeText = text == null ? "" : text;
 
             if (safeText.isEmpty()) {
                 return;
@@ -1128,9 +872,7 @@ public class ReportExportServlet extends HttpServlet {
 
             content.setFont(font, fontSize);
 
-            content.newLineAtOffset(
-                    x, positionY
-            );
+            content.newLineAtOffset(x, positionY);
 
             content.showText(safeText);
 
@@ -1142,7 +884,6 @@ public class ReportExportServlet extends HttpServlet {
                 PDType0Font font,
                 int fontSize,
                 float maxWidth) throws IOException {
-
             List<String> result = new ArrayList<>();
 
             if (text == null || text.trim().isEmpty()) {
@@ -1153,21 +894,14 @@ public class ReportExportServlet extends HttpServlet {
             StringBuilder current = new StringBuilder();
 
             for (String word : text.trim().split("\\s+")) {
-
-                String candidate
-                        = current.length() == 0
+                String candidate = current.length() == 0
                         ? word
                         : current + " " + word;
 
-                if (textWidth(
-                        candidate, font, fontSize
-                ) <= maxWidth) {
-
+                if (textWidth(candidate, font, fontSize) <= maxWidth) {
                     current.setLength(0);
                     current.append(candidate);
-
                 } else {
-
                     if (current.length() > 0) {
                         result.add(current.toString());
                         current.setLength(0);
@@ -1177,7 +911,6 @@ public class ReportExportServlet extends HttpServlet {
 
                     for (int offset = 0;
                             offset < word.length();) {
-
                         int cp = word.codePointAt(offset);
 
                         String ch = new String(
@@ -1187,10 +920,7 @@ public class ReportExportServlet extends HttpServlet {
                         String test = part.toString() + ch;
 
                         if (part.length() > 0
-                                && textWidth(
-                                        test, font, fontSize
-                                ) > maxWidth) {
-
+                                && textWidth(test, font, fontSize) > maxWidth) {
                             result.add(part.toString());
                             part.setLength(0);
                         }
@@ -1215,14 +945,12 @@ public class ReportExportServlet extends HttpServlet {
                 String text,
                 PDType0Font font,
                 int fontSize) throws IOException {
-
             return font.getStringWidth(text)
                     / 1000f * fontSize;
         }
 
         @Override
         public void close() throws IOException {
-
             if (content != null) {
                 content.close();
                 content = null;
@@ -1230,9 +958,7 @@ public class ReportExportServlet extends HttpServlet {
         }
     }
 
-    
     private static int toInt(Object value) {
-
         if (value instanceof Number) {
             return ((Number) value).intValue();
         }
@@ -1241,13 +967,11 @@ public class ReportExportServlet extends HttpServlet {
     }
 
     private static BigDecimal toMoney(Object value) {
-
         if (value instanceof BigDecimal) {
             return (BigDecimal) value;
         }
 
         if (value instanceof Number) {
-
             return BigDecimal.valueOf(
                     ((Number) value).doubleValue()
             );
@@ -1257,16 +981,13 @@ public class ReportExportServlet extends HttpServlet {
     }
 
     private static String formatMoney(BigDecimal value) {
-
-        DecimalFormatSymbols symbols
-                = new DecimalFormatSymbols(
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(
                         new Locale("vi", "VN")
                 );
 
         symbols.setGroupingSeparator('.');
 
-        DecimalFormat formatter
-                = new DecimalFormat("#,##0.##", symbols);
+        DecimalFormat formatter = new DecimalFormat("#,##0.##", symbols);
 
         return formatter.format(
                 value == null
@@ -1276,19 +997,16 @@ public class ReportExportServlet extends HttpServlet {
     }
 
     private static String formatDate(Object value) {
-
         if (value == null) {
             return "";
         }
 
         if (value instanceof LocalDate) {
-
             return ((LocalDate) value)
                     .format(DATE_FORMAT);
         }
 
         if (value instanceof Date) {
-
             return ((Date) value)
                     .toLocalDate()
                     .format(DATE_FORMAT);
@@ -1297,25 +1015,20 @@ public class ReportExportServlet extends HttpServlet {
         String text = value.toString();
 
         try {
-
             return LocalDate.parse(
                     text.substring(0, 10)
             ).format(DATE_FORMAT);
-
         } catch (Exception e) {
-
             return text;
         }
     }
 
     private static String statusName(String status) {
-
         if (status == null) {
             return "Không xác định";
         }
 
         switch (status) {
-
             case "PENDING_CONFIRMATION":
                 return "Chờ xác nhận";
 
