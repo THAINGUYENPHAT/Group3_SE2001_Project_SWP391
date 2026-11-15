@@ -187,7 +187,7 @@
                     <label class="form-label">
                         Nội dung đánh giá
                     </label>
-                    <textarea name="comment" class="form-control" rows="6" maxlength="2000">${review.comment}</textarea>
+                   <textarea name="comment" class="form-control" rows="6" maxlength="2000"><c:out value="${review.comment}"/></textarea>
                 </div>
 
                 <c:if test="${not empty review.images}">
@@ -209,7 +209,8 @@
                         Lưu thay đổi
                     </button>
 
-                    <a href="${pageContext.request.contextPath}/orders" class="btn-back">
+                    <a href="${pageContext.request.contextPath}/review?view=create&orderItemId=${review.orderItemId}"
+                       class="btn-back">
                         Hủy
                     </a>
                 </div>

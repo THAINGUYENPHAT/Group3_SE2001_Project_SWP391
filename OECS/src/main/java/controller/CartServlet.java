@@ -21,8 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @WebServlet(
-        name = "CartServlet",
-        urlPatterns = {"/cart"}
+        name = "CartServlet",urlPatterns = {"/cart"}
 )
 public class CartServlet extends HttpServlet {
 

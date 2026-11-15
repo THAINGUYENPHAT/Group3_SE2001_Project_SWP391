@@ -23,8 +23,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @WebServlet(
-        name = "VoucherServlet",
-        urlPatterns = {"/staff/voucher"}
+        name = "VoucherServlet",urlPatterns = {"/staff/voucher"}
 )
 public class VoucherServlet extends HttpServlet {
 

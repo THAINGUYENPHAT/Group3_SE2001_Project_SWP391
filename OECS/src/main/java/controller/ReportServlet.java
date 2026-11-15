@@ -1,4 +1,3 @@
-
 package controller;
 
 import dao.ReportDAO;
@@ -45,8 +44,8 @@ public class ReportServlet extends HttpServlet {
             String startDateParam =
                     request.getParameter("startDate");
 
-            String endDateParam =
-                    request.getParameter("endDate");
+            String endDateParam
+                    = request.getParameter("endDate");
 
             LocalDate defaultEnd = LocalDate.now();
 
@@ -69,12 +68,12 @@ public class ReportServlet extends HttpServlet {
                 endDate = LocalDate.parse(endDateParam);
 
                 if (startDate.isAfter(endDate)) {
-                    filterError =
-                            "Start date cannot be after end date.";
+                    filterError
+                            = "Start date cannot be after end date.";
                 }
             } catch (DateTimeParseException e) {
-                filterError =
-                        "Invalid date format. Please select valid dates.";
+                filterError
+                        = "Invalid date format. Please select valid dates.";
             }
 
             BigDecimal totalRevenue = BigDecimal.ZERO;
@@ -114,5 +113,15 @@ public class ReportServlet extends HttpServlet {
 
             throw new ServletException("Cannot load Report page.", e);
         }
+    }
+
+    @Override
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        request.setCharacterEncoding("UTF-8");
+        doGet(request, response);
     }
 }

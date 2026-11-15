@@ -39,10 +39,26 @@ public class ReturnExchangeDAO {
             throws SQLException {
 
         String sql
-                = "SELECT 1 FROM dbo.[ORDER] "
-                + "WHERE order_id = ? AND user_id = ? "
-                + "AND UPPER(LTRIM(RTRIM(order_status))) "
-                + "IN ('COMPLETED', 'DELIVERED')";
+                = "SELECT 1 FROM dbo.[ORDER] o "
+                + "WHERE o.order_id = ? AND o.user_id = ? "
+                + "AND UPPER(LTRIM(RTRIM(o.order_status))) "
+                + "IN ('COMPLETED', 'DELIVERED') "
+                // Không cho gửi nếu đã có yêu cầu PENDING hoặc APPROVED.
+                + "AND NOT EXISTS ( "
+                + "    SELECT 1 FROM dbo.RETURN_REQUEST r "
+                + "    WHERE r.order_id = o.order_id "
+                + "    AND r.user_id = o.user_id "
+                + "    AND UPPER(LTRIM(RTRIM(r.request_status))) "
+                + "    IN ('PENDING', 'APPROVED') "
+                + ") "
+                // Không cho gửi nếu đã bị từ chối từ 2 lần trở lên.
+                + "AND ( "
+                + "    SELECT COUNT(*) FROM dbo.RETURN_REQUEST r "
+                + "    WHERE r.order_id = o.order_id "
+                + "    AND r.user_id = o.user_id "
+                + "    AND UPPER(LTRIM(RTRIM(r.request_status))) "
+                + "    = 'REJECTED' "
+                + ") < 2";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -198,6 +214,40 @@ public class ReturnExchangeDAO {
                         if (!rs.next()) {
                             throw new SQLException(
                                     "Đơn hàng không hợp lệ hoặc đã quá hạn 7 ngày.");
+                        }
+                    }
+                }
+
+                // Kiểm tra lịch sử yêu cầu trả/đổi của đơn hàng.
+                String requestLimitSql
+                        = "SELECT "
+                        + "COUNT(CASE WHEN UPPER(LTRIM(RTRIM(request_status))) "
+                        + "    = 'REJECTED' THEN 1 END) AS rejected_count, "
+                        + "COUNT(CASE WHEN UPPER(LTRIM(RTRIM(request_status))) "
+                        + "    IN ('PENDING', 'APPROVED') THEN 1 END) AS blocked_count "
+                        + "FROM dbo.RETURN_REQUEST WITH (UPDLOCK, HOLDLOCK) "
+                        + "WHERE order_id = ? AND user_id = ?";
+
+                try (PreparedStatement ps = conn.prepareStatement(requestLimitSql)) {
+                    ps.setInt(1, orderId);
+                    ps.setInt(2, userId);
+
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int rejectedCount = rs.getInt("rejected_count");
+                            int blockedCount = rs.getInt("blocked_count");
+
+                            if (rejectedCount >= 2) {
+                                throw new SQLException(
+                                        "Đơn hàng đã bị từ chối trả/đổi 2 lần. "
+                                        + "Bạn không thể gửi yêu cầu mới.");
+                            }
+
+                            if (blockedCount > 0) {
+                                throw new SQLException(
+                                        "Đơn hàng đã có yêu cầu đang chờ duyệt "
+                                        + "hoặc đã được duyệt.");
+                            }
                         }
                     }
                 }

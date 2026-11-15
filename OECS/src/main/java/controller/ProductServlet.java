@@ -12,7 +12,6 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
-import service.AuditLogService;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,7 +27,7 @@ import java.util.UUID;
 )
 public class ProductServlet extends HttpServlet {
 
-    private final AuditLogService auditLogService = new AuditLogService();
+    private static final String NAME_REGEX = "^[\\p{L}\\p{N}\\s\\-]+$";
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -39,25 +38,15 @@ public class ProductServlet extends HttpServlet {
 
         if (view == null || view.equals("list")) {
             String searchKeyword = request.getParameter("search");
-            List<Product> productList;
-
-            if (searchKeyword != null && !searchKeyword.trim().isEmpty()) {
-                productList = productDao.searchProducts(searchKeyword.trim());
-            } else {
-                productList = productDao.getList();
-            }
+            List<Product> productList = (searchKeyword != null && !searchKeyword.trim().isEmpty())
+                    ? productDao.searchProducts(searchKeyword.trim())
+                    : productDao.getList();
 
             request.setAttribute("productList", productList);
             request.getRequestDispatcher("/WEB-INF/product/list.jsp").forward(request, response);
 
         } else if ("create".equals(view)) {
-            BrandDAO brandDao = new BrandDAO();
-            CategoryDAO categoryDao = new CategoryDAO();
-
-            request.setAttribute("brandList", brandDao.getList());
-            request.setAttribute("categoryList", categoryDao.getList());
-            request.setAttribute("attributeList", productDao.getAllAttributes());
-
+            loadFormCommonAttributes(request, productDao);
             request.getRequestDispatcher("/WEB-INF/product/create.jsp").forward(request, response);
 
         } else if ("edit".equals(view)) {
@@ -70,17 +59,11 @@ public class ProductServlet extends HttpServlet {
                     return;
                 }
 
-                List<model.ProductImage> galleryImages = productDao.getProductImages(id);
-                product.setGalleryImages(galleryImages);
-
-                BrandDAO brandDao = new BrandDAO();
-                CategoryDAO categoryDao = new CategoryDAO();
+                product.setGalleryImages(productDao.getProductImages(id));
 
                 request.setAttribute("product", product);
-                request.setAttribute("brandList", brandDao.getList());
-                request.setAttribute("categoryList", categoryDao.getList());
-                request.setAttribute("attributeList", productDao.getAllAttributes());
                 request.setAttribute("productSpecs", productDao.getProductSpecsForAdmin(id));
+                loadFormCommonAttributes(request, productDao);
 
                 request.getRequestDispatcher("/WEB-INF/product/edit.jsp").forward(request, response);
 
@@ -116,8 +99,6 @@ public class ProductServlet extends HttpServlet {
         String action = request.getParameter("action");
         ProductDAO productDao = new ProductDAO();
 
-        String nameRegex = "^[\\p{L}\\p{N}\\s\\-]+$";
-
         try {
             if ("create".equals(action)) {
                 String name = request.getParameter("name").trim();
@@ -125,7 +106,7 @@ public class ProductServlet extends HttpServlet {
                 int brandId = Integer.parseInt(request.getParameter("brandId"));
                 String description = request.getParameter("description");
 
-                if (!name.matches(nameRegex)) {
+                if (!name.matches(NAME_REGEX)) {
                     request.getSession().setAttribute("errorMsg", "Tên sản phẩm không hợp lệ! Chỉ được dùng chữ cái, số, khoảng trắng và dấu gạch ngang (-).");
                     response.sendRedirect(request.getContextPath() + "/product?view=create");
                     return;
@@ -137,23 +118,21 @@ public class ProductServlet extends HttpServlet {
                     return;
                 }
 
-                String imageUrl = uploadImage(request);
+                String imageUrl = saveUploadedPart(request.getPart("imageFile"), request);
                 List<String> galleryUrls = uploadMultipleImages(request, "galleryFiles");
 
                 Product newProduct = new Product(categoryId, brandId, name, description, imageUrl);
                 int newProductId = productDao.insertReturnId(newProduct);
 
                 if (newProductId > 0) {
-                    // Lưu ảnh gallery
                     if (!galleryUrls.isEmpty()) {
                         productDao.insertGalleryImages(newProductId, galleryUrls);
                     }
-
-                    // LƯU THÔNG SỐ KỸ THUẬT (SPECS)
-                    String[] attributeIds = request.getParameterValues("attributeIds");
-                    String[] specValues = request.getParameterValues("specValues");
-                    productDao.saveProductSpecs(newProductId, attributeIds, specValues);
-
+                    productDao.saveProductSpecs(
+                            newProductId,
+                            request.getParameterValues("attributeIds"),
+                            request.getParameterValues("specValues")
+                    );
                     response.sendRedirect(request.getContextPath() + "/product?view=list");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/product?view=create&error=true");
@@ -170,14 +149,13 @@ public class ProductServlet extends HttpServlet {
                 if (deleteImageIds != null) {
                     for (String imageIdStr : deleteImageIds) {
                         try {
-                            int imageId = Integer.parseInt(imageIdStr);
-                            productDao.deleteGalleryImageById(imageId);
+                            productDao.deleteGalleryImageById(Integer.parseInt(imageIdStr));
                         } catch (NumberFormatException ignored) {
                         }
                     }
                 }
 
-                if (!name.matches(nameRegex)) {
+                if (!name.matches(NAME_REGEX)) {
                     request.getSession().setAttribute("errorMsg", "Tên sản phẩm không hợp lệ! Chỉ được dùng chữ cái, số, khoảng trắng và dấu gạch ngang (-).");
                     response.sendRedirect(request.getContextPath() + "/product?view=edit&id=" + id);
                     return;
@@ -189,28 +167,21 @@ public class ProductServlet extends HttpServlet {
                     return;
                 }
 
-                String imageUrl = uploadImage(request);
+                String imageUrl = saveUploadedPart(request.getPart("imageFile"), request);
                 List<String> galleryUrls = uploadMultipleImages(request, "galleryFiles");
 
-                Product product = new Product();
+                Product product = new Product(categoryId, brandId, name, description, imageUrl);
                 product.setProductId(id);
-                product.setProductName(name);
-                product.setCategoryId(categoryId);
-                product.setBrandId(brandId);
-                product.setDescription(description);
-                product.setImageUrl(imageUrl);
 
-                int result = productDao.update(product);
-
-                if (result > 0) {
+                if (productDao.update(product) > 0) {
                     if (!galleryUrls.isEmpty()) {
                         productDao.insertGalleryImages(id, galleryUrls);
                     }
-
-                    String[] attributeIds = request.getParameterValues("attributeIds");
-                    String[] specValues = request.getParameterValues("specValues");
-                    productDao.saveProductSpecs(id, attributeIds, specValues);
-
+                    productDao.saveProductSpecs(
+                            id,
+                            request.getParameterValues("attributeIds"),
+                            request.getParameterValues("specValues")
+                    );
                     response.sendRedirect(request.getContextPath() + "/product?view=list");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/product?view=edit&id=" + id + "&error=true");
@@ -218,9 +189,7 @@ public class ProductServlet extends HttpServlet {
 
             } else if ("delete".equals(action)) {
                 int id = Integer.parseInt(request.getParameter("id"));
-                int result = productDao.delete(id);
-
-                if (result > 0) {
+                if (productDao.delete(id) > 0) {
                     response.sendRedirect(request.getContextPath() + "/product?view=list");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/product?view=delete&id=" + id + "&error=true");
@@ -235,42 +204,39 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    private String uploadImage(HttpServletRequest request) throws IOException, ServletException {
-        Part filePart = request.getPart("imageFile");
+    private void loadFormCommonAttributes(HttpServletRequest request, ProductDAO productDao) {
+        request.setAttribute("brandList", new BrandDAO().getList());
+        request.setAttribute("categoryList", new CategoryDAO().getList());
+        request.setAttribute("attributeList", productDao.getAllAttributes());
+    }
 
-        if (filePart != null && filePart.getSize() > 0) {
-            String fileName = filePart.getSubmittedFileName();
+    private String saveUploadedPart(Part part, HttpServletRequest request) throws IOException {
+        if (part != null && part.getSize() > 0) {
+            String fileName = part.getSubmittedFileName();
             if (fileName != null && !fileName.trim().isEmpty()) {
-                String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
-                String uploadPath = request.getServletContext().getRealPath("") + File.separator + "uploads" + File.separator + "products";
+                String uploadPath = request.getServletContext().getRealPath("")
+                        + File.separator + "uploads" + File.separator + "products";
                 File uploadDir = new File(uploadPath);
                 if (!uploadDir.exists()) {
                     uploadDir.mkdirs();
                 }
 
-                filePart.write(uploadPath + File.separator + uniqueFileName);
+                String uniqueFileName = UUID.randomUUID() + "_" + fileName.trim();
+                part.write(uploadPath + File.separator + uniqueFileName);
                 return "uploads/products/" + uniqueFileName;
             }
         }
         return null;
     }
 
-    private List<String> uploadMultipleImages(HttpServletRequest request, String partName) throws IOException, ServletException {
+    private List<String> uploadMultipleImages(HttpServletRequest request, String partName)
+            throws IOException, ServletException {
         List<String> imageUrls = new ArrayList<>();
-        String uploadPath = request.getServletContext().getRealPath("") + File.separator + "uploads" + File.separator + "products";
-        File uploadDir = new File(uploadPath);
-
-        if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
-        }
-
         for (Part part : request.getParts()) {
-            if (part.getName().equals(partName) && part.getSize() > 0) {
-                String fileName = part.getSubmittedFileName();
-                if (fileName != null && !fileName.trim().isEmpty()) {
-                    String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
-                    part.write(uploadPath + File.separator + uniqueFileName);
-                    imageUrls.add("uploads/products/" + uniqueFileName);
+            if (partName.equals(part.getName())) {
+                String url = saveUploadedPart(part, request);
+                if (url != null) {
+                    imageUrls.add(url);
                 }
             }
         }
