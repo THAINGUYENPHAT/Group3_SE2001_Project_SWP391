@@ -17,8 +17,12 @@
         line-height: 1.5;
     }
 
-    #purchase-history * { box-sizing: border-box; }
-    #purchase-history a { text-decoration: none; }
+    #purchase-history * {
+        box-sizing: border-box;
+    }
+    #purchase-history a {
+        text-decoration: none;
+    }
     #purchase-history a:focus-visible,
     #purchase-history button:focus-visible,
     #purchase-history input:focus-visible {
@@ -62,11 +66,21 @@
         white-space: nowrap;
     }
 
-    #purchase-history .ph-shop .bi-bag-plus { font-size: 16px; }
-    #purchase-history .ph-shop .bi-arrow-right { font-size: 13px; }
-    #purchase-history .ph-shop:hover { background: #99371c; border-color: #99371c; color: #fff; }
+    #purchase-history .ph-shop .bi-bag-plus {
+        font-size: 16px;
+    }
+    #purchase-history .ph-shop .bi-arrow-right {
+        font-size: 13px;
+    }
+    #purchase-history .ph-shop:hover {
+        background: #99371c;
+        border-color: #99371c;
+        color: #fff;
+    }
 
-    #purchase-history .ph-heading { margin-bottom: 24px; }
+    #purchase-history .ph-heading {
+        margin-bottom: 24px;
+    }
     #purchase-history .ph-heading h1 {
         margin: 0 0 8px;
         font-size: 28px;
@@ -75,7 +89,10 @@
         letter-spacing: -.5px;
         color: var(--ink);
     }
-    #purchase-history .ph-heading p { margin: 0; color: var(--muted); }
+    #purchase-history .ph-heading p {
+        margin: 0;
+        color: var(--muted);
+    }
 
     #purchase-history .ph-filters {
         background: #fff;
@@ -101,7 +118,10 @@
         white-space: nowrap;
         font-size: 13px;
     }
-    #purchase-history .ph-tab:hover { background: #fffaf7; color: var(--accent); }
+    #purchase-history .ph-tab:hover {
+        background: #fffaf7;
+        color: var(--accent);
+    }
     #purchase-history .ph-tab.is-active {
         color: var(--accent);
         border-bottom-color: var(--accent);
@@ -127,7 +147,9 @@
         padding: 12px 16px;
         margin: 0;
     }
-    #purchase-history .ph-search > i { color: var(--muted); }
+    #purchase-history .ph-search > i {
+        color: var(--muted);
+    }
     #purchase-history .ph-search input[type="search"] {
         flex: 1;
         min-width: 0;
@@ -148,7 +170,9 @@
         white-space: nowrap;
         cursor: pointer;
     }
-    #purchase-history .ph-search button:hover { background: #eef2f6; }
+    #purchase-history .ph-search button:hover {
+        background: #eef2f6;
+    }
     #purchase-history .ph-results {
         display: flex;
         justify-content: space-between;
@@ -159,7 +183,9 @@
         font-size: 13px;
         overflow-wrap: anywhere;
     }
-    #purchase-history .ph-results a { color: var(--accent); }
+    #purchase-history .ph-results a {
+        color: var(--accent);
+    }
 
     #purchase-history .ph-order {
         margin-bottom: 16px;
@@ -184,7 +210,10 @@
         gap: 4px 14px;
         font-size: 13px;
     }
-    #purchase-history .ph-date { color: var(--muted); font-size: 12px; }
+    #purchase-history .ph-date {
+        color: var(--muted);
+        font-size: 12px;
+    }
     #purchase-history .ph-status {
         padding: 5px 10px;
         border-radius: 6px;
@@ -194,16 +223,26 @@
         font-weight: 600;
         white-space: nowrap;
     }
-    #purchase-history .ph-status.is-completed { background: #edf7f2; color: #216348; }
-    #purchase-history .ph-status.is-cancelled { background: #edf0f4; color: #64748b; }
-    #purchase-history .ph-products { padding: 0 20px; }
+    #purchase-history .ph-status.is-completed {
+        background: #edf7f2;
+        color: #216348;
+    }
+    #purchase-history .ph-status.is-cancelled {
+        background: #edf0f4;
+        color: #64748b;
+    }
+    #purchase-history .ph-products {
+        padding: 0 20px;
+    }
     #purchase-history .ph-product {
         display: flex;
         align-items: center;
         gap: 14px;
         padding: 20px 0;
     }
-    #purchase-history .ph-product + .ph-product { border-top: 1px solid #edf1f5; }
+    #purchase-history .ph-product + .ph-product {
+        border-top: 1px solid #edf1f5;
+    }
     #purchase-history .ph-icon {
         display: grid;
         flex: 0 0 54px;
@@ -215,7 +254,10 @@
         color: #8492a6;
         font-size: 24px;
     }
-    #purchase-history .ph-info { flex: 1; min-width: 0; }
+    #purchase-history .ph-info {
+        flex: 1;
+        min-width: 0;
+    }
     #purchase-history .ph-info h2 {
         margin: 0 0 4px;
         color: var(--ink);
@@ -230,7 +272,10 @@
         font-size: 12px;
         overflow-wrap: anywhere;
     }
-    #purchase-history .ph-info > span { color: #475569; font-size: 12px; }
+    #purchase-history .ph-info > span {
+        color: #475569;
+        font-size: 12px;
+    }
     #purchase-history .ph-price {
         color: #334155;
         text-align: right;
@@ -281,13 +326,18 @@
         color: #fff;
         font-size: 13px;
     }
-    #purchase-history .ph-button:hover { background: #99371c; color: #fff; }
+    #purchase-history .ph-button:hover {
+        background: #99371c;
+        color: #fff;
+    }
     #purchase-history .ph-secondary {
         background: #fff;
         border-color: var(--line);
         color: #475569;
     }
-    #purchase-history .ph-secondary:hover { background: #f8fafc; }
+    #purchase-history .ph-secondary:hover {
+        background: #f8fafc;
+    }
 
     #purchase-history .ph-empty {
         padding: 48px 20px;
@@ -302,8 +352,14 @@
         color: #94a3b8;
         font-size: 36px;
     }
-    #purchase-history .ph-empty h2 { margin: 0 0 8px; font-size: 18px; }
-    #purchase-history .ph-empty p { margin: 0 0 22px; color: var(--muted); }
+    #purchase-history .ph-empty h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+    }
+    #purchase-history .ph-empty p {
+        margin: 0 0 22px;
+        color: var(--muted);
+    }
     #purchase-history .ph-empty-actions,
     #purchase-history .ph-pagination {
         display: flex;
@@ -312,33 +368,81 @@
         flex-wrap: wrap;
         gap: 12px;
     }
-    #purchase-history .ph-pagination { margin-top: 24px; color: var(--muted); font-size: 13px; }
-    #purchase-history .ph-missing { margin: 0; padding: 18px 0; color: var(--muted); }
+    #purchase-history .ph-pagination {
+        margin-top: 24px;
+        color: var(--muted);
+        font-size: 13px;
+    }
+    #purchase-history .ph-missing {
+        margin: 0;
+        padding: 18px 0;
+        color: var(--muted);
+    }
 
     @media (max-width: 640px) {
-        #purchase-history { width: calc(100% - 24px); margin: 18px auto 32px; }
-        #purchase-history .ph-heading h1 { font-size: 24px; }
-        #purchase-history .ph-heading p { font-size: 13px; }
-        #purchase-history .ph-current { font-size: 13px; }
-        #purchase-history .ph-tab { padding: 14px 12px; }
-        #purchase-history .ph-search { gap: 8px; padding: 10px 12px; }
-        #purchase-history .ph-search input[type="search"] { font-size: 16px; }
-        #purchase-history .ph-search button { padding: 8px 10px; }
+        #purchase-history {
+            width: calc(100% - 24px);
+            margin: 18px auto 32px;
+        }
+        #purchase-history .ph-heading h1 {
+            font-size: 24px;
+        }
+        #purchase-history .ph-heading p {
+            font-size: 13px;
+        }
+        #purchase-history .ph-current {
+            font-size: 13px;
+        }
+        #purchase-history .ph-tab {
+            padding: 14px 12px;
+        }
+        #purchase-history .ph-search {
+            gap: 8px;
+            padding: 10px 12px;
+        }
+        #purchase-history .ph-search input[type="search"] {
+            font-size: 16px;
+        }
+        #purchase-history .ph-search button {
+            padding: 8px 10px;
+        }
         #purchase-history .ph-order-head,
-        #purchase-history .ph-order-foot { padding: 12px 14px; }
-        #purchase-history .ph-products { padding: 0 14px; }
-        #purchase-history .ph-meta { flex-direction: column; align-items: flex-start; }
-        #purchase-history .ph-status { padding: 5px 8px; font-size: 11px; }
+        #purchase-history .ph-order-foot {
+            padding: 12px 14px;
+        }
+        #purchase-history .ph-products {
+            padding: 0 14px;
+        }
+        #purchase-history .ph-meta {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        #purchase-history .ph-status {
+            padding: 5px 8px;
+            font-size: 11px;
+        }
         #purchase-history .ph-product {
             display: grid;
             grid-template-columns: 46px minmax(0, 1fr);
             gap: 8px 12px;
             padding: 16px 0;
         }
-        #purchase-history .ph-icon { width: 46px; height: 46px; font-size: 22px; }
-        #purchase-history .ph-info h2 { font-size: 14px; }
-        #purchase-history .ph-price { grid-column: 2; text-align: left; white-space: normal; }
-        #purchase-history .ph-total strong { font-size: 18px; }
+        #purchase-history .ph-icon {
+            width: 46px;
+            height: 46px;
+            font-size: 22px;
+        }
+        #purchase-history .ph-info h2 {
+            font-size: 14px;
+        }
+        #purchase-history .ph-price {
+            grid-column: 2;
+            text-align: left;
+            white-space: normal;
+        }
+        #purchase-history .ph-total strong {
+            font-size: 18px;
+        }
     }
 </style>
 
@@ -346,6 +450,19 @@
     <c:if test="${not empty orderingRestriction}">
         <div class="alert alert-warning" role="alert"><c:out value="${orderingRestriction}"/></div>
     </c:if>
+    <c:if test="${not empty sessionScope.successMessage}">
+        <div class="alert alert-success">
+            <c:out value="${sessionScope.successMessage}"/>
+        </div>
+        <c:remove var="successMessage" scope="session"/>
+    </c:if>
+
+    <c:if test="${not empty sessionScope.errorMessage}">
+        <div class="alert alert-danger">
+            <c:out value="${sessionScope.errorMessage}"/>
+        </div>
+        <c:remove var="errorMessage" scope="session"/>
+    </c:if>    
 
 
     <div class="ph-topbar">
@@ -434,14 +551,14 @@
 
             <h2>
                 ${empty query
-                    ? 'Chưa có đơn hàng ở mục này'
-                    : 'Không tìm thấy đơn hàng'}
+                  ? 'Chưa có đơn hàng ở mục này'
+                  : 'Không tìm thấy đơn hàng'}
             </h2>
 
             <p>
                 ${empty query
-                    ? 'Các đơn hàng phù hợp sẽ xuất hiện tại đây.'
-                    : 'Thử tìm bằng mã đơn hoặc tên sản phẩm khác.'}
+                  ? 'Các đơn hàng phù hợp sẽ xuất hiện tại đây.'
+                  : 'Thử tìm bằng mã đơn hoặc tên sản phẩm khác.'}
             </p>
 
             <div class="ph-empty-actions">
@@ -475,12 +592,12 @@
 
                 <span class="ph-status
                       ${order.orderStatus == 'CANCELLED'
-                          ? 'is-cancelled'
-                          : (order.orderStatus == 'COMPLETED'
-                              || order.orderStatus == 'DELIVERED'
-                              ? 'is-completed' : '')}">
-                    <c:out value="${statusLabels[order.orderStatus]}"
-                           default="Đang cập nhật" />
+                        ? 'is-cancelled'
+                        : (order.orderStatus == 'COMPLETED'
+                        || order.orderStatus == 'DELIVERED'
+                        ? 'is-completed' : '')}">
+                      <c:out value="${statusLabels[order.orderStatus]}"
+                             default="Đang cập nhật" />
                 </span>
             </div>
 
@@ -551,7 +668,7 @@
                         <c:when test="${order.orderStatus == 'CANCELLED'
                                         || order.orderStatus == 'COMPLETED'
                                         || order.orderStatus == 'DELIVERED'}">
-                            Xem chi tiết
+                                Xem chi tiết
                         </c:when>
                         <c:otherwise>
                             Theo dõi đơn hàng
