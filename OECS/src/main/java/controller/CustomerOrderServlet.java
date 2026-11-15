@@ -241,13 +241,21 @@ public class CustomerOrderServlet extends HttpServlet {
             String orderStatus = order.getOrderStatus();
 
             boolean canRequestReturnExchange
-                    = "COMPLETED".equalsIgnoreCase(orderStatus)
-                    || "DELIVERED".equalsIgnoreCase(orderStatus);
+                    = returnExchangeDAO.canRequest(id, user.getUserId());
 
-            request.setAttribute("canRequestReturnExchange", false);
+            request.setAttribute(
+                    "canRequestReturnExchange",
+                    canRequestReturnExchange
+            );
 
-            // Giữ thông tin yêu cầu đổi/trả gần nhất.
-            request.setAttribute("latestReturnExchangeRequest", null);
+// Lấy yêu cầu đổi/trả gần nhất.
+            request.setAttribute(
+                    "latestReturnExchangeRequest",
+                    returnExchangeDAO.getLatestRequestByOrder(
+                            id,
+                            user.getUserId()
+                    )
+            );
 
             // ========================================
             // 5. SẢN PHẨM ĐÃ MUA
