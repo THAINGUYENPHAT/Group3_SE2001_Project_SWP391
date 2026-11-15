@@ -15,37 +15,29 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ReportDAO extends DBContext {
+    private static final Logger LOGGER = Logger.getLogger(ReportDAO.class.getName());
 
-    private static final Logger LOGGER
-            = Logger.getLogger(ReportDAO.class.getName());
-
-    private static final String COMPLETED_CONDITION
-            = " o.order_status = 'COMPLETED' ";
+    private static final String COMPLETED_CONDITION = " o.order_status = 'COMPLETED' ";
 
     public BigDecimal getTotalRevenueByRange(
             LocalDate startDate, LocalDate endDate) {
-
-        String sql
-                = "SELECT ISNULL(SUM(o.total_amount), 0) AS total_revenue "
+        String sql = "SELECT ISNULL(SUM(o.total_amount), 0) AS total_revenue "
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
                 + "AND " + COMPLETED_CONDITION;
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    BigDecimal result
-                            = rs.getBigDecimal("total_revenue");
+                    BigDecimal result = rs.getBigDecimal("total_revenue");
 
                     return result != null
                             ? result : BigDecimal.ZERO;
                 }
             }
-
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE,
                     "Error getting total revenue", e);
@@ -56,16 +48,13 @@ public class ReportDAO extends DBContext {
 
     public int getCompletedOrdersByRange(
             LocalDate startDate, LocalDate endDate) {
-
-        String sql
-                = "SELECT COUNT(*) AS total_orders "
+        String sql = "SELECT COUNT(*) AS total_orders "
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
                 + "AND " + COMPLETED_CONDITION;
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -73,7 +62,6 @@ public class ReportDAO extends DBContext {
                     return rs.getInt("total_orders");
                 }
             }
-
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE,
                     "Error getting completed orders", e);
@@ -82,12 +70,9 @@ public class ReportDAO extends DBContext {
         return 0;
     }
 
-   
     public int getTotalProductsSoldByRange(
             LocalDate startDate, LocalDate endDate) {
-
-        String sql
-                = "SELECT ISNULL(SUM(oi.quantity), 0) AS total_products "
+        String sql = "SELECT ISNULL(SUM(oi.quantity), 0) AS total_products "
                 + "FROM ORDER_ITEM oi "
                 + "INNER JOIN dbo.[ORDER] o "
                 + "ON oi.order_id = o.order_id "
@@ -96,7 +81,6 @@ public class ReportDAO extends DBContext {
                 + "AND " + COMPLETED_CONDITION;
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -104,7 +88,6 @@ public class ReportDAO extends DBContext {
                     return rs.getInt("total_products");
                 }
             }
-
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE,
                     "Error getting products sold", e);
@@ -113,14 +96,11 @@ public class ReportDAO extends DBContext {
         return 0;
     }
 
-    
     public List<Object[]> getRevenueByDateRange(
             LocalDate startDate, LocalDate endDate) {
-
         List<Object[]> list = new ArrayList<>();
 
-        String sql
-                = "SELECT CAST(o.created_at AS DATE) AS report_date, "
+        String sql = "SELECT CAST(o.created_at AS DATE) AS report_date, "
                 + "SUM(o.total_amount) AS revenue, "
                 + "COUNT(*) AS order_count "
                 + "FROM dbo.[ORDER] o "
@@ -131,7 +111,6 @@ public class ReportDAO extends DBContext {
                 + "ORDER BY report_date DESC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -143,7 +122,6 @@ public class ReportDAO extends DBContext {
                     });
                 }
             }
-
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE,
                     "Error getting revenue by date", e);
@@ -152,35 +130,16 @@ public class ReportDAO extends DBContext {
         return list;
     }
 
-    
-    public BigDecimal getAverageOrderValueByRange(
-            LocalDate startDate, LocalDate endDate) {
-
-        BigDecimal revenue
-                = getTotalRevenueByRange(startDate, endDate);
-
-        int orders
-                = getCompletedOrdersByRange(startDate, endDate);
-
-        if (orders == 0) {
-            return BigDecimal.ZERO;
-        }
-
-        return revenue.divide(
-                BigDecimal.valueOf(orders),
-                2,
-                RoundingMode.HALF_UP
-        );
+    public static BigDecimal calculateAverageOrderValue(BigDecimal revenue, int completedOrders) {
+        return completedOrders == 0 ? BigDecimal.ZERO
+                : revenue.divide(BigDecimal.valueOf(completedOrders), 2, RoundingMode.HALF_UP);
     }
 
-    
     public List<Object[]> getOrderStatusByRange(
             LocalDate startDate, LocalDate endDate) {
-
         List<Object[]> list = new ArrayList<>();
 
-        String sql
-                = "SELECT o.order_status, COUNT(*) AS total "
+        String sql = "SELECT o.order_status, COUNT(*) AS total "
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
@@ -188,7 +147,6 @@ public class ReportDAO extends DBContext {
                 + "ORDER BY total DESC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -199,7 +157,6 @@ public class ReportDAO extends DBContext {
                     });
                 }
             }
-
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE,
                     "Error getting order statuses", e);
@@ -208,14 +165,11 @@ public class ReportDAO extends DBContext {
         return list;
     }
 
-   
     public List<Object[]> getTopSellingProductsByRange(
             LocalDate startDate, LocalDate endDate) {
-
         List<Object[]> list = new ArrayList<>();
 
-        String sql
-                = "SELECT TOP 5 "
+        String sql = "SELECT TOP 5 "
                 + "p.product_name, "
                 + "SUM(oi.quantity) AS total_sold "
                 + "FROM dbo.ORDER_ITEM oi "
@@ -232,12 +186,10 @@ public class ReportDAO extends DBContext {
                 + "ORDER BY total_sold DESC, p.product_name ASC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-
                     Object[] row = new Object[2];
 
                     row[0] = rs.getString("product_name");
@@ -246,7 +198,6 @@ public class ReportDAO extends DBContext {
                     list.add(row);
                 }
             }
-
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE,
                     "Error getting top selling products", e);
@@ -255,12 +206,10 @@ public class ReportDAO extends DBContext {
         return list;
     }
 
-    
     private void setDateRange(
             PreparedStatement ps,
             LocalDate startDate,
             LocalDate endDate) throws SQLException {
-
         ps.setDate(1, java.sql.Date.valueOf(startDate));
 
         ps.setDate(2,
