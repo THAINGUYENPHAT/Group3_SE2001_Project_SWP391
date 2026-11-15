@@ -84,7 +84,7 @@ public final class CheckoutIntegrationChecks {
         String schema = new String(bytes, bytes.length > 1 && bytes[0] == (byte) 0xff
                 && bytes[1] == (byte) 0xfe ? StandardCharsets.UTF_16LE : StandardCharsets.UTF_8);
         String[] tables = {"USER", "ADDRESSBOOK", "CATEGORY", "BRAND", "PRODUCT", "PRODUCT_SKU",
-            "CART", "CART_ITEMS", "SHIPPING_PARTNER", "VOUCHER", "ORDER", "ORDER_ITEM", "ORDER_STATUS_HISTORY", "VOUCHER_USAGES", "ORDER_CUSTOMER_POLICY", "ORDER_CUSTOMER_CANCELLATION", "PAYMENT_TRANSACTION", "PAYMENT_REFUND", "NOTIFICATION"};
+            "CART", "CART_ITEMS", "VOUCHER", "ORDER", "ORDER_ITEM", "ORDER_STATUS_HISTORY", "VOUCHER_USAGES", "ORDER_CUSTOMER_POLICY", "ORDER_CUSTOMER_CANCELLATION", "PAYMENT_TRANSACTION", "PAYMENT_REFUND", "NOTIFICATION"};
         for (String table : tables) {
             Matcher match = Pattern.compile("^CREATE TABLE \\[?" + table + "\\]? \\([\\s\\S]*?^\\);", Pattern.MULTILINE).matcher(schema);
             if (!match.find()) throw new IllegalStateException("Cannot find schema for " + table);
@@ -504,7 +504,57 @@ public final class CheckoutIntegrationChecks {
             }
         };
     }
+    private void adminOrderProgressChecks() throws Exception {
+        dao.AdminOrderDAO orders = cancellationStaffDAO();
+        int id = cancellationOrder("PENDING_CONFIRMATION", "COD", false);
+        long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+        model.Order detail = orders.getById(id);
+        check(detail != null && detail.getOrderId() == id, "admin detail maps the requested order");
+        model.Order listed = orders.getList().stream()
+                .filter(order -> order.getOrderId() == id).findFirst().orElseThrow();
+        check(java.util.Objects.equals(detail.getRecipientName(), listed.getRecipientName())
+                && java.util.Objects.equals(detail.getRecipientPhone(), listed.getRecipientPhone())
+                && java.util.Objects.equals(detail.getShippingAddress(), listed.getShippingAddress())
+                && detail.getTotalAmount().compareTo(listed.getTotalAmount()) == 0,
+                "admin list and detail preserve common order fields");
+        check("COD".equals(detail.getPaymentMethod()), "admin detail keeps payment fields");
+        check(!orders.transitionStatus(id, "SHIPPING"), "cannot skip order progress stages");
+        check(!orders.transitionStatus(id, "CANCELLED"), "progress DAO leaves cancellation to its service");
+        check(!orders.transitionStatus(id, "unknown"), "unknown requested status rejected");
+        check(orders.transitionStatus(id, "CONFIRMED"), "pending order can be confirmed");
+        check(!orders.transitionStatus(id, "CONFIRMED"), "repeated confirmation is rejected");
+        check(orders.transitionStatus(id, "PACKING"), "confirmed order can be packed");
+
+        execute("CREATE TRIGGER dbo.fail_admin_progress ON dbo.ORDER_STATUS_HISTORY AFTER INSERT AS THROW 51001, 'rollback order progress', 1");
+        try {
+            expectSql(() -> orders.transitionStatus(id, "SHIPPING"), "history failure rolls back progress");
+        } finally {
+            execute("DROP TRIGGER dbo.fail_admin_progress");
+        }
+        check("PACKING".equals(orders.getCurrentStatus(id)), "failed history preserves the previous status");
+        check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY WHERE order_id=" + id + " AND status='SHIPPING'") == 0,
+                "failed progress leaves no history row");
+        check(orders.transitionStatus(id, "SHIPPING"), "packed order can be shipped");
+        check(orders.transitionStatus(id, "COMPLETED"), "shipped order can be completed");
+        check(!orders.transitionStatus(id, "PACKING"), "completed order cannot move backwards");
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id
+                + " AND delivered_at IS NOT NULL AND stock_restored_at IS NULL") == 1,
+                "completion records delivery without restoring stock");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock,
+                "forward progress preserves stock");
+        check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY WHERE order_id=" + id
+                + " AND status IN ('CONFIRMED','PACKING','SHIPPING','COMPLETED')") == 4,
+                "each successful progress stage writes exactly one history row");
+
+        int duplicate = cancellationOrder("PACKING", "COD", false);
+        parallel(() -> cancellationStaffDAO().transitionStatus(duplicate, "SHIPPING"),
+                () -> cancellationStaffDAO().transitionStatus(duplicate, "SHIPPING"));
+        check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY WHERE order_id=" + duplicate + " AND status='SHIPPING'") == 1,
+                "concurrent progress writes one committed shipping history");
+    }
+
     private void staffCancellationChecks() throws Exception {
+        adminOrderProgressChecks();
         OrderCancellationService cancel=new OrderCancellationService(connections);
         for(String state:new String[]{"PENDING_PAYMENT","PENDING_CONFIRMATION","CONFIRMED","PACKING"}) {
             int id=cancellationOrder(state,"COD",false);

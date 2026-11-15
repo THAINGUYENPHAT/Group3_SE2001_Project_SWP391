@@ -17,6 +17,7 @@ import java.time.format.DateTimeParseException;
         urlPatterns = "/admin/dashboard"
 )
 public class AdminDashboardServlet extends HttpServlet {
+    private static final int DEFAULT_RANGE_DAYS = 30;
 
     private DashboardDAO dashboardDAO;
 
@@ -30,53 +31,38 @@ public class AdminDashboardServlet extends HttpServlet {
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
-
         LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(29);
+        LocalDate startDate = endDate.minusDays(DEFAULT_RANGE_DAYS - 1);
 
         String startParam = request.getParameter("startDate");
         String endParam = request.getParameter("endDate");
 
         String dateError = null;
 
-        boolean hasStart
-                = startParam != null && !startParam.isBlank();
+        boolean hasStart = startParam != null && !startParam.isBlank();
 
-        boolean hasEnd
-                = endParam != null && !endParam.isBlank();
+        boolean hasEnd = endParam != null && !endParam.isBlank();
 
-       
         if (hasStart || hasEnd) {
-
             if (!hasStart || !hasEnd) {
-
                 dateError
                         = "Vui lòng chọn đầy đủ ngày bắt đầu "
                         + "và ngày kết thúc.";
-
             } else {
-
                 try {
-                    LocalDate selectedStart
-                            = LocalDate.parse(startParam);
+                    LocalDate selectedStart = LocalDate.parse(startParam);
 
-                    LocalDate selectedEnd
-                            = LocalDate.parse(endParam);
+                    LocalDate selectedEnd = LocalDate.parse(endParam);
 
                     if (selectedStart.isAfter(selectedEnd)) {
-
                         dateError
                                 = "Ngày bắt đầu không được lớn hơn "
                                 + "ngày kết thúc.";
-
                     } else {
-
                         startDate = selectedStart;
                         endDate = selectedEnd;
                     }
-
                 } catch (DateTimeParseException ex) {
-
                     dateError
                             = "Ngày được chọn không hợp lệ.";
                 }
@@ -84,60 +70,42 @@ public class AdminDashboardServlet extends HttpServlet {
         }
 
         try {
-           
             request.setAttribute(
                     "totalRevenue",
-                    dashboardDAO.getTotalRevenueByRange(
-                            startDate, endDate
-                    )
+                    dashboardDAO.getTotalRevenueByRange(startDate, endDate)
             );
 
             request.setAttribute(
                     "totalOrders",
-                    dashboardDAO.getTotalOrdersByRange(
-                            startDate, endDate
-                    )
+                    dashboardDAO.getTotalOrdersByRange(startDate, endDate)
             );
 
             request.setAttribute(
                     "completedOrders",
-                    dashboardDAO.getCompletedOrdersByRange(
-                            startDate, endDate
-                    )
+                    dashboardDAO.getCompletedOrdersByRange(startDate, endDate)
             );
 
             request.setAttribute(
                     "cancelledOrders",
-                    dashboardDAO.getCancelledOrdersByRange(
-                            startDate, endDate
-                    )
+                    dashboardDAO.getCancelledOrdersByRange(startDate, endDate)
             );
 
             request.setAttribute(
                     "revenueByDate",
-                    dashboardDAO.getRevenueByDateRange(
-                            startDate, endDate
-                    )
+                    dashboardDAO.getRevenueByDateRange(startDate, endDate)
             );
 
             request.setAttribute(
                     "orderStatusStatistics",
-                    dashboardDAO.getOrderStatusByRange(
-                            startDate, endDate
-                    )
+                    dashboardDAO.getOrderStatusByRange(startDate, endDate)
             );
 
-            
             request.setAttribute(
                     "topSellingProducts",
-                    dashboardDAO.getTopSellingProductsByRange(
-                            startDate, endDate
-                    )
+                    dashboardDAO.getTopSellingProductsByRange(startDate, endDate)
             );
 
-           
-            int[] stock
-                    = dashboardDAO.getCurrentStockStatistics();
+            int[] stock = dashboardDAO.getCurrentStockStatistics();
 
             request.setAttribute("stockAvailable", stock[0]);
             request.setAttribute("stockLow", stock[1]);
@@ -153,7 +121,6 @@ public class AdminDashboardServlet extends HttpServlet {
                     stock[0] + stock[1] + stock[2]
             );
 
-            
             request.setAttribute(
                     "startDate", startDate.toString()
             );
@@ -162,16 +129,10 @@ public class AdminDashboardServlet extends HttpServlet {
                     "endDate", endDate.toString()
             );
 
-            request.setAttribute(
-                    "dateError", dateError
-            );
+            request.setAttribute("dateError", dateError);
 
-            request.getRequestDispatcher(
-                    "/WEB-INF/admin/dashboard.jsp"
-            ).forward(request, response);
-
+            request.getRequestDispatcher("/WEB-INF/admin/dashboard.jsp").forward(request, response);
         } catch (IllegalStateException ex) {
-
             throw new ServletException(
                     "Không thể tải thống kê Dashboard "
                     + "từ SQL Server.",

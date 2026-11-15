@@ -17,6 +17,37 @@ import java.sql.SQLException;
 public class ReviewReportServlet extends HttpServlet {
 
     @Override
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String contextPath = request.getContextPath();
+
+        String productIdParam
+                = request.getParameter("productId");
+
+        try {
+            int productId = Integer.parseInt(productIdParam);
+
+            if (productId > 0) {
+                response.sendRedirect(
+                        contextPath
+                        + "/shop?action=detail&id="
+                        + productId
+                        + "#reviews"
+                );
+                return;
+            }
+
+        } catch (NumberFormatException e) {
+            // Product ID không hợp lệ.
+        }
+
+        response.sendRedirect(contextPath + "/shop");
+    }
+
+    @Override
     protected void doPost(HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {

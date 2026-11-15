@@ -1,22 +1,51 @@
 package dao;
 
 import db.DBContext;
+import model.Attribute;
 import model.Brand;
 import model.Category;
 import model.Product;
+import model.ProductImage;
+import model.ProductSpec;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import model.Attribute;
-import model.ProductSpec;
 
 public class ProductDAO extends DBContext {
+
+    private Product mapProduct(ResultSet rs) throws SQLException {
+        Category category = new Category(
+                rs.getInt("category_id"),
+                rs.getString("category_name"),
+                rs.getObject("parent_id") != null ? rs.getInt("parent_id") : null
+        );
+
+        Brand brand = new Brand(
+                rs.getInt("brand_id"),
+                rs.getString("brand_name"),
+                rs.getString("logo_url")
+        );
+
+        return new Product(
+                rs.getInt("product_id"),
+                rs.getInt("category_id"),
+                rs.getInt("brand_id"),
+                rs.getString("product_name"),
+                rs.getString("description"),
+                rs.getTimestamp("created_at"),
+                rs.getString("image_url"),
+                category,
+                brand
+        );
+    }
 
     public List<Product> getList() {
         List<Product> list = new ArrayList<>();
@@ -31,53 +60,12 @@ public class ProductDAO extends DBContext {
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
 
             while (rs.next()) {
-                Category category = new Category(
-                        rs.getInt("category_id"),
-                        rs.getString("category_name"),
-                        rs.getObject("parent_id") != null ? rs.getInt("parent_id") : null
-                );
-
-                Brand brand = new Brand(
-                        rs.getInt("brand_id"),
-                        rs.getString("brand_name"),
-                        rs.getString("logo_url")
-                );
-
-                Product product = new Product(
-                        rs.getInt("product_id"),
-                        rs.getInt("category_id"),
-                        rs.getInt("brand_id"),
-                        rs.getString("product_name"),
-                        rs.getString("description"),
-                        rs.getTimestamp("created_at"),
-                        rs.getString("image_url"),
-                        category,
-                        brand
-                );
-
-                list.add(product);
+                list.add(mapProduct(rs));
             }
         } catch (SQLException ex) {
             Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy danh sách Product!", ex);
         }
         return list;
-    }
-
-    public int insert(Product product) {
-        String sql = "INSERT INTO PRODUCT (product_name, description, category_id, brand_id, image_url) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
-
-            statement.setString(1, product.getProductName());
-            statement.setString(2, product.getDescription());
-            statement.setInt(3, product.getCategoryId());
-            statement.setInt(4, product.getBrandId());
-            statement.setString(5, product.getImageUrl()); // Lưu đường dẫn ảnh
-
-            return statement.executeUpdate();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            return 0;
-        }
     }
 
     public int insertReturnId(Product product) {
@@ -90,9 +78,7 @@ public class ProductDAO extends DBContext {
             statement.setInt(4, product.getBrandId());
             statement.setString(5, product.getImageUrl());
 
-            int affectedRows = statement.executeUpdate();
-
-            if (affectedRows > 0) {
+            if (statement.executeUpdate() > 0) {
                 try (ResultSet rs = statement.getGeneratedKeys()) {
                     if (rs.next()) {
                         return rs.getInt(1);
@@ -118,7 +104,7 @@ public class ProductDAO extends DBContext {
 
             return statement.executeUpdate();
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi cập nhật Product!", ex);
             return 0;
         }
     }
@@ -147,32 +133,9 @@ public class ProductDAO extends DBContext {
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
             statement.setInt(1, id);
-
             try (ResultSet rs = statement.executeQuery()) {
                 if (rs.next()) {
-                    Category category = new Category(
-                            rs.getInt("category_id"),
-                            rs.getString("category_name"),
-                            rs.getObject("parent_id") != null ? rs.getInt("parent_id") : null
-                    );
-
-                    Brand brand = new Brand(
-                            rs.getInt("brand_id"),
-                            rs.getString("brand_name"),
-                            rs.getString("logo_url")
-                    );
-
-                    return new Product(
-                            rs.getInt("product_id"),
-                            rs.getInt("category_id"),
-                            rs.getInt("brand_id"),
-                            rs.getString("product_name"),
-                            rs.getString("description"),
-                            rs.getTimestamp("created_at"),
-                            rs.getString("image_url"),
-                            category,
-                            brand
-                    );
+                    return mapProduct(rs);
                 }
             }
         } catch (SQLException ex) {
@@ -201,30 +164,7 @@ public class ProductDAO extends DBContext {
 
             try (ResultSet rs = statement.executeQuery()) {
                 while (rs.next()) {
-                    Category category = new Category(
-                            rs.getInt("category_id"),
-                            rs.getString("category_name"),
-                            rs.getObject("parent_id") != null ? rs.getInt("parent_id") : null
-                    );
-
-                    Brand brand = new Brand(
-                            rs.getInt("brand_id"),
-                            rs.getString("brand_name"),
-                            rs.getString("logo_url")
-                    );
-
-                    Product product = new Product(
-                            rs.getInt("product_id"),
-                            rs.getInt("category_id"),
-                            rs.getInt("brand_id"),
-                            rs.getString("product_name"),
-                            rs.getString("description"),
-                            rs.getTimestamp("created_at"),
-                            rs.getString("image_url"),
-                            category,
-                            brand
-                    );
-                    list.add(product);
+                    list.add(mapProduct(rs));
                 }
             }
         } catch (SQLException ex) {
@@ -273,36 +213,26 @@ public class ProductDAO extends DBContext {
             }
             stm.executeBatch();
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lưu ảnh Gallery!", ex);
         }
     }
 
-    public void deleteGalleryImages(int productId) {
-        String sql = "DELETE FROM PRODUCT_IMAGES WHERE product_id = ?";
-        try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
-            stm.setInt(1, productId);
-            stm.executeUpdate();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    public List<model.ProductImage> getProductImages(int productId) {
-        List<model.ProductImage> list = new ArrayList<>();
+    public List<ProductImage> getProductImages(int productId) {
+        List<ProductImage> list = new ArrayList<>();
         String sql = "SELECT image_id, product_id, image_url FROM PRODUCT_IMAGES WHERE product_id = ?";
         try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setInt(1, productId);
             try (ResultSet rs = stm.executeQuery()) {
                 while (rs.next()) {
-                    list.add(new model.ProductImage(
+                    list.add(new ProductImage(
                             rs.getInt("image_id"),
                             rs.getInt("product_id"),
                             rs.getString("image_url")
                     ));
                 }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy ảnh Gallery!", ex);
         }
         return list;
     }
@@ -313,10 +243,9 @@ public class ProductDAO extends DBContext {
             stm.setInt(1, imageId);
             stm.executeUpdate();
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi xóa ảnh Gallery!", ex);
         }
     }
-    // 1. Lấy danh sách tất cả Attribute để thả vào thẻ <select> trong form Create/Edit
 
     public List<Attribute> getAllAttributes() {
         List<Attribute> list = new ArrayList<>();
@@ -325,45 +254,55 @@ public class ProductDAO extends DBContext {
             while (rs.next()) {
                 list.add(new Attribute(rs.getInt("attribute_id"), rs.getString("attribute_name")));
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy danh sách Attribute!", ex);
         }
         return list;
     }
 
-// 2. Lưu danh sách thông số kỹ thuật (Dùng cho cả Create và Edit)
     public void saveProductSpecs(int productId, String[] attributeIds, String[] specValues) {
-        if (attributeIds == null || specValues == null || attributeIds.length != specValues.length) {
-            return;
-        }
-
         try (Connection conn = this.getConnection()) {
-            // Xóa thông số cũ (rất tiện khi Edit, ta xóa hết rồi insert lại cái mới)
             String sqlDelete = "DELETE FROM PRODUCT_SPECIFICATION WHERE product_id = ?";
             try (PreparedStatement psDel = conn.prepareStatement(sqlDelete)) {
                 psDel.setInt(1, productId);
                 psDel.executeUpdate();
             }
 
-            // Insert thông số mới
+            if (attributeIds == null || specValues == null) {
+                return;
+            }
+
+            Map<Integer, String> uniqueSpecs = new LinkedHashMap<>();
+            int len = Math.min(attributeIds.length, specValues.length);
+            for (int i = 0; i < len; i++) {
+                if (attributeIds[i] != null && !attributeIds[i].isEmpty()
+                        && specValues[i] != null && !specValues[i].trim().isEmpty()) {
+                    try {
+                        uniqueSpecs.put(Integer.parseInt(attributeIds[i]), specValues[i].trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+
+            if (uniqueSpecs.isEmpty()) {
+                return;
+            }
+
             String sqlInsert = "INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value) VALUES (?, ?, ?)";
             try (PreparedStatement psIns = conn.prepareStatement(sqlInsert)) {
-                for (int i = 0; i < attributeIds.length; i++) {
-                    if (attributeIds[i] != null && !attributeIds[i].isEmpty() && specValues[i] != null && !specValues[i].trim().isEmpty()) {
-                        psIns.setInt(1, productId);
-                        psIns.setInt(2, Integer.parseInt(attributeIds[i]));
-                        psIns.setString(3, specValues[i].trim());
-                        psIns.addBatch();
-                    }
+                for (Map.Entry<Integer, String> entry : uniqueSpecs.entrySet()) {
+                    psIns.setInt(1, productId);
+                    psIns.setInt(2, entry.getKey());
+                    psIns.setString(3, entry.getValue());
+                    psIns.addBatch();
                 }
                 psIns.executeBatch();
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lưu thông số kỹ thuật!", ex);
         }
     }
 
-// 3. Lấy thông số kỹ thuật của 1 sản phẩm để hiển thị lên form Edit
     public List<ProductSpec> getProductSpecsForAdmin(int productId) {
         List<ProductSpec> list = new ArrayList<>();
         String sql = "SELECT ps.attribute_id, a.attribute_name, ps.value "
@@ -374,11 +313,15 @@ public class ProductDAO extends DBContext {
             ps.setInt(1, productId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    list.add(new ProductSpec(rs.getInt("attribute_id"), rs.getString("attribute_name"), rs.getString("value")));
+                    list.add(new ProductSpec(
+                            rs.getInt("attribute_id"),
+                            rs.getString("attribute_name"),
+                            rs.getString("value")
+                    ));
                 }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (SQLException ex) {
+            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy thông số kỹ thuật!", ex);
         }
         return list;
     }

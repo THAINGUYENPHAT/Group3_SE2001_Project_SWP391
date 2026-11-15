@@ -32,9 +32,6 @@ public class ReviewServlet extends HttpServlet {
         reviewDAO = new ProductReviewDAO();
     }
 
-    // ============================================
-    // GET: HIỂN THỊ TRANG ĐÁNH GIÁ
-    // ============================================
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -75,9 +72,6 @@ public class ReviewServlet extends HttpServlet {
         }
     }
 
-    // ============================================
-    // POST: TẠO / SỬA / XÓA
-    // ============================================
     @Override
     protected void doPost(
             HttpServletRequest request,

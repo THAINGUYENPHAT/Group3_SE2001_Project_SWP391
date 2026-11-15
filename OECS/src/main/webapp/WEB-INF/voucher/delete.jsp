@@ -200,7 +200,7 @@
             Voucher đã được sử dụng có thể không xóa được do ràng buộc dữ liệu của đơn hàng.
         </div>
 
-        <form action="${pageContext.request.contextPath}/admin/voucher" method="post">
+        <form action="${pageContext.request.contextPath}/staff/voucher" method="post">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="voucherId" value="${voucher.voucherId}">
 
@@ -209,7 +209,7 @@
                     <i class="bi bi-trash3"></i> Xóa Voucher
                 </button>
 
-                <a href="${pageContext.request.contextPath}/admin/voucher" class="btn-cancel">
+                <a href="${pageContext.request.contextPath}/staff/voucher" class="btn-cancel">
                     <i class="bi bi-x-lg"></i> Hủy
                 </a>
             </div>

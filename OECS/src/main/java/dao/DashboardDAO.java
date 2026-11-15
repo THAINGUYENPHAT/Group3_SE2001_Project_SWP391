@@ -15,21 +15,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class DashboardDAO extends DBContext {
-
-    private static final Logger LOGGER
-            = Logger.getLogger(DashboardDAO.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(DashboardDAO.class.getName());
 
     public BigDecimal getTotalRevenueByRange(
             LocalDate start, LocalDate end) {
-
-        String sql
-                = "SELECT COALESCE(SUM(total_amount), 0) "
+        String sql = "SELECT COALESCE(SUM(total_amount), 0) "
                 + "FROM dbo.[ORDER] "
                 + "WHERE order_status = 'COMPLETED' "
                 + "AND created_at >= ? AND created_at < ?";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setRange(ps, start, end);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -37,7 +32,6 @@ public class DashboardDAO extends DBContext {
                     return rs.getBigDecimal(1);
                 }
             }
-
         } catch (SQLException ex) {
             throw databaseError(
                     "Lỗi lấy giá trị đơn hoàn thành", ex);
@@ -49,9 +43,7 @@ public class DashboardDAO extends DBContext {
 
     public int getTotalOrdersByRange(
             LocalDate start, LocalDate end) {
-
-        String sql
-                = "SELECT COUNT(*) FROM dbo.[ORDER] "
+        String sql = "SELECT COUNT(*) FROM dbo.[ORDER] "
                 + "WHERE created_at >= ? AND created_at < ?";
 
         return countByRange(sql, start, end);
@@ -59,9 +51,7 @@ public class DashboardDAO extends DBContext {
 
     public int getCompletedOrdersByRange(
             LocalDate start, LocalDate end) {
-
-        String sql
-                = "SELECT COUNT(*) FROM dbo.[ORDER] "
+        String sql = "SELECT COUNT(*) FROM dbo.[ORDER] "
                 + "WHERE order_status = 'COMPLETED' "
                 + "AND created_at >= ? AND created_at < ?";
 
@@ -70,9 +60,7 @@ public class DashboardDAO extends DBContext {
 
     public int getCancelledOrdersByRange(
             LocalDate start, LocalDate end) {
-
-        String sql
-                = "SELECT COUNT(*) FROM dbo.[ORDER] "
+        String sql = "SELECT COUNT(*) FROM dbo.[ORDER] "
                 + "WHERE order_status = 'CANCELLED' "
                 + "AND created_at >= ? AND created_at < ?";
 
@@ -81,11 +69,9 @@ public class DashboardDAO extends DBContext {
 
     public List<Object[]> getRevenueByDateRange(
             LocalDate start, LocalDate end) {
-
         List<Object[]> result = new ArrayList<>();
 
-        String sql
-                = "SELECT CAST(created_at AS DATE) AS order_date, "
+        String sql = "SELECT CAST(created_at AS DATE) AS order_date, "
                 + "SUM(total_amount) AS total_value "
                 + "FROM dbo.[ORDER] "
                 + "WHERE order_status = 'COMPLETED' "
@@ -94,7 +80,6 @@ public class DashboardDAO extends DBContext {
                 + "ORDER BY order_date ASC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setRange(ps, start, end);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -105,7 +90,6 @@ public class DashboardDAO extends DBContext {
                     });
                 }
             }
-
         } catch (SQLException ex) {
             throw databaseError(
                     "Lỗi lấy biểu đồ doanh thu", ex);
@@ -116,18 +100,15 @@ public class DashboardDAO extends DBContext {
 
     public List<Object[]> getOrderStatusByRange(
             LocalDate start, LocalDate end) {
-
         List<Object[]> result = new ArrayList<>();
 
-        String sql
-                = "SELECT order_status, COUNT(*) AS total "
+        String sql = "SELECT order_status, COUNT(*) AS total "
                 + "FROM dbo.[ORDER] "
                 + "WHERE created_at >= ? AND created_at < ? "
                 + "GROUP BY order_status "
                 + "ORDER BY total DESC, order_status ASC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setRange(ps, start, end);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -138,7 +119,6 @@ public class DashboardDAO extends DBContext {
                     });
                 }
             }
-
         } catch (SQLException ex) {
             throw databaseError(
                     "Lỗi thống kê trạng thái đơn", ex);
@@ -149,11 +129,9 @@ public class DashboardDAO extends DBContext {
 
     public List<Object[]> getTopSellingProductsByRange(
             LocalDate start, LocalDate end) {
-
         List<Object[]> result = new ArrayList<>();
 
-        String sql
-                = "SELECT TOP 5 "
+        String sql = "SELECT TOP 5 "
                 + "p.product_id, "
                 + "p.product_name, "
                 + "p.image_url, "
@@ -180,7 +158,6 @@ public class DashboardDAO extends DBContext {
                 + "p.product_name ASC, p.product_id ASC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setRange(ps, start, end);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -194,7 +171,6 @@ public class DashboardDAO extends DBContext {
                     });
                 }
             }
-
         } catch (SQLException ex) {
             throw databaseError(
                     "Lỗi lấy Top 5 sản phẩm", ex);
@@ -203,11 +179,8 @@ public class DashboardDAO extends DBContext {
         return result;
     }
 
-    
     public int[] getCurrentStockStatistics() {
-
-        String sql
-                = "SELECT "
+        String sql = "SELECT "
                 + "COALESCE(SUM(CASE "
                 + "WHEN COALESCE(stock_quantity, 0) > 5 "
                 + "THEN 1 ELSE 0 END), 0) AS in_stock, "
@@ -220,7 +193,6 @@ public class DashboardDAO extends DBContext {
                 + "FROM dbo.PRODUCT_SKU";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
-
             if (rs.next()) {
                 return new int[]{
                     rs.getInt("in_stock"),
@@ -228,7 +200,6 @@ public class DashboardDAO extends DBContext {
                     rs.getInt("out_stock")
                 };
             }
-
         } catch (SQLException ex) {
             throw databaseError(
                     "Lỗi lấy tình trạng tồn kho", ex);
@@ -238,12 +209,9 @@ public class DashboardDAO extends DBContext {
                 "Không đọc được dữ liệu tồn kho.");
     }
 
-    
     private int countByRange(
             String sql, LocalDate start, LocalDate end) {
-
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
             setRange(ps, start, end);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -251,7 +219,6 @@ public class DashboardDAO extends DBContext {
                     return rs.getInt(1);
                 }
             }
-
         } catch (SQLException ex) {
             throw databaseError(
                     "Lỗi đếm dữ liệu Dashboard", ex);
@@ -265,27 +232,22 @@ public class DashboardDAO extends DBContext {
             PreparedStatement ps,
             LocalDate start,
             LocalDate end) throws SQLException {
-
         ps.setDate(1, Date.valueOf(start));
         ps.setDate(2, Date.valueOf(end.plusDays(1)));
     }
 
     private IllegalStateException databaseError(
             String message, SQLException ex) {
-
         LOGGER.log(Level.SEVERE, message, ex);
 
         return new IllegalStateException(
                 message + ". Không thể tải dữ liệu.", ex);
     }
 
-    
     public List<Object[]> getLowStockProducts() {
-
         List<Object[]> result = new ArrayList<>();
 
-        String sql
-                = "SELECT "
+        String sql = "SELECT "
                 + "s.sku_id, "
                 + "s.sku_code, "
                 + "p.product_name, "
@@ -304,9 +266,7 @@ public class DashboardDAO extends DBContext {
                 + "s.sku_code ASC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
-
             while (rs.next()) {
-
                 result.add(new Object[]{
                     rs.getInt("sku_id"),
                     rs.getString("sku_code"),
@@ -316,22 +276,12 @@ public class DashboardDAO extends DBContext {
                     rs.getBigDecimal("price")
                 });
             }
-
         } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error getting low stock products", ex);
 
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Error getting low stock products",
-                    ex
-            );
-
-            throw new IllegalStateException(
-                    "Không thể lấy danh sách SKU cần nhập hàng.",
-                    ex
-            );
+            throw new IllegalStateException("Không thể lấy danh sách SKU cần nhập hàng.", ex);
         }
 
         return result;
     }
-
 }

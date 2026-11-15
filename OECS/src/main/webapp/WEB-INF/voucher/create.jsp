@@ -255,7 +255,7 @@
                     <i class="bi bi-plus-lg"></i> Tạo Voucher
                 </button>
 
-                <a href="${pageContext.request.contextPath}/admin/voucher" class="btn-back">
+                <a href="${pageContext.request.contextPath}/staff/voucher" class="btn-back">
                     <i class="bi bi-arrow-left"></i> Quay lại
                 </a>
             </div>

@@ -168,7 +168,7 @@
 
             <c:if test="${not empty review.comment}">
                 <div class="comment-box">
-                    ${review.comment}
+                    <c:out value="${review.comment}"/>
                 </div>
             </c:if>
 
@@ -190,7 +190,8 @@
                     Xóa đánh giá
                 </button>
 
-                <a href="${pageContext.request.contextPath}/orders" class="btn-cancel">
+                <a href="${pageContext.request.contextPath}/review?view=create&orderItemId=${review.orderItemId}"
+                   class="btn-cancel">
                     Hủy
                 </a>
             </div>
