@@ -177,8 +177,8 @@
             </h5>
 
             <div class="review-detail-comment"><c:out
-                value="${review.comment}"
-                default="Không có nhận xét chi tiết."/></div>
+                    value="${review.comment}"
+                    default="Không có nhận xét chi tiết."/></div>
 
             <c:if test="${not empty review.images}">
 
@@ -229,6 +229,17 @@
                 Sửa đánh giá
 
             </a>
+
+            <c:url var="deleteReviewUrl" value="/review">
+                <c:param name="view" value="delete"/>
+                <c:param name="id" value="${review.reviewId}"/>
+            </c:url>
+
+            <a href="${deleteReviewUrl}"
+               class="review-detail-btn btn btn-outline-danger">
+                <i class="bi bi-trash3"></i>
+                Xóa đánh giá
+            </a>   
 
         </div>
 

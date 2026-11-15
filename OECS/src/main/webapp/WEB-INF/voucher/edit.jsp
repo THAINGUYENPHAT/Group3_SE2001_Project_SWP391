@@ -258,7 +258,7 @@
                     <i class="bi bi-check-lg"></i> Lưu thay đổi
                 </button>
 
-                <a href="${pageContext.request.contextPath}/admin/voucher" class="btn-back">
+                <a href="${pageContext.request.contextPath}/staff/voucher" class="btn-back">
                     <i class="bi bi-x-lg"></i> Hủy
                 </a>
             </div>

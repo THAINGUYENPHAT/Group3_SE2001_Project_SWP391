@@ -95,7 +95,7 @@
     }
 
 
-  
+
 
     .stat-card {
         position: relative;
@@ -742,17 +742,6 @@
 
                 </div>
 
-
-                <a
-                    href="${pageContext.request.contextPath}/staff/voucher?view=usage"
-                    class="stat-link">
-
-                    Xem lịch sử
-
-                    <i class="bi bi-chevron-right"></i>
-
-                </a>
-
             </div>
 
         </div>
@@ -978,8 +967,8 @@
 
                                             <span
                                                 class="
-                                                    voucher-value
-                                                    value-percent
+                                                voucher-value
+                                                value-percent
                                                 ">
 
                                                 <fmt:formatNumber
@@ -999,8 +988,8 @@
 
                                             <span
                                                 class="
-                                                    voucher-value
-                                                    value-amount
+                                                voucher-value
+                                                value-amount
                                                 ">
 
                                                 <fmt:formatNumber

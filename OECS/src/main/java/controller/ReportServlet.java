@@ -1,4 +1,3 @@
-
 package controller;
 
 import dao.ReportDAO;
@@ -24,8 +23,8 @@ import java.util.logging.Logger;
 )
 public class ReportServlet extends HttpServlet {
 
-    private static final Logger LOGGER =
-            Logger.getLogger(ReportServlet.class.getName());
+    private static final Logger LOGGER
+            = Logger.getLogger(ReportServlet.class.getName());
 
     private ReportDAO reportDAO;
 
@@ -42,12 +41,11 @@ public class ReportServlet extends HttpServlet {
 
         try {
 
-           
-            String startDateParam =
-                    request.getParameter("startDate");
+            String startDateParam
+                    = request.getParameter("startDate");
 
-            String endDateParam =
-                    request.getParameter("endDate");
+            String endDateParam
+                    = request.getParameter("endDate");
 
             LocalDate defaultEnd = LocalDate.now();
 
@@ -61,7 +59,6 @@ public class ReportServlet extends HttpServlet {
                 endDateParam = defaultEnd.toString();
             }
 
-           
             LocalDate startDate = null;
             LocalDate endDate = null;
             String filterError = null;
@@ -71,16 +68,15 @@ public class ReportServlet extends HttpServlet {
                 endDate = LocalDate.parse(endDateParam);
 
                 if (startDate.isAfter(endDate)) {
-                    filterError =
-                            "Start date cannot be after end date.";
+                    filterError
+                            = "Start date cannot be after end date.";
                 }
 
             } catch (DateTimeParseException e) {
-                filterError =
-                        "Invalid date format. Please select valid dates.";
+                filterError
+                        = "Invalid date format. Please select valid dates.";
             }
 
-           
             BigDecimal totalRevenue = BigDecimal.ZERO;
 
             int completedOrders = 0;
@@ -89,55 +85,53 @@ public class ReportServlet extends HttpServlet {
 
             BigDecimal averageOrderValue = BigDecimal.ZERO;
 
-            List<Object[]> revenueByDate =
-                    new ArrayList<>();
+            List<Object[]> revenueByDate
+                    = new ArrayList<>();
 
-            List<Object[]> orderStatusStats =
-                    new ArrayList<>();
+            List<Object[]> orderStatusStats
+                    = new ArrayList<>();
 
-            List<Object[]> topSellingProducts =
-                    new ArrayList<>();
+            List<Object[]> topSellingProducts
+                    = new ArrayList<>();
 
-          
             if (filterError == null) {
 
-                totalRevenue =
-                        reportDAO.getTotalRevenueByRange(
+                totalRevenue
+                        = reportDAO.getTotalRevenueByRange(
                                 startDate, endDate
                         );
 
-                completedOrders =
-                        reportDAO.getCompletedOrdersByRange(
+                completedOrders
+                        = reportDAO.getCompletedOrdersByRange(
                                 startDate, endDate
                         );
 
-                totalProductsSold =
-                        reportDAO.getTotalProductsSoldByRange(
+                totalProductsSold
+                        = reportDAO.getTotalProductsSoldByRange(
                                 startDate, endDate
                         );
 
-                revenueByDate =
-                        reportDAO.getRevenueByDateRange(
+                revenueByDate
+                        = reportDAO.getRevenueByDateRange(
                                 startDate, endDate
                         );
 
-                averageOrderValue =
-                        reportDAO.getAverageOrderValueByRange(
+                averageOrderValue
+                        = reportDAO.getAverageOrderValueByRange(
                                 startDate, endDate
                         );
 
-                orderStatusStats =
-                        reportDAO.getOrderStatusByRange(
+                orderStatusStats
+                        = reportDAO.getOrderStatusByRange(
                                 startDate, endDate
                         );
 
-                topSellingProducts =
-                        reportDAO.getTopSellingProductsByRange(
+                topSellingProducts
+                        = reportDAO.getTopSellingProductsByRange(
                                 startDate, endDate
                         );
             }
 
-            
             request.setAttribute(
                     "totalRevenue", totalRevenue
             );
@@ -154,7 +148,6 @@ public class ReportServlet extends HttpServlet {
                     "averageOrderValue", averageOrderValue
             );
 
-            
             request.setAttribute(
                     "revenueByDate", revenueByDate
             );
@@ -167,7 +160,6 @@ public class ReportServlet extends HttpServlet {
                     "topSellingProducts", topSellingProducts
             );
 
-           
             request.setAttribute(
                     "startDate", startDateParam
             );
@@ -180,7 +172,6 @@ public class ReportServlet extends HttpServlet {
                     "filterError", filterError
             );
 
-          
             request.getRequestDispatcher(
                     "/WEB-INF/admin/report.jsp"
             ).forward(request, response);
@@ -197,5 +188,15 @@ public class ReportServlet extends HttpServlet {
                     "Cannot load Report page.", e
             );
         }
+    }
+
+    @Override
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        request.setCharacterEncoding("UTF-8");
+        doGet(request, response);
     }
 }
