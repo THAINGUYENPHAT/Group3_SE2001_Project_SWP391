@@ -16,9 +16,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,7 +35,6 @@ public class ShopServlet extends HttpServlet {
                 Product product = shopDao.getProductDetail(id);
 
                 if (product != null) {
-                    
                     List<ProductImage> galleryImages = shopDao.getProductImages(id);
                     product.setGalleryImages(galleryImages);
 
@@ -46,9 +42,8 @@ public class ShopServlet extends HttpServlet {
                     List<ProductSpec> specs = shopDao.getProductSpecs(id);
 
                     ProductReviewDAO reviewDao = new ProductReviewDAO();
+                    List<ProductReview> reviews = reviewDao.getReviewsByProductId(id);
 
-                    List<ProductReview> reviews
-                            = reviewDao.getReviewsByProductId(id);
                     int purchaseCount = reviewDao.getPurchaseCountByProductId(id);
                     int totalReviews = reviews.size();
                     int ratingSum = 0;
@@ -78,23 +73,20 @@ public class ShopServlet extends HttpServlet {
                     }
 
                     request.getRequestDispatcher("/WEB-INF/shop/detail.jsp").forward(request, response);
-
                 } else {
                     response.sendRedirect(request.getContextPath() + "/shop");
                 }
-
             } catch (NumberFormatException e) {
                 response.sendRedirect(request.getContextPath() + "/shop");
             }
-
         } else {
-           
             String keyword = request.getParameter("keyword");
             String[] categoryIds = request.getParameterValues("categoryId");
             String priceRange = request.getParameter("priceRange");
+            String minRating = request.getParameter("minRating");
             String sort = request.getParameter("sort");
 
-            List<Product> catalog = shopDao.getFilteredCatalog(keyword, categoryIds, priceRange, sort);
+            List<Product> catalog = shopDao.getFilteredCatalog(keyword, categoryIds, priceRange, minRating, sort);
 
             request.setAttribute("catalog", catalog);
             request.setAttribute("searchKeyword", keyword);
@@ -103,6 +95,7 @@ public class ShopServlet extends HttpServlet {
                 request.setAttribute("selectedCats", Arrays.asList(categoryIds));
             }
             request.setAttribute("selectedPrice", priceRange);
+            request.setAttribute("selectedRating", minRating);
             request.setAttribute("selectedSort", sort);
 
             request.getRequestDispatcher("/WEB-INF/shop/catalog.jsp").forward(request, response);
