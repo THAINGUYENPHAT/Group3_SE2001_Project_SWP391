@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import model.Attribute;
+import model.ProductSpec;
 
 public class ProductDAO extends DBContext {
 
@@ -78,7 +80,6 @@ public class ProductDAO extends DBContext {
         }
     }
 
-    
     public int insertReturnId(Product product) {
         String sql = "INSERT INTO PRODUCT (product_name, description, category_id, brand_id, image_url) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
@@ -94,7 +95,7 @@ public class ProductDAO extends DBContext {
             if (affectedRows > 0) {
                 try (ResultSet rs = statement.getGeneratedKeys()) {
                     if (rs.next()) {
-                        return rs.getInt(1); 
+                        return rs.getInt(1);
                     }
                 }
             }
@@ -180,7 +181,6 @@ public class ProductDAO extends DBContext {
         return null;
     }
 
-   
     public List<Product> searchProducts(String keyword) {
         List<Product> list = new ArrayList<>();
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
@@ -232,13 +232,13 @@ public class ProductDAO extends DBContext {
         }
         return list;
     }
-    
+
     public boolean checkProductNameExists(String productName) {
         String sql = "SELECT 1 FROM PRODUCT WHERE product_name = ?";
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
             statement.setString(1, productName);
             try (ResultSet rs = statement.executeQuery()) {
-                return rs.next(); 
+                return rs.next();
             }
         } catch (SQLException ex) {
             Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi kiểm tra trùng tên Product!", ex);
@@ -287,7 +287,6 @@ public class ProductDAO extends DBContext {
         }
     }
 
-   
     public List<model.ProductImage> getProductImages(int productId) {
         List<model.ProductImage> list = new ArrayList<>();
         String sql = "SELECT image_id, product_id, image_url FROM PRODUCT_IMAGES WHERE product_id = ?";
@@ -316,5 +315,71 @@ public class ProductDAO extends DBContext {
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
+    }
+    // 1. Lấy danh sách tất cả Attribute để thả vào thẻ <select> trong form Create/Edit
+
+    public List<Attribute> getAllAttributes() {
+        List<Attribute> list = new ArrayList<>();
+        String sql = "SELECT attribute_id, attribute_name FROM ATTRIBUTE";
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(new Attribute(rs.getInt("attribute_id"), rs.getString("attribute_name")));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+// 2. Lưu danh sách thông số kỹ thuật (Dùng cho cả Create và Edit)
+    public void saveProductSpecs(int productId, String[] attributeIds, String[] specValues) {
+        if (attributeIds == null || specValues == null || attributeIds.length != specValues.length) {
+            return;
+        }
+
+        try (Connection conn = this.getConnection()) {
+            // Xóa thông số cũ (rất tiện khi Edit, ta xóa hết rồi insert lại cái mới)
+            String sqlDelete = "DELETE FROM PRODUCT_SPECIFICATION WHERE product_id = ?";
+            try (PreparedStatement psDel = conn.prepareStatement(sqlDelete)) {
+                psDel.setInt(1, productId);
+                psDel.executeUpdate();
+            }
+
+            // Insert thông số mới
+            String sqlInsert = "INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value) VALUES (?, ?, ?)";
+            try (PreparedStatement psIns = conn.prepareStatement(sqlInsert)) {
+                for (int i = 0; i < attributeIds.length; i++) {
+                    if (attributeIds[i] != null && !attributeIds[i].isEmpty() && specValues[i] != null && !specValues[i].trim().isEmpty()) {
+                        psIns.setInt(1, productId);
+                        psIns.setInt(2, Integer.parseInt(attributeIds[i]));
+                        psIns.setString(3, specValues[i].trim());
+                        psIns.addBatch();
+                    }
+                }
+                psIns.executeBatch();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+// 3. Lấy thông số kỹ thuật của 1 sản phẩm để hiển thị lên form Edit
+    public List<ProductSpec> getProductSpecsForAdmin(int productId) {
+        List<ProductSpec> list = new ArrayList<>();
+        String sql = "SELECT ps.attribute_id, a.attribute_name, ps.value "
+                + "FROM PRODUCT_SPECIFICATION ps "
+                + "JOIN ATTRIBUTE a ON ps.attribute_id = a.attribute_id "
+                + "WHERE ps.product_id = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new ProductSpec(rs.getInt("attribute_id"), rs.getString("attribute_name"), rs.getString("value")));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 }

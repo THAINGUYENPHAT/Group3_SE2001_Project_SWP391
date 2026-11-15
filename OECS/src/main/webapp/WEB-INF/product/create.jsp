@@ -95,6 +95,39 @@
                         </div>
                     </div>
 
+                    <div class="mb-4 p-3 border rounded-3 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label fw-semibold text-dark mb-0">
+                                <i class="bi bi-sliders me-1"></i> Thông số kỹ thuật
+                            </label>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addSpecBtn">
+                                <i class="bi bi-plus-circle me-1"></i>Thêm dòng
+                            </button>
+                        </div>
+
+                        <div id="specContainer">
+                            <div class="row g-2 align-items-center mb-2 spec-row">
+                                <div class="col-md-4">
+                                    <select name="attributeIds" class="form-select">
+                                        <option value="">-- Chọn thuộc tính --</option>
+                                        <c:forEach items="${attributeList}" var="attr">
+                                            <option value="${attr.attributeId}">${attr.attributeName}</option>
+                                        </c:forEach>
+                                    </select>
+                                </div>
+                                <div class="col-md-7">
+                                    <input type="text" name="specValues" class="form-control" placeholder="Giá trị (VD: 8GB DDR4, 15.6 inch...)">
+                                </div>
+                                <div class="col-md-1 text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-spec-btn" title="Xóa dòng này">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-text mt-2">Bỏ trống các dòng không sử dụng.</div>
+                    </div>
+
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Mô Tả</label>
                         <textarea name="description" class="form-control" rows="5" placeholder="Nhập mô tả sản phẩm..."><c:out value="${param.description}" /></textarea>
@@ -114,5 +147,53 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const specContainer = document.getElementById('specContainer');
+        const addSpecBtn = document.getElementById('addSpecBtn');
+
+        function createSpecRow() {
+            const row = document.createElement('div');
+            row.className = 'row g-2 align-items-center mb-2 spec-row';
+            row.innerHTML = `
+            <div class="col-md-4">
+                <select name="attributeIds" class="form-select">
+                    <option value="">-- Chọn thuộc tính --</option>
+    <c:forEach items="${attributeList}" var="attr">
+                        <option value="${attr.attributeId}">${attr.attributeName}</option>
+    </c:forEach>
+                </select>
+            </div>
+            <div class="col-md-7">
+                <input type="text" name="specValues" class="form-control" placeholder="Giá trị...">
+            </div>
+            <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-spec-btn" title="Xóa dòng này">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+            return row;
+        }
+
+        addSpecBtn.addEventListener('click', function () {
+            specContainer.appendChild(createSpecRow());
+        });
+
+        specContainer.addEventListener('click', function (e) {
+            const removeBtn = e.target.closest('.remove-spec-btn');
+            if (removeBtn) {
+                if (specContainer.querySelectorAll('.spec-row').length > 1) {
+                    removeBtn.closest('.spec-row').remove();
+                } else {
+                    const row = removeBtn.closest('.spec-row');
+                    row.querySelector('select').value = '';
+                    row.querySelector('input').value = '';
+                }
+            }
+        });
+    });
+</script>
 
 <%@include file="/WEB-INF/include/footer.jsp"%>
