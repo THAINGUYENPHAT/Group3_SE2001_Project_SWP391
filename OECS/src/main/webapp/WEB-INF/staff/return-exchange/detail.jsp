@@ -497,6 +497,30 @@
 
                     <div class="col-12 col-sm-6 col-lg-4">
                         <div class="info-item">
+                            <span class="info-label">SỐ ĐIỆN THOẠI</span>
+                            <div class="info-value">
+                                <i class="bi bi-telephone text-secondary me-1"></i>
+
+                                <c:choose>
+                                    <c:when test="${not empty selectedRequest.phone}">
+                                        <a href="tel:<c:out value='${selectedRequest.phone}'/>"
+                                           class="text-decoration-none text-dark">
+                                            <c:out value="${selectedRequest.phone}"/>
+                                        </a>
+                                    </c:when>
+
+                                    <c:otherwise>
+                                        <span class="text-muted">
+                                            Chưa cập nhật
+                                        </span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="info-item">
                             <span class="info-label">LOẠI YÊU CẦU</span>
                             <div class="info-value">
                                 <c:choose>
