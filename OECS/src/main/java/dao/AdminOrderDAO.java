@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class AdminOrderDAO extends DBContext {
+
     private static final Logger LOGGER = Logger.getLogger(AdminOrderDAO.class.getName());
 
     public List<Order> getList() {
@@ -30,17 +31,20 @@ public class AdminOrderDAO extends DBContext {
                 + "o.recipient_name, "
                 + "o.recipient_phone, "
                 + "o.shipping_address, "
-                + "o.order_status "
+                + "o.order_status, "
+                + "o.payment_status "
                 + "FROM dbo.[ORDER] o "
                 + "ORDER BY o.created_at DESC, o.order_id DESC";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
             while (rs.next()) {
-                list.add(mapOrder(rs));
+                Order order = mapOrder(rs);
+                order.setPaymentStatus(rs.getString("payment_status"));
+                list.add(order);
             }
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE,
-                            "Lỗi lấy danh sách Order!", ex);
+                    "Lỗi lấy danh sách Order!", ex);
         }
 
         return list;
@@ -77,7 +81,7 @@ public class AdminOrderDAO extends DBContext {
             }
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE,
-                            "Lỗi lấy Order theo ID!", ex);
+                    "Lỗi lấy Order theo ID!", ex);
         }
 
         return null;
