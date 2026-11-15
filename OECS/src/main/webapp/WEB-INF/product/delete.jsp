@@ -30,10 +30,10 @@
                         </div>
                     </c:if>
 
-                    <div class="d-flex justify-content-between mb-2">
+<!--                    <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Mã sản phẩm:</span>
                         <strong>#${product.productId}</strong>
-                    </div>
+                    </div>-->
 
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Tên sản phẩm:</span>
