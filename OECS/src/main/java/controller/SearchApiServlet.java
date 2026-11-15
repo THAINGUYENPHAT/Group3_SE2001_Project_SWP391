@@ -19,7 +19,6 @@ public class SearchApiServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // Thiết lập header trả về JSON và hỗ trợ tiếng Việt
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
@@ -27,19 +26,17 @@ public class SearchApiServlet extends HttpServlet {
         PrintWriter out = response.getWriter();
 
         if (keyword == null || keyword.trim().isEmpty()) {
-            out.write("[]"); // Trả về mảng rỗng nếu không có từ khóa
+            out.write("[]"); 
             return;
         }
 
         ShopDAO shopDao = new ShopDAO();
         List<Product> products = shopDao.searchProducts(keyword.trim());
 
-        // Build chuỗi JSON thủ công
         StringBuilder json = new StringBuilder("[");
         for (int i = 0; i < products.size(); i++) {
             Product p = products.get(i);
 
-            // Escape dấu ngoặc kép để không làm hỏng cú pháp JSON
             String safeName = p.getProductName() != null ? p.getProductName().replace("\"", "\\\"") : "";
             String safeImageUrl = p.getImageUrl() != null ? p.getImageUrl().replace("\"", "\\\"").replace("\\", "\\\\") : "";
 
@@ -47,7 +44,7 @@ public class SearchApiServlet extends HttpServlet {
             json.append("\"id\":").append(p.getProductId()).append(",");
             json.append("\"name\":\"").append(safeName).append("\",");
             json.append("\"price\":").append(p.getMinPrice()).append(",");
-            json.append("\"imageUrl\":\"").append(safeImageUrl).append("\""); // ĐÃ THÊM IMAGE URL VÀO ĐÂY
+            json.append("\"imageUrl\":\"").append(safeImageUrl).append("\""); 
             json.append("}");
 
             if (i < products.size() - 1) {

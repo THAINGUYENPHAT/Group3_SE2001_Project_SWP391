@@ -12,17 +12,15 @@ public class Product {
     private String productName;
     private String description;
     private Timestamp createdAt;
-    private String imageUrl; // Đã thêm
+    private String imageUrl; 
 
     private double minPrice;
 
-    // Các đối tượng mapping
     private Category category;
     private Brand brand;
 
     private List<ProductImage> galleryImages = new ArrayList<>();
 
-    // Constructor mặc định
     public Product() {
     }
 
@@ -34,7 +32,6 @@ public class Product {
         this.galleryImages = galleryImages;
     }
 
-    // Constructor đầy đủ (dùng khi getList / getById từ DB)
     public Product(int productId, int categoryId, int brandId, String productName,
             String description, Timestamp createdAt, String imageUrl,
             Category category, Brand brand) {
@@ -49,7 +46,6 @@ public class Product {
         this.brand = brand;
     }
 
-    // Constructor dùng cho lúc Insert (không có ID, createdAt, brand, category)
     public Product(int categoryId, int brandId, String productName, String description, String imageUrl) {
         this.categoryId = categoryId;
         this.brandId = brandId;
@@ -58,7 +54,6 @@ public class Product {
         this.imageUrl = imageUrl;
     }
 
-    // Constructor cũ (Giữ lại để tương thích ngược nếu các chức năng khác chưa kịp sửa)
     public Product(int productId, int categoryId, int brandId, String productName, String description, Timestamp createdAt) {
         this.productId = productId;
         this.categoryId = categoryId;
@@ -79,9 +74,6 @@ public class Product {
         this.brand = brand;
     }
 
-    // ==========================================
-    // GETTERS & SETTERS
-    // ==========================================
     public int getProductId() {
         return productId;
     }

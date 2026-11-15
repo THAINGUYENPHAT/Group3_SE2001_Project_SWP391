@@ -19,13 +19,9 @@ public class ReportDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(ReportDAO.class.getName());
 
-    // Chỉ tính doanh thu từ đơn đã hoàn thành
     private static final String COMPLETED_CONDITION
             = " o.order_status = 'COMPLETED' ";
 
-    // =====================================================
-    // 1. TOTAL REVENUE
-    // =====================================================
     public BigDecimal getTotalRevenueByRange(
             LocalDate startDate, LocalDate endDate) {
 
@@ -58,9 +54,6 @@ public class ReportDAO extends DBContext {
         return BigDecimal.ZERO;
     }
 
-    // =====================================================
-    // 2. COMPLETED ORDERS
-    // =====================================================
     public int getCompletedOrdersByRange(
             LocalDate startDate, LocalDate endDate) {
 
@@ -89,9 +82,7 @@ public class ReportDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // 3. TOTAL PRODUCTS SOLD
-    // =====================================================
+   
     public int getTotalProductsSoldByRange(
             LocalDate startDate, LocalDate endDate) {
 
@@ -122,10 +113,7 @@ public class ReportDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // 4. REVENUE BY DATE
-    // Object[]: [date, revenue, orderCount]
-    // =====================================================
+    
     public List<Object[]> getRevenueByDateRange(
             LocalDate startDate, LocalDate endDate) {
 
@@ -164,9 +152,7 @@ public class ReportDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // 5. AVERAGE ORDER VALUE (AOV)
-    // =====================================================
+    
     public BigDecimal getAverageOrderValueByRange(
             LocalDate startDate, LocalDate endDate) {
 
@@ -187,10 +173,7 @@ public class ReportDAO extends DBContext {
         );
     }
 
-    // =====================================================
-    // 6. ORDER STATUS STATISTICS
-    // Object[]: [status, count]
-    // =====================================================
+    
     public List<Object[]> getOrderStatusByRange(
             LocalDate startDate, LocalDate endDate) {
 
@@ -225,10 +208,7 @@ public class ReportDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // 7. TOP 5 BEST SELLING PRODUCTS
-    // Object[]: [productName, quantity]
-    // =====================================================
+   
     public List<Object[]> getTopSellingProductsByRange(
             LocalDate startDate, LocalDate endDate) {
 
@@ -275,10 +255,7 @@ public class ReportDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // HELPER: DATE RANGE
-    // Bao gồm toàn bộ ngày kết thúc
-    // =====================================================
+    
     private void setDateRange(
             PreparedStatement ps,
             LocalDate startDate,

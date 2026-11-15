@@ -13,7 +13,6 @@
     </div>
 </div>
 
-<!-- Success messages -->
 <c:if test="${not empty param.success}">
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <c:choose>
@@ -32,7 +31,6 @@
     </div>
 </c:if>
 
-<!-- Error messages -->
 <c:if test="${not empty param.error}">
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
         <c:choose>
@@ -64,7 +62,6 @@
     </div>
 </c:if>
 
-<!-- Statistics -->
 <div class="row g-3 mb-4">
     <div class="col-12 col-sm-6 col-lg-4">
         <div class="stat-card">
@@ -82,10 +79,8 @@
     </div>
 </div>
 
-<!-- Category table -->
 <div class="card-custom overflow-hidden">
 
-    <!-- Search and create -->
     <div class="p-3 border-bottom d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 bg-white">
         <form action="${pageContext.request.contextPath}/category"
               method="get"
@@ -123,7 +118,6 @@
         </div>
     </div>
 
-    <!-- Table -->
     <div class="table-responsive">
         <table class="table table-custom align-middle">
             <thead>
@@ -143,14 +137,12 @@
                     <c:when test="${not empty categoryList}">
                         <c:forEach items="${categoryList}" var="category">
                             <tr>
-                                <!-- Category ID -->
                                 <td>
                                     <span class="badge bg-light text-secondary border fw-semibold">
                                         #${category.categoryId}
                                     </span>
                                 </td>
 
-                                <!-- Category name and hierarchy -->
                                 <td>
                                     <div class="d-flex align-items-center gap-3"
                                          style="padding-left: ${categoryDepths[category.categoryId] * 24}px;">
@@ -193,7 +185,6 @@
                                     </div>
                                 </td>
 
-                                <!-- Parent category -->
                                 <td>
                                     <c:choose>
                                         <c:when test="${empty category.parentId}">
@@ -218,21 +209,18 @@
                                     </c:choose>
                                 </td>
 
-                                <!-- Product count -->
                                 <td>
                                     <span class="badge bg-light text-secondary border fw-semibold">
                                         ${productCounts[category.categoryId]}
                                     </span>
                                 </td>
 
-                                <!-- Child category count -->
                                 <td>
                                     <span class="badge bg-light text-secondary border fw-semibold">
                                         ${childCounts[category.categoryId]}
                                     </span>
                                 </td>
 
-                                <!-- Status -->
                                 <td>
                                     <c:choose>
                                         <c:when test="${productCounts[category.categoryId] > 0
@@ -251,7 +239,6 @@
                                     </c:choose>
                                 </td>
 
-                                <!-- Actions -->
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-1">
                                         <a href="${pageContext.request.contextPath}/category?view=edit&id=${category.categoryId}"
@@ -305,7 +292,6 @@
         </table>
     </div>
 
-    <!-- Category summary -->
     <div class="p-3 border-top bg-white">
         <span class="text-muted fs-7">
             Tổng cộng <strong>${totalCategories}</strong> danh mục

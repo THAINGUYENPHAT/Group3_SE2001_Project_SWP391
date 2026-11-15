@@ -34,7 +34,6 @@ public class AddressDAO {
     private static final Logger LOGGER
             = Logger.getLogger(AddressDAO.class.getName());
 
-    // LAY DANH SACH DIA CHI CHUA BI XOA
     public List<Address> getAddressesByUser(int userId) {
         List<Address> addresses = new ArrayList<>();
 
@@ -61,7 +60,6 @@ public class AddressDAO {
         return addresses;
     }
 
-    // LAY DIA CHI VA KIEM TRA QUYEN SO HUU
     public Address getAddressById(int addressId, int userId) {
         String sql = "SELECT address_id, user_id, recipient_name, "
                 + "phone_number, address_line, is_default "
@@ -87,7 +85,6 @@ public class AddressDAO {
         return null;
     }
 
-    // THEM DIA CHI MOI
     public int insertAddress(
             int userId,
             String recipientName,
@@ -135,7 +132,6 @@ public class AddressDAO {
         return -1;
     }
 
-    // SUA DIA CHI CON HOAT DONG VA THUOC DUNG USER
     public boolean updateAddress(
             int addressId,
             int userId,
@@ -181,7 +177,6 @@ public class AddressDAO {
         }
     }
 
-    // XOA MEM DIA CHI CUA USER
     public boolean deleteAddress(int addressId, int userId) {
         if (addressId <= 0 || userId <= 0) {
             return false;
@@ -206,7 +201,6 @@ public class AddressDAO {
         }
     }
 
-    // CHI MOT DIA CHI HOAT DONG CUA USER DUOC DAT LAM MAC DINH
     public boolean setDefaultAddress(int addressId, int userId)
             throws SQLException {
         String checkSql = "SELECT address_id FROM dbo.ADDRESSBOOK WITH (UPDLOCK, HOLDLOCK) "
@@ -222,7 +216,6 @@ public class AddressDAO {
             conn.setAutoCommit(false);
             try (PreparedStatement check = conn.prepareStatement(checkSql);
                     PreparedStatement update = conn.prepareStatement(updateSql)) {
-                // Serialize selections for one account, including separate browser sessions.
                 try (PreparedStatement owner = conn.prepareStatement(
                         "SELECT user_id FROM dbo.[USER] WITH (UPDLOCK, HOLDLOCK) WHERE user_id = ?")) {
                     owner.setInt(1, userId);
@@ -251,7 +244,6 @@ public class AddressDAO {
         }
     }
 
-    // CHUYEN RESULTSET THANH OBJECT ADDRESS
     private Address mapAddress(ResultSet rs) throws SQLException {
         Address address = new Address();
 

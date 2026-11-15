@@ -879,7 +879,7 @@
 
             <div class="rp-date-field">
                 <label for="startDate">
-                    Ngày bắt đầu
+                    Từ ngày
                 </label>
 
                 <input
@@ -897,7 +897,7 @@
 
             <div class="rp-date-field">
                 <label for="endDate">
-                    Ngày kết thúc
+                    Đến ngày
                 </label>
 
                 <input

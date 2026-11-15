@@ -35,23 +35,30 @@ public class ReturnExchangeDAO {
         return conn;
     }
 
-// Kiểm tra đơn đã giao thành công, còn trong thời hạn 7 ngày
-// và chưa có yêu cầu trả/đổi hàng đang chờ hoặc đã được duyệt.
-    public boolean canRequest(int orderId, int userId) throws SQLException {
+    public boolean canRequest(int orderId, int userId)
+            throws SQLException {
+
         String sql
                 = "SELECT 1 FROM dbo.[ORDER] o "
                 + "WHERE o.order_id = ? AND o.user_id = ? "
-                + "AND UPPER(LTRIM(RTRIM(o.order_status))) = 'COMPLETED' "
-                + "AND o.delivered_at IS NOT NULL "
-                + "AND o.delivered_at <= SYSDATETIME() "
-                + "AND o.delivered_at >= DATEADD(DAY, -7, SYSDATETIME()) "
-                + "AND NOT EXISTS ("
+                + "AND UPPER(LTRIM(RTRIM(o.order_status))) "
+                + "IN ('COMPLETED', 'DELIVERED') "
+                // Không cho gửi nếu đã có yêu cầu PENDING hoặc APPROVED.
+                + "AND NOT EXISTS ( "
                 + "    SELECT 1 FROM dbo.RETURN_REQUEST r "
                 + "    WHERE r.order_id = o.order_id "
                 + "    AND r.user_id = o.user_id "
                 + "    AND UPPER(LTRIM(RTRIM(r.request_status))) "
-                + "        IN ('PENDING', 'APPROVED')"
-                + ")";
+                + "    IN ('PENDING', 'APPROVED') "
+                + ") "
+                // Không cho gửi nếu đã bị từ chối từ 2 lần trở lên.
+                + "AND ( "
+                + "    SELECT COUNT(*) FROM dbo.RETURN_REQUEST r "
+                + "    WHERE r.order_id = o.order_id "
+                + "    AND r.user_id = o.user_id "
+                + "    AND UPPER(LTRIM(RTRIM(r.request_status))) "
+                + "    = 'REJECTED' "
+                + ") < 2";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -64,7 +71,6 @@ public class ReturnExchangeDAO {
         }
     }
 
-    // Lấy sản phẩm trong đơn của đúng khách hàng.
     public List<Map<String, Object>> getOrderItems(
             int orderId, int userId) throws SQLException {
 
@@ -103,7 +109,6 @@ public class ReturnExchangeDAO {
         return items;
     }
 
-    // Chỉ lấy SKU khác thuộc cùng sản phẩm.
     public List<Map<String, Object>> getExchangeSkus(
             int orderItemId, int userId) throws SQLException {
 
@@ -145,9 +150,6 @@ public class ReturnExchangeDAO {
         return skus;
     }
 
-    // Tạo yêu cầu và các dòng sản phẩm trong cùng transaction.
-    // items: mỗi dòng có orderItemId, quantity và exchangeSkuId.
-    // Với trả hàng, exchangeSkuId truyền null.
     public int createRequest(
             int orderId,
             int userId,
@@ -171,10 +173,8 @@ public class ReturnExchangeDAO {
         String orderSql
                 = "SELECT order_id FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE order_id = ? AND user_id = ? "
-                + "AND UPPER(LTRIM(RTRIM(order_status))) = 'COMPLETED' "
-                + "AND delivered_at IS NOT NULL "
-                + "AND delivered_at <= SYSDATETIME() "
-                + "AND delivered_at >= DATEADD(DAY, -7, SYSDATETIME())";
+                + "AND UPPER(LTRIM(RTRIM(order_status))) "
+                + "IN ('COMPLETED', 'DELIVERED')";
 
         String itemSql
                 = "SELECT oi.quantity, oi.sku_id, original.product_id "
@@ -214,6 +214,40 @@ public class ReturnExchangeDAO {
                         if (!rs.next()) {
                             throw new SQLException(
                                     "Đơn hàng không hợp lệ hoặc đã quá hạn 7 ngày.");
+                        }
+                    }
+                }
+
+                // Kiểm tra lịch sử yêu cầu trả/đổi của đơn hàng.
+                String requestLimitSql
+                        = "SELECT "
+                        + "COUNT(CASE WHEN UPPER(LTRIM(RTRIM(request_status))) "
+                        + "    = 'REJECTED' THEN 1 END) AS rejected_count, "
+                        + "COUNT(CASE WHEN UPPER(LTRIM(RTRIM(request_status))) "
+                        + "    IN ('PENDING', 'APPROVED') THEN 1 END) AS blocked_count "
+                        + "FROM dbo.RETURN_REQUEST WITH (UPDLOCK, HOLDLOCK) "
+                        + "WHERE order_id = ? AND user_id = ?";
+
+                try (PreparedStatement ps = conn.prepareStatement(requestLimitSql)) {
+                    ps.setInt(1, orderId);
+                    ps.setInt(2, userId);
+
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int rejectedCount = rs.getInt("rejected_count");
+                            int blockedCount = rs.getInt("blocked_count");
+
+                            if (rejectedCount >= 2) {
+                                throw new SQLException(
+                                        "Đơn hàng đã bị từ chối trả/đổi 2 lần. "
+                                        + "Bạn không thể gửi yêu cầu mới.");
+                            }
+
+                            if (blockedCount > 0) {
+                                throw new SQLException(
+                                        "Đơn hàng đã có yêu cầu đang chờ duyệt "
+                                        + "hoặc đã được duyệt.");
+                            }
                         }
                     }
                 }
@@ -279,7 +313,6 @@ public class ReturnExchangeDAO {
                                 "Số lượng yêu cầu vượt quá số lượng đã mua.");
                     }
 
-                    // Không cho tạo nhiều yêu cầu làm vượt số lượng đã mua.
                     String usedSql
                             = "SELECT COALESCE(SUM(ri.quantity), 0) "
                             + "FROM dbo.RETURN_REQUEST_ITEM ri "
@@ -383,7 +416,6 @@ public class ReturnExchangeDAO {
         }
     }
 
-    // Lấy danh sách yêu cầu đổi/trả cho Staff.
     public List<Map<String, Object>> getAllRequests() throws SQLException {
         List<Map<String, Object>> requests = new ArrayList<>();
 
@@ -418,7 +450,6 @@ public class ReturnExchangeDAO {
         return requests;
     }
 
-    // Lấy chi tiết các sản phẩm trong một yêu cầu.
     public List<Map<String, Object>> getRequestItems(
             int requestId) throws SQLException {
 
@@ -482,7 +513,6 @@ public class ReturnExchangeDAO {
         return items;
     }
 
-    // Staff duyệt hoặc từ chối yêu cầu và cập nhật tồn kho trong cùng transaction.
     public boolean reviewRequest(
             int requestId,
             int staffId,
@@ -547,7 +577,6 @@ public class ReturnExchangeDAO {
                 int customerId;
                 int orderId;
 
-                // Khóa yêu cầu để ngăn hai nhân viên xử lý đồng thời.
                 try (PreparedStatement ps
                         = conn.prepareStatement(lockRequestSql)) {
                     ps.setInt(1, requestId);
@@ -570,7 +599,6 @@ public class ReturnExchangeDAO {
                     return false;
                 }
 
-                // Chỉ cập nhật tồn kho khi yêu cầu được duyệt.
                 if ("APPROVED".equals(newStatus)) {
                     if (!"RETURN".equals(requestType)
                             && !"EXCHANGE".equals(requestType)) {
@@ -623,7 +651,6 @@ public class ReturnExchangeDAO {
                         }
 
                         if ("RETURN".equals(requestType)) {
-                            // Trả hàng: cộng hàng cũ vào kho.
                             try (PreparedStatement ps
                                     = conn.prepareStatement(addStockSql)) {
                                 ps.setInt(1, quantity);
@@ -644,7 +671,6 @@ public class ReturnExchangeDAO {
                                         "SKU đổi không hợp lệ.");
                             }
 
-                            // Đảm bảo SKU mới thuộc cùng sản phẩm.
                             try (PreparedStatement ps
                                     = conn.prepareStatement(getTargetSql)) {
                                 ps.setInt(1, exchangeSkuId);
@@ -659,7 +685,6 @@ public class ReturnExchangeDAO {
                                 }
                             }
 
-                            // Trừ SKU mới trước, chỉ khi kho đủ số lượng.
                             try (PreparedStatement ps
                                     = conn.prepareStatement(subtractStockSql)) {
                                 ps.setInt(1, quantity);
@@ -672,7 +697,6 @@ public class ReturnExchangeDAO {
                                 }
                             }
 
-                            // Cộng SKU cũ trở lại kho.
                             try (PreparedStatement ps
                                     = conn.prepareStatement(addStockSql)) {
                                 ps.setInt(1, quantity);
@@ -687,7 +711,6 @@ public class ReturnExchangeDAO {
                     }
                 }
 
-                // Cập nhật trạng thái sau khi cập nhật tồn kho thành công.
                 try (PreparedStatement ps
                         = conn.prepareStatement(updateRequestSql)) {
                     ps.setString(1, newStatus);
@@ -702,7 +725,6 @@ public class ReturnExchangeDAO {
                     }
                 }
 
-                // Ghi lịch sử trong cùng transaction.
                 try (PreparedStatement ps
                         = conn.prepareStatement(historySql)) {
                     ps.setInt(1, requestId);
@@ -713,7 +735,6 @@ public class ReturnExchangeDAO {
                     ps.executeUpdate();
                 }
 
-                // Tạo thông báo cho khách hàng trong cùng transaction.
                 NotificationDAO notificationDAO = new NotificationDAO();
 
                 notificationDAO.createReturnExchangeNotification(
@@ -735,7 +756,6 @@ public class ReturnExchangeDAO {
             }
         }
     }
-// Lấy yêu cầu đổi/trả mới nhất của một đơn hàng thuộc đúng khách hàng.
 
     public Map<String, Object> getLatestRequestByOrder(
             int orderId, int userId) throws SQLException {

@@ -25,7 +25,6 @@ public class PaymentDAO {
         this.connections = connections;
     }
 
-    // Moi thao tac dung connection rieng
     private Connection open() throws SQLException {
         Connection connection = connections.open();
 
@@ -38,7 +37,6 @@ public class PaymentDAO {
         return connection;
     }
 
-    // Thong tin mot lan thanh toan
     public static final class Attempt {
 
         public final String ref;
@@ -74,7 +72,6 @@ public class PaymentDAO {
         boolean restored;
     }
 
-    // Khoa ORDER truoc khi thay doi thanh toan hoac ton kho
     private LockedOrder lock(
             Connection connection,
             int orderId
@@ -159,7 +156,6 @@ public class PaymentDAO {
         }
     }
 
-    // Chi huy tu dong don dang cho thanh toan da het han
     private boolean expire(
             Connection connection,
             LockedOrder order
@@ -175,7 +171,6 @@ public class PaymentDAO {
         return true;
     }
 
-    // Ham noi bo: ORDER phai duoc khoa truoc khi goi
     private void cancel(
             Connection connection,
             LockedOrder order
@@ -255,14 +250,12 @@ public class PaymentDAO {
                 order.id
         );
 
-        // Giu luot voucher theo nghiep vu huy COD hien tai
         history(connection, order.id, "CANCELLED");
 
         order.status = "CANCELLED";
         order.restored = true;
     }
 
-    // Bat dau thanh toan hoac mo lai link dang cho
     public Attempt begin(
             int userId,
             int orderId
@@ -320,7 +313,6 @@ public class PaymentDAO {
                         if (rs.next()) {
                             String url = rs.getString("pay_url");
 
-                            // Dung lai link de tranh tao nhieu giao dich
                             if (url != null) {
                                 Attempt attempt = new Attempt(
                                         rs.getString("transaction_code"),
@@ -386,7 +378,6 @@ public class PaymentDAO {
         }
     }
 
-    // Luu link do cong thanh toan tra ve
     public void saveUrl(
             String ref,
             String url
@@ -405,7 +396,6 @@ public class PaymentDAO {
         }
     }
 
-    // toCod = true: doi COD; false: huy don dang cho
     public void changeOrCancel(
             int userId,
             int orderId,
@@ -431,7 +421,6 @@ public class PaymentDAO {
                     return;
                 }
 
-                // Gui lap thao tac doi COD
                 if (toCod
                         && "COD".equals(order.method)
                         && "PENDING_CONFIRMATION".equals(order.status)) {
@@ -440,7 +429,6 @@ public class PaymentDAO {
                     return;
                 }
 
-                // Gui lap thao tac huy
                 if (!toCod && "CANCELLED".equals(order.status)) {
                     connection.commit();
                     return;
@@ -497,7 +485,6 @@ public class PaymentDAO {
         }
     }
 
-    // Chi goi sau khi servlet da xac minh chu ky va merchant
     public String settle(
             String method,
             String ref,
@@ -574,7 +561,6 @@ public class PaymentDAO {
                     return "04";
                 }
 
-                // Callback lap: khong xu ly thanh cong lan nua
                 if ("SUCCESS".equals(transactionStatus)) {
                     connection.commit();
                     return "02";
@@ -589,7 +575,6 @@ public class PaymentDAO {
                     return "99";
                 }
 
-                // Kiem tra han ngay ca khi worker chua kip chay
                 expire(connection, order);
 
                 if (!success) {
@@ -658,8 +643,6 @@ public class PaymentDAO {
                     );
 
                 } else {
-                    // Tien ve tre, doi COD hoac thanh toan trung
-                    // Chi tao yeu cau hoan tien, khong hoi sinh don
                     update(
                             connection,
                             "INSERT INTO dbo.PAYMENT_REFUND "
@@ -693,7 +676,6 @@ public class PaymentDAO {
         }
     }
 
-    // Kiem tra het han cua mot don
     public void expireOrder(
             int userId,
             int orderId
@@ -721,7 +703,6 @@ public class PaymentDAO {
         }
     }
 
-    // Worker goi de quet cac don qua han
     public void expireBatch() throws SQLException {
         List<int[]> orders = new ArrayList<>();
 

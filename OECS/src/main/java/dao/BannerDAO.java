@@ -48,7 +48,6 @@ public class BannerDAO extends DBContext {
         return banners;
     }
 
-    // Get banner by ID
     public Banner getById(int bannerId) {
         String sql = "SELECT banner_id, image_url, alt_text, target_url, "
                 + "is_active, display_order, created_at "

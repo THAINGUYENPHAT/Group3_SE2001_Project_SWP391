@@ -84,6 +84,61 @@
     }
 
 
+    .checkout-summary .summary-line {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: baseline;
+        column-gap: 16px;
+        margin-bottom: 18px;
+        color: #475569;
+    }
+
+    .checkout-summary .summary-amount {
+        color: #1e293b;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .checkout-summary .summary-shipping-note {
+        grid-column: 1 / -1;
+        margin: 6px 0 0;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .checkout-summary .summary-free {
+        color: #15803d;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .checkout-summary .summary-discount {
+        color: #15803d;
+    }
+
+    .checkout-summary .summary-total {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px 16px;
+        margin: 6px 0 24px;
+        padding-top: 20px;
+        border-top: 1px solid #e2e8f0;
+        color: #1e293b;
+    }
+
+    .checkout-summary .checkout-total {
+        margin-left: auto;
+        font-size: clamp(22px, 2vw, 26px);
+        line-height: 1.2;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
     .sticky-summary {
 
         position: sticky;
@@ -169,16 +224,8 @@
 <div class="row g-4">
 
 
-    <!-- ================================================= -->
-    <!-- LEFT -->
-    <!-- ================================================= -->
-
     <div class="col-lg-8">
 
-
-        <!-- ============================================= -->
-        <!-- ADDRESS -->
-        <!-- ============================================= -->
 
         <div class="card checkout-card shadow-sm mb-4">
 
@@ -284,10 +331,6 @@
 
         </div>
 
-
-        <!-- ============================================= -->
-        <!-- PRODUCTS -->
-        <!-- ============================================= -->
 
         <div class="card checkout-card shadow-sm mb-4">
 
@@ -419,10 +462,6 @@
         </div>
 
 
-        <!-- ============================================= -->
-        <!-- VOUCHER -->
-        <!-- ============================================= -->
-
         <div class="card checkout-card shadow-sm mb-4">
 
             <div class="card-body p-4">
@@ -436,8 +475,6 @@
 
                 </h5>
 
-
-                <!-- APPLIED VOUCHER -->
 
                 <c:if test="${not empty appliedVoucher}">
 
@@ -535,8 +572,6 @@
 
                 </c:if>
 
-
-                <!-- AVAILABLE VOUCHERS -->
 
                 <c:choose>
 
@@ -694,10 +729,6 @@
         </div>
 
 
-        <!-- ============================================= -->
-        <!-- PAYMENT -->
-        <!-- ============================================= -->
-
         <div class="card checkout-card shadow-sm">
 
             <div class="card-body p-4">
@@ -729,7 +760,7 @@
                     </div>
                 </label>
 
-                <label class="d-block border rounded-3 p-3 mb-3">
+                <label class="d-block border rounded-3 p-3">
                     <input
                         type="radio"
                         name="paymentMethod"
@@ -754,30 +785,6 @@
                     </div>
                 </label>
 
-                <label class="d-block border rounded-3 p-3">
-                    <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="MOMO"
-                        form="orderForm"
-                        ${momoAvailable ? '' : 'disabled'}>
-
-                    <span class="fw-semibold ms-2">
-                        MoMo — Thử nghiệm
-                    </span>
-
-                    <div class="text-muted small ms-4 mt-1">
-                        <c:choose>
-                            <c:when test="${momoAvailable}">
-                                Thanh toán qua MoMo Test.
-                                Đơn hàng được giữ trong 15 phút.
-                            </c:when>
-                            <c:otherwise>
-                                Chưa cấu hình tài khoản MoMo Test.
-                            </c:otherwise>
-                        </c:choose>
-                    </div>
-                </label>
 
 
             </div>
@@ -788,113 +795,54 @@
     </div>
 
 
-    <!-- ================================================= -->
-    <!-- RIGHT -->
-    <!-- ================================================= -->
-
     <div class="col-lg-4">
 
-        <div class="card checkout-card shadow-sm sticky-summary">
+        <div class="card checkout-card checkout-summary shadow-sm sticky-summary">
 
             <div class="card-body p-4">
 
 
-                <h5 class="fw-bold mb-4">
+                <h5 class="fw-bold mb-4">Thông tin thanh toán</h5>
 
-                    Thông tin thanh toán
-
-                </h5>
-
-
-                <div class="d-flex justify-content-between mb-3">
-
-                    <span>
-                        Tiền hàng
+                <div class="summary-line">
+                    <span>Tiền hàng</span>
+                    <span class="summary-amount">
+                        <fmt:formatNumber value="${subtotal}" type="number"
+                            groupingUsed="true" maxFractionDigits="0"/> đ
                     </span>
-
-                    <strong>
-
-                        <fmt:formatNumber
-                            value="${subtotal}"
-                            type="number"
-                            groupingUsed="true"
-                            maxFractionDigits="0"/>
-
-                        đ
-
-                    </strong>
-
                 </div>
 
-
-                <div class="d-flex justify-content-between mb-3">
-
-                    <span>
-                        Phí vận chuyển
-                    </span>
-
-                    <span>
-
-                        <fmt:formatNumber
-                            value="${shippingFee}"
-                            type="number"
-                            groupingUsed="true"
-                            maxFractionDigits="0"/>
-
-                        đ
-
-                    </span>
-
+                <div class="summary-line">
+                    <span>Phí vận chuyển</span>
+                    <c:choose>
+                        <c:when test="${shippingFee == 0}">
+                            <span class="summary-free">Miễn phí</span>
+                        </c:when>
+                        <c:otherwise>
+                            <span class="summary-amount">
+                                <fmt:formatNumber value="${shippingFee}" type="number"
+                                    groupingUsed="true" maxFractionDigits="0"/> đ
+                            </span>
+                        </c:otherwise>
+                    </c:choose>
+                    <p class="summary-shipping-note">Miễn phí từ 5 triệu tiền hàng (trước giảm giá).</p>
                 </div>
 
-
-                <div class="d-flex justify-content-between mb-3">
-
-                    <span>
-                        Giảm giá
+                <div class="summary-line">
+                    <span>Giảm giá</span>
+                    <span class="summary-amount summary-discount">
+                        <c:if test="${discount > 0}">−</c:if><fmt:formatNumber
+                            value="${discount}" type="number" groupingUsed="true" maxFractionDigits="0"/> đ
                     </span>
-
-                    <span class="text-success">
-
-                        -
-
-                        <fmt:formatNumber
-                            value="${discount}"
-                            type="number"
-                            groupingUsed="true"
-                            maxFractionDigits="0"/>
-
-                        đ
-
-                    </span>
-
                 </div>
 
-
-                <hr>
-
-
-                <div class="d-flex justify-content-between align-items-center mb-4">
-
-                    <strong>
-                        Tổng thanh toán
-                    </strong>
-
-
+                <div class="summary-total">
+                    <strong>Tổng thanh toán</strong>
                     <span class="checkout-total">
-
-                        <fmt:formatNumber
-                            value="${totalAmount}"
-                            type="number"
-                            groupingUsed="true"
-                            maxFractionDigits="0"/>
-
-                        đ
-
+                        <fmt:formatNumber value="${totalAmount}" type="number"
+                            groupingUsed="true" maxFractionDigits="0"/> đ
                     </span>
-
                 </div>
-
 
                 <form
                     id="orderForm"
@@ -965,9 +913,6 @@
 </div>
 
 
-<!-- ===================================================== -->
-<!-- ADDRESS MODAL -->
-<!-- ===================================================== -->
 
 <div
     class="modal fade"
@@ -1006,8 +951,6 @@
                 role="alert">
             </div>
 
-
-            <!-- ADDRESS LIST -->
 
             <div
                 id="addressList"
@@ -1155,8 +1098,6 @@
             </div>
 
 
-            <!-- EDIT ADDRESS -->
-
             <form
                 id="editAddressForm"
                 class="d-none"
@@ -1288,8 +1229,6 @@
             </form>
 
 
-            <!-- LIST FOOTER -->
-
             <div
                 class="modal-footer"
                 id="addressListFooter">
@@ -1326,9 +1265,6 @@
 </div>
 
 
-<!-- ===================================================== -->
-<!-- ADD ADDRESS -->
-<!-- ===================================================== -->
 
 <div
     class="modal fade"
@@ -1491,9 +1427,6 @@
                         "${sessionScope.addressActionToken}";
 
 
-                // =================================================
-                // MAIN ELEMENTS
-                // =================================================
 
                 const addressInput =
                         document.getElementById(
@@ -1585,9 +1518,6 @@
                                 );
 
 
-                // =================================================
-                // EDIT ELEMENTS
-                // =================================================
 
                 const editAddressForm =
                         document.getElementById(
@@ -1645,9 +1575,6 @@
                         null;
 
 
-                // =================================================
-                // MESSAGE
-                // =================================================
 
                 function showModalMessage(
                         message,
@@ -1670,9 +1597,6 @@
                 }
 
 
-                // =================================================
-                // POST AJAX
-                // =================================================
 
                 async function postAddressAction(
                         data
@@ -1734,9 +1658,6 @@
                 }
 
 
-                // =================================================
-                // ADDRESS LIST STATE
-                // =================================================
 
                 function getOptions() {
 
@@ -1783,9 +1704,6 @@
                 }
 
 
-                // =================================================
-                // DELETE BUTTON STATE
-                // =================================================
 
                 function updateDeleteButtons() {
 
@@ -1816,9 +1734,6 @@
                 }
 
 
-                // =================================================
-                // UPDATE CURRENT ADDRESS CARD
-                // =================================================
 
                 function updateSelectedAddress(
                         address,
@@ -1901,9 +1816,6 @@
                 }
 
 
-                // =================================================
-                // CANCEL EDIT
-                // =================================================
 
                 function closeEditMode() {
 
@@ -1945,9 +1857,6 @@
                 }
 
 
-                // =================================================
-                // OPEN EDIT
-                // =================================================
 
                 if (addressList) {
 
@@ -2030,9 +1939,6 @@
                 }
 
 
-                // =================================================
-                // CANCEL EDIT BUTTON
-                // =================================================
 
                 if (cancelEditAddressButton) {
 
@@ -2046,9 +1952,6 @@
                 }
 
 
-                // =================================================
-                // SAVE EDIT AJAX
-                // =================================================
 
                 if (editAddressForm) {
 
@@ -2154,11 +2057,6 @@
                                             .textContent =
                                             address.addressLine;
 
-
-                                    /*
-                                     * Nếu đang sửa chính địa chỉ Checkout
-                                     * hiện tại thì cập nhật luôn card phía ngoài.
-                                     */
                                     if (String(
                                             address.addressId
                                             ) === committedAddressId) {
@@ -2207,10 +2105,6 @@
                     );
                 }
 
-
-                // =================================================
-                // RESET MODAL
-                // =================================================
 
                 if (addressModal) {
 
@@ -2264,9 +2158,6 @@
                 }
 
 
-                // =================================================
-                // SELECT RADIO
-                // =================================================
 
                 if (addressList) {
 
@@ -2285,9 +2176,6 @@
                 }
 
 
-                // =================================================
-                // CONFIRM ADDRESS
-                // =================================================
 
                 if (confirmAddressButton) {
 
@@ -2397,9 +2285,6 @@
                 }
 
 
-                // =================================================
-                // DELETE ADDRESS AJAX
-                // =================================================
 
                 if (addressList) {
 
@@ -2518,9 +2403,6 @@
                 }
 
 
-                // =================================================
-                // ADD ADDRESS ANTI DOUBLE SUBMIT
-                // =================================================
 
                 const addAddressForm =
                         document.getElementById(
@@ -2577,10 +2459,6 @@
                     );
                 }
 
-
-                // =================================================
-                // PLACE ORDER ANTI DOUBLE SUBMIT
-                // =================================================
 
                 const orderForm =
                         document.getElementById(

@@ -14,7 +14,7 @@
     </properties>
     
     <dependencies>
-        <!-- Jakarta EE 10 API (Thay thế hoàn toàn javax) -->
+        
         <dependency>
             <groupId>jakarta.platform</groupId>
             <artifactId>jakarta.jakartaee-api</artifactId>
@@ -22,14 +22,14 @@
             <scope>provided</scope>
         </dependency>
         
-        <!-- JDBC Driver cho SQL Server -->
+        
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
             <version>12.8.0.jre11</version>
         </dependency>
         
-        <!-- JSTL 3.0 cho Jakarta EE 10 -->
+        
         <dependency>
             <groupId>jakarta.servlet.jsp.jstl</groupId>
             <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>

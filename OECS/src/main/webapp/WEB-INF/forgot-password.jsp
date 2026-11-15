@@ -9,11 +9,10 @@
             <div class="card shadow-sm border-0 rounded-3">
                 <div class="card-body p-4">
 
-                    <!-- TIÊU ĐỀ -->
                     <div class="text-center mb-4">
 
                         <h3 class="fw-bold text-primary">
-                            Quên mật khẩu?
+                            Đặt lại mật khẩu
                         </h3>
 
                         <p class="text-muted small">
@@ -23,7 +22,6 @@
 
                     </div>
 
-                    <!-- THÔNG BÁO LỖI -->
                     <c:if test="${not empty errorMessage}">
 
                         <div class="alert alert-danger alert-dismissible fade show"
@@ -43,7 +41,6 @@
 
                     </c:if>
 
-                    <!-- THÔNG BÁO THÀNH CÔNG -->
                     <c:if test="${not empty successMessage}">
 
                         <div class="alert alert-success alert-dismissible fade show"
@@ -63,7 +60,6 @@
 
                     </c:if>
 
-                    <!-- FORM QUÊN MẬT KHẨU -->
                     <form action="${pageContext.request.contextPath}/forgot-password"
                           method="post">
 
@@ -109,7 +105,6 @@
 
                     <hr class="my-4">
 
-                    <!-- QUAY LẠI LOGIN -->
                     <div class="text-center small">
 
                         <a href="${pageContext.request.contextPath}/login"

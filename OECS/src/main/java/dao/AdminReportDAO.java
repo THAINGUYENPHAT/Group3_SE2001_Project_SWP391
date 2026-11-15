@@ -18,9 +18,6 @@ public class AdminReportDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(AdminReportDAO.class.getName());
 
-    // =====================================================
-    // 1. DOANH THU THEO NGÀY
-    // =====================================================
     public List<Object[]> getRevenueByDate() {
 
         List<Object[]> list = new ArrayList<>();
@@ -65,9 +62,6 @@ public class AdminReportDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // 2. TỔNG DOANH THU
-    // =====================================================
     public BigDecimal getTotalRevenue() {
 
         String sql
@@ -99,9 +93,6 @@ public class AdminReportDAO extends DBContext {
         return BigDecimal.ZERO;
     }
 
-    // =====================================================
-    // 3. TỔNG ĐƠN HOÀN THÀNH
-    // =====================================================
     public int getCompletedOrders() {
 
         String sql
@@ -133,9 +124,6 @@ public class AdminReportDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // 4. TỔNG SẢN PHẨM ĐÃ BÁN
-    // =====================================================
     public int getTotalProductsSold() {
 
         String sql

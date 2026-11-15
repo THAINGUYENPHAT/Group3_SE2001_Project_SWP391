@@ -10,18 +10,14 @@
 </script>
 
 <style>
-    /* =========================================================
-       HOME PAGE
-       ========================================================= */
+    
     .home-page {
         background: #f5f7fb;
         min-height: 100vh;
         padding-bottom: 60px;
     }
 
-    /* =========================================================
-       HERO
-       ========================================================= */
+   
     .home-hero {
         position: relative;
         width: 100%;
@@ -122,9 +118,7 @@
         box-shadow: 0 10px 26px rgba(13, 110, 253, 0.38);
     }
 
-    /* =========================================================
-       SERVICE BAR
-       ========================================================= */
+   
     .service-bar {
         background: white;
         border-radius: 14px;
@@ -181,9 +175,7 @@
         border-right: 1px solid #edf0f5;
     }
 
-    /* =========================================================
-       SECTION
-       ========================================================= */
+ 
     .home-section {
         margin-top: 55px;
     }
@@ -223,9 +215,7 @@
         color: #0b5ed7;
     }
 
-    /* =========================================================
-       CATEGORY
-       ========================================================= */
+   
     .category-card {
         position: relative;
         height: 145px;
@@ -337,9 +327,7 @@
         background-position: center;
     }
 
-    /* =========================================================
-       PRODUCT
-       ========================================================= */
+   
     .product-card {
         background: white;
         border-radius: 14px;
@@ -438,9 +426,7 @@
         margin-bottom: 14px;
     }
 
-    /* =========================================================
-       PROMOTION BANNER
-       ========================================================= */
+    
     .promo-banner {
         position: relative;
 
@@ -483,9 +469,7 @@
         margin-bottom: 20px;
     }
 
-    /* =========================================================
-       RESPONSIVE
-       ========================================================= */
+
     @media (max-width: 992px) {
         .home-hero {
             min-height: 430px;
@@ -537,9 +521,7 @@
         }
     }
 
-    /* =========================================================
-       HOME SLIDESHOW
-       ========================================================= */
+    
     .home-slider {
         position: relative;
         width: 100%;
@@ -653,7 +635,6 @@
 
 <div class="home-page">
 
-    <%-- Thông báo --%>
     <div class="container">
         <c:if test="${not empty sessionScope.toastMessage}">
             <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
@@ -665,7 +646,6 @@
         </c:if>
     </div>
 
-    <%-- HERO tràn toàn bộ chiều rộng màn hình --%>
     <section class="home-hero">
         <div class="home-hero-content">
             <div class="home-hero-badge">
@@ -683,13 +663,10 @@
         </div>
     </section>
 
-    <%-- Nội dung còn lại nằm trong container --%>
     <div class="container">
 
 
-        <!-- =====================================================
-             SERVICE BAR
-             ===================================================== -->
+     
         <section class="service-bar">
             <div class="row g-0">
                 <div class="col-lg-3 col-md-6 px-3 service-divider">
@@ -744,12 +721,9 @@
 
 
 
-        <!-- =====================================================
-             PROMOTION SLIDESHOW
-             ===================================================== -->
+        
         <section class="home-section">
 
-            <%-- Chỉ Staff mới nhìn thấy nút quản lý banner --%>
             <c:if test="${not empty sessionScope.loggedInUser and sessionScope.loggedInUser.staff}">
                 <div class="d-flex justify-content-end mb-3">
                     <a href="${pageContext.request.contextPath}/staff/banner"
@@ -828,9 +802,7 @@
         </section>
 
 
-        <!-- =====================================================
-             CATEGORY
-             ===================================================== -->
+       
         <section class="home-section">
             <div class="row g-3">
                 <div class="col-6 col-lg-2">
@@ -888,9 +860,7 @@
                 </div>
             </div>
         </section>
-        <!-- =====================================================
-             PROMOTION
-             ===================================================== -->
+        
         <section class="home-section">
             <div class="promo-banner">
                 <div class="promo-content">
@@ -900,9 +870,7 @@
             </div>
         </section>
 
-        <!-- =====================================================
-             PRODUCT
-             ===================================================== -->
+        
         <section class="home-section" id="recommended-products">
             <div class="section-header">
                 <div>
@@ -921,7 +889,6 @@
                             <div class="col-12 col-sm-6 col-lg-3">
                                 <a href="${pageContext.request.contextPath}/shop?action=detail&id=${product.productId}" class="product-card text-decoration-none">
 
-                                    <!-- HIỂN THỊ HÌNH ẢNH SẢN PHẨM -->
                                     <div class="product-image text-dark">
                                         <c:choose>
                                             <c:when test="${not empty product.imageUrl}">

@@ -13,9 +13,6 @@ import java.util.List;
 
 public class ProductReviewDAO extends DBContext {
 
-    // =====================================================
-    // GET SKU ID BY ORDER ITEM
-    // =====================================================
     public int getSkuIdByOrderItemId(int orderItemId) {
 
         String sql = "SELECT sku_id "
@@ -39,9 +36,6 @@ public class ProductReviewDAO extends DBContext {
         return -1;
     }
 
-    // =====================================================
-    // CHECK CAN REVIEW
-    // =====================================================
     public boolean canReview(
             int userId,
             int orderItemId,
@@ -55,10 +49,8 @@ public class ProductReviewDAO extends DBContext {
                 + "WHERE oi.order_item_id = ? "
                 + "AND oi.sku_id = ? "
                 + "AND o.user_id = ? "
-                // ĐƠN HÀNG PHẢI HOÀN TẤT
                 + "AND UPPER(LTRIM(RTRIM(o.order_status))) "
                 + "IN ('COMPLETED', 'DELIVERED') "
-                // CHƯA ĐÁNH GIÁ SẢN PHẨM NÀY
                 + "AND NOT EXISTS ( "
                 + "SELECT 1 "
                 + "FROM dbo.PRODUCT_REVIEWS pr "
@@ -88,9 +80,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // CHECK ALREADY REVIEWED
-    // =====================================================
     public boolean alreadyReviewed(int orderItemId) {
 
         String sql = "SELECT review_id "
@@ -112,9 +101,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // INSERT REVIEW
-    // =====================================================
     public int insertReview(ProductReview review) {
 
         String sql = "INSERT INTO PRODUCT_REVIEWS "
@@ -146,9 +132,6 @@ public class ProductReviewDAO extends DBContext {
         return -1;
     }
 
-    // =====================================================
-    // INSERT REVIEW IMAGE
-    // =====================================================
     public boolean insertReviewImage(int reviewId, String imageUrl) {
 
         String sql = "INSERT INTO REVIEW_IMAGES (review_id, image_url) VALUES (?, ?)";
@@ -167,9 +150,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // GET REVIEW BY ID + USER
-    // =====================================================
     public ProductReview getReviewByIdAndUserId(int reviewId, int userId) {
 
         String sql = "SELECT review_id, user_id, order_item_id, sku_id, "
@@ -198,9 +178,6 @@ public class ProductReviewDAO extends DBContext {
         return null;
     }
 
-    // =====================================================
-    // GET REVIEW IMAGES
-    // =====================================================
     public List<String> getReviewImages(int reviewId) {
 
         List<String> images = new ArrayList<>();
@@ -227,9 +204,6 @@ public class ProductReviewDAO extends DBContext {
         return images;
     }
 
-    // =====================================================
-    // UPDATE REVIEW
-    // =====================================================
     public boolean updateReview(ProductReview review) {
 
         String sql = "UPDATE PRODUCT_REVIEWS "
@@ -253,9 +227,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // DELETE REVIEW
-    // =====================================================
     public boolean deleteReview(int reviewId, int userId) {
 
         String deleteImagesSql = "DELETE FROM REVIEW_IMAGES WHERE review_id = ?";
@@ -311,9 +282,6 @@ public class ProductReviewDAO extends DBContext {
         return false;
     }
 
-    // =====================================================
-    // GET REVIEWS BY SKU
-    // =====================================================
     public List<ProductReview> getReviewsBySkuId(int skuId) {
 
         List<ProductReview> reviews = new ArrayList<>();
@@ -344,27 +312,11 @@ public class ProductReviewDAO extends DBContext {
         return reviews;
     }
 
-    // =====================================================
-    // GET ALL REVIEWS BY PRODUCT ID
-    // =====================================================
     public List<ProductReview> getReviewsByProductId(int productId) {
 
         List<ProductReview> reviews = new ArrayList<>();
 
-        // Kiểm tra TẤT CẢ đánh giá của sản phẩm,
-        // kể cả đánh giá đã bị ẩn.
-        String debugSql
-                = "SELECT pr.review_id, pr.sku_id, "
-                + "pr.rating, pr.is_hidden, ps.product_id "
-                + "FROM dbo.PRODUCT_REVIEWS pr "
-                + "JOIN dbo.PRODUCT_SKU ps "
-                + "ON pr.sku_id = ps.sku_id "
-                + "WHERE ps.product_id = ? "
-                + "ORDER BY pr.review_id";
-
-        // Chỉ lấy đánh giá được phép hiển thị.
-        String sql
-                = "SELECT pr.review_id, pr.user_id, "
+        String sql = "SELECT pr.review_id, pr.user_id, "
                 + "pr.order_item_id, pr.sku_id, "
                 + "pr.rating, pr.comment, pr.created_at "
                 + "FROM dbo.PRODUCT_REVIEWS pr "
@@ -374,82 +326,31 @@ public class ProductReviewDAO extends DBContext {
                 + "AND pr.is_hidden = 0 "
                 + "ORDER BY pr.created_at DESC, pr.review_id DESC";
 
-        try (Connection conn = getConnection()) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            // Xác định SQL Server và database.
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT SERVERPROPERTY('ServerName') AS server_name, "
-                    + "DB_NAME() AS database_name"); ResultSet rs = ps.executeQuery()) {
+            ps.setInt(1, productId);
 
-                if (rs.next()) {
-                    System.out.println(
-                            "JAVA SERVER: " + rs.getString("server_name"));
-                    System.out.println(
-                            "JAVA DATABASE: " + rs.getString("database_name"));
-                }
-            }
-
-            System.out.println("===== ALL REVIEWS IN DATABASE =====");
-            System.out.println("Product ID: " + productId);
-
-            try (PreparedStatement ps = conn.prepareStatement(debugSql)) {
-
-                ps.setInt(1, productId);
-
-                try (ResultSet rs = ps.executeQuery()) {
-
-                    while (rs.next()) {
-                        System.out.println(
-                                "Review ID: " + rs.getInt("review_id")
-                                + " | SKU: " + rs.getInt("sku_id")
-                                + " | Rating: " + rs.getInt("rating")
-                                + " | Hidden: " + rs.getObject("is_hidden")
-                        );
-                    }
-                }
-            }
-
-            System.out.println("===== VISIBLE REVIEWS =====");
-
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-
-                ps.setInt(1, productId);
-
-                try (ResultSet rs = ps.executeQuery()) {
-
-                    while (rs.next()) {
-
-                        ProductReview review = mapReview(rs);
-                        reviews.add(review);
-
-                        System.out.println(
-                                "Visible Review ID: " + review.getReviewId()
-                        );
-                    }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    reviews.add(mapReview(rs));
                 }
             }
 
         } catch (SQLException e) {
             throw new IllegalStateException(
-                    "Lỗi tải đánh giá cho sản phẩm ID " + productId, e);
+                    "Lỗi tải đánh giá cho sản phẩm ID "
+                    + productId, e);
         }
 
-        // Lấy ảnh sau khi đã đọc xong danh sách đánh giá.
         for (ProductReview review : reviews) {
             review.setImages(
                     getReviewImages(review.getReviewId())
             );
         }
 
-        System.out.println("TOTAL VISIBLE REVIEWS: " + reviews.size());
-        System.out.println("=================================");
-
         return reviews;
     }
 
-    // =====================================================
-    // GET AVERAGE RATING
-    // =====================================================
     public double getAverageRating(int skuId) {
 
         String sql = "SELECT AVG(CAST(rating AS FLOAT)) AS average_rating "
@@ -474,9 +375,6 @@ public class ProductReviewDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // COUNT REVIEWS
-    // =====================================================
     public int countReviewsBySkuId(int skuId) {
 
         String sql = "SELECT COUNT(*) AS total "
@@ -501,9 +399,6 @@ public class ProductReviewDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // COUNT PURCHASES BY PRODUCT
-    // =====================================================
     public int getPurchaseCountByProductId(int productId) {
 
         String sql = "SELECT COUNT(DISTINCT oi.order_item_id) AS purchase_count "
@@ -533,9 +428,6 @@ public class ProductReviewDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // MAP RESULTSET -> PRODUCT REVIEW
-    // =====================================================
     private ProductReview mapReview(ResultSet rs) throws SQLException {
 
         ProductReview review = new ProductReview();

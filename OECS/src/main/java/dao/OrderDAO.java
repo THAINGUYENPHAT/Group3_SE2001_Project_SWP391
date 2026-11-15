@@ -28,7 +28,6 @@ public class OrderDAO {
         this.connections = connections;
     }
 
-    // Servlet instances are shared across requests; never share a JDBC connection.
     private Connection getConnection() throws SQLException {
         Connection conn = connections.open();
         if (conn == null) {
@@ -101,7 +100,6 @@ public class OrderDAO {
         return result;
     }
 
-    // One query for all visible cards; ownership is checked even for supplied IDs.
     public Map<Integer, List<Map<String, Object>>> findItemsForOrders(int userId, List<Integer> ids) throws SQLException {
         Map<Integer, List<Map<String, Object>>> result = new LinkedHashMap<>();
         if (ids.isEmpty()) {
@@ -137,12 +135,10 @@ public class OrderDAO {
         return result;
     }
 
-    // GIU HAM CU DE ORDERSERVICE HIEN TAI VAN GOI DUOC
     public int insert(Connection conn, Order order) throws SQLException {
         return insert(conn, order, null);
     }
 
-    // TAO DON HANG CO TOKEN CHONG TRUNG
     public int insert(
             Connection conn,
             Order order,
@@ -186,7 +182,6 @@ public class OrderDAO {
         }
     }
 
-    // LUU CHI TIET DON HANG
     public void insertItem(
             Connection conn,
             int orderId,
@@ -209,7 +204,6 @@ public class OrderDAO {
         }
     }
 
-    // LUU LICH SU TRANG THAI
     public void addHistory(
             Connection conn,
             int orderId,
@@ -227,7 +221,6 @@ public class OrderDAO {
         }
     }
 
-    // TIM DON DA TAO BANG TOKEN TRONG TRANSACTION
     public Integer findIdByToken(
             Connection conn,
             int userId,
@@ -252,7 +245,6 @@ public class OrderDAO {
         }
     }
 
-    // TIM DON BANG TOKEN KHI GOI TU SERVLET
     public Integer findIdByToken(
             int userId,
             String checkoutToken
@@ -269,7 +261,6 @@ public class OrderDAO {
         }
     }
 
-    // LAY DON THEO ID VA KIEM TRA CHU SO HUU
     public Order findByIdAndUser(
             int orderId,
             int userId
@@ -300,7 +291,6 @@ public class OrderDAO {
         }
     }
 
-    // LAY DANH SACH DON HANG CUA USER
     public List<Order> findByUser(
             Connection conn,
             int userId
@@ -325,7 +315,6 @@ public class OrderDAO {
         return orders;
     }
 
-    // CHUYEN RESULTSET THANH OBJECT ORDER
     private Order mapOrder(ResultSet rs) throws SQLException {
         Order order = new Order();
 
@@ -362,7 +351,6 @@ public class OrderDAO {
         return order;
     }
 
-    // Customer detail queries always include the authenticated owner.
     public List<Map<String, Object>> findItems(int orderId, int userId) throws SQLException {
         String sql = "SELECT i.order_item_id, i.sku_id, i.price, i.quantity, s.sku_code, p.product_name, p.image_url "
                 + "FROM dbo.ORDER_ITEM i JOIN dbo.[ORDER] o ON o.order_id = i.order_id "

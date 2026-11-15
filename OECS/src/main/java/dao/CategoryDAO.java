@@ -19,7 +19,6 @@ public class CategoryDAO extends DBContext {
     private static final Logger LOGGER =
             Logger.getLogger(CategoryDAO.class.getName());
 
-    // Lay toan bo danh muc
     public List<Category> getList() {
         List<Category> list = new ArrayList<>();
 
@@ -43,7 +42,6 @@ public class CategoryDAO extends DBContext {
         return list;
     }
 
-    // Lay danh muc theo ID
     public Category getById(int id) {
         String sql = "SELECT category_id, category_name, parent_id "
                 + "FROM CATEGORY WHERE category_id = ?";
@@ -67,7 +65,6 @@ public class CategoryDAO extends DBContext {
         return null;
     }
 
-    // Chuyen ResultSet thanh Category
     private Category mapCategory(ResultSet rs) throws SQLException {
         Object parentValue = rs.getObject("parent_id");
 
@@ -81,7 +78,6 @@ public class CategoryDAO extends DBContext {
         );
     }
 
-    // Kiem tra ten danh muc da ton tai khi them moi
     public boolean isCategoryNameExists(String categoryName)
             throws SQLException {
 
@@ -104,8 +100,6 @@ public class CategoryDAO extends DBContext {
         return false;
     }
 
-    // Kiem tra ten danh muc da ton tai khi sua
-    // Bo qua danh muc dang duoc sua
     public boolean isCategoryNameExists(
             String categoryName, int excludeCategoryId)
             throws SQLException {
@@ -131,7 +125,6 @@ public class CategoryDAO extends DBContext {
         return false;
     }
 
-    // Them danh muc
     public int insert(Category category) {
         String sql = "INSERT INTO CATEGORY (category_name, parent_id) "
                 + "VALUES (?, ?)";
@@ -150,7 +143,6 @@ public class CategoryDAO extends DBContext {
         }
     }
 
-    // Cap nhat danh muc
     public int edit(Category category) {
         String sql = "UPDATE CATEGORY "
                 + "SET category_name = ?, parent_id = ? "
@@ -171,7 +163,6 @@ public class CategoryDAO extends DBContext {
         }
     }
 
-    // Gan parent_id, cho phep de trong neu la danh muc goc
     private void setParentId(
             PreparedStatement ps, int index, Integer parentId)
             throws SQLException {
@@ -183,7 +174,6 @@ public class CategoryDAO extends DBContext {
         }
     }
 
-    // Dem tong so danh muc
     public int countCategories() {
         String sql = "SELECT COUNT(*) FROM CATEGORY";
 
@@ -203,7 +193,6 @@ public class CategoryDAO extends DBContext {
         return 0;
     }
 
-    // Tim kiem danh muc theo ten
     public List<Category> searchByName(String keyword) {
         List<Category> list = new ArrayList<>();
 
@@ -231,7 +220,6 @@ public class CategoryDAO extends DBContext {
         return list;
     }
 
-    // Dem ket qua tim kiem
     public int countSearchResults(String keyword) {
         String sql = "SELECT COUNT(*) FROM CATEGORY "
                 + "WHERE category_name LIKE ?";
@@ -255,7 +243,6 @@ public class CategoryDAO extends DBContext {
         return 0;
     }
 
-    // Lay danh muc theo trang
     public List<Category> getListByPage(int page, int pageSize) {
         List<Category> list = new ArrayList<>();
 
@@ -284,7 +271,6 @@ public class CategoryDAO extends DBContext {
         return list;
     }
 
-    // Tim kiem danh muc va phan trang
     public List<Category> searchByNameAndPage(
             String keyword, int page, int pageSize) {
 
@@ -318,7 +304,6 @@ public class CategoryDAO extends DBContext {
         return list;
     }
 
-    // Lay ten tat ca danh muc theo ID
     public Map<Integer, String> getCategoryNames() {
         Map<Integer, String> names = new HashMap<>();
 
@@ -343,7 +328,6 @@ public class CategoryDAO extends DBContext {
         return names;
     }
 
-    // Dem tong so san pham cua danh muc va tat ca danh muc hau due
     public Map<Integer, Integer> getProductCounts(
             List<Category> categories) {
 
@@ -353,7 +337,6 @@ public class CategoryDAO extends DBContext {
             return counts;
         }
 
-        // Khoi tao mac dinh = 0 de danh muc khong co san pham van hien thi 0
         for (Category category : categories) {
             counts.put(category.getCategoryId(), 0);
         }
@@ -416,7 +399,6 @@ public class CategoryDAO extends DBContext {
         return counts;
     }
 
-    // Dem so danh muc con cua cac danh muc tren trang
     public Map<Integer, Integer> getChildCounts(
             List<Category> categories) {
 
@@ -458,7 +440,6 @@ public class CategoryDAO extends DBContext {
         return counts;
     }
 
-    // Tao danh sach dau ? cho cau lenh SQL
     private void appendPlaceholders(StringBuilder sql, int count) {
         for (int i = 0; i < count; i++) {
             if (i > 0) {
@@ -468,7 +449,6 @@ public class CategoryDAO extends DBContext {
         }
     }
 
-    // Dem so san pham thuoc mot danh muc
     public int countProductsByCategoryId(int categoryId) {
         String sql = "SELECT COUNT(*) FROM PRODUCT WHERE category_id = ?";
 
@@ -492,7 +472,6 @@ public class CategoryDAO extends DBContext {
         return 0;
     }
 
-    // Dem so danh muc con cua mot danh muc
     public int countChildCategories(int categoryId) {
         String sql = "SELECT COUNT(*) FROM CATEGORY WHERE parent_id = ?";
 
@@ -516,7 +495,6 @@ public class CategoryDAO extends DBContext {
         return 0;
     }
 
-    // Xoa danh muc
     public int delete(Category category) {
         String sql = "DELETE FROM CATEGORY WHERE category_id = ?";
 

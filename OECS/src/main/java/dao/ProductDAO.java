@@ -13,12 +13,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import model.Attribute;
+import model.ProductSpec;
 
 public class ProductDAO extends DBContext {
 
     public List<Product> getList() {
         List<Product> list = new ArrayList<>();
-        // Đã bổ sung đầy đủ INNER JOIN theo chuẩn DB
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
                 + "c.category_id, c.category_name, c.parent_id, "
                 + "b.brand_id, b.brand_name, b.logo_url "
@@ -79,12 +80,8 @@ public class ProductDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // HÀM MỚI: Thêm sản phẩm và trả về ID vừa tạo
-    // =====================================================
     public int insertReturnId(Product product) {
         String sql = "INSERT INTO PRODUCT (product_name, description, category_id, brand_id, image_url) VALUES (?, ?, ?, ?, ?)";
-        // Thêm tham số RETURN_GENERATED_KEYS
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
 
             statement.setString(1, product.getProductName());
@@ -96,10 +93,9 @@ public class ProductDAO extends DBContext {
             int affectedRows = statement.executeUpdate();
 
             if (affectedRows > 0) {
-                // Lấy ID tự tăng vừa được tạo ra trong CSDL
                 try (ResultSet rs = statement.getGeneratedKeys()) {
                     if (rs.next()) {
-                        return rs.getInt(1); // Trả về product_id
+                        return rs.getInt(1);
                     }
                 }
             }
@@ -110,7 +106,6 @@ public class ProductDAO extends DBContext {
     }
 
     public int update(Product product) {
-        // Nếu có upload ảnh mới thì cập nhật, nếu không thì giữ nguyên ảnh cũ bằng COALESCE
         String sql = "UPDATE PRODUCT SET product_name=?, description=?, category_id=?, brand_id=?, image_url=COALESCE(?, image_url) WHERE product_id=?";
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
@@ -141,7 +136,6 @@ public class ProductDAO extends DBContext {
     }
 
     public Product getById(int id) {
-        // Đã bổ sung đầy đủ INNER JOIN theo chuẩn DB
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
                 + "c.category_id, c.category_name, c.parent_id, "
                 + "b.brand_id, b.brand_name, b.logo_url "
@@ -168,7 +162,6 @@ public class ProductDAO extends DBContext {
                             rs.getString("logo_url")
                     );
 
-                    // Đã sửa lỗi logic: thêm return để trả về đối tượng tìm được
                     return new Product(
                             rs.getInt("product_id"),
                             rs.getInt("category_id"),
@@ -188,12 +181,8 @@ public class ProductDAO extends DBContext {
         return null;
     }
 
-    // =====================================================
-    // SEARCH PRODUCTS
-    // =====================================================
     public List<Product> searchProducts(String keyword) {
         List<Product> list = new ArrayList<>();
-        // Đã bổ sung đầy đủ INNER JOIN và điều kiện WHERE để tìm kiếm tương đối
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
                 + "c.category_id, c.category_name, c.parent_id, "
                 + "b.brand_id, b.brand_name, b.logo_url "
@@ -205,7 +194,6 @@ public class ProductDAO extends DBContext {
 
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
-            // Thêm ký tự % để tìm kiếm chuỗi chứa từ khóa (Tương đối)
             String searchPattern = "%" + keyword + "%";
             statement.setNString(1, searchPattern);
             statement.setNString(2, searchPattern);
@@ -244,17 +232,13 @@ public class ProductDAO extends DBContext {
         }
         return list;
     }
-    // =====================================================
-    // KIỂM TRA TRÙNG LẶP TÊN SẢN PHẨM
-    // =====================================================
 
-    // 1. Kiểm tra khi Thêm mới
     public boolean checkProductNameExists(String productName) {
         String sql = "SELECT 1 FROM PRODUCT WHERE product_name = ?";
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
             statement.setString(1, productName);
             try (ResultSet rs = statement.executeQuery()) {
-                return rs.next(); // Trả về true nếu tên đã tồn tại
+                return rs.next();
             }
         } catch (SQLException ex) {
             Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi kiểm tra trùng tên Product!", ex);
@@ -262,7 +246,6 @@ public class ProductDAO extends DBContext {
         return false;
     }
 
-    // 2. Kiểm tra khi Cập nhật (bỏ qua ID của chính nó)
     public boolean checkProductNameExistsForUpdate(String productName, int excludeProductId) {
         String sql = "SELECT 1 FROM PRODUCT WHERE product_name = ? AND product_id != ?";
         try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
@@ -304,9 +287,6 @@ public class ProductDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // LẤY DANH SÁCH ẢNH PHỤ
-    // =====================================================
     public List<model.ProductImage> getProductImages(int productId) {
         List<model.ProductImage> list = new ArrayList<>();
         String sql = "SELECT image_id, product_id, image_url FROM PRODUCT_IMAGES WHERE product_id = ?";
@@ -327,7 +307,6 @@ public class ProductDAO extends DBContext {
         return list;
     }
 
-    // Xóa một ảnh phụ cụ thể theo imageId
     public void deleteGalleryImageById(int imageId) {
         String sql = "DELETE FROM PRODUCT_IMAGES WHERE image_id = ?";
         try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
@@ -336,5 +315,71 @@ public class ProductDAO extends DBContext {
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
+    }
+    // 1. Lấy danh sách tất cả Attribute để thả vào thẻ <select> trong form Create/Edit
+
+    public List<Attribute> getAllAttributes() {
+        List<Attribute> list = new ArrayList<>();
+        String sql = "SELECT attribute_id, attribute_name FROM ATTRIBUTE";
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(new Attribute(rs.getInt("attribute_id"), rs.getString("attribute_name")));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+// 2. Lưu danh sách thông số kỹ thuật (Dùng cho cả Create và Edit)
+    public void saveProductSpecs(int productId, String[] attributeIds, String[] specValues) {
+        if (attributeIds == null || specValues == null || attributeIds.length != specValues.length) {
+            return;
+        }
+
+        try (Connection conn = this.getConnection()) {
+            // Xóa thông số cũ (rất tiện khi Edit, ta xóa hết rồi insert lại cái mới)
+            String sqlDelete = "DELETE FROM PRODUCT_SPECIFICATION WHERE product_id = ?";
+            try (PreparedStatement psDel = conn.prepareStatement(sqlDelete)) {
+                psDel.setInt(1, productId);
+                psDel.executeUpdate();
+            }
+
+            // Insert thông số mới
+            String sqlInsert = "INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value) VALUES (?, ?, ?)";
+            try (PreparedStatement psIns = conn.prepareStatement(sqlInsert)) {
+                for (int i = 0; i < attributeIds.length; i++) {
+                    if (attributeIds[i] != null && !attributeIds[i].isEmpty() && specValues[i] != null && !specValues[i].trim().isEmpty()) {
+                        psIns.setInt(1, productId);
+                        psIns.setInt(2, Integer.parseInt(attributeIds[i]));
+                        psIns.setString(3, specValues[i].trim());
+                        psIns.addBatch();
+                    }
+                }
+                psIns.executeBatch();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+// 3. Lấy thông số kỹ thuật của 1 sản phẩm để hiển thị lên form Edit
+    public List<ProductSpec> getProductSpecsForAdmin(int productId) {
+        List<ProductSpec> list = new ArrayList<>();
+        String sql = "SELECT ps.attribute_id, a.attribute_name, ps.value "
+                + "FROM PRODUCT_SPECIFICATION ps "
+                + "JOIN ATTRIBUTE a ON ps.attribute_id = a.attribute_id "
+                + "WHERE ps.product_id = ?";
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new ProductSpec(rs.getInt("attribute_id"), rs.getString("attribute_name"), rs.getString("value")));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 }

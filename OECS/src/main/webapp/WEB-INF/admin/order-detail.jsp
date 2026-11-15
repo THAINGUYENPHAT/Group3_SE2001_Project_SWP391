@@ -25,8 +25,6 @@
         overflow-y: auto;
     }
 
-    /* ================= HEADER ================= */
-
     .topbar {
         height: 70px;
         background: #0d162b;
@@ -83,8 +81,6 @@
         background: #20c878;
     }
 
-    /* ================= PAGE ================= */
-
     .page {
         min-height: calc(100vh - 70px);
         padding: 22px 38px 28px;
@@ -126,8 +122,6 @@
         background: #dcecff;
     }
 
-    /* ================= MAIN GRID ================= */
-
     .main-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -163,8 +157,6 @@
         padding: 18px;
         flex: 1;
     }
-
-    /* ================= ORDER INFO ================= */
 
     .info-grid {
         display: grid;
@@ -217,8 +209,6 @@
         font-size: 19px;
         font-weight: 700;
     }
-
-    /* ================= MANAGEMENT ================= */
 
     .current-status {
         background: #f5f9ff;
@@ -317,8 +307,6 @@
         margin-top: 5px;
     }
 
-    /* ================= PRODUCTS ================= */
-
     .products-card {
         min-height: 220px;
     }
@@ -370,8 +358,6 @@
         font-weight: 600;
     }
 
-    /* ================= RESPONSIVE ================= */
-
     @media (max-width: 900px) {
         .page {
             padding: 16px;
@@ -381,8 +367,6 @@
             grid-template-columns: 1fr;
         }
     }
-
-    /* ================= NOTIFICATION ================= */
 
     .success-message,
     .error-message {
@@ -481,9 +465,6 @@
             padding: 12px 14px;
         }
     }
-
-
-    /* ================= CANCEL CONFIRM MODAL ================= */
 
     .modal-overlay {
         position: fixed;
@@ -600,18 +581,23 @@
         opacity: 0.65;
         cursor: not-allowed;
     }
+
+    .order-action-row { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+    .order-action-row form { margin:0; }
+    .order-action-row .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:10px 16px; border:1px solid transparent; border-radius:8px; line-height:1.4; }
+    .order-action-row .btn-danger { background:#fff; color:#dc2626; border-color:#fca5a5; }
+    .order-action-row .btn-danger:hover { background:#fff1f2; border-color:#ef4444; }
+    .order-action-row .btn:focus-visible { outline:3px solid #93c5fd; outline-offset:3px; }
+    .order-action-row .cancel-request-note { flex-basis:100%; margin:0; }
+    @media (max-width:600px) { .order-action-row { flex-direction:column; align-items:stretch; } .order-action-row form,.order-action-row .btn { width:100%; } }
 </style>
 </head>
 
 <body>
 
-    <!-- ================= PAGE ================= -->
-
-
     <main class="page">
 
 
-        <!-- SUCCESS NOTIFICATION -->
         <c:if test="${not empty sessionScope.successMessage}">
             <div class="success-message notification" role="status">
                 <span class="notification-icon">✓</span>
@@ -622,7 +608,6 @@
             <c:remove var="successMessage" scope="session" />
         </c:if>
 
-        <!-- ERROR NOTIFICATION -->
         <c:if test="${not empty sessionScope.errorMessage}">
             <div class="error-message notification" role="alert">
                 <span class="notification-icon">!</span>
@@ -635,8 +620,6 @@
 
 
 
-        <!-- TITLE -->
-
         <div class="page-title">
             <div>
                 <h1>Order #${order.orderId}</h1>
@@ -648,11 +631,7 @@
             </a>
         </div>
 
-        <!-- ================= TOP ================= -->
-
         <div class="main-grid">
-
-            <!-- ================= ORDER INFO ================= -->
 
             <div class="card">
                 <div class="card-header">
@@ -719,8 +698,6 @@
                 </div>
             </div>
 
-            <!-- ================= MANAGEMENT ================= -->
-
             <div class="card">
                 <div class="card-header">
                     <h2>Quản lý đơn hàng</h2>
@@ -741,161 +718,55 @@
                         </span>
                     </div>
 
-
-                    <!-- XỬ LÝ ĐƠN HÀNG THEO TỪNG BƯỚC -->
-                    <c:choose>
-
-                        <c:when test="${status eq 'PENDING_CONFIRMATION'
-                                        or status eq 'PENDING'}">
-                                <div class="action-box">
-                                    <p>
-                                        Bước tiếp theo: Xác nhận tiếp nhận đơn hàng.
-                                    </p>
-
-                                    <form method="post"
-                                          action="${pageContext.request.contextPath}/admin/orders">
-                                        <input type="hidden"
-                                               name="action"
-                                               value="confirm">
-
-                                        <input type="hidden"
-                                               name="orderId"
-                                               value="${order.orderId}">
-
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="bi bi-check-circle me-1"></i>
-                                            Xác nhận đơn hàng
-                                        </button>
-                                    </form>
-                                </div>
-                        </c:when>
-
-                        <c:when test="${status eq 'CONFIRMED'}">
-                            <div class="action-box">
-                                <p>Bước tiếp theo: Bắt đầu đóng gói.</p>
-
-                                <form method="post"
-                                      action="${pageContext.request.contextPath}/admin/orders">
-                                    <input type="hidden"
-                                           name="action"
-                                           value="nextStep">
-
-                                    <input type="hidden"
-                                           name="orderId"
-                                           value="${order.orderId}">
-
+                    <div class="action-box">
+                        <p>
+                            <c:choose>
+                                <c:when test="${status eq 'PENDING_PAYMENT'}">Đơn đang chờ khách thanh toán.</c:when>
+                                <c:when test="${status eq 'PENDING_CONFIRMATION' or status eq 'PENDING'}">Bước tiếp theo: Xác nhận tiếp nhận đơn hàng.</c:when>
+                                <c:when test="${status eq 'CONFIRMED'}">Bước tiếp theo: Bắt đầu đóng gói.</c:when>
+                                <c:when test="${status eq 'PACKING'}">Bước tiếp theo: Bàn giao vận chuyển.</c:when>
+                                <c:when test="${status eq 'SHIPPING'}">Chỉ xác nhận khi đơn hàng đã được giao thành công.</c:when>
+                                <c:when test="${status eq 'COMPLETED'}">Đơn hàng đã hoàn thành. Không còn bước xử lý tiếp theo.</c:when>
+                                <c:when test="${status eq 'CANCELLED'}">Đơn hàng đã hủy.</c:when>
+                                <c:otherwise>Trạng thái chưa xác định. Vui lòng kiểm tra lại dữ liệu đơn hàng.</c:otherwise>
+                            </c:choose>
+                        </p>
+                        <div class="order-action-row">
+                            <c:if test="${status eq 'PENDING_CONFIRMATION' or status eq 'PENDING' or status eq 'CONFIRMED' or status eq 'PACKING' or status eq 'SHIPPING'}">
+                                <form method="post" action="${pageContext.request.contextPath}/admin/orders">
+                                    <input type="hidden" name="csrfToken" value="${sessionScope.staffOrderToken}">
+                                    <input type="hidden" name="orderId" value="${order.orderId}">
+                                    <input type="hidden" name="action" value="${status eq 'PENDING_CONFIRMATION' or status eq 'PENDING' ? 'confirm' : 'nextStep'}">
                                     <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-box-seam me-1"></i>
-                                        Chuyển sang đóng gói
+                                        <c:choose>
+                                            <c:when test="${status eq 'PENDING_CONFIRMATION' or status eq 'PENDING'}"><i class="bi bi-check-circle" aria-hidden="true"></i> Xác nhận đơn hàng</c:when>
+                                            <c:when test="${status eq 'CONFIRMED'}"><i class="bi bi-box-seam" aria-hidden="true"></i> Chuyển sang đóng gói</c:when>
+                                            <c:when test="${status eq 'PACKING'}"><i class="bi bi-truck" aria-hidden="true"></i> Chuyển sang giao hàng</c:when>
+                                            <c:otherwise><i class="bi bi-check2-circle" aria-hidden="true"></i> Xác nhận giao thành công</c:otherwise>
+                                        </c:choose>
                                     </button>
                                 </form>
-                            </div>
-                        </c:when>
+                            </c:if>
+                            <c:if test="${status eq 'PENDING_PAYMENT' or status eq 'PENDING_CONFIRMATION' or status eq 'PENDING' or status eq 'CONFIRMED' or status eq 'PACKING'}">
 
-                        <c:when test="${status eq 'PACKING'}">
-                            <div class="action-box">
-                                <p>Bước tiếp theo: Bàn giao vận chuyển.</p>
+        <form method="post" action="${pageContext.request.contextPath}/admin/orders"
+              onsubmit="return showCancelModal(event);">
+            <input type="hidden" name="csrfToken" value="${sessionScope.staffOrderToken}">
+            <input type="hidden" name="orderId" value="${order.orderId}">
+            <input type="hidden" name="action" value="cancel">
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-x-circle me-1"></i> Hủy đơn hàng
+            </button>
+        </form>
 
-                                <form method="post"
-                                      action="${pageContext.request.contextPath}/admin/orders">
-                                    <input type="hidden"
-                                           name="action"
-                                           value="nextStep">
 
-                                    <input type="hidden"
-                                           name="orderId"
-                                           value="${order.orderId}">
-
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-truck me-1"></i>
-                                        Chuyển sang giao hàng
-                                    </button>
-                                </form>
-                            </div>
-                        </c:when>
-
-                        <c:when test="${status eq 'SHIPPING'}">
-                            <div class="action-box">
-                                <p>
-                                    Chỉ xác nhận khi đơn hàng đã được giao thành công.
-                                </p>
-
-                                <form method="post"
-                                      action="${pageContext.request.contextPath}/admin/orders">
-                                    <input type="hidden"
-                                           name="action"
-                                           value="nextStep">
-
-                                    <input type="hidden"
-                                           name="orderId"
-                                           value="${order.orderId}">
-
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-check2-circle me-1"></i>
-                                        Xác nhận giao thành công
-                                    </button>
-                                </form>
-                            </div>
-                        </c:when>
-
-                        <c:when test="${status eq 'COMPLETED'}">
-                            <div class="action-box">
-                                <p>
-                                    Đơn hàng đã hoàn thành.
-                                    Không còn bước xử lý tiếp theo.
-                                </p>
-                            </div>
-                        </c:when>
-
-                        <c:when test="${status eq 'CANCELLED'}">
-                            <div class="action-box">
-                                <p>Đơn hàng đã hủy.</p>
-                            </div>
-                        </c:when>
-
-                        <c:otherwise>
-                            <div class="action-box">
-                                <p>
-                                    Trạng thái chưa xác định.
-                                    Vui lòng kiểm tra lại dữ liệu đơn hàng.
-                                </p>
-                            </div>
-                        </c:otherwise>
-
-                    </c:choose>
-
-                    <!-- CHỈ CHO HỦY ĐƠN COD CHƯA THANH TOÁN,
-                         ĐANG CHỜ XÁC NHẬN -->
-                    <c:if test="${(status eq 'PENDING_CONFIRMATION'
-                                  or status eq 'PENDING')
-                                  and order.paymentMethod eq 'COD'
-                                  and order.paymentStatus ne 'PAID'}">
-
-                          <div class="cancel-area">
-                              <form method="post"
-                                    action="${pageContext.request.contextPath}/admin/orders"
-                                    onsubmit="return showCancelModal(event);">
-
-                                  <input type="hidden"
-                                         name="action"
-                                         value="cancel">
-
-                                  <input type="hidden"
-                                         name="orderId"
-                                         value="${order.orderId}">
-
-                                  <button type="submit" class="btn btn-danger">
-                                      <i class="bi bi-x-circle me-1"></i>
-                                      Hủy đơn hàng
-                                  </button>
-                              </form>
-                          </div>
-
-                    </c:if>
+</c:if>
+                        </div>
+                    </div>
 
 
 
-                    <!-- ================= PRODUCTS ================= -->
+
 
                     <div class="card products-card">
                         <div class="card-header">
@@ -967,7 +838,6 @@
                     </main>
 
 
-                    <!-- CANCEL CONFIRMATION MODAL -->
                     <div id="cancelModal" class="modal-overlay" role="dialog" aria-modal="true"
                          aria-labelledby="cancelModalTitle">
 

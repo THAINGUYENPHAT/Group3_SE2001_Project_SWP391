@@ -139,7 +139,6 @@
         }
     }
 
-    /* ================= NOTIFICATION ================= */
 
     .success-message,
     .error-message {
@@ -230,7 +229,6 @@
         }
     }
 
-    /* ================= REVIEW CONFIRM MODAL ================= */
 
     .review-modal-overlay {
         position: fixed;
@@ -372,7 +370,6 @@
 
 <div class="return-detail">
 
-    <!-- SUCCESS NOTIFICATION -->
     <c:if test="${not empty param.message}">
         <div class="success-message notification" role="status">
             <span class="notification-icon">✓</span>
@@ -392,7 +389,6 @@
         </div>
     </c:if>
 
-    <!-- ERROR NOTIFICATION -->
     <c:if test="${not empty param.error}">
         <div class="error-message notification" role="alert">
             <span class="notification-icon">!</span>
@@ -424,7 +420,6 @@
         </div>
     </c:if>
 
-    <!-- PAGE HEADER -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
             <h3 class="fw-bold text-dark mb-1">
@@ -446,7 +441,6 @@
     <c:choose>
         <c:when test="${not empty selectedRequest}">
 
-            <!-- REQUEST INFORMATION -->
             <div class="detail-card">
                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
                     <div>
@@ -581,7 +575,6 @@
             </div>
 
 
-            <!-- REQUEST PRODUCTS -->
             <div class="detail-card">
                 <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
                     <h5 class="fw-bold mb-0">Sản phẩm trong yêu cầu</h5>
@@ -681,7 +674,6 @@
             </div>
 
 
-            <!-- ACTION CARD -->
             <div class="detail-card action-card">
                 <h5 class="section-title">
                     <i class="bi bi-clipboard-check text-primary me-2"></i>
@@ -729,7 +721,6 @@
                                 </div>
                             </div>
 
-                            <!-- ACTION BUTTONS -->
                             <div class="d-flex flex-column flex-sm-row flex-wrap gap-2">
 
                                 <button class="btn btn-success rounded-3 px-4 py-2"
@@ -819,7 +810,6 @@
         </c:otherwise>
     </c:choose>
 
-    <!-- REVIEW CONFIRMATION MODAL -->
     <div id="reviewModal"
          class="review-modal-overlay"
          role="dialog"
@@ -861,7 +851,6 @@
 
 </div>
 
-<!-- REVIEW CONFIRMATION JAVASCRIPT -->
 <script>
     let reviewAction = null;
 
@@ -869,7 +858,6 @@
         const note = document.getElementById("staffNote");
         const error = document.getElementById("noteError");
 
-        // Kiểm tra lý do trước khi mở modal từ chối
         if (action === "reject" && note.value.trim() === "") {
             if (error) {
                 error.classList.add("show");
@@ -891,7 +879,6 @@
         const message = document.getElementById("reviewModalMessage");
         const confirmButton = document.getElementById("confirmReviewButton");
 
-        // Reset trạng thái nút xác nhận
         confirmButton.disabled = false;
 
         if (action === "approve") {
@@ -940,7 +927,6 @@
         const note = document.getElementById("staffNote");
         const error = document.getElementById("noteError");
 
-        // Kiểm tra lại lý do từ chối
         if (reviewAction === "reject" && note.value.trim() === "") {
             closeReviewModal();
 
@@ -964,7 +950,6 @@
         form.submit();
     }
 
-    // Xóa thông báo lỗi khi Staff nhập lý do
     document.addEventListener("DOMContentLoaded", function () {
 
         const note = document.getElementById("staffNote");
@@ -978,7 +963,6 @@
             });
         }
 
-        // Tự động ẩn notification sau 3.5 giây
         document.querySelectorAll(".notification").forEach(function (message) {
             setTimeout(function () {
                 message.classList.add("notification-hide");
@@ -992,7 +976,6 @@
 
     });
 
-    // Đóng modal khi click bên ngoài
     const reviewModal = document.getElementById("reviewModal");
 
     if (reviewModal) {
@@ -1003,7 +986,6 @@
         });
     }
 
-    // Đóng modal bằng phím ESC
     document.addEventListener("keydown", function (event) {
         if (event.key === "Escape") {
             closeReviewModal();

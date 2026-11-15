@@ -9,7 +9,6 @@ import java.util.List;
 
 public class AuditLogDAO extends DBContext {
 
-    // Ghi một audit log mới
     public boolean insert(AuditLog log) {
 
         String sql = "INSERT INTO AUDIT_LOG"
@@ -52,7 +51,6 @@ public class AuditLogDAO extends DBContext {
         return false;
     }
 
-    // Lấy toàn bộ audit log, log mới nhất trước
     public List<AuditLog> getAll() {
 
         List<AuditLog> logs = new ArrayList<>();

@@ -48,7 +48,7 @@ public class NotificationServlet extends HttpServlet {
             return;
         }
 
-        // Đổi getUserId() nếu model.User của bạn dùng tên getter khác.
+        response.setHeader("Cache-Control", "no-store");
         int userId = user.getUserId();
         String action = request.getParameter("action");
 
@@ -87,7 +87,7 @@ public class NotificationServlet extends HttpServlet {
                         .append(",\"createdAt\":\"")
                         .append(escapeJson(
                                 n.getCreatedAt() == null
-                                ? "" : n.getCreatedAt().toString()))
+                                ? "" : n.getFormattedCreatedAt()))
                         .append("\"}");
                 }
 

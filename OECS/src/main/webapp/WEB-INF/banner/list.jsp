@@ -272,21 +272,18 @@
                                 <td class="text-end">
                                     <div class="d-inline-flex flex-wrap justify-content-end gap-1">
 
-                                        <!-- Chinh sua banner -->
                                         <a href="${pageContext.request.contextPath}/staff/banner?action=edit&id=${banner.bannerId}"
                                            class="btn btn-sm btn-light text-primary border rounded-2"
                                            title="Chỉnh sửa">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
 
-                                        <!-- Bat/tat banner -->
                                         <a href="${pageContext.request.contextPath}/staff/banner?action=toggle&id=${banner.bannerId}&active=${banner.active ? 0 : 1}"
                                            class="btn btn-sm btn-light border rounded-2 ${banner.active ? 'text-warning' : 'text-success'}"
                                            title="${banner.active ? 'Tắt banner' : 'Bật banner'}">
                                             <i class="bi ${banner.active ? 'bi-eye-slash' : 'bi-eye'}"></i>
                                         </a>
 
-                                        <!-- Xoa banner -->
                                         <a href="${pageContext.request.contextPath}/staff/banner?action=delete&id=${banner.bannerId}"
                                            class="btn btn-sm btn-light text-danger border rounded-2"
                                            title="Xóa"

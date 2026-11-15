@@ -83,7 +83,6 @@ public class PaymentServlet extends HttpServlet {
         }
     }
 
-    // Hien thi trang thanh toan
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -122,7 +121,6 @@ public class PaymentServlet extends HttpServlet {
                 return;
             }
 
-            // Kiem tra het han truoc khi hien thi
             payments.expireOrder(
                     user.getUserId(),
                     orderId
@@ -188,7 +186,6 @@ public class PaymentServlet extends HttpServlet {
         }
     }
 
-    // Thanh toan, doi COD hoac huy don
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -252,7 +249,6 @@ public class PaymentServlet extends HttpServlet {
 
                 String paymentUrl = attempt.url;
 
-                // Chua co link thi tao yeu cau toi cong sandbox
                 if (paymentUrl == null) {
                     paymentUrl = PaymentGateway.create(
                             attempt.method,

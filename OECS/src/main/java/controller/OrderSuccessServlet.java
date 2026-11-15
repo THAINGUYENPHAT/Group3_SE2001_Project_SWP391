@@ -33,10 +33,8 @@ public class OrderSuccessServlet extends HttpServlet {
             HttpServletResponse response
     ) throws ServletException, IOException {
 
-        // KHONG LUU CACHE THONG TIN DON HANG
         response.setHeader("Cache-Control", "no-store");
 
-        // KIEM TRA DANG NHAP
         HttpSession session = request.getSession(false);
 
         Object loggedInUser = session == null
@@ -52,7 +50,6 @@ public class OrderSuccessServlet extends HttpServlet {
 
         User user = (User) loggedInUser;
 
-        // LAY MA DON TU URL
         int orderId;
 
         try {
@@ -73,7 +70,6 @@ public class OrderSuccessServlet extends HttpServlet {
         }
 
         try {
-            // CHI CHO XEM DON HANG CUA CHINH USER
             Order order = orderDAO.findByIdAndUser(
                     orderId,
                     user.getUserId()
@@ -87,7 +83,6 @@ public class OrderSuccessServlet extends HttpServlet {
                 return;
             }
 
-            // GUI DU LIEU SANG JSP
             request.setAttribute("order", order);
 
             request.getRequestDispatcher(

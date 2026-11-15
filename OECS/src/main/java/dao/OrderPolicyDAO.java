@@ -9,7 +9,6 @@ import java.time.ZoneOffset;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
-/** All callers lock the customer before locking carts or orders. */
 public class OrderPolicyDAO {
     public void lockCustomer(Connection connection, int userId) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(
@@ -52,7 +51,6 @@ public class OrderPolicyDAO {
         }
     }
 
-    /** Called only after a successful customer cancellation, in the same transaction. */
     public void recordCancellation(Connection connection, int userId, int orderId) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(
                 "INSERT INTO dbo.ORDER_CUSTOMER_CANCELLATION (order_id, user_id, quantity) "
@@ -75,8 +73,6 @@ public class OrderPolicyDAO {
             ps.setInt(2, userId);
             ps.executeUpdate();
         }
-        // A block's end is the start of the next counting period. Events during a block
-        // stay in the audit trail but cannot cause another strike.
         try (PreparedStatement ps = connection.prepareStatement(
                 "UPDATE p SET violation_count = violation_count + 1, "
                 + "blocked_until = CASE violation_count WHEN 0 THEN DATEADD(DAY,3,SYSUTCDATETIME()) "

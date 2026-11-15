@@ -21,10 +21,8 @@
 
     <form action="${pageContext.request.contextPath}/user" method="post">
 
-        <!-- ACTION -->
         <input type="hidden" name="action" value="create">
 
-        <!-- USERNAME -->
         <div class="mb-3">
             <label class="form-label">
                 Username
@@ -35,7 +33,6 @@
                    required>
         </div>
 
-        <!-- EMAIL -->
         <div class="mb-3">
             <label class="form-label">
                 Email
@@ -46,18 +43,6 @@
                    required>
         </div>
 
-        <!-- PASSWORD -->
-        <div class="mb-3">
-            <label class="form-label">
-                Password
-            </label>
-            <input type="password"
-                   name="password"
-                   class="form-control"
-                   required>
-        </div>
-
-        <!-- PHONE -->
         <div class="mb-3">
             <label class="form-label">
                 Phone
@@ -67,7 +52,6 @@
                    class="form-control">
         </div>
 
-        <!-- ROLE -->
         <div class="mb-3">
             <label class="form-label">
                 Role

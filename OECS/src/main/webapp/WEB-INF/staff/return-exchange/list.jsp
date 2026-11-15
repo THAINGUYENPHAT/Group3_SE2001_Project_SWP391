@@ -104,7 +104,6 @@
         overflow-wrap: anywhere;
     }
 
-    /* FILTER PANEL */
     .return-page .filter-panel {
         background: #f8fafc;
         border-bottom: 1px solid #edf0f5;
@@ -260,7 +259,6 @@
             </div>
         </div>
 
-        <!-- FILTER PANEL -->
         <div class="filter-panel">
             <div class="row g-3">
 
@@ -454,7 +452,6 @@
                         </tr>
                     </c:forEach>
 
-                    <!-- KHONG CO KET QUA LOC -->
                     <tr id="noFilterResult" style="display: none;">
                         <td colspan="8">
                             <div class="empty-state">

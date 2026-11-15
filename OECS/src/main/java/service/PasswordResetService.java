@@ -16,12 +16,8 @@ public class PasswordResetService {
     private final UserDAO userDAO = new UserDAO();
     private final PasswordResetDAO passwordResetDAO = new PasswordResetDAO();
 
-    private static final long TOKEN_EXPIRE_MINUTES = 15;
-
-    // =====================================================
-    // 1. TẠO TOKEN RESET PASSWORD
-    // =====================================================
-    public String createResetToken(String email) throws Exception {
+    
+    public String createResetToken(String email,  int expiryMinutes) throws Exception {
 
         if (email == null || email.trim().isEmpty()) {
             return null;
@@ -33,17 +29,14 @@ public class PasswordResetService {
             return null;
         }
 
-        // Hủy các token cũ chưa sử dụng
         passwordResetDAO.invalidateOldTokens(user.getUserId());
 
-        // Token thật gửi cho người dùng
         String rawToken = generateToken();
 
-        // DB chỉ lưu hash của token
         String tokenHash = hashToken(rawToken);
 
         long expireTime = System.currentTimeMillis()
-                + TOKEN_EXPIRE_MINUTES * 60 * 1000;
+                + expiryMinutes * 60 * 1000;
 
         Timestamp expiresAt = new Timestamp(expireTime);
 
@@ -62,9 +55,6 @@ public class PasswordResetService {
         return rawToken;
     }
 
-    // =====================================================
-    // 2. KIỂM TRA TOKEN
-    // =====================================================
     public PasswordResetToken validateToken(String rawToken)
             throws Exception {
 
@@ -77,9 +67,6 @@ public class PasswordResetService {
         return passwordResetDAO.findValidToken(tokenHash);
     }
 
-    // =====================================================
-    // 3. RESET PASSWORD
-    // =====================================================
     public boolean resetPassword(String rawToken, String newPassword)
             throws Exception {
 
@@ -91,14 +78,12 @@ public class PasswordResetService {
             return false;
         }
 
-        // Kiểm tra token
         PasswordResetToken token = validateToken(rawToken);
 
         if (token == null) {
             return false;
         }
 
-        // Đổi mật khẩu
         boolean passwordUpdated = userDAO.resetPassword(
                 token.getUserId(),
                 newPassword
@@ -108,13 +93,9 @@ public class PasswordResetService {
             return false;
         }
 
-        // Token chỉ được dùng 1 lần
         return passwordResetDAO.markAsUsed(token.getResetId());
     }
 
-    // =====================================================
-    // 4. TẠO TOKEN NGẪU NHIÊN
-    // =====================================================
     private String generateToken() {
 
         SecureRandom secureRandom = new SecureRandom();
@@ -128,9 +109,6 @@ public class PasswordResetService {
                 .encodeToString(bytes);
     }
 
-    // =====================================================
-    // 5. HASH TOKEN BẰNG SHA-256
-    // =====================================================
     private String hashToken(String rawToken)
             throws Exception {
 

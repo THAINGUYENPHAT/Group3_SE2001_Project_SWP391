@@ -12,12 +12,8 @@ import java.util.Map;
 
 public class ReviewReportDAO extends DBContext {
 
-    // Tối đa 5 báo cáo trong 24 giờ / tài khoản.
     private static final int MAX_REPORTS_PER_DAY = 5;
 
-    // =====================================================
-    // LẤY DANH SÁCH BÁO CÁO CHO STAFF
-    // =====================================================
     public List<Map<String, Object>> getAllReports()
             throws SQLException {
 
@@ -81,16 +77,13 @@ public class ReviewReportDAO extends DBContext {
         return reports;
     }
 
-    // =====================================================
-    // TẠO BÁO CÁO ĐÁNH GIÁ
-    // =====================================================
+   
     public String createReport(
             int reviewId,
             int productId,
             int reportedBy,
             String reason) throws SQLException {
 
-        // 1. Kiểm tra dữ liệu đầu vào.
         if (reviewId <= 0
                 || productId <= 0
                 || reportedBy <= 0
@@ -107,10 +100,7 @@ public class ReviewReportDAO extends DBContext {
 
             try {
 
-                // =========================================
-                // 2. KHÓA TÀI KHOẢN ĐANG GỬI BÁO CÁO
-                // Giúp tuần tự hóa các request cùng user.
-                // =========================================
+                
                 String lockUserSql
                         = "SELECT user_id "
                         + "FROM dbo.[USER] WITH (UPDLOCK, HOLDLOCK) "
@@ -130,9 +120,7 @@ public class ReviewReportDAO extends DBContext {
                     }
                 }
 
-                // =========================================
-                // 3. KIỂM TRA REVIEW THUỘC ĐÚNG SẢN PHẨM
-                // =========================================
+                
                 String findReview
                         = "SELECT pr.user_id, pr.is_hidden "
                         + "FROM dbo.PRODUCT_REVIEWS pr "
@@ -160,24 +148,19 @@ public class ReviewReportDAO extends DBContext {
                     }
                 }
 
-                // Review không tồn tại, sai sản phẩm
-                // hoặc đã bị Staff ẩn.
+              
                 if (ownerId == null || isHidden) {
                     conn.rollback();
                     return "NOT_FOUND";
                 }
 
-                // =========================================
-                // 4. KHÔNG BÁO CÁO REVIEW CỦA CHÍNH MÌNH
-                // =========================================
+                
                 if (ownerId == reportedBy) {
                     conn.rollback();
                     return "OWN_REVIEW";
                 }
 
-                // =========================================
-                // 5. KHÔNG BÁO CÁO TRÙNG KHI ĐANG PENDING
-                // =========================================
+                
                 String checkPending
                         = "SELECT COUNT(*) AS total "
                         + "FROM dbo.REVIEW_REPORTS "
@@ -202,10 +185,7 @@ public class ReviewReportDAO extends DBContext {
                     }
                 }
 
-                // =========================================
-                // 6. CHỐNG SPAM:
-                // TỐI ĐA 5 BÁO CÁO TRONG 24 GIỜ
-                // =========================================
+                
                 String countReportsSql
                         = "SELECT COUNT(*) AS total "
                         + "FROM dbo.REVIEW_REPORTS "
@@ -235,9 +215,7 @@ public class ReviewReportDAO extends DBContext {
                     }
                 }
 
-                // =========================================
-                // 7. LƯU BÁO CÁO MỚI
-                // =========================================
+                
                 String insertSql
                         = "INSERT INTO dbo.REVIEW_REPORTS "
                         + "(review_id, reported_by, reason, "
@@ -264,7 +242,6 @@ public class ReviewReportDAO extends DBContext {
 
                 conn.rollback();
 
-                // SQL Server: lỗi vi phạm UNIQUE.
                 if (e.getErrorCode() == 2601
                         || e.getErrorCode() == 2627) {
 
@@ -281,9 +258,7 @@ public class ReviewReportDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // STAFF XỬ LÝ BÁO CÁO
-    // =====================================================
+    
     public boolean resolveReport(
             int reportId,
             int staffId,
@@ -310,7 +285,6 @@ public class ReviewReportDAO extends DBContext {
 
                 int reviewId;
 
-                // Khóa báo cáo đang chờ xử lý.
                 String findReport
                         = "SELECT review_id "
                         + "FROM dbo.REVIEW_REPORTS "
@@ -334,9 +308,7 @@ public class ReviewReportDAO extends DBContext {
                     }
                 }
 
-                // =========================================
-                // STAFF CHẤP NHẬN BÁO CÁO: ẨN REVIEW
-                // =========================================
+               
                 if ("HIDE".equals(decision)) {
 
                     String hideSql
@@ -356,9 +328,7 @@ public class ReviewReportDAO extends DBContext {
                     }
                 }
 
-                // =========================================
-                // CẬP NHẬT TRẠNG THÁI BÁO CÁO
-                // =========================================
+               
                 String updateReport
                         = "UPDATE dbo.REVIEW_REPORTS "
                         + "SET report_status = ?, "

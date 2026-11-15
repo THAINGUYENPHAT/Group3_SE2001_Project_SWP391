@@ -27,32 +27,24 @@ public class LogoutServlet extends HttpServlet {
         processLogout(request, response);
     }
 
-    /**
-     * Phương thức tập trung xử lý đăng xuất người dùng
-     */
+  
     private void processLogout(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
-            // =====================================================
-            // 1. HỦY SESSION HIỆN TẠI
-            // =====================================================
+            
             HttpSession session = request.getSession(false);
             if (session != null) {
                 session.invalidate();
             }
 
-            // =====================================================
-            // 2. TẠO SESSION MỚI VÀ GỬI THÔNG BÁO ĐĂNG XUẤT
-            // =====================================================
+           
             HttpSession newSession = request.getSession(true);
             newSession.setAttribute("logoutMessage", "Bạn đã đăng xuất thành công!");
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Lỗi khi xử lý đăng xuất người dùng!", e);
         } finally {
-            // =====================================================
-            // 3. CHUYỂN HƯỚNG VỀ TRANG ĐĂNG NHẬP
-            // =====================================================
+          
             response.sendRedirect(request.getContextPath() + "/login");
         }
     }

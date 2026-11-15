@@ -1,4 +1,3 @@
-
 package dao;
 
 import db.DBContext;
@@ -18,13 +17,71 @@ public class NotificationDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(NotificationDAO.class.getName());
 
-    // CREATE ORDER STATUS NOTIFICATION
-    public boolean createOrderStatusNotification(
-            int orderId, String status) {
+    public boolean createOrderStatusNotification(int orderId, String status) {
+        try (Connection conn = getConnection()) {
+            return createOrderStatusNotification(conn, orderId, status);
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error creating order status notification", ex);
+            return false;
+        }
+    }
 
-        String title = "Cap nhat don hang #" + orderId;
-        String message = "Don hang #" + orderId
-                + " da duoc cap nhat trang thai: " + status + ".";
+    /** Reuse the caller's transaction without closing or committing its connection. */
+    public static boolean createOrderStatusNotification(Connection conn, int orderId, String status) throws SQLException {
+        if (conn == null || conn.isClosed()) throw new SQLException("Kết nối không hợp lệ.");
+        if (orderId <= 0) throw new IllegalArgumentException("Mã đơn hàng không hợp lệ.");
+        String title;
+        String message;
+
+        String normalizedStatus = status == null
+                ? ""
+                : status.trim().toUpperCase(java.util.Locale.ROOT);
+
+        if (normalizedStatus.equals("CONFIRMED")) {
+
+            title = "Đơn hàng đã được xác nhận";
+            message = "Đơn hàng #" + orderId
+                    + " của bạn đã được xác nhận và đang được chuẩn bị.";
+
+        } else if (normalizedStatus.equals("PACKING")) {
+
+            title = "Đơn hàng đang được đóng gói";
+            message = "Đơn hàng #" + orderId
+                    + " đã được xác nhận và đang trong quá trình đóng gói.";
+
+        } else if (normalizedStatus.equals("SHIPPING")
+                || normalizedStatus.equals("SHIPPED")) {
+
+            title = "Đơn hàng đang được vận chuyển";
+            message = "Đơn hàng #" + orderId
+                    + " đã được bàn giao cho đơn vị vận chuyển. "
+                    + "Vui lòng chú ý điện thoại để nhận hàng.";
+
+        } else if (normalizedStatus.equals("DELIVERED")) {
+
+            title = "Đơn hàng đã giao thành công";
+            message = "Đơn hàng #" + orderId
+                    + " đã được giao thành công. "
+                    + "Cảm ơn bạn đã mua sắm tại OECS!";
+
+        } else if (normalizedStatus.equals("COMPLETED")) {
+
+            title = "Đơn hàng đã hoàn tất";
+            message = "Đơn hàng #" + orderId
+                    + " đã hoàn tất. Hy vọng bạn hài lòng với sản phẩm!";
+
+        } else if (normalizedStatus.equals("CANCELLED")
+                || normalizedStatus.equals("CANCELED")) {
+
+            title = "Đơn hàng đã bị hủy";
+            message = "Đơn hàng #" + orderId
+                    + " của bạn đã bị hủy. "
+                    + "Nếu cần hỗ trợ, vui lòng liên hệ nhân viên OECS.";
+
+        } else {
+            LOGGER.warning("Unsupported order status: " + status);
+            return false;
+        }
 
         String sql = "INSERT INTO dbo.NOTIFICATION "
                 + "(user_id, order_id, title, message) "
@@ -32,8 +89,7 @@ public class NotificationDAO extends DBContext {
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.order_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, title);
             ps.setString(2, message);
@@ -41,16 +97,9 @@ public class NotificationDAO extends DBContext {
 
             return ps.executeUpdate() > 0;
 
-        } catch (SQLException ex) {
-            LOGGER.log(Level.SEVERE,
-                    "Error creating order status notification", ex);
         }
-
-        return false;
     }
 
-    // CREATE RETURN/EXCHANGE NOTIFICATION
-    // Uses the existing transaction connection from ReturnExchangeDAO.
     public void createReturnExchangeNotification(
             Connection conn,
             int userId,
@@ -85,15 +134,13 @@ public class NotificationDAO extends DBContext {
         }
     }
 
-    // COUNT UNREAD NOTIFICATIONS
     public int countUnread(int userId) {
 
         String sql = "SELECT COUNT(*) "
                 + "FROM dbo.NOTIFICATION "
                 + "WHERE user_id = ? AND is_read = 0";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
 
@@ -111,7 +158,6 @@ public class NotificationDAO extends DBContext {
         return 0;
     }
 
-    // GET LATEST NOTIFICATIONS
     public List<Notification> findLatest(int userId) {
 
         List<Notification> list = new ArrayList<>();
@@ -123,8 +169,7 @@ public class NotificationDAO extends DBContext {
                 + "WHERE user_id = ? "
                 + "ORDER BY created_at DESC, notification_id DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
 
@@ -164,7 +209,6 @@ public class NotificationDAO extends DBContext {
         return list;
     }
 
-    // MARK NOTIFICATION AS READ
     public boolean markAsRead(int notificationId, int userId) {
 
         String sql = "UPDATE dbo.NOTIFICATION "
@@ -172,8 +216,7 @@ public class NotificationDAO extends DBContext {
                 + "WHERE notification_id = ? "
                 + "AND user_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, notificationId);
             ps.setInt(2, userId);

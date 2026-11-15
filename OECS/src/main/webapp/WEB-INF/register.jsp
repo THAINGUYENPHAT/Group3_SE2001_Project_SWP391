@@ -11,7 +11,6 @@
                 <div class="card-body p-4">
                     <h3 class="card-title text-center fw-bold text-primary mb-4">Đăng Ký Tài Khoản</h3>
 
-                    <%-- Thẻ hiển thị thông báo lỗi từ Servlet --%>
                     <c:if test="${not empty errorMessage}">
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="bi bi-exclamation-triangle-fill me-2"></i>
@@ -117,5 +116,4 @@
     });
 </script>
 
-<%-- Nhúng Footer chung của dự án (đã bao gồm JS Bootstrap và đóng </body></html>) --%>
 <%@include file="/WEB-INF/include/footer.jsp" %>

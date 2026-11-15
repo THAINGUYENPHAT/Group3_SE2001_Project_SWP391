@@ -4,7 +4,6 @@
 <%@ include file="/WEB-INF/include/header.jsp" %>
 
 <style>
-    /* BO CUC TRANG */
     #purchase-history {
         --accent: #b94322;
         --ink: #202938;
@@ -46,7 +45,6 @@
         font-weight: 600;
     }
 
-    /* NUT MUA SAM KICH THUOC NHO */
     #purchase-history .ph-shop {
         display: inline-flex;
         align-items: center;
@@ -79,7 +77,6 @@
     }
     #purchase-history .ph-heading p { margin: 0; color: var(--muted); }
 
-    /* LOC VA TIM KIEM */
     #purchase-history .ph-filters {
         background: #fff;
         border: 1px solid var(--line);
@@ -164,7 +161,6 @@
     }
     #purchase-history .ph-results a { color: var(--accent); }
 
-    /* DON HANG */
     #purchase-history .ph-order {
         margin-bottom: 16px;
         overflow: hidden;
@@ -293,7 +289,6 @@
     }
     #purchase-history .ph-secondary:hover { background: #f8fafc; }
 
-    /* TRANG THAI RONG VA PHAN TRANG */
     #purchase-history .ph-empty {
         padding: 48px 20px;
         border: 1px solid var(--line);
@@ -320,7 +315,6 @@
     #purchase-history .ph-pagination { margin-top: 24px; color: var(--muted); font-size: 13px; }
     #purchase-history .ph-missing { margin: 0; padding: 18px 0; color: var(--muted); }
 
-    /* DIEN THOAI */
     @media (max-width: 640px) {
         #purchase-history { width: calc(100% - 24px); margin: 18px auto 32px; }
         #purchase-history .ph-heading h1 { font-size: 24px; }
@@ -354,7 +348,6 @@
     </c:if>
 
 
-    <%-- DIEU HUONG --%>
     <div class="ph-topbar">
         <span class="ph-current">
             <i class="bi bi-clock-history" aria-hidden="true"></i>
@@ -374,7 +367,6 @@
         <p>Theo dõi đơn hàng và xem lại sản phẩm đã mua.</p>
     </div>
 
-    <%-- LOC TRANG THAI --%>
     <div class="ph-filters">
         <nav class="ph-tabs" aria-label="Lọc đơn hàng theo trạng thái">
             <c:forEach var="tab" items="${tabs}">
@@ -415,7 +407,6 @@
         </form>
     </div>
 
-    <%-- SO KET QUA --%>
     <div class="ph-results">
         <span>
             <strong><c:out value="${resultCount}" /></strong> đơn hàng
@@ -437,7 +428,6 @@
         </c:choose>
     </div>
 
-    <%-- KHONG CO DON HANG --%>
     <c:if test="${empty orders}">
         <section class="ph-empty">
             <i class="bi bi-bag" aria-hidden="true"></i>
@@ -468,7 +458,6 @@
         </section>
     </c:if>
 
-    <%-- DANH SACH DON HANG --%>
     <c:forEach var="order" items="${orders}">
         <article class="ph-order"
                  aria-label="Đơn hàng ${order.orderId}">
@@ -574,7 +563,6 @@
         </article>
     </c:forEach>
 
-    <%-- PHAN TRANG --%>
     <c:if test="${pageCount > 1}">
         <nav class="ph-pagination"
              aria-label="Phân trang lịch sử mua hàng">

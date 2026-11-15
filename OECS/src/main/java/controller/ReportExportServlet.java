@@ -62,9 +62,7 @@ public class ReportExportServlet extends HttpServlet {
         reportDAO = new ReportDAO();
     }
 
-    // =====================================================
-    // 1. XỬ LÝ YÊU CẦU XUẤT BÁO CÁO
-    // =====================================================
+    
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -197,9 +195,7 @@ public class ReportExportServlet extends HttpServlet {
 
     }
 
-    // =====================================================
-    // 2. LẤY DỮ LIỆU TỪ REPORT DAO
-    // =====================================================
+    
     private static class ReportData {
 
         BigDecimal totalRevenue;
@@ -256,9 +252,6 @@ public class ReportExportServlet extends HttpServlet {
         return data;
     }
 
-    // =====================================================
-    // 3. XUẤT EXCEL TIẾNG VIỆT
-    // =====================================================
     private void exportExcel(
             HttpServletResponse response,
             LocalDate startDate,
@@ -270,7 +263,6 @@ public class ReportExportServlet extends HttpServlet {
             Sheet sheet
                     = workbook.createSheet("Bao cao kinh doanh");
 
-            // ---------- FONT TIẾNG VIỆT ----------
             org.apache.poi.ss.usermodel.Font titleFont
                     = workbook.createFont();
 
@@ -330,7 +322,6 @@ public class ReportExportServlet extends HttpServlet {
 
             int row = 0;
 
-            // ---------- TIÊU ĐỀ ----------
             Row titleRow = sheet.createRow(row++);
             titleRow.setHeightInPoints(32);
 
@@ -358,7 +349,6 @@ public class ReportExportServlet extends HttpServlet {
 
             row++;
 
-            // ---------- TỔNG QUAN ----------
             row = addSection(
                     sheet, row, headerStyle,
                     "TỔNG QUAN KINH DOANH"
@@ -392,7 +382,6 @@ public class ReportExportServlet extends HttpServlet {
 
             row++;
 
-            // ---------- TRẠNG THÁI ĐƠN ----------
             row = addSection(
                     sheet, row, headerStyle,
                     "THỐNG KÊ TRẠNG THÁI ĐƠN HÀNG"
@@ -449,7 +438,6 @@ public class ReportExportServlet extends HttpServlet {
 
             row++;
 
-            // ---------- TOP 5 SẢN PHẨM ----------
             row = addSection(
                     sheet, row, headerStyle,
                     "TOP 5 SẢN PHẨM BÁN CHẠY"
@@ -493,7 +481,6 @@ public class ReportExportServlet extends HttpServlet {
 
             row++;
 
-            // ---------- DOANH THU THEO NGÀY ----------
             row = addSection(
                     sheet, row, headerStyle,
                     "DOANH THU THEO NGÀY"
@@ -560,14 +547,12 @@ public class ReportExportServlet extends HttpServlet {
                     "Thống kê theo ngày tạo đơn"
             );
 
-            // ---------- ĐỊNH DẠNG CỘT ----------
             sheet.setColumnWidth(0, 34 * 256);
             sheet.setColumnWidth(1, 46 * 256);
             sheet.setColumnWidth(2, 25 * 256);
 
             sheet.setDisplayGridlines(false);
 
-            // ---------- GỬI FILE ----------
             response.setContentType(
                     "application/vnd.openxmlformats-officedocument."
                     + "spreadsheetml.sheet"
@@ -582,9 +567,7 @@ public class ReportExportServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // 4. CÁC HÀM HỖ TRỢ EXCEL
-    // =====================================================
+   
     private int addSection(
             Sheet sheet,
             int rowIndex,
@@ -671,9 +654,7 @@ public class ReportExportServlet extends HttpServlet {
         cell.setCellStyle(style);
     }
 
-    // =====================================================
-    // 5. XUẤT PDF TIẾNG VIỆT CÓ DẤU
-    // =====================================================
+    
     private void exportPdf(
             HttpServletResponse response,
             LocalDate startDate,
@@ -698,7 +679,6 @@ public class ReportExportServlet extends HttpServlet {
 
                     try (PDDocument document = new PDDocument()) {
 
-                        // Font Unicode được nhúng vào PDF
                         PDType0Font regular
                                 = PDType0Font.load(
                                         document,
@@ -717,7 +697,6 @@ public class ReportExportServlet extends HttpServlet {
                                 document, regular, bold
                         )) {
 
-                            // ---------- TIÊU ĐỀ ----------
                             pdf.heading(
                                     "OECS - BÁO CÁO KINH DOANH"
                             );
@@ -731,7 +710,6 @@ public class ReportExportServlet extends HttpServlet {
 
                             pdf.space(14);
 
-                            // ---------- TỔNG QUAN ----------
                             pdf.section("1. TỔNG QUAN KINH DOANH");
 
                             pdf.paragraph(
@@ -758,7 +736,6 @@ public class ReportExportServlet extends HttpServlet {
 
                             pdf.space(14);
 
-                            // ---------- TRẠNG THÁI ĐƠN ----------
                             pdf.section(
                                     "2. THỐNG KÊ TRẠNG THÁI ĐƠN HÀNG"
                             );
@@ -810,7 +787,6 @@ public class ReportExportServlet extends HttpServlet {
 
                             pdf.space(14);
 
-                            // ---------- TOP 5 ----------
                             pdf.section(
                                     "3. TOP 5 SẢN PHẨM BÁN CHẠY"
                             );
@@ -846,7 +822,6 @@ public class ReportExportServlet extends HttpServlet {
 
                             pdf.space(14);
 
-                            // ---------- DOANH THU ----------
                             pdf.section(
                                     "4. DOANH THU THEO NGÀY"
                             );
@@ -899,7 +874,6 @@ public class ReportExportServlet extends HttpServlet {
                             );
                         }
 
-                        // ---------- GỬI PDF ----------
                         response.setContentType("application/pdf");
 
                         response.setHeader(
@@ -914,9 +888,7 @@ public class ReportExportServlet extends HttpServlet {
                 }
     }
 
-    // =====================================================
-    // 6. PDF WRITER - HỖ TRỢ UNICODE VÀ NHIỀU TRANG
-    // =====================================================
+  
     private static class PdfWriter implements AutoCloseable {
 
         private static final float PAGE_TOP = 780;
@@ -947,7 +919,6 @@ public class ReportExportServlet extends HttpServlet {
             newPage();
         }
 
-        // ---------- TẠO TRANG ----------
         private void newPage() throws IOException {
 
             if (content != null) {
@@ -966,7 +937,6 @@ public class ReportExportServlet extends HttpServlet {
             y = PAGE_TOP;
             pageNumber++;
 
-            // Header khi PDF có nhiều trang
             if (pageNumber > 1) {
 
                 drawText(
@@ -978,7 +948,6 @@ public class ReportExportServlet extends HttpServlet {
             }
         }
 
-        // ---------- KIỂM TRA CHỖ TRỐNG ----------
         private void ensureSpace(float height)
                 throws IOException {
 
@@ -993,7 +962,6 @@ public class ReportExportServlet extends HttpServlet {
             }
         }
 
-        // ---------- TIÊU ĐỀ ----------
         void heading(String text) throws IOException {
 
             tableActive = false;
@@ -1006,7 +974,6 @@ public class ReportExportServlet extends HttpServlet {
             y -= 36;
         }
 
-        // ---------- TIÊU ĐỀ PHẦN ----------
         void section(String text) throws IOException {
 
             tableActive = false;
@@ -1019,7 +986,6 @@ public class ReportExportServlet extends HttpServlet {
             y -= 26;
         }
 
-        // ---------- ĐOẠN VĂN ----------
         void paragraph(String text) throws IOException {
 
             tableActive = false;
@@ -1043,7 +1009,6 @@ public class ReportExportServlet extends HttpServlet {
             }
         }
 
-        // ---------- KHOẢNG CÁCH ----------
         void space(float height) throws IOException {
 
             tableActive = false;
@@ -1052,14 +1017,12 @@ public class ReportExportServlet extends HttpServlet {
             y -= height;
         }
 
-        // ---------- BẮT ĐẦU BẢNG ----------
         void beginTable(
                 String[] headers,
                 float[] widths) throws IOException {
 
             tableActive = false;
 
-            // Kiểm tra trang trước khi vẽ tiêu đề bảng
             ensureSpace(25);
 
             tableHeaders = headers;
@@ -1069,7 +1032,6 @@ public class ReportExportServlet extends HttpServlet {
             drawTableHeader();
         }
 
-        // ---------- TIÊU ĐỀ CỘT ----------
         private void drawTableHeader() throws IOException {
 
             float x = LEFT;
@@ -1087,7 +1049,6 @@ public class ReportExportServlet extends HttpServlet {
             y -= 22;
         }
 
-        // ---------- DÒNG DỮ LIỆU ----------
         void tableRow(String... cells) throws IOException {
 
             if (!tableActive) {
@@ -1146,7 +1107,6 @@ public class ReportExportServlet extends HttpServlet {
             y -= rowHeight;
         }
 
-        // ---------- GHI CHỮ UNICODE ----------
         private void drawText(
                 String text,
                 float x,
@@ -1177,7 +1137,6 @@ public class ReportExportServlet extends HttpServlet {
             content.endText();
         }
 
-        // ---------- TỰ ĐỘNG XUỐNG DÒNG ----------
         private List<String> wrapText(
                 String text,
                 PDType0Font font,
@@ -1214,7 +1173,6 @@ public class ReportExportServlet extends HttpServlet {
                         current.setLength(0);
                     }
 
-                    // Trường hợp một từ dài hơn cả cột
                     StringBuilder part = new StringBuilder();
 
                     for (int offset = 0;
@@ -1253,7 +1211,6 @@ public class ReportExportServlet extends HttpServlet {
             return result;
         }
 
-        // ---------- ĐO ĐỘ DÀI CHỮ ----------
         private float textWidth(
                 String text,
                 PDType0Font font,
@@ -1263,7 +1220,6 @@ public class ReportExportServlet extends HttpServlet {
                     / 1000f * fontSize;
         }
 
-        // ---------- ĐÓNG PDF STREAM ----------
         @Override
         public void close() throws IOException {
 
@@ -1274,9 +1230,7 @@ public class ReportExportServlet extends HttpServlet {
         }
     }
 
-    // =====================================================
-    // 7. HÀM HỖ TRỢ DỮ LIỆU
-    // =====================================================
+    
     private static int toInt(Object value) {
 
         if (value instanceof Number) {
@@ -1302,7 +1256,6 @@ public class ReportExportServlet extends HttpServlet {
         return BigDecimal.ZERO;
     }
 
-    // ---------- FORMAT TIỀN VNĐ ----------
     private static String formatMoney(BigDecimal value) {
 
         DecimalFormatSymbols symbols
@@ -1322,7 +1275,6 @@ public class ReportExportServlet extends HttpServlet {
         );
     }
 
-    // ---------- FORMAT NGÀY ----------
     private static String formatDate(Object value) {
 
         if (value == null) {
@@ -1356,7 +1308,6 @@ public class ReportExportServlet extends HttpServlet {
         }
     }
 
-    // ---------- DỊCH TRẠNG THÁI ----------
     private static String statusName(String status) {
 
         if (status == null) {

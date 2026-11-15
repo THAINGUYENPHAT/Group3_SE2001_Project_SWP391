@@ -26,18 +26,10 @@
     }
 
 
-    /*
-     * Chừa chỗ phía dưới
-     * để thanh fixed không che nội dung.
-     */
     .cart-page {
         padding: 4px 0 125px;
     }
 
-
-    /* =====================================================
-       PAGE HEADER
-       ===================================================== */
 
     .page-heading {
         display: flex;
@@ -95,11 +87,6 @@
         background: var(--primary-hover);
         color: #ffffff;
     }
-
-
-    /* =====================================================
-       STATISTICS
-       ===================================================== */
 
     .stat-card {
         position: relative;
@@ -184,10 +171,6 @@
     }
 
 
-    /* =====================================================
-       MAIN CART CARD
-       ===================================================== */
-
     .content-card {
         margin-top: 30px;
 
@@ -243,10 +226,6 @@
     }
 
 
-    /* =====================================================
-       TABLE
-       ===================================================== */
-
     .cart-table {
         margin-bottom: 0;
     }
@@ -289,11 +268,6 @@
         background: #fbfcfe;
     }
 
-
-    /* =====================================================
-       CHECKBOX
-       ===================================================== */
-
     .cart-check {
         width: 19px;
         height: 19px;
@@ -301,10 +275,6 @@
         cursor: pointer;
     }
 
-
-    /* =====================================================
-       PRODUCT
-       ===================================================== */
 
     .product-name {
         color: #111827;
@@ -320,10 +290,6 @@
         font-size: 14px;
     }
 
-
-    /* =====================================================
-       QUANTITY
-       ===================================================== */
 
     .quantity-wrapper {
         display: inline-flex;
@@ -353,10 +319,6 @@
     }
 
 
-    /* =====================================================
-       STOCK
-       ===================================================== */
-
     .stock-badge {
         display: inline-block;
 
@@ -372,21 +334,12 @@
     }
 
 
-    /* =====================================================
-       SUBTOTAL
-       ===================================================== */
-
     .subtotal-text {
         color: var(--primary);
 
         font-size: 17px;
         font-weight: 800;
     }
-
-
-    /* =====================================================
-       DELETE BUTTON
-       ===================================================== */
 
     .delete-btn {
         width: 39px;
@@ -411,10 +364,6 @@
     }
 
 
-    /* =====================================================
-       EMPTY CART
-       ===================================================== */
-
     .empty-cart {
         padding: 60px 20px;
 
@@ -423,10 +372,6 @@
         color: #64748b;
     }
 
-
-    /* =====================================================
-       FIXED BOTTOM CART BAR
-       ===================================================== */
 
     .cart-fixed-bar {
         position: fixed;
@@ -462,10 +407,6 @@
         gap: 25px;
     }
 
-
-    /* ===========================
-       LEFT
-       =========================== */
 
     .cart-fixed-left {
         display: flex;
@@ -518,10 +459,6 @@
     }
 
 
-    /* ===========================
-       RIGHT
-       =========================== */
-
     .cart-fixed-right {
         display: flex;
         align-items: center;
@@ -547,9 +484,6 @@
     }
 
 
-    /*
-     * TOTAL PRICE - RED
-     */
     .cart-fixed-summary-price {
         color: #dc3545;
 
@@ -558,9 +492,6 @@
     }
 
 
-    /*
-     * BUY BUTTON - BLUE
-     */
     .cart-fixed-buy {
         min-width: 230px;
         height: 52px;
@@ -600,10 +531,6 @@
         transform: none;
     }
 
-
-    /* =====================================================
-       RESPONSIVE
-       ===================================================== */
 
     @media (max-width: 992px) {
 
@@ -703,10 +630,6 @@
 <div class="cart-page">
 
 
-    <!-- =====================================================
-         PAGE HEADER
-         ===================================================== -->
-
     <div class="page-heading">
 
         <div>
@@ -735,10 +658,6 @@
     </div>
 
 
-    <!-- =====================================================
-         SUCCESS MESSAGE
-         ===================================================== -->
-
     <c:if test="${not empty sessionScope.successMessage}">
 
         <div
@@ -762,10 +681,6 @@
 
     </c:if>
 
-
-    <!-- =====================================================
-         ERROR MESSAGE
-         ===================================================== -->
 
     <c:if test="${not empty sessionScope.errorMessage}">
 
@@ -791,21 +706,12 @@
     </c:if>
 
 
-    <!-- =====================================================
-         CART HAS ITEMS
-         ===================================================== -->
 
     <c:if test="${not empty cartItems}">
 
 
-        <!-- =================================================
-             STATISTICS
-             ================================================= -->
-
         <div class="row g-4">
 
-
-            <!-- TOTAL PRODUCTS -->
 
             <div class="col-lg-4">
 
@@ -840,7 +746,6 @@
             </div>
 
 
-            <!-- SELECTED -->
 
             <div class="col-lg-4">
 
@@ -874,8 +779,6 @@
 
             </div>
 
-
-            <!-- TOTAL CART -->
 
             <div class="col-lg-4">
 
@@ -916,14 +819,8 @@
         </div>
 
 
-        <!-- =================================================
-             CART TABLE
-             ================================================= -->
-
         <div class="content-card">
 
-
-            <!-- TOOLBAR -->
 
             <div class="content-toolbar">
 
@@ -935,8 +832,6 @@
 
                 </h5>
 
-
-                <!-- CLEAR CART -->
 
                 <form
                     action="${pageContext.request.contextPath}/cart"
@@ -964,9 +859,6 @@
 
             </div>
 
-
-            <!-- TABLE -->
-
             <div class="table-responsive">
 
                 <table class="table cart-table">
@@ -975,9 +867,6 @@
                     <thead>
 
                         <tr>
-
-
-                            <!-- SELECT -->
 
                             <th style="width:55px;">
 
@@ -1047,11 +936,6 @@
 
                             <tr>
 
-
-                                <!-- =====================================
-                                     SELECT ITEM
-                                     ===================================== -->
-
                                 <td>
 
                                     <input
@@ -1068,11 +952,6 @@
                                         ${item.stockQuantity <= 0 ? 'disabled' : ''}>
 
                                 </td>
-
-
-                                <!-- =====================================
-                                     INDEX
-                                     ===================================== -->
 
                                 <td>
 
@@ -1091,10 +970,6 @@
                                 </td>
 
 
-                                <!-- =====================================
-                                     PRODUCT
-                                     ===================================== -->
-
                                 <td>
 
                                     <div class="product-name">
@@ -1106,10 +981,6 @@
                                 </td>
 
 
-                                <!-- =====================================
-                                     SKU
-                                     ===================================== -->
-
                                 <td>
 
                                     <span class="sku-text">
@@ -1120,10 +991,6 @@
 
                                 </td>
 
-
-                                <!-- =====================================
-                                     PRICE
-                                     ===================================== -->
 
                                 <td>
 
@@ -1138,11 +1005,7 @@
                                 </td>
 
 
-                                <!-- =====================================
-                                     QUANTITY
-                                     AUTO UPDATE
-                                     ===================================== -->
-
+                               
                                 <td>
 
 
@@ -1206,9 +1069,6 @@
                                 </td>
 
 
-                                <!-- =====================================
-                                     STOCK
-                                     ===================================== -->
 
                                 <td>
 
@@ -1244,9 +1104,6 @@
                                 </td>
 
 
-                                <!-- =====================================
-                                     SUBTOTAL
-                                     ===================================== -->
 
                                 <td>
 
@@ -1265,9 +1122,6 @@
                                 </td>
 
 
-                                <!-- =====================================
-                                     DELETE ONE
-                                     ===================================== -->
 
                                 <td class="text-center">
 
@@ -1320,18 +1174,13 @@
         </div>
 
 
-        <!-- =================================================
-             FIXED BOTTOM BAR
-             ================================================= -->
+       
 
         <div class="cart-fixed-bar">
 
             <div class="cart-fixed-inner">
 
 
-                <!-- =========================================
-                     LEFT
-                     ========================================= -->
 
                 <div class="cart-fixed-left">
 
@@ -1370,9 +1219,6 @@
                 </div>
 
 
-                <!-- =========================================
-                     RIGHT
-                     ========================================= -->
 
                 <div class="cart-fixed-right">
 
@@ -1401,7 +1247,6 @@
                     </div>
 
 
-                    <!-- CHECKOUT -->
 
                     <form
                         id="bottomCheckoutForm"
@@ -1432,9 +1277,7 @@
     </c:if>
 
 
-    <!-- =====================================================
-         EMPTY CART
-         ===================================================== -->
+   
 
     <c:if test="${empty cartItems}">
 
@@ -1482,9 +1325,7 @@
 </div>
 
 
-<!-- =====================================================
-     JAVASCRIPT
-     ===================================================== -->
+
 
 <script>
 
@@ -1493,9 +1334,6 @@ document.addEventListener(
     function () {
 
 
-        /* =================================================
-           ELEMENTS
-           ================================================= */
 
         const selectAll =
             document.getElementById(
@@ -1563,9 +1401,7 @@ document.addEventListener(
             );
 
 
-        /* =================================================
-           MONEY FORMAT
-           ================================================= */
+        
 
         function money(value) {
 
@@ -1577,9 +1413,6 @@ document.addEventListener(
         }
 
 
-        /* =================================================
-           SELECTED COUNT
-           ================================================= */
 
         function getSelectedCount() {
 
@@ -1601,9 +1434,7 @@ document.addEventListener(
         }
 
 
-        /* =================================================
-           SELECTED TOTAL
-           ================================================= */
+       
 
         function getSelectedTotal() {
 
@@ -1628,9 +1459,6 @@ document.addEventListener(
         }
 
 
-        /* =================================================
-           UPDATE UI
-           ================================================= */
 
         function updateSummary() {
 
@@ -1643,9 +1471,7 @@ document.addEventListener(
                 getSelectedTotal();
 
 
-            /*
-             * Top card
-             */
+            
             if (topSelectedCount) {
 
                 topSelectedCount.textContent =
@@ -1653,9 +1479,6 @@ document.addEventListener(
             }
 
 
-            /*
-             * Bottom count
-             */
             if (bottomSelectedCount) {
 
                 bottomSelectedCount.textContent =
@@ -1670,9 +1493,7 @@ document.addEventListener(
             }
 
 
-            /*
-             * Bottom total
-             */
+           
             if (bottomTotalPrice) {
 
                 bottomTotalPrice.textContent =
@@ -1680,9 +1501,7 @@ document.addEventListener(
             }
 
 
-            /*
-             * Buy button
-             */
+           
             if (bottomCheckoutBtn) {
 
                 bottomCheckoutBtn.disabled =
@@ -1690,9 +1509,7 @@ document.addEventListener(
             }
 
 
-            /*
-             * Top select all
-             */
+          
             if (selectAll) {
 
 
@@ -1707,9 +1524,7 @@ document.addEventListener(
             }
 
 
-            /*
-             * Bottom select all
-             */
+          
             if (bottomSelectAll) {
 
 
@@ -1725,9 +1540,6 @@ document.addEventListener(
         }
 
 
-        /* =================================================
-           TOP SELECT ALL
-           ================================================= */
 
         if (selectAll) {
 
@@ -1752,9 +1564,6 @@ document.addEventListener(
         }
 
 
-        /* =================================================
-           BOTTOM SELECT ALL
-           ================================================= */
 
         if (bottomSelectAll) {
 
@@ -1779,10 +1588,6 @@ document.addEventListener(
         }
 
 
-        /* =================================================
-           EACH PRODUCT CHECKBOX
-           ================================================= */
-
         checkboxes.forEach(
             function (checkbox) {
 
@@ -1798,9 +1603,6 @@ document.addEventListener(
         );
 
 
-        /* =================================================
-           AUTO UPDATE QUANTITY
-           ================================================= */
 
         quantityInputs.forEach(
             function (input) {
@@ -1844,9 +1646,7 @@ document.addEventListener(
                             );
 
 
-                        /*
-                         * Không hợp lệ
-                         */
+                      
                         if (!Number.isInteger(value)
                                 || value < min
                                 || value > max) {
@@ -1855,18 +1655,13 @@ document.addEventListener(
                         }
 
 
-                        /*
-                         * Không thay đổi
-                         */
                         if (value === oldValue) {
 
                             return;
                         }
 
 
-                        /*
-                         * Chờ 500ms để tránh submit liên tục.
-                         */
+                     
                         timer =
                             setTimeout(
                                 function () {
@@ -1884,10 +1679,6 @@ document.addEventListener(
                 );
 
 
-                /*
-                 * Nếu người dùng nhập vượt giới hạn
-                 * rồi rời khỏi ô thì đưa về giá trị hợp lệ.
-                 */
                 input.addEventListener(
                     "blur",
                     function () {
@@ -1930,17 +1721,10 @@ document.addEventListener(
         );
 
 
-        /* =================================================
-           ATTACH SELECTED ITEMS
-           ================================================= */
-
         function attachSelectedItems(
                 form) {
 
 
-            /*
-             * Xóa hidden input cũ.
-             */
             form.querySelectorAll(
                 ".dynamic-selected-item"
             ).forEach(
@@ -1951,18 +1735,13 @@ document.addEventListener(
             );
 
 
-            /*
-             * Lấy checkbox được chọn.
-             */
             const selected =
                 document.querySelectorAll(
                     ".cart-checkbox:checked:not(:disabled)"
                 );
 
 
-            /*
-             * Gắn selectedItems vào form.
-             */
+            
             selected.forEach(
                 function (checkbox) {
 
@@ -2000,9 +1779,7 @@ document.addEventListener(
         }
 
 
-        /* =================================================
-           CHECKOUT
-           ================================================= */
+       
 
         if (bottomCheckoutForm) {
 
@@ -2033,9 +1810,7 @@ document.addEventListener(
         }
 
 
-        /* =================================================
-           DELETE SELECTED
-           ================================================= */
+        
 
         if (bottomDeleteSelected) {
 
@@ -2051,9 +1826,7 @@ document.addEventListener(
                         );
 
 
-                    /*
-                     * Chưa chọn sản phẩm.
-                     */
+                 
                     if (selected.length === 0) {
 
 
@@ -2066,9 +1839,6 @@ document.addEventListener(
                     }
 
 
-                    /*
-                     * Confirm.
-                     */
                     if (!confirm(
                             "Bạn có chắc muốn xóa "
                             + selected.length
@@ -2080,9 +1850,7 @@ document.addEventListener(
                     }
 
 
-                    /*
-                     * Tạo POST form.
-                     */
+                    
                     const form =
                         document.createElement(
                             "form"
@@ -2097,9 +1865,7 @@ document.addEventListener(
                         "${pageContext.request.contextPath}/cart";
 
 
-                    /*
-                     * action = removeSelected
-                     */
+                    
                     const actionInput =
                         document.createElement(
                             "input"
@@ -2123,9 +1889,7 @@ document.addEventListener(
                     );
 
 
-                    /*
-                     * selectedItems
-                     */
+                  
                     selected.forEach(
                         function (checkbox) {
 
@@ -2167,9 +1931,6 @@ document.addEventListener(
         }
 
 
-        /* =================================================
-           INITIAL
-           ================================================= */
 
         updateSummary();
 

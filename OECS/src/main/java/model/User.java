@@ -15,9 +15,8 @@ public class User {
     private String roleName;
     private boolean active;
 
-    private String address; // Lưu địa chỉ mặc định từ ADDRESSBOOK
+    private String address; 
 
-    // Getter & Setter
     public String getAddress() {
         return address;
     }

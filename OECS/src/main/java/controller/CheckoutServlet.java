@@ -22,6 +22,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -142,7 +143,6 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
-    // Tai du lieu trang checkout
     private void showCheckout(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -214,7 +214,6 @@ public class CheckoutServlet extends HttpServlet {
             }
         }
 
-        // Tao token cho cac thao tac checkout
         synchronized (session) {
             if (session.getAttribute("addressAddToken") == null) {
                 session.setAttribute(
@@ -268,13 +267,12 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         double subtotal = calculateSubtotal(cartItems);
-        double shippingFee = 0;
+        double shippingFee = OrderService.calculateShippingFee(BigDecimal.valueOf(subtotal)).doubleValue();
         double discount = 0;
 
         Voucher appliedVoucher =
                 (Voucher) session.getAttribute("appliedVoucher");
 
-        // Kiem tra lai voucher theo cac san pham dang checkout
         if (appliedVoucher != null) {
             Voucher valid = voucherDAO.getValidVoucher(
                     appliedVoucher.getCode(),
@@ -326,15 +324,9 @@ public class CheckoutServlet extends HttpServlet {
             throw new ServletException("Không kiểm tra được quyền đặt hàng.", e);
         }
 
-        // Chi bat cong sandbox khi da co cau hinh
         request.setAttribute(
                 "vnpayAvailable",
                 PaymentGateway.available("VNPAY")
-        );
-
-        request.setAttribute(
-                "momoAvailable",
-                PaymentGateway.available("MOMO")
         );
 
         request.getRequestDispatcher(
@@ -342,7 +334,6 @@ public class CheckoutServlet extends HttpServlet {
         ).forward(request, response);
     }
 
-    // Them dia chi va chon lam dia chi mac dinh
     private void addAddress(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -439,7 +430,6 @@ public class CheckoutServlet extends HttpServlet {
         redirectToCheckout(request, response);
     }
 
-    // Chon dia chi bang AJAX
     private void selectAddress(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -520,7 +510,6 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
-    // Sua dia chi bang AJAX
     private void editAddress(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -605,7 +594,6 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
-    // Xoa dia chi khong duoc chon
     private void deleteAddress(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -764,7 +752,6 @@ public class CheckoutServlet extends HttpServlet {
         redirectToCheckout(request, response);
     }
 
-    // Dat hang COD hoac online
     private void placeOrder(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -787,7 +774,6 @@ public class CheckoutServlet extends HttpServlet {
             int orderId;
 
             synchronized (session) {
-                // Neu request lap lai thi tra ve don da tao
                 Integer existingOrderId = orderDAO.findIdByToken(
                         user.getUserId(),
                         checkoutToken
@@ -809,7 +795,6 @@ public class CheckoutServlet extends HttpServlet {
                         );
                     }
 
-                    // Kiem tra phuong thuc va cau hinh sandbox
                     String method = request.getParameter("paymentMethod");
                     PaymentGateway.requireConfigured(method);
 
@@ -845,7 +830,6 @@ public class CheckoutServlet extends HttpServlet {
                             ? null
                             : voucher.getCode();
 
-                    // Service tu kiem tra va luu trong transaction
                     orderId = orderService.placeOrder(
                             user.getUserId(),
                             addressId,
@@ -856,7 +840,6 @@ public class CheckoutServlet extends HttpServlet {
                     );
                 }
 
-                // Chi xoa state cua dung phien checkout vua xu ly
                 if (checkoutToken.equals(
                         session.getAttribute("checkoutToken")
                 )) {
@@ -871,8 +854,6 @@ public class CheckoutServlet extends HttpServlet {
                     user.getUserId()
             );
 
-            // Don online chua tra tien di den trang thanh toan
-            // COD hoac don 0 dong giu trang dat hang thanh cong
             String nextPage =
                     savedOrder != null
                     && "PENDING_PAYMENT".equals(savedOrder.getOrderStatus())
@@ -905,7 +886,6 @@ public class CheckoutServlet extends HttpServlet {
         }
     }
 
-    // Lay danh sach cart_item_id da chon trong session
     private List<Integer> getSelectedIds(HttpSession session) {
         Object value = session.getAttribute("checkoutSelectedItemIds");
 

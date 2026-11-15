@@ -10,7 +10,6 @@
         <div class="card border-0 shadow-sm rounded-4">
             <div class="card-body p-4 p-md-5">
 
-                <!-- THONG BAO DAT HANG -->
                 <div class="text-center mb-4">
                     <i class="bi bi-check-circle-fill text-success display-4"></i>
 
@@ -23,7 +22,6 @@
                     </p>
                 </div>
 
-                <!-- MA DON HANG -->
                 <div class="alert alert-success text-center">
                     Mã đơn hàng:
                     <strong>
@@ -31,7 +29,6 @@
                     </strong>
                 </div>
 
-                <!-- THONG TIN GIAO HANG -->
                 <h5 class="fw-bold mb-3">
                     Thông tin giao hàng
                 </h5>
@@ -59,7 +56,6 @@
 
                 <hr class="my-4">
 
-                <!-- THONG TIN THANH TOAN -->
                 <h5 class="fw-bold mb-3">
                     Thông tin thanh toán
                 </h5>
@@ -144,7 +140,6 @@
                     </c:otherwise>
                 </c:choose>
 
-                <!-- CAC NUT DIEU HUONG -->
                 <div class="d-flex flex-wrap justify-content-center gap-2 mt-4">
                     <a href="${pageContext.request.contextPath}/shop"
                        class="btn btn-primary px-4">

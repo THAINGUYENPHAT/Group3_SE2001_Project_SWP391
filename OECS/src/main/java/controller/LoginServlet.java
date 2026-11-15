@@ -25,9 +25,7 @@ public class LoginServlet extends HttpServlet {
             throws ServletException, IOException {
 
         try {
-            // =====================================================
-            // 1. KIỂM TRA TRẠNG THÁI ĐĂNG NHẬP TRƯỚC ĐÓ
-            // =====================================================
+            
             HttpSession session = request.getSession(false);
             if (session != null
                     && session.getAttribute("loggedInUser") != null) {
@@ -39,9 +37,7 @@ public class LoginServlet extends HttpServlet {
                 return;
             }
 
-            // =====================================================
-            // 2. HIỂN THỊ TRANG ĐĂNG NHẬP
-            // =====================================================
+           
             request.getRequestDispatcher("/WEB-INF/login.jsp").forward(request, response);
 
         } catch (Exception e) {
@@ -60,9 +56,7 @@ public class LoginServlet extends HttpServlet {
         String password = request.getParameter("password");
 
         try {
-            // =====================================================
-            // 1. XÁC THỰC TÀI KHOẢN 
-            // =====================================================
+            
             UserDAO dao = new UserDAO();
             User user = dao.login(username, password);
 
@@ -100,9 +94,7 @@ public class LoginServlet extends HttpServlet {
                 return;
             }
 
-            // =====================================================
-            // 2. THIẾT LẬP SESSION VÀ CHUYỂN HƯỚNG
-            // =====================================================
+          
             HttpSession session = request.getSession();
             session.setAttribute("loggedInUser", user);
             auditLogService.log(

@@ -15,7 +15,6 @@
         <div class="card shadow-sm border-0 rounded-4">
             <div class="card-body p-4 p-md-5">
 
-                <!-- Header -->
                 <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
                     <div class="bg-primary bg-opacity-10 text-primary rounded d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
                         <i class="bi bi-pencil-square fs-4"></i>
@@ -26,7 +25,6 @@
                     </div>
                 </div>
 
-                <!-- Error Messages -->
                 <c:if test="${not empty sessionScope.errorMsg}">
                     <div class="alert alert-danger">
                         <i class="bi bi-exclamation-triangle me-2"></i>
@@ -45,46 +43,38 @@
                 <form action="${pageContext.request.contextPath}/product" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="edit">
 
-                    <!-- ID -->
-                    <div class="mb-4">
+<!--                    <div class="mb-4">
                         <label class="form-label fw-semibold">Mã Sản Phẩm</label>
                         <input type="text" name="id" class="form-control form-control-lg bg-light" value="${product.productId}" readonly>
-                    </div>
+                    </div>-->
 
-                    <!-- Name -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Tên Sản Phẩm <span class="text-danger">*</span></label>
-                        <!-- FIX XSS -->
                         <input type="text" name="name" class="form-control form-control-lg" value="<c:out value='${product.productName}'/>" required>
                     </div>
 
-                    <!-- Category -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Danh Mục <span class="text-danger">*</span></label>
                         <select name="categoryId" class="form-select form-select-lg" required>
                             <c:forEach items="${categoryList}" var="category">
                                 <option value="${category.categoryId}" ${category.categoryId == product.categoryId ? 'selected' : ''}>
-                                    <!-- FIX XSS -->
                                     <c:out value="${category.categoryName}" />
                                 </option>
                             </c:forEach>
                         </select>
                     </div>
 
-                    <!-- Brand -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Thương Hiệu <span class="text-danger">*</span></label>
                         <select name="brandId" class="form-select form-select-lg" required>
                             <c:forEach items="${brandList}" var="brand">
                                 <option value="${brand.brandId}" ${brand.brandId == product.brandId ? 'selected' : ''}>
-                                    <!-- FIX XSS -->
                                     <c:out value="${brand.brandName}" />
                                 </option>
                             </c:forEach>
                         </select>
                     </div>
 
-                    <!-- Hình ảnh Chính -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Hình ảnh Đại Diện</label>
                         <c:if test="${not empty product.imageUrl}">
@@ -96,11 +86,9 @@
                         <div class="form-text">Để trống nếu không muốn thay đổi ảnh đại diện.</div>
                     </div>
 
-                    <!-- Khu vực quản lý Hình ảnh Phụ -->
                     <div class="mb-4 p-3 bg-light border rounded-3">
                         <label class="form-label fw-semibold text-primary mb-3">Hình ảnh Phụ (Gallery)</label>
 
-                        <!-- Hiển thị các ảnh phụ HIỆN TẠI đang có -->
                         <c:if test="${not empty product.galleryImages}">
                             <div class="d-flex flex-wrap gap-3 mb-3">
                                 <c:forEach items="${product.galleryImages}" var="img">
@@ -109,7 +97,6 @@
                                              class="img-thumbnail border-0 p-0 mb-2" 
                                              style="height: 80px; width: 100%; object-fit: cover;">
 
-                                        <!-- Checkbox chọn để xóa -->
                                         <div class="form-check d-flex justify-content-center align-items-center m-0">
                                             <input class="form-check-input border-danger" type="checkbox" name="deleteImageIds" value="${img.imageId}" id="delImg_${img.imageId}">
                                             <label class="form-check-label text-danger fw-medium ms-1" style="font-size: 13px;" for="delImg_${img.imageId}">
@@ -124,7 +111,6 @@
                             </div>
                         </c:if>
 
-                        <!-- Ô chọn tải thêm ảnh phụ -->
                         <label class="form-label fw-semibold text-dark">Tải thêm Hình ảnh Phụ</label>
                         <input type="file" name="galleryFiles" class="form-control" accept="image/png, image/jpeg, image/jpg, image/webp" multiple>
                         <div class="form-text text-muted">
@@ -132,14 +118,72 @@
                         </div>
                     </div>
 
-                    <!-- Description -->
+                    <div class="mb-4 p-3 border rounded-3 bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label fw-semibold text-dark mb-0">
+                                <i class="bi bi-sliders me-1"></i> Thông số kỹ thuật
+                            </label>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addSpecBtn">
+                                <i class="bi bi-plus-circle me-1"></i>Thêm dòng
+                            </button>
+                        </div>
+
+                        <div id="specContainer">
+                            <c:choose>
+                                <c:when test="${not empty productSpecs}">
+                                    <c:forEach items="${productSpecs}" var="spec">
+                                        <div class="row g-2 align-items-center mb-2 spec-row">
+                                            <div class="col-md-4">
+                                                <select name="attributeIds" class="form-select">
+                                                    <option value="">-- Chọn thuộc tính --</option>
+                                                    <c:forEach items="${attributeList}" var="attr">
+                                                        <option value="${attr.attributeId}" ${attr.attributeId == spec.attributeId ? 'selected' : ''}>
+                                                            ${attr.attributeName}
+                                                        </option>
+                                                    </c:forEach>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-7">
+                                                <input type="text" name="specValues" class="form-control" value="<c:out value='${spec.value}'/>" placeholder="Giá trị (VD: 8GB DDR4, 15.6 inch...)">
+                                            </div>
+                                            <div class="col-md-1 text-end">
+                                                <button type="button" class="btn btn-sm btn-outline-danger remove-spec-btn" title="Xóa dòng này">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="row g-2 align-items-center mb-2 spec-row">
+                                        <div class="col-md-4">
+                                            <select name="attributeIds" class="form-select">
+                                                <option value="">-- Chọn thuộc tính --</option>
+                                                <c:forEach items="${attributeList}" var="attr">
+                                                    <option value="${attr.attributeId}">${attr.attributeName}</option>
+                                                </c:forEach>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-7">
+                                            <input type="text" name="specValues" class="form-control" placeholder="Giá trị (VD: 8GB DDR4, 15.6 inch...)">
+                                        </div>
+                                        <div class="col-md-1 text-end">
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-spec-btn" title="Xóa dòng này">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+                        <div class="form-text mt-2">Bỏ trống các dòng không sử dụng, hoặc xóa bớt dòng để gỡ bỏ.</div>
+                    </div>
+
                     <div class="mb-4">
                         <label class="form-label fw-semibold">Mô Tả</label>
-                        <!-- FIX XSS -->
                         <textarea name="description" class="form-control" rows="5"><c:out value="${product.description}"/></textarea>
                     </div>
 
-                    <!-- Buttons -->
                     <div class="d-flex gap-2 pt-3 mt-4 border-top">
                         <button type="submit" class="btn btn-primary btn-lg px-4">
                             <i class="bi bi-check-lg me-1"></i> Lưu Thay Đổi
@@ -152,5 +196,53 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const specContainer = document.getElementById('specContainer');
+        const addSpecBtn = document.getElementById('addSpecBtn');
+
+        function createSpecRow() {
+            const row = document.createElement('div');
+            row.className = 'row g-2 align-items-center mb-2 spec-row';
+            row.innerHTML = `
+            <div class="col-md-4">
+                <select name="attributeIds" class="form-select">
+                    <option value="">-- Chọn thuộc tính --</option>
+    <c:forEach items="${attributeList}" var="attr">
+                        <option value="${attr.attributeId}">${attr.attributeName}</option>
+    </c:forEach>
+                </select>
+            </div>
+            <div class="col-md-7">
+                <input type="text" name="specValues" class="form-control" placeholder="Giá trị...">
+            </div>
+            <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-spec-btn" title="Xóa dòng này">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+            return row;
+        }
+
+        addSpecBtn.addEventListener('click', function () {
+            specContainer.appendChild(createSpecRow());
+        });
+
+        specContainer.addEventListener('click', function (e) {
+            const removeBtn = e.target.closest('.remove-spec-btn');
+            if (removeBtn) {
+                if (specContainer.querySelectorAll('.spec-row').length > 1) {
+                    removeBtn.closest('.spec-row').remove();
+                } else {
+                    const row = removeBtn.closest('.spec-row');
+                    row.querySelector('select').value = '';
+                    row.querySelector('input').value = '';
+                }
+            }
+        });
+    });
+</script>
 
 <%@include file="/WEB-INF/include/footer.jsp"%>

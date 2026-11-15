@@ -175,7 +175,6 @@
 
 <div class="guide-page">
 
-    <!-- PAGE HEADING -->
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <div class="text-secondary small mb-2">
@@ -196,7 +195,6 @@
         </a>
     </div>
 
-    <!-- HERO -->
     <div class="guide-hero">
         <div class="d-flex align-items-center gap-3 mb-3">
             <div class="guide-hero-icon">
@@ -217,14 +215,12 @@
         </p>
     </div>
 
-    <!-- QUICK ACCESS -->
     <h3 class="guide-section-title">
         <i class="bi bi-grid me-2 text-primary"></i>Danh mục hướng dẫn
     </h3>
 
     <div class="row g-3 mb-4">
 
-        <!-- CUSTOMER / GUEST -->
         <c:if test="${empty sessionScope.loggedInUser
                       or sessionScope.loggedInUser.customer}">
 
@@ -281,7 +277,6 @@
 
         </c:if>
 
-        <!-- STAFF -->
         <c:if test="${sessionScope.loggedInUser.staff}">
 
             <div class="col-12 col-md-6 col-xl-4">
@@ -371,7 +366,6 @@
 
         </c:if>
 
-        <!-- ADMIN -->
         <c:if test="${sessionScope.loggedInUser.admin}">
 
             <div class="col-12 col-md-6 col-xl-4">
@@ -429,7 +423,6 @@
 
     </div>
 
-    <!-- BASIC INSTRUCTIONS -->
     <div class="row g-4">
 
         <div class="col-12 col-lg-7">

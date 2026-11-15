@@ -31,7 +31,6 @@ public class AdminDashboardServlet extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        // Mac dinh: 30 ngay gan nhat
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(29);
 
@@ -46,9 +45,7 @@ public class AdminDashboardServlet extends HttpServlet {
         boolean hasEnd
                 = endParam != null && !endParam.isBlank();
 
-        // ==========================================
-        // 1. VALIDATE KHOANG THOI GIAN
-        // ==========================================
+       
         if (hasStart || hasEnd) {
 
             if (!hasStart || !hasEnd) {
@@ -87,9 +84,7 @@ public class AdminDashboardServlet extends HttpServlet {
         }
 
         try {
-            // ==========================================
-            // 2. FOUR KPI
-            // ==========================================
+           
             request.setAttribute(
                     "totalRevenue",
                     dashboardDAO.getTotalRevenueByRange(
@@ -118,9 +113,6 @@ public class AdminDashboardServlet extends HttpServlet {
                     )
             );
 
-            // ==========================================
-            // 3. REVENUE CHART
-            // ==========================================
             request.setAttribute(
                     "revenueByDate",
                     dashboardDAO.getRevenueByDateRange(
@@ -128,9 +120,6 @@ public class AdminDashboardServlet extends HttpServlet {
                     )
             );
 
-            // ==========================================
-            // 4. ORDER STATUS CHART
-            // ==========================================
             request.setAttribute(
                     "orderStatusStatistics",
                     dashboardDAO.getOrderStatusByRange(
@@ -138,9 +127,7 @@ public class AdminDashboardServlet extends HttpServlet {
                     )
             );
 
-            // ==========================================
-            // 5. TOP 5 PRODUCTS
-            // ==========================================
+            
             request.setAttribute(
                     "topSellingProducts",
                     dashboardDAO.getTopSellingProductsByRange(
@@ -148,9 +135,7 @@ public class AdminDashboardServlet extends HttpServlet {
                     )
             );
 
-            // ==========================================
-            // 6. CURRENT INVENTORY
-            // ==========================================
+           
             int[] stock
                     = dashboardDAO.getCurrentStockStatistics();
 
@@ -168,9 +153,7 @@ public class AdminDashboardServlet extends HttpServlet {
                     stock[0] + stock[1] + stock[2]
             );
 
-            // ==========================================
-            // 7. FILTER INFORMATION
-            // ==========================================
+            
             request.setAttribute(
                     "startDate", startDate.toString()
             );

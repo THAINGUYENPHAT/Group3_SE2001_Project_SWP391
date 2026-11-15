@@ -15,9 +15,7 @@ import java.util.Map;
 
 public class CheckoutDAO extends DBContext {
 
-    // =====================================================
-    // ADDRESS CỦA USER
-    // =====================================================
+    
     public List<Map<String, Object>> getAddressesByUser(
             int userId) {
 
@@ -80,9 +78,7 @@ public class CheckoutDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // SHIPPING PARTNER
-    // =====================================================
+    
     public List<Map<String, Object>> getShippingPartners() {
 
         List<Map<String, Object>> list
@@ -128,9 +124,7 @@ public class CheckoutDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // CREATE ORDER
-    // =====================================================
+    
     public int createOrder(
             int userId,
             int addressId,
@@ -150,12 +144,6 @@ public class CheckoutDAO extends DBContext {
             conn = getConnection();
 
             conn.setAutoCommit(false);
-
-
-            // =================================================
-            // 1. KIỂM TRA ADDRESS CỦA USER
-            // =================================================
-
             String addressSql
                     = "SELECT "
                     + "recipient_name, "
@@ -201,11 +189,6 @@ public class CheckoutDAO extends DBContext {
                 }
             }
 
-
-            // =================================================
-            // 2. KIỂM TRA SẢN PHẨM + STOCK
-            // =================================================
-
             for (CartItem item : items) {
 
                 String stockSql
@@ -248,10 +231,6 @@ public class CheckoutDAO extends DBContext {
             }
 
 
-            // =================================================
-            // 3. TỔNG THANH TOÁN
-            // =================================================
-
             double totalAmount
                     = subtotal
                     - discount
@@ -261,10 +240,6 @@ public class CheckoutDAO extends DBContext {
                 totalAmount = 0;
             }
 
-
-            // =================================================
-            // 4. CREATE ORDER
-            // =================================================
 
             String orderSql
                     = "INSERT INTO [ORDER] ("
@@ -381,10 +356,6 @@ public class CheckoutDAO extends DBContext {
             }
 
 
-            // =================================================
-            // 5. ORDER ITEM
-            // =================================================
-
             String itemSql
                     = "INSERT INTO ORDER_ITEM "
                     + "(order_id, sku_id, price, quantity) "
@@ -409,7 +380,6 @@ public class CheckoutDAO extends DBContext {
 
             for (CartItem item : items) {
 
-                // ORDER ITEM
                 try (PreparedStatement ps
                         = conn.prepareStatement(
                                 itemSql)) {
@@ -434,7 +404,6 @@ public class CheckoutDAO extends DBContext {
                 }
 
 
-                // TRỪ STOCK
                 try (PreparedStatement ps
                         = conn.prepareStatement(
                                 stockSql)) {
@@ -462,8 +431,6 @@ public class CheckoutDAO extends DBContext {
                     }
                 }
 
-
-                // CHỈ XÓA ITEM ĐÃ ORDER
                 try (PreparedStatement ps
                         = conn.prepareStatement(
                                 removeCartSql)) {
@@ -481,9 +448,6 @@ public class CheckoutDAO extends DBContext {
             }
 
 
-            // =================================================
-            // 6. ORDER STATUS HISTORY
-            // =================================================
 
             String statusSql
                     = "INSERT INTO "
@@ -507,9 +471,6 @@ public class CheckoutDAO extends DBContext {
             }
 
 
-            // =================================================
-            // 7. VOUCHER USAGE
-            // =================================================
 
             if (voucherId != null) {
 
@@ -539,10 +500,6 @@ public class CheckoutDAO extends DBContext {
                 }
             }
 
-
-            // =================================================
-            // COMMIT
-            // =================================================
 
             conn.commit();
 

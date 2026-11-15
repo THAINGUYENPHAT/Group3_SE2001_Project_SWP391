@@ -11,11 +11,9 @@ public class PasswordResetToken {
     private Timestamp usedAt;
     private Timestamp createdAt;
 
-    // Constructor rỗng
     public PasswordResetToken() {
     }
 
-    // Constructor đầy đủ
     public PasswordResetToken(int resetId, int userId, String tokenHash,
             Timestamp expiresAt, Timestamp usedAt, Timestamp createdAt) {
         this.resetId = resetId;
@@ -26,7 +24,6 @@ public class PasswordResetToken {
         this.createdAt = createdAt;
     }
 
-    // Constructor dùng khi tạo token mới
     public PasswordResetToken(int userId, String tokenHash, Timestamp expiresAt) {
         this.userId = userId;
         this.tokenHash = tokenHash;
@@ -81,18 +78,15 @@ public class PasswordResetToken {
         this.createdAt = createdAt;
     }
 
-    // Token đã được sử dụng chưa
     public boolean isUsed() {
         return usedAt != null;
     }
 
-    // Token đã hết hạn chưa
     public boolean isExpired() {
         return expiresAt != null
                 && expiresAt.before(new Timestamp(System.currentTimeMillis()));
     }
 
-    // Token còn hợp lệ về thời gian và chưa sử dụng
     public boolean isValid() {
         return !isUsed() && !isExpired();
     }

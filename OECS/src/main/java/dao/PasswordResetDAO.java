@@ -9,9 +9,6 @@ import model.PasswordResetToken;
 
 public class PasswordResetDAO {
 
-    // =====================================================
-    // 1. TẠO TOKEN RESET PASSWORD MỚI
-    // =====================================================
     public boolean createToken(PasswordResetToken token) throws SQLException {
 
         String sql = "INSERT INTO PASSWORD_RESET_TOKEN "
@@ -29,9 +26,7 @@ public class PasswordResetDAO {
         }
     }
 
-    // =====================================================
-    // 2. TÌM TOKEN CÒN HỢP LỆ
-    // =====================================================
+   
     public PasswordResetToken findValidToken(String tokenHash)
             throws SQLException {
 
@@ -67,9 +62,7 @@ public class PasswordResetDAO {
         return null;
     }
 
-    // =====================================================
-    // 3. ĐÁNH DẤU TOKEN ĐÃ ĐƯỢC SỬ DỤNG
-    // =====================================================
+    
     public boolean markAsUsed(int resetId) throws SQLException {
 
         String sql = "UPDATE PASSWORD_RESET_TOKEN "
@@ -86,9 +79,7 @@ public class PasswordResetDAO {
         }
     }
 
-    // =====================================================
-    // 4. VÔ HIỆU HÓA TOKEN CŨ CỦA USER
-    // =====================================================
+   
     public void invalidateOldTokens(int userId) throws SQLException {
 
         String sql = "UPDATE PASSWORD_RESET_TOKEN "

@@ -19,10 +19,8 @@ import model.ProductImage;
 
 public class ShopDAO extends DBContext {
 
-    // Lấy danh sách sản phẩm kèm giá trị nhỏ nhất từ bảng SKU
     public List<Product> getCatalogProducts() {
         List<Product> list = new ArrayList<>();
-        // ĐÃ THÊM p.image_url
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
                 + "c.category_id, c.category_name, "
                 + "b.brand_id, b.brand_name, "
@@ -46,7 +44,7 @@ public class ShopDAO extends DBContext {
                         rs.getTimestamp("created_at"),
                         category, brand
                 );
-                product.setImageUrl(rs.getString("image_url")); // Đồng bộ hình ảnh
+                product.setImageUrl(rs.getString("image_url")); 
                 product.setMinPrice(rs.getDouble("min_price"));
                 list.add(product);
             }
@@ -56,9 +54,7 @@ public class ShopDAO extends DBContext {
         return list;
     }
 
-    // Lấy chi tiết 1 sản phẩm
     public Product getProductDetail(int id) {
-        // ĐÃ THÊM p.image_url
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
                 + "c.category_id, c.category_name, b.brand_id, b.brand_name "
                 + "FROM PRODUCT p "
@@ -87,7 +83,6 @@ public class ShopDAO extends DBContext {
         return null;
     }
 
-    // Lấy các biến thể (SKU) của sản phẩm
     public List<ProductSku> getProductSkus(int productId) {
         List<ProductSku> list = new ArrayList<>();
         String sql = "SELECT sku_id, product_id, sku_code, price, stock_quantity FROM PRODUCT_SKU WHERE product_id = ? ORDER BY price ASC";
@@ -109,7 +104,6 @@ public class ShopDAO extends DBContext {
         return list;
     }
 
-    // Lấy thông số kỹ thuật của sản phẩm
     public List<ProductSpec> getProductSpecs(int productId) {
         List<ProductSpec> list = new ArrayList<>();
         String sql = "SELECT a.attribute_name, ps.value FROM PRODUCT_SPECIFICATION ps "
@@ -130,7 +124,6 @@ public class ShopDAO extends DBContext {
 
     public List<Product> searchProducts(String keyword) {
         List<Product> list = new ArrayList<>();
-        // ĐÃ THÊM p.image_url
         String sql = "SELECT TOP 5 p.product_id, p.product_name, p.image_url, "
                 + "(SELECT ISNULL(MIN(price), 0) FROM PRODUCT_SKU WHERE product_id = p.product_id) as min_price "
                 + "FROM PRODUCT p "
@@ -161,10 +154,8 @@ public class ShopDAO extends DBContext {
         return list;
     }
 
-    // Hàm tìm kiếm ĐẦY ĐỦ cho trang /shop (khi nhấn Enter tìm kiếm)
     public List<Product> searchFullCatalog(String keyword) {
         List<Product> list = new ArrayList<>();
-        // ĐÃ THÊM p.image_url
         String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
                 + "c.category_id, c.category_name, "
                 + "b.brand_id, b.brand_name, "
@@ -201,12 +192,9 @@ public class ShopDAO extends DBContext {
         return list;
     }
 
-    // ==========================================
-    // FILTER SẢN PHẨM (KATEGORIA, PRESIO, SORT)
-    // ==========================================
+  
     public List<Product> getFilteredCatalog(String keyword, String[] categoryIds, String priceRange, String sort) {
         List<Product> list = new ArrayList<>();
-        // ĐÃ THÊM p.image_url
         StringBuilder sql = new StringBuilder(
                 "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
                 + "c.category_id, c.category_name, b.brand_id, b.brand_name, "
@@ -219,7 +207,6 @@ public class ShopDAO extends DBContext {
 
         List<Object> parameters = new ArrayList<>();
 
-        // 1. Filter theo Keyword
         if (keyword != null && !keyword.trim().isEmpty()) {
             sql.append("AND (p.product_name LIKE ? OR p.description LIKE ? OR c.category_name LIKE ? OR b.brand_name LIKE ?) ");
             String searchPattern = "%" + keyword.trim() + "%";
@@ -229,7 +216,6 @@ public class ShopDAO extends DBContext {
             parameters.add(searchPattern);
         }
 
-        // 2. Filter theo Danh mục
         if (categoryIds != null && categoryIds.length > 0) {
             sql.append("AND (");
             for (int i = 0; i < categoryIds.length; i++) {
@@ -243,7 +229,6 @@ public class ShopDAO extends DBContext {
             sql.append(") ");
         }
 
-        // 3. Filter theo Mức giá
         if (priceRange != null) {
             if ("under5".equals(priceRange)) {
                 sql.append("AND (SELECT ISNULL(MIN(price), 0) FROM PRODUCT_SKU WHERE product_id = p.product_id) > 0 ");
@@ -255,18 +240,16 @@ public class ShopDAO extends DBContext {
             }
         }
 
-        // 4. Sort (Sắp xếp)
         if ("priceAsc".equals(sort)) {
             sql.append("ORDER BY min_price ASC ");
         } else if ("priceDesc".equals(sort)) {
             sql.append("ORDER BY min_price DESC ");
         } else {
-            sql.append("ORDER BY p.product_id DESC "); // Mặc định: Mới nhất
+            sql.append("ORDER BY p.product_id DESC "); 
         }
 
         try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
 
-            // Truyền các dynamic parameters
             for (int i = 0; i < parameters.size(); i++) {
                 if (parameters.get(i) instanceof String) {
                     ps.setNString(i + 1, (String) parameters.get(i));
@@ -284,7 +267,7 @@ public class ShopDAO extends DBContext {
                             rs.getString("product_name"), rs.getString("description"),
                             rs.getTimestamp("created_at"), cat, brand
                     );
-                    product.setImageUrl(rs.getString("image_url")); // Đồng bộ hình ảnh
+                    product.setImageUrl(rs.getString("image_url")); 
                     product.setMinPrice(rs.getDouble("min_price"));
                     list.add(product);
                 }
