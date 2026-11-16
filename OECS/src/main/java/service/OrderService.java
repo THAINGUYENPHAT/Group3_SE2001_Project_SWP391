@@ -280,7 +280,7 @@ public class OrderService {
 
                 StringBuilder itemsSql = new StringBuilder(
                         "SELECT ci.cart_item_id, ci.sku_id, "
-                        + "ci.quantity, s.price "
+                        + "ci.quantity, s.price, s.stock_quantity "
                         + "FROM dbo.CART_ITEMS ci "
                         + "WITH (UPDLOCK, HOLDLOCK) "
                         + "JOIN dbo.PRODUCT_SKU s "
@@ -323,6 +323,9 @@ public class OrderService {
                             int skuId = rs.getInt("sku_id");
                             int quantity = rs.getInt("quantity");
                             BigDecimal price = rs.getBigDecimal("price");
+                            if (quantity > rs.getInt("stock_quantity")) {
+                                throw new IllegalArgumentException("Sản phẩm SKU " + skuId + " không đủ tồn kho.");
+                            }
 
                             if (quantity <= 0
                                     || price == null
@@ -386,27 +389,6 @@ public class OrderService {
                         .add(shippingFee)
                         .subtract(voucher.discount)
                         .max(BigDecimal.ZERO);
-
-                sql
-                        = "UPDATE dbo.PRODUCT_SKU "
-                        + "SET stock_quantity = stock_quantity - ? "
-                        + "WHERE sku_id = ? "
-                        + "AND stock_quantity >= ?";
-
-                try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    for (CartLine line : lines) {
-                        ps.setInt(1, line.quantity);
-                        ps.setInt(2, line.skuId);
-                        ps.setInt(3, line.quantity);
-
-                        if (ps.executeUpdate() != 1) {
-                            throw new IllegalArgumentException(
-                                    "Sản phẩm SKU " + line.skuId
-                                    + " không đủ số lượng tồn kho."
-                            );
-                        }
-                    }
-                }
 
                 order.setShippingFee(shippingFee);
                 order.setDiscountAmount(voucher.discount);
@@ -739,63 +721,9 @@ public class OrderService {
                     }
                 }
 
-                List<int[]> quantities = new ArrayList<>();
-
-                sql
-                        = "SELECT sku_id, SUM(quantity) AS quantity "
-                        + "FROM dbo.ORDER_ITEM "
-                        + "WHERE order_id = ? "
-                        + "GROUP BY sku_id ORDER BY sku_id";
-
-                try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    ps.setInt(1, orderId);
-
-                    try (ResultSet rs = ps.executeQuery()) {
-                        while (rs.next()) {
-                            int quantity = rs.getInt("quantity");
-
-                            if (quantity <= 0) {
-                                throw new SQLException(
-                                        "Số lượng đơn hàng không hợp lệ."
-                                );
-                            }
-
-                            quantities.add(new int[]{
-                                rs.getInt("sku_id"),
-                                quantity
-                            });
-                        }
-                    }
-                }
-
-                if (quantities.isEmpty()) {
-                    throw new SQLException(
-                            "Đơn hàng không có chi tiết để hoàn kho."
-                    );
-                }
-
-                sql
-                        = "UPDATE dbo.PRODUCT_SKU "
-                        + "SET stock_quantity = stock_quantity + ? "
-                        + "WHERE sku_id = ?";
-
-                try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    for (int[] item : quantities) {
-                        ps.setInt(1, item[1]);
-                        ps.setInt(2, item[0]);
-
-                        if (ps.executeUpdate() != 1) {
-                            throw new SQLException(
-                                    "Không hoàn được tồn kho."
-                            );
-                        }
-                    }
-                }
-
                 sql
                         = "UPDATE dbo.[ORDER] "
-                        + "SET order_status = 'CANCELLED', "
-                        + "stock_restored_at = GETDATE() "
+                        + "SET order_status = 'CANCELLED' "
                         + "WHERE order_id = ? AND user_id = ? "
                         + "AND stock_restored_at IS NULL "
                         + "AND UPPER(order_status) "

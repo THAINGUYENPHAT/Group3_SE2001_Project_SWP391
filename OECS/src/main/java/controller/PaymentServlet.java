@@ -325,7 +325,7 @@ public class PaymentServlet extends HttpServlet {
             session.setAttribute(
                     "paymentError",
                     "Chưa mở được cổng thanh toán. "
-                    + "Đơn vẫn được giữ đến hạn; "
+                    + "Đơn vẫn chờ thanh toán đến hạn; "
                     + "thử lại sau 30 giây hoặc đổi COD."
             );
         }

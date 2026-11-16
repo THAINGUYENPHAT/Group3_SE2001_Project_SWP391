@@ -176,69 +176,11 @@ public class PaymentDAO {
             LockedOrder order
     ) throws SQLException {
 
-        if (!order.restored) {
-            List<int[]> items = new ArrayList<>();
-
-            String sql =
-                    "SELECT sku_id, SUM(quantity) AS qty "
-                    + "FROM dbo.ORDER_ITEM "
-                    + "WHERE order_id = ? "
-                    + "GROUP BY sku_id "
-                    + "ORDER BY sku_id";
-
-            try (PreparedStatement ps =
-                    connection.prepareStatement(sql)) {
-
-                ps.setInt(1, order.id);
-
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        items.add(new int[]{
-                            rs.getInt("sku_id"),
-                            rs.getInt("qty")
-                        });
-                    }
-                }
-            }
-
-            if (items.isEmpty()) {
-                throw new SQLException(
-                        "Đơn hàng không có chi tiết."
-                );
-            }
-
-            for (int[] item : items) {
-                if (item[1] <= 0) {
-                    throw new SQLException(
-                            "Số lượng sản phẩm không hợp lệ."
-                    );
-                }
-
-                int affected = update(
-                        connection,
-                        "UPDATE dbo.PRODUCT_SKU "
-                        + "SET stock_quantity = stock_quantity + ? "
-                        + "WHERE sku_id = ?",
-                        item[1],
-                        item[0]
-                );
-
-                if (affected != 1) {
-                    throw new SQLException(
-                            "Không hoàn được tồn kho."
-                    );
-                }
-            }
-        }
-
+        // Only pending online orders enter this path; confirmation has not deducted stock.
         update(
                 connection,
-                "UPDATE dbo.[ORDER] "
-                + "SET order_status = 'CANCELLED', "
-                + "payment_status = 'UNPAID', "
-                + "stock_restored_at = COALESCE("
-                + "stock_restored_at, SYSUTCDATETIME()) "
-                + "WHERE order_id = ?",
+                "UPDATE dbo.[ORDER] SET order_status = 'CANCELLED', "
+                + "payment_status = 'UNPAID', payment_expires_at = NULL WHERE order_id = ?",
                 order.id
         );
 
@@ -253,7 +195,6 @@ public class PaymentDAO {
         history(connection, order.id, "CANCELLED");
 
         order.status = "CANCELLED";
-        order.restored = true;
     }
 
     public Attempt begin(

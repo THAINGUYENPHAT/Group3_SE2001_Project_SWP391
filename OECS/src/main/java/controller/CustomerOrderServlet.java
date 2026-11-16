@@ -352,7 +352,7 @@ public class CustomerOrderServlet extends HttpServlet {
             session.setAttribute(
                     "customerOrderMessage",
                     changed
-                            ? "Đã hủy đơn hàng và hoàn lại số lượng tồn kho."
+                            ? "Đã hủy đơn hàng thành công."
                             : "Đơn hàng đã được hủy trước đó."
             );
 
