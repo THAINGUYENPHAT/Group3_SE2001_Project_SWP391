@@ -25,6 +25,7 @@ import java.util.logging.Logger;
 import model.Order;
 import model.User;
 import service.OrderService;
+import service.OrderCancellationService;
 
 @WebServlet(
         name = "CustomerOrderServlet",
@@ -208,6 +209,8 @@ public class CustomerOrderServlet extends HttpServlet {
             );
 
             request.setAttribute("order", order);
+            request.setAttribute("canCancelOrder",
+                    OrderCancellationService.canCancel(order.getOrderStatus()));
 
             request.setAttribute(
                     "refunds",

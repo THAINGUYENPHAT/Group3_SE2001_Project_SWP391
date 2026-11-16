@@ -52,7 +52,7 @@ public final class CheckoutIntegrationChecks {
                 createSchema(schemaFile);
                 seed();
                 migrationChecks(schemaFile);
-                if (staffOnly) { staffCancellationChecks(); } else {
+                if (staffOnly) { staffCancellationChecks(); customerCancellationChecks(); } else {
                 rememberAddress();
                 int orderId = duplicateCheckout();
                 ownershipAndSnapshots(orderId);
@@ -66,6 +66,7 @@ public final class CheckoutIntegrationChecks {
                 shippingFeeChecks();
                 staffCancellationChecks();
                 stockConfirmationChecks();
+                customerCancellationChecks();
                 }
                 System.out.println("PASS: " + passed + " checkout/order integration assertions");
             } finally {
@@ -180,10 +181,10 @@ public final class CheckoutIntegrationChecks {
         check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 20, "cancellation rollback preserves untouched stock");
         check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id + " AND order_status='PENDING_CONFIRMATION' AND stock_restored_at IS NULL") == 1, "cancellation rollback preserves status and marker");
         execute("ALTER TABLE dbo.ORDER_STATUS_HISTORY DROP CONSTRAINT CK_Test_FailCancel");
-        execute("UPDATE dbo.[ORDER] SET order_status='CONFIRMED' WHERE order_id=" + id);
-        expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "cannot cancel confirmed order");
+        execute("UPDATE dbo.[ORDER] SET order_status='SHIPPING' WHERE order_id=" + id);
+        expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "cannot cancel shipped order");
         execute("UPDATE dbo.[ORDER] SET order_status='PENDING_CONFIRMATION',payment_method='VNPAY',payment_status='PAID' WHERE order_id=" + id);
-        expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "online payment excluded from customer cancellation");
+        expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "paid order without successful transaction needs reconciliation");
         check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 20, "rejected cancellations preserve stock");
         check("Chờ xác nhận".equals(OrderService.statusLabel("Pending"))
                 && "Đã xác nhận".equals(OrderService.statusLabel("Confirmed")), "staff history formats supported");
@@ -716,6 +717,87 @@ public final class CheckoutIntegrationChecks {
                 () -> cancellationStaffDAO().transitionStatus(duplicate, "SHIPPING"));
         check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY WHERE order_id=" + duplicate + " AND status='SHIPPING'") == 1,
                 "concurrent progress writes one committed shipping history");
+    }
+
+    private void customerCancellationChecks() throws Exception {
+        for (String method : new String[]{"COD", "VNPAY", "MOMO"}) {
+            for (String state : new String[]{"PENDING_PAYMENT", "PENDING_CONFIRMATION", "CONFIRMED", "PACKING"}) {
+                boolean paid = !"COD".equals(method) && !"PENDING_PAYMENT".equals(state);
+                int id = cancellationOrder(state, method, paid);
+                long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+                expectInvalid(() -> checkout.cancelOrderByCustomer(2, id), "customer ownership checked for " + state);
+                check(checkout.cancelOrderByCustomer(1, id), "customer cancels " + method + " " + state);
+                long restored = "CONFIRMED".equals(state) || "PACKING".equals(state) ? 2 : 0;
+                check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + restored,
+                        "customer restores only deducted stock for " + method + " " + state);
+                check(!checkout.cancelOrderByCustomer(1, id), "repeat cancellation is unchanged");
+                check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + restored,
+                        "repeat cancellation does not restore again");
+                check(scalar("SELECT COUNT(*) FROM dbo.ORDER_CUSTOMER_CANCELLATION WHERE order_id=" + id) == 1,
+                        "customer policy records cancellation once");
+                check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id=" + id) == 1,
+                        "one cancellation notification");
+                check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
+                        + "ON t.transaction_id=r.transaction_id WHERE t.order_id=" + id) == (paid ? 1 : 0),
+                        "refund queued only for successful payment");
+                if (paid) {
+                    check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id
+                            + " AND payment_status='REFUND_PENDING'") == 1, "paid cancellation awaits refund");
+                }
+            }
+        }
+        for (String state : new String[]{"SHIPPING", "DELIVERED", "COMPLETED", "UNKNOWN"}) {
+            int id = cancellationOrder("PACKING", "COD", false);
+            // UNKNOWN is checked by the shared policy without storing an invalid DB status.
+            check(!OrderCancellationService.canCancel(state), "policy rejects " + state);
+            if ("UNKNOWN".equals(state)) continue;
+            execute("UPDATE dbo.[ORDER] SET order_status='" + state + "' WHERE order_id=" + id);
+            long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+            expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "customer cannot cancel " + state);
+            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock,
+                    "rejected cancellation preserves stock");
+        }
+        int pending = cancellationOrder("PENDING_PAYMENT", "MOMO", false);
+        execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code,status) "
+                + "VALUES (" + pending + ",'MOMO',200000,'CUSTOMER-PENDING-" + pending + "','PENDING')");
+        checkout.cancelOrderByCustomer(1, pending);
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_TRANSACTION WHERE order_id=" + pending
+                + " AND status='CANCELLED'") == 1, "pending payment closed on customer cancellation");
+
+        int duplicate = cancellationOrder("PACKING", "VNPAY", true);
+        long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+        parallel(() -> checkout.cancelOrderByCustomer(1, duplicate), () -> checkout.cancelOrderByCustomer(1, duplicate));
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + 2,
+                "concurrent customer cancellation restores once");
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
+                + "ON t.transaction_id=r.transaction_id WHERE t.order_id=" + duplicate) == 1,
+                "concurrent customer cancellation queues one refund");
+
+        int rollback = cancellationOrder("PACKING", "VNPAY", true);
+        stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+        execute("CREATE TRIGGER dbo.fail_customer_policy ON dbo.ORDER_CUSTOMER_CANCELLATION AFTER INSERT "
+                + "AS THROW 51001, 'rollback customer cancellation', 1");
+        expectSql(() -> checkout.cancelOrderByCustomer(1, rollback), "policy failure rolls back cancellation");
+        execute("DROP TRIGGER dbo.fail_customer_policy");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock,
+                "customer rollback preserves stock");
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + rollback
+                + " AND order_status='PACKING' AND payment_status='PAID' AND stock_restored_at IS NULL") == 1,
+                "customer rollback preserves order and payment");
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
+                + "ON t.transaction_id=r.transaction_id WHERE t.order_id=" + rollback) == 0,
+                "customer rollback removes refund");
+        check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id=" + rollback) == 0,
+                "customer rollback removes notification");
+
+        int race = cancellationOrder("PACKING", "COD", false);
+        stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+        parallel(() -> { try { return checkout.cancelOrderByCustomer(1, race); }
+                        catch (IllegalArgumentException shipped) { return false; } },
+                () -> cancellationStaffDAO().transitionStatus(race, "SHIPPING"));
+        boolean cancelled = "CANCELLED".equals(cancellationStaffDAO().getCurrentStatus(race));
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + (cancelled ? 2 : 0),
+                "customer cancellation racing shipment keeps stock consistent");
     }
 
     private void staffCancellationChecks() throws Exception {
