@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core"%>
 <%@include file="/WEB-INF/include/header.jsp"%>
@@ -70,7 +69,6 @@
         margin-bottom: 18px;
     }
 
-    /* PRODUCT */
     .oe-review-product {
         display: flex;
         align-items: center;
@@ -370,7 +368,9 @@
             <i class="bi bi-star-fill text-warning me-2"></i>
             Đánh giá sản phẩm
         </h1>
-        <p>Chia sẻ trải nghiệm mua sắm của bạn tại OECS.</p>
+        <p>
+            Chia sẻ trải nghiệm mua sắm của bạn tại OECS.
+        </p>
     </div>
 
     <c:if test="${not empty sessionScope.errorMessage}">
@@ -387,8 +387,9 @@
           enctype="multipart/form-data">
 
         <input type="hidden" name="action" value="create">
-        <input type="hidden"
-               name="orderItemId"
+        <input type="hidden" name="csrfToken"
+               value="${sessionScope.reviewCsrfToken}">
+        <input type="hidden" name="orderItemId"
                value="${orderItemId}">
 
         <section class="oe-review-card">
@@ -401,14 +402,17 @@
 
                 <div>
                     <h2 class="oe-review-product-name">
+
                         <c:choose>
                             <c:when test="${not empty productName}">
                                 <c:out value="${productName}"/>
                             </c:when>
+
                             <c:otherwise>
                                 Sản phẩm đã mua
                             </c:otherwise>
                         </c:choose>
+
                     </h2>
 
                     <p class="oe-review-product-meta">
@@ -423,7 +427,6 @@
                 </div>
 
             </div>
-
         </section>
 
         <section class="oe-review-card">
@@ -505,10 +508,8 @@
 
                         <label for="oeReviewImages"
                                class="oe-review-upload-label">
-
                             <i class="bi bi-camera"></i>
                             <span>Thêm hình ảnh</span>
-
                         </label>
 
                         <input type="file"
@@ -533,7 +534,6 @@
                         </div>
 
                     </div>
-
                 </div>
 
                 <div>
@@ -582,9 +582,7 @@
                     </div>
 
                 </div>
-
             </div>
-
         </section>
 
         <div class="oe-review-actions">
@@ -597,26 +595,24 @@
             <button type="submit"
                     id="oeReviewSubmit"
                     class="oe-review-submit">
-
                 <i class="bi bi-send me-1"></i>
                 Gửi đánh giá
-
             </button>
 
         </div>
 
     </form>
-
 </main>
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
 
         const ratings = document.querySelectorAll(
-                'input[name="rating"]'
-                );
+            'input[name="rating"]'
+        );
+
         const ratingText =
-                document.getElementById("oeRatingText");
+            document.getElementById("oeRatingText");
 
         const ratingMessages = {
             1: "1 sao · Rất không hài lòng",
@@ -629,34 +625,28 @@
         ratings.forEach(function (radio) {
             radio.addEventListener("change", function () {
                 ratingText.textContent =
-                        ratingMessages[this.value];
+                    ratingMessages[this.value];
             });
         });
 
         const comment =
-                document.getElementById("oeReviewComment");
+            document.getElementById("oeReviewComment");
 
         const commentCount =
-                document.getElementById("oeCommentCount");
+            document.getElementById("oeCommentCount");
 
         function updateCommentCount() {
             commentCount.textContent = comment.value.length;
         }
 
-        comment.addEventListener(
-                "input",
-                updateCommentCount
-                );
+        comment.addEventListener("input", updateCommentCount);
 
         document.querySelectorAll(
-                ".oe-review-suggestion"
-                ).forEach(function (button) {
+            ".oe-review-suggestion"
+        ).forEach(function (button) {
 
             button.addEventListener("click", function () {
-
-                const suggestion =
-                        this.dataset.suggestion;
-
+                const suggestion = this.dataset.suggestion;
                 const current = comment.value.trim();
 
                 if (current.includes(suggestion)) {
@@ -664,26 +654,23 @@
                 }
 
                 const separator = current ? ". " : "";
-                const next =
-                        current + separator + suggestion;
+                const next = current + separator + suggestion;
 
                 comment.value = next.slice(0, 2000);
 
                 updateCommentCount();
                 comment.focus();
-
             });
-
         });
 
         const imageInput =
-                document.getElementById("oeReviewImages");
+            document.getElementById("oeReviewImages");
 
         const imagePreview =
-                document.getElementById("oeImagePreview");
+            document.getElementById("oeImagePreview");
 
         const imageCount =
-                document.getElementById("oeImageCount");
+            document.getElementById("oeImageCount");
 
         const maxImages = 3;
         const maxSize = 5 * 1024 * 1024;
@@ -700,70 +687,67 @@
             imageCount.textContent = "0/3 ảnh đã chọn";
         }
 
-        imageInput.addEventListener(
-                "change",
-                function () {
+        imageInput.addEventListener("change", function () {
 
+            clearPreview();
+
+            const files = Array.from(this.files);
+
+            if (files.length > maxImages) {
+                alert("Chỉ được chọn tối đa 3 ảnh.");
+                this.value = "";
+                return;
+            }
+
+            const allowedTypes = [
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+            ];
+
+            for (const file of files) {
+
+                if (!allowedTypes.includes(file.type)) {
+                    alert(
+                        "Chỉ hỗ trợ ảnh JPG, PNG và WEBP."
+                    );
+
+                    this.value = "";
                     clearPreview();
-
-                    const files = Array.from(this.files);
-
-                    if (files.length > maxImages) {
-                        alert("Chỉ được chọn tối đa 3 ảnh.");
-                        this.value = "";
-                        return;
-                    }
-
-                    const allowedTypes = [
-                        "image/jpeg",
-                        "image/png",
-                        "image/webp"
-                    ];
-
-                    for (const file of files) {
-
-                        if (!allowedTypes.includes(file.type)) {
-                            alert(
-                                    "Chỉ hỗ trợ ảnh JPG, PNG và WEBP."
-                                    );
-                            this.value = "";
-                            clearPreview();
-                            return;
-                        }
-
-                        if (file.size > maxSize) {
-                            alert(
-                                    "Mỗi ảnh không được vượt quá 5MB."
-                                    );
-                            this.value = "";
-                            clearPreview();
-                            return;
-                        }
-                    }
-
-                    files.forEach(function (file, index) {
-
-                        const url = URL.createObjectURL(file);
-                        previewUrls.push(url);
-
-                        const img = document.createElement("img");
-                        img.src = url;
-                        img.alt = "Ảnh đánh giá " + (index + 1);
-
-                        imagePreview.appendChild(img);
-
-                    });
-
-                    imageCount.textContent =
-                            files.length + "/3 ảnh đã chọn";
+                    return;
                 }
-        );
+
+                if (file.size > maxSize) {
+                    alert(
+                        "Mỗi ảnh không được vượt quá 5MB."
+                    );
+
+                    this.value = "";
+                    clearPreview();
+                    return;
+                }
+            }
+
+            files.forEach(function (file, index) {
+                const url = URL.createObjectURL(file);
+                previewUrls.push(url);
+
+                const img = document.createElement("img");
+                img.src = url;
+                img.alt = "Ảnh đánh giá " + (index + 1);
+
+                imagePreview.appendChild(img);
+            });
+
+            imageCount.textContent =
+                files.length + "/3 ảnh đã chọn";
+        });
 
         const form =
-                document.getElementById("oeReviewForm");
+            document.getElementById("oeReviewForm");
 
         const submitButton =
-                document.getElementById("oeReviewSubmit");
+            document.getElementById("oeReviewSubmit");
 
         form.addEventListener("submit", function () {
 
@@ -773,7 +757,6 @@
 
             submitButton.disabled = true;
             submitButton.textContent = "Đang gửi...";
-
         });
 
         window.addEventListener("pagehide", function () {
@@ -781,7 +764,6 @@
                 URL.revokeObjectURL(url);
             });
         });
-
     });
 </script>
 

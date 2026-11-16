@@ -19,39 +19,52 @@ public class VoucherDAO extends DBContext {
 
     public List<Voucher> getAllVouchers() {
 
-        List<Voucher> list
-                = new ArrayList<>();
+        List<Voucher> list = new ArrayList<>();
 
         String sql
-                = "SELECT "
-                + "voucher_id, "
-                + "code, "
-                + "min_order_value, "
-                + "valid_from, "
-                + "valid_to, "
-                + "discount_type, "
-                + "discount_value, "
-                + "max_discount, "
-                + "usage_limit, "
-                + "per_user_limit "
-                + "FROM VOUCHER "
-                + "ORDER BY voucher_id DESC";
+                = "SELECT v.voucher_id, v.code, v.min_order_value, "
+                + "v.valid_from, v.valid_to, v.discount_type, "
+                + "v.discount_value, v.max_discount, v.usage_limit, "
+                + "v.per_user_limit, "
+                + "ISNULL(u.used_count, 0) AS used_count, "
+                + "CASE "
+                + "WHEN v.usage_limit IS NOT NULL "
+                + "AND ISNULL(u.used_count, 0) >= v.usage_limit "
+                + "THEN 'EXHAUSTED' "
+                + "WHEN v.valid_from > GETDATE() "
+                + "THEN 'UPCOMING' "
+                + "WHEN v.valid_to < GETDATE() "
+                + "THEN 'EXPIRED' "
+                + "ELSE 'AVAILABLE' "
+                + "END AS availability_status "
+                + "FROM VOUCHER v "
+                + "LEFT JOIN ("
+                + "SELECT voucher_id, COUNT(*) AS used_count "
+                + "FROM VOUCHER_USAGES "
+                + "GROUP BY voucher_id"
+                + ") u ON u.voucher_id = v.voucher_id "
+                + "ORDER BY v.voucher_id DESC";
 
-        try (
-                Connection conn
-                = getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql); ResultSet rs
-                = ps.executeQuery()) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql); 
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
 
-                list.add(
-                        mapVoucher(rs)
+                Voucher voucher = mapVoucher(rs);
+
+                voucher.setUsedCount(
+                        rs.getInt("used_count")
                 );
+
+                voucher.setAvailabilityStatus(
+                        rs.getString("availability_status")
+                );
+
+                list.add(voucher);
             }
 
         } catch (SQLException e) {
-
             e.printStackTrace();
         }
 
@@ -658,7 +671,6 @@ public class VoucherDAO extends DBContext {
                     * voucher.getDiscountValue()
                     / 100.0;
 
-
             if (voucher.getMaxDiscount() != null
                     && discount
                     > voucher.getMaxDiscount()) {
@@ -668,14 +680,11 @@ public class VoucherDAO extends DBContext {
             }
         }
 
-
         if (discount < 0) {
 
             discount = 0;
         }
 
-
-        
         if (discount > orderTotal) {
 
             discount
@@ -725,7 +734,6 @@ public class VoucherDAO extends DBContext {
         return false;
     }
 
-    
     public int countUsedVouchers() {
 
         String sql
@@ -751,7 +759,6 @@ public class VoucherDAO extends DBContext {
         return 0;
     }
 
-    
     public int countAllVoucherUsages() {
 
         String sql
@@ -777,7 +784,6 @@ public class VoucherDAO extends DBContext {
         return 0;
     }
 
-    
     public int countVoucherUsageLast7Days() {
 
         String sql
@@ -805,7 +811,6 @@ public class VoucherDAO extends DBContext {
         return 0;
     }
 
-    
     public List<VoucherUsageDTO> getRecentVoucherUsages() {
 
         List<VoucherUsageDTO> list
@@ -847,7 +852,6 @@ public class VoucherDAO extends DBContext {
         return list;
     }
 
-    
     public List<VoucherUsageDTO> getAllVoucherUsages() {
 
         List<VoucherUsageDTO> list
@@ -887,7 +891,6 @@ public class VoucherDAO extends DBContext {
         return list;
     }
 
- 
     public List<VoucherUsageDTO> getVoucherUsagesByVoucherId(
             int voucherId) {
 
@@ -938,7 +941,6 @@ public class VoucherDAO extends DBContext {
         return list;
     }
 
-   
     public int countUsageByVoucherId(
             int voucherId) {
 
@@ -975,7 +977,6 @@ public class VoucherDAO extends DBContext {
         return 0;
     }
 
- 
     public int countUsageByUser(
             int voucherId,
             int userId) {
@@ -1019,7 +1020,6 @@ public class VoucherDAO extends DBContext {
         return 0;
     }
 
-    
     private Voucher mapVoucher(
             ResultSet rs)
             throws SQLException {
@@ -1069,7 +1069,6 @@ public class VoucherDAO extends DBContext {
                 )
         );
 
-      
         Object maxDiscount
                 = rs.getObject(
                         "max_discount"
@@ -1083,7 +1082,6 @@ public class VoucherDAO extends DBContext {
                         )
         );
 
-      
         Object usageLimit
                 = rs.getObject(
                         "usage_limit"
@@ -1097,7 +1095,6 @@ public class VoucherDAO extends DBContext {
                         )
         );
 
-        
         Object perUserLimit
                 = rs.getObject(
                         "per_user_limit"
@@ -1114,7 +1111,6 @@ public class VoucherDAO extends DBContext {
         return voucher;
     }
 
-    
     private VoucherUsageDTO mapVoucherUsage(
             ResultSet rs)
             throws SQLException {

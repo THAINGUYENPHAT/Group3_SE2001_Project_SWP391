@@ -116,10 +116,16 @@
         <c:remove var="successMessage" scope="session"/>
     </c:if>
 
+    <c:if test="${not empty sessionScope.errorMessage}">
+        <div class="alert alert-danger">
+            <c:out value="${sessionScope.errorMessage}"/>
+        </div>
+        <c:remove var="errorMessage" scope="session"/>
+    </c:if>
+
     <div class="review-detail-card">
 
         <div class="review-detail-header">
-
             <h1>
                 <i class="bi bi-patch-check-fill text-success me-2"></i>
                 Đánh giá của bạn
@@ -129,13 +135,10 @@
                 Cảm ơn bạn đã chia sẻ trải nghiệm
                 mua sắm tại OECS.
             </p>
-
         </div>
 
         <div class="review-detail-body">
-
             <div class="mb-4">
-
                 <span class="badge bg-success-subtle text-success">
                     <i class="bi bi-check-circle me-1"></i>
                     Đã đánh giá
@@ -146,7 +149,6 @@
                         value="${review.createdAt}"
                         pattern="dd/MM/yyyy HH:mm"/>
                 </span>
-
             </div>
 
             <h5 class="fw-bold mb-3">
@@ -162,7 +164,6 @@
                          ? 'text-warning'
                          : 'text-secondary'}"></i>
                 </c:forEach>
-
             </div>
 
             <p class="text-muted mb-4">
@@ -177,17 +178,15 @@
             </h5>
 
             <div class="review-detail-comment"><c:out
-                    value="${review.comment}"
-                    default="Không có nhận xét chi tiết."/></div>
+                value="${review.comment}"
+                default="Không có nhận xét chi tiết."/></div>
 
             <c:if test="${not empty review.images}">
-
                 <h5 class="fw-bold mt-4 mb-3">
                     Hình ảnh đánh giá
                 </h5>
 
                 <div class="review-detail-images">
-
                     <c:forEach var="imagePath"
                                items="${review.images}">
 
@@ -199,35 +198,27 @@
                              loading="lazy">
 
                     </c:forEach>
-
                 </div>
-
             </c:if>
-
         </div>
 
         <div class="review-detail-actions">
 
             <a href="${pageContext.request.contextPath}/my-orders"
                class="review-detail-btn review-detail-back">
-
                 <i class="bi bi-arrow-left"></i>
                 Đơn mua
-
             </a>
 
             <c:url var="editReviewUrl" value="/review">
                 <c:param name="view" value="edit"/>
-                <c:param name="id"
-                         value="${review.reviewId}"/>
+                <c:param name="id" value="${review.reviewId}"/>
             </c:url>
 
             <a href="${editReviewUrl}"
                class="review-detail-btn">
-
                 <i class="bi bi-pencil-square"></i>
                 Sửa đánh giá
-
             </a>
 
             <c:url var="deleteReviewUrl" value="/review">
@@ -236,15 +227,14 @@
             </c:url>
 
             <a href="${deleteReviewUrl}"
-               class="review-detail-btn btn btn-outline-danger">
+               class="review-detail-btn"
+               style="background:#fff;color:#b91c1c;border:1px solid #fecaca;">
                 <i class="bi bi-trash3"></i>
                 Xóa đánh giá
-            </a>   
+            </a>
 
         </div>
-
     </div>
-
 </main>
 
 <%@include file="/WEB-INF/include/footer.jsp"%>

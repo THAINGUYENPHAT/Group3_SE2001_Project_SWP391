@@ -1,3 +1,4 @@
+
 package dao;
 
 import db.DBContext;
@@ -7,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,26 +31,54 @@ public class StaffReviewDAO extends DBContext {
                 + "LEFT JOIN PRODUCT p ON ps.product_id = p.product_id "
                 + "ORDER BY pr.created_at DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        Map<Integer, Map<String, Object>> byId = new LinkedHashMap<>();
 
-            while (rs.next()) {
-                Map<String, Object> review = new HashMap<>();
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
 
-                review.put("reviewId", rs.getInt("review_id"));
-                review.put("userId", rs.getInt("user_id"));
-                review.put("reviewerName", rs.getString("reviewer_name"));
-                review.put("orderItemId", rs.getInt("order_item_id"));
-                review.put("skuId", rs.getInt("sku_id"));
-                review.put("skuCode", rs.getString("sku_code"));
-                review.put("productName", rs.getString("product_name"));
-                review.put("rating", rs.getInt("rating"));
-                review.put("comment", rs.getString("comment"));
-                review.put("createdAt", rs.getTimestamp("created_at"));
-                review.put("isHidden", rs.getBoolean("is_hidden"));
+                while (rs.next()) {
+                    Map<String, Object> review = new HashMap<>();
 
-                reviews.add(review);
+                    review.put("reviewId", rs.getInt("review_id"));
+                    review.put("userId", rs.getInt("user_id"));
+                    review.put("reviewerName", rs.getString("reviewer_name"));
+                    review.put("orderItemId", rs.getInt("order_item_id"));
+                    review.put("skuId", rs.getInt("sku_id"));
+                    review.put("skuCode", rs.getString("sku_code"));
+                    review.put("productName", rs.getString("product_name"));
+                    review.put("rating", rs.getInt("rating"));
+                    review.put("comment", rs.getString("comment"));
+                    review.put("createdAt", rs.getTimestamp("created_at"));
+                    review.put("isHidden", rs.getBoolean("is_hidden"));
+
+                    review.put("images", new ArrayList<String>());
+                    reviews.add(review);
+                    byId.put(rs.getInt("review_id"), review);
+                }
+            }
+
+            // Tải ảnh cùng lượt truy vấn để Staff kiểm duyệt.
+            String imageSql =
+                    "SELECT review_id, image_url "
+                    + "FROM dbo.REVIEW_IMAGES "
+                    + "ORDER BY review_id, image_id";
+
+            try (PreparedStatement ps = conn.prepareStatement(imageSql);
+                 ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+                    Map<String, Object> review =
+                            byId.get(rs.getInt("review_id"));
+
+                    if (review != null) {
+                        @SuppressWarnings("unchecked")
+                        List<String> images =
+                                (List<String>) review.get("images");
+
+                        images.add(rs.getString("image_url"));
+                    }
+                }
             }
         }
 
