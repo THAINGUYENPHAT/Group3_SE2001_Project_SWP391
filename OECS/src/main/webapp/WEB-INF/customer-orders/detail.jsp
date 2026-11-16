@@ -631,8 +631,7 @@
                 </p>
             </div>
 
-            <c:choose>
-                <c:when test="${order.orderStatus == 'PENDING_PAYMENT'}">
+                <c:if test="${order.orderStatus == 'PENDING_PAYMENT'}">
                     <a href="${pageContext.request.contextPath}/payment?id=${order.orderId}"
                        style="display: flex;
                        align-items: center;
@@ -659,9 +658,9 @@
                         Bạn có thể thanh toán, đổi sang COD hoặc hủy đơn
                         trong thời gian chờ thanh toán.
                     </p>
-                </c:when>
+                </c:if>
 
-                <c:when test="${order.orderStatus == 'PENDING_CONFIRMATION' && order.paymentMethod == 'COD' && (order.paymentStatus != 'PAID' || order.totalAmount == 0)}">
+                <c:if test="${canCancelOrder}">
                     <form class="purchase-cancel-form"
                           action="${pageContext.request.contextPath}/my-orders/cancel"
                           method="post"
@@ -687,17 +686,15 @@
                     </form>
 
                     <p class="purchase-cancel-note">
-                        Có thể hủy trước khi nhân viên xác nhận.
-                        Lượt sử dụng voucher của đơn đã đặt vẫn được giữ.
+                        Có thể hủy đơn hàng trước khi vận chuyển. Lượt sử dụng voucher của đơn đã đặt vẫn được giữ.
                     </p>
-                </c:when>
+                </c:if>
 
-                <c:when test="${order.orderStatus != 'CANCELLED'}">
+                <c:if test="${!canCancelOrder && order.orderStatus != 'CANCELLED'}">
                     <p class="purchase-cancel-note">
-                        Không thể tự hủy đơn ở trạng thái hiện tại.
+                        Chỉ được hủy đơn hàng trước khi vận chuyển.
                     </p>
-                </c:when>
-            </c:choose>
+                </c:if>
         </aside>
     </div>
 </div>

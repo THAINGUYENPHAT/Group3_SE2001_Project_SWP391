@@ -22,7 +22,20 @@ public class OrderCancellationService {
     }
 
     public String staffCancel(int staffId, int orderId) throws SQLException {
-        if (staffId <= 0 || orderId <= 0) {
+        return cancel(staffId, orderId, false);
+    }
+
+    public boolean customerCancel(int userId, int orderId) throws SQLException {
+        return "CANCELLED".equals(cancel(userId, orderId, true));
+    }
+
+    public static boolean canCancel(String status) {
+        return Arrays.asList("PENDING_PAYMENT", "PENDING_CONFIRMATION", "CONFIRMED", "PACKING")
+                .contains(OrderService.normalizeStatus(status));
+    }
+
+    private String cancel(int actorId, int orderId, boolean customer) throws SQLException {
+        if (actorId <= 0 || orderId <= 0) {
             throw new IllegalArgumentException("Thông tin đơn hàng không hợp lệ.");
         }
         try (Connection c = connections.open()) {
@@ -41,6 +54,9 @@ public class OrderCancellationService {
                         owner = r.getInt(1);
                     }
                 }
+                if (customer && owner != actorId) {
+                    throw new IllegalArgumentException("Không tìm thấy đơn hàng.");
+                }
                 new OrderPolicyDAO().lockCustomer(c, owner);
                 String status, payment;
                 boolean timedOut;
@@ -58,8 +74,8 @@ public class OrderCancellationService {
                             c.commit();
                             return "UNCHANGED";
                         }
-                        if (!Arrays.asList("PENDING_PAYMENT", "PENDING_CONFIRMATION", "CONFIRMED", "PACKING").contains(status)) {
-                            throw new IllegalArgumentException("Không thể hủy đơn đang giao hoặc đã hoàn thành.");
+                        if (!canCancel(status)) {
+                            throw new IllegalArgumentException("Chỉ được hủy đơn hàng trước khi vận chuyển.");
                         }
                         if (r.getTimestamp("stock_restored_at") != null) {
                             throw new IllegalArgumentException("Đơn đã hoàn kho.");
@@ -69,7 +85,8 @@ public class OrderCancellationService {
                         timedOut = "PENDING_PAYMENT".equals(status) && !"PAID".equals(payment) && r.getBoolean("timed_out");
                     }
                 }
-                String cancellationReason = timedOut ? "Hết thời hạn thanh toán online" : "Nhân viên hủy đơn hàng";
+                String cancellationReason = timedOut ? "Hết thời hạn thanh toán online"
+                        : customer ? "Khách hàng hủy đơn hàng" : "Nhân viên hủy đơn hàng";
                 boolean refund = false;
                 try (PreparedStatement p = c.prepareStatement("SELECT t.transaction_id,t.amount FROM dbo.PAYMENT_TRANSACTION t WITH (UPDLOCK,HOLDLOCK) "
                         + "WHERE t.order_id=? AND t.status='SUCCESS' AND t.amount>0 ORDER BY t.transaction_id")) {
@@ -102,6 +119,9 @@ public class OrderCancellationService {
                 update(c, "INSERT INTO dbo.ORDER_STATUS_HISTORY(order_id,status) VALUES (?,'CANCELLED')", orderId);
                 if (!NotificationDAO.createOrderStatusNotification(c, orderId, "CANCELLED")) {
                     throw new SQLException("Không tạo được thông báo hủy đơn.");
+                }
+                if (customer) {
+                    new OrderPolicyDAO().recordCancellation(c, owner, orderId);
                 }
                 c.commit();
                 return "CANCELLED";
