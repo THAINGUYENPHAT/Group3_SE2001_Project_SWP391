@@ -1,229 +1,130 @@
 package service;
 
 import dao.UserDAO;
-import jakarta.mail.Authenticator;
-import jakarta.mail.Message;
-import jakarta.mail.MessagingException;
-import jakarta.mail.PasswordAuthentication;
-import jakarta.mail.Session;
-import jakarta.mail.Transport;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
-
-import java.util.Properties;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import model.User;
 
 public class EmailService {
 
-    private static final Logger LOGGER
-            = Logger.getLogger(EmailService.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(EmailService.class.getName());
 
+    private static final String FROM_NAME = "OECS Store";
     private static final String FROM_EMAIL = "oecs.store@gmail.com";
-    private static final String APP_PASSWORD = "hkyfaiketbxbotad";
+    private static final String BREVO_API_KEY = System.getenv("BREVO_API_KEY");
+    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
+
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(15))
+            .build();
 
     public boolean emailExists(String email) throws Exception {
-
         if (email == null || email.trim().isEmpty()) {
             return false;
         }
+
         UserDAO dao = new UserDAO();
         return dao.findByEmail(email.trim()) != null;
     }
 
     public boolean sendResetPasswordEmail(String toEmail, String resetLink) {
+        String subject = "Đặt lại mật khẩu - OECS";
 
-        if (FROM_EMAIL == null || FROM_EMAIL.isBlank()
-                || APP_PASSWORD == null || APP_PASSWORD.isBlank()) {
+        String content = "<h2>Đặt lại mật khẩu</h2>"
+                + "<p>Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản OECS.</p>"
+                + "<p>Nhấn vào liên kết bên dưới để tạo mật khẩu mới:</p>"
+                + "<p><a href=\"" + resetLink + "\">Đặt lại mật khẩu</a></p>"
+                + "<p>Liên kết này có hiệu lực trong 15 phút.</p>"
+                + "<p>Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.</p>";
 
-            LOGGER.severe(
-                    "Thiếu cấu hình OECS_MAIL_EMAIL hoặc OECS_MAIL_APP_PASSWORD!"
-            );
-
-            return false;
-        }
-
-        Properties properties = new Properties();
-
-        properties.put("mail.smtp.auth", "true");
-        properties.put("mail.smtp.starttls.enable", "true");
-        properties.put("mail.smtp.host", "smtp.gmail.com");
-        properties.put("mail.smtp.port", "587");
-
-        Session session = Session.getInstance(
-                properties,
-                new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(
-                        FROM_EMAIL,
-                        APP_PASSWORD
-                );
-            }
-        }
-        );
-
-        try {
-
-            Message message = new MimeMessage(session);
-
-            message.setFrom(new InternetAddress(FROM_EMAIL));
-
-            message.setRecipients(
-                    Message.RecipientType.TO,
-                    InternetAddress.parse(toEmail)
-            );
-
-            message.setSubject("Đặt lại mật khẩu - OECS");
-
-            String content
-                    = "<h2>Đặt lại mật khẩu</h2>"
-                    + "<p>Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản OECS.</p>"
-                    + "<p>Nhấn vào liên kết bên dưới để tạo mật khẩu mới:</p>"
-                    + "<p>"
-                    + "<a href=\"" + resetLink + "\">"
-                    + "Đặt lại mật khẩu"
-                    + "</a>"
-                    + "</p>"
-                    + "<p>Liên kết này có hiệu lực trong 15 phút.</p>"
-                    + "<p>Nếu bạn không yêu cầu đặt lại mật khẩu, "
-                    + "hãy bỏ qua email này.</p>";
-
-            message.setContent(
-                    content,
-                    "text/html; charset=UTF-8"
-            );
-
-            Transport.send(message);
-
-            return true;
-
-        } catch (MessagingException ex) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi gửi email reset password!",
-                    ex
-            );
-
-            return false;
-        }
+        return sendEmail(toEmail, subject, content);
     }
 
-    public boolean sendAccountSetupEmail(
-            String toEmail,
-            String setupLink) {
+    public boolean sendAccountSetupEmail(String toEmail, String setupLink) {
+        String subject = "Tài khoản OECS của bạn đã được tạo";
 
-        if (FROM_EMAIL == null
-                || FROM_EMAIL.isBlank()
-                || APP_PASSWORD == null
-                || APP_PASSWORD.isBlank()) {
+        String content = "<h2>Chào mừng bạn đến với OECS</h2>"
+                + "<p>Một tài khoản OECS đã được tạo cho địa chỉ email này.</p>"
+                + "<p>Vui lòng nhấn vào liên kết bên dưới để thiết lập mật khẩu:</p>"
+                + "<p><a href=\"" + setupLink + "\">Thiết lập mật khẩu</a></p>"
+                + "<p>Liên kết này có hiệu lực trong 24 giờ.</p>"
+                + "<p>Sau khi thiết lập mật khẩu, bạn có thể đăng nhập vào OECS.</p>";
 
-            LOGGER.severe(
-                    "Thiếu cấu hình email!"
-            );
+        return sendEmail(toEmail, subject, content);
+    }
 
+    private boolean sendEmail(String toEmail, String subject, String htmlContent) {
+        if (toEmail == null || toEmail.trim().isEmpty()) {
             return false;
         }
 
-        Properties properties
-                = new Properties();
-
-        properties.put(
-                "mail.smtp.auth",
-                "true"
-        );
-
-        properties.put(
-                "mail.smtp.starttls.enable",
-                "true"
-        );
-
-        properties.put(
-                "mail.smtp.host",
-                "smtp.gmail.com"
-        );
-
-        properties.put(
-                "mail.smtp.port",
-                "587"
-        );
-
-        Session session
-                = Session.getInstance(
-                        properties,
-                        new Authenticator() {
-
-                    @Override
-                    protected PasswordAuthentication
-                            getPasswordAuthentication() {
-
-                        return new PasswordAuthentication(
-                                FROM_EMAIL,
-                                APP_PASSWORD
-                        );
-                    }
-                });
+        if (BREVO_API_KEY == null || BREVO_API_KEY.isBlank()
+                || "PASTE_YOUR_BREVO_API_KEY_HERE".equals(BREVO_API_KEY)) {
+            LOGGER.severe("Chưa cấu hình Brevo API key.");
+            return false;
+        }
 
         try {
+            String jsonBody = "{"
+                    + "\"sender\":{\"name\":\"" + escapeJson(FROM_NAME)
+                    + "\",\"email\":\"" + escapeJson(FROM_EMAIL) + "\"},"
+                    + "\"to\":[{\"email\":\"" + escapeJson(toEmail.trim()) + "\"}],"
+                    + "\"subject\":\"" + escapeJson(subject) + "\","
+                    + "\"htmlContent\":\"" + escapeJson(htmlContent) + "\""
+                    + "}";
 
-            Message message
-                    = new MimeMessage(session);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BREVO_API_URL))
+                    .timeout(Duration.ofSeconds(20))
+                    .header("accept", "application/json")
+                    .header("api-key", BREVO_API_KEY)
+                    .header("content-type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody, StandardCharsets.UTF_8))
+                    .build();
 
-            message.setFrom(
-                    new InternetAddress(
-                            FROM_EMAIL
-                    )
+            HttpResponse<String> response = httpClient.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
             );
 
-            message.setRecipients(
-                    Message.RecipientType.TO,
-                    InternetAddress.parse(
-                            toEmail
-                    )
-            );
-
-            message.setSubject(
-                    "Tài khoản OECS của bạn đã được tạo"
-            );
-
-            String content
-                    = "<h2>Chào mừng bạn đến với OECS</h2>"
-                    + "<p>Một tài khoản OECS đã được "
-                    + "tạo cho địa chỉ email này.</p>"
-                    + "<p>Vui lòng nhấn vào liên kết "
-                    + "bên dưới để thiết lập mật khẩu:</p>"
-                    + "<p>"
-                    + "<a href=\""
-                    + setupLink
-                    + "\">"
-                    + "Thiết lập mật khẩu"
-                    + "</a>"
-                    + "</p>"
-                    + "<p>Liên kết này có hiệu lực "
-                    + "trong 15 phút.</p>"
-                    + "<p>Sau khi thiết lập mật khẩu, "
-                    + "bạn có thể đăng nhập vào OECS.</p>";
-
-            message.setContent(
-                    content,
-                    "text/html; charset=UTF-8"
-            );
-
-            Transport.send(message);
-
-            return true;
-
-        } catch (MessagingException ex) {
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                LOGGER.log(Level.INFO, "Đã gửi email tới {0}", toEmail);
+                return true;
+            }
 
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi gửi email thiết lập tài khoản!",
-                    ex
+                    "Brevo API error. HTTP {0}: {1}",
+                    new Object[]{response.statusCode(), response.body()}
             );
 
-            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.log(Level.SEVERE, "Gửi email bị gián đoạn.", e);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Lỗi khi gọi Brevo API.", e);
         }
+
+        return false;
+    }
+
+    private String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\b", "\\b")
+                .replace("\f", "\\f")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }
