@@ -6,24 +6,20 @@ public class ProductSpec {
     private String attributeName;
     private String value;
 
-    // Constructor rỗng
     public ProductSpec() {
     }
 
-    // Constructor 2 tham số (Dành cho ShopDAO cũ của bạn không bị lỗi)
     public ProductSpec(String attributeName, String value) {
         this.attributeName = attributeName;
         this.value = value;
     }
 
-    // Constructor 3 tham số (Dành cho ProductDAO mới thêm vào)
     public ProductSpec(int attributeId, String attributeName, String value) {
         this.attributeId = attributeId;
         this.attributeName = attributeName;
         this.value = value;
     }
 
-    // Getters và Setters
     public int getAttributeId() {
         return attributeId;
     }

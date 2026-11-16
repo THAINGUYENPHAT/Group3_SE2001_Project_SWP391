@@ -420,14 +420,14 @@ public class ReturnExchangeDAO {
         List<Map<String, Object>> requests = new ArrayList<>();
 
         String sql
-                = "SELECT r.request_id, r.order_id, r.user_id, "
-                + "u.username, r.request_type, r.reason, "
-                + "r.request_status, r.created_at, "
-                + "r.reviewed_at, r.staff_note "
-                + "FROM dbo.RETURN_REQUEST r "
-                + "JOIN dbo.[USER] u ON u.user_id = r.user_id "
-                + "ORDER BY CASE WHEN r.request_status = 'PENDING' "
-                + "THEN 0 ELSE 1 END, r.created_at DESC";
+            = "SELECT r.request_id, r.order_id, r.user_id, "
+            + "u.username, u.phone, r.request_type, r.reason, "
+            + "r.request_status, r.created_at, "
+            + "r.reviewed_at, r.staff_note "
+            + "FROM dbo.RETURN_REQUEST r "
+            + "JOIN dbo.[USER] u ON u.user_id = r.user_id "
+            + "ORDER BY CASE WHEN r.request_status = 'PENDING' "
+            + "THEN 0 ELSE 1 END, r.created_at DESC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
@@ -437,6 +437,7 @@ public class ReturnExchangeDAO {
                 item.put("orderId", rs.getInt("order_id"));
                 item.put("userId", rs.getInt("user_id"));
                 item.put("username", rs.getString("username"));
+                item.put("phone", rs.getString("phone"));
                 item.put("requestType", rs.getString("request_type"));
                 item.put("reason", rs.getString("reason"));
                 item.put("requestStatus", rs.getString("request_status"));
