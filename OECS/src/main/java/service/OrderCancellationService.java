@@ -2,6 +2,7 @@ package service;
 
 import dao.OrderPolicyDAO;
 import dao.NotificationDAO;
+import dao.OrderInventoryDAO;
 import db.CheckoutConnectionFactory;
 import db.DBContext;
 import java.math.BigDecimal;
@@ -98,25 +99,14 @@ public class OrderCancellationService {
                         refund = true;
                     }
                 }
-                List<int[]> items = new ArrayList<>();
-                try (PreparedStatement p = c.prepareStatement("SELECT sku_id,SUM(quantity) FROM dbo.ORDER_ITEM WHERE order_id=? GROUP BY sku_id ORDER BY sku_id")) {
-                    p.setInt(1, orderId);
-                    try (ResultSet r = p.executeQuery()) {
-                        while (r.next()) {
-                            items.add(new int[]{r.getInt(1), r.getInt(2)});
-                        }
-                    }
+                boolean deducted = "CONFIRMED".equals(status) || "PACKING".equals(status);
+                if (deducted) {
+                    new OrderInventoryDAO().restore(c, orderId);
                 }
-                if (items.isEmpty()) {
-                    throw new SQLException("Đơn không có sản phẩm để hoàn kho.");
-                }
-                for (int[] item : items) {
-                    if (item[1] <= 0 || update(c, "UPDATE dbo.PRODUCT_SKU SET stock_quantity=stock_quantity+? WHERE sku_id=?", item[1], item[0]) != 1) {
-                        throw new SQLException("Không hoàn được tồn kho.");
-                    }
-                }
-                update(c, "UPDATE dbo.[ORDER] SET order_status='CANCELLED',stock_restored_at=SYSDATETIME(),payment_expires_at=NULL,"
-                        + "payment_status=? WHERE order_id=?", refund ? "REFUND_PENDING" : payment, orderId);
+                update(c, "UPDATE dbo.[ORDER] SET order_status='CANCELLED',"
+                        + "stock_restored_at=CASE WHEN ?=1 THEN SYSDATETIME() ELSE stock_restored_at END,"
+                        + "payment_expires_at=NULL,payment_status=? WHERE order_id=?",
+                        deducted ? 1 : 0, refund ? "REFUND_PENDING" : payment, orderId);
                 update(c, "UPDATE dbo.PAYMENT_TRANSACTION SET status=? WHERE order_id=? AND status='PENDING'", timedOut ? "EXPIRED" : "CANCELLED", orderId);
                 update(c, "INSERT INTO dbo.ORDER_STATUS_HISTORY(order_id,status) VALUES (?,'CANCELLED')", orderId);
                 if (!NotificationDAO.createOrderStatusNotification(c, orderId, "CANCELLED")) {

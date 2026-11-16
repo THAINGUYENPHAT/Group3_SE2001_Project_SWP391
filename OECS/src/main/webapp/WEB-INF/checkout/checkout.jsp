@@ -776,7 +776,7 @@
                         <c:choose>
                             <c:when test="${vnpayAvailable}">
                                 Thanh toán qua VNPay Sandbox.
-                                Đơn hàng được giữ trong 15 phút.
+                                Vui lòng thanh toán trong 15 phút. Tồn kho được kiểm tra khi nhân viên xác nhận.
                             </c:when>
                             <c:otherwise>
                                 Chưa cấu hình tài khoản VNPay Sandbox.

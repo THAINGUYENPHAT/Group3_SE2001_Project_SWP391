@@ -153,6 +153,8 @@ public class AdminOrderServlet extends HttpServlet {
             } else {
                 request.getSession().setAttribute("errorMessage", "Không thể chuyển trạng thái. Vui lòng tải lại đơn hàng!");
             }
+        } catch (IllegalArgumentException e) {
+            request.getSession().setAttribute("errorMessage", e.getMessage());
         } catch (Exception e) {
             LOGGER.log(
                     Level.SEVERE,
@@ -192,7 +194,7 @@ public class AdminOrderServlet extends HttpServlet {
             auditLogService.log(staff, "CANCEL_ORDER", "ORDER", (long) orderId, "Staff cancellation: " + result, request);
             request.getSession().setAttribute("successMessage", "UNCHANGED".equals(result)
                     ? "Đơn hàng đã được hủy trước đó."
-                    : "Đã hủy đơn và hoàn kho thành công");
+                    : "Đã hủy đơn hàng thành công");
         } catch (IllegalArgumentException e) {
             request.getSession().setAttribute("errorMessage", e.getMessage());
         } catch (Exception e) {

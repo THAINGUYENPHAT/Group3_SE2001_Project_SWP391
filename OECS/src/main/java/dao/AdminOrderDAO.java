@@ -179,7 +179,7 @@ public class AdminOrderDAO extends DBContext {
             return false;
         }
 
-        String selectSql = "SELECT order_status "
+        String selectSql = "SELECT order_status, payment_method, payment_status, stock_restored_at "
                 + "FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE order_id = ?";
 
@@ -199,6 +199,9 @@ public class AdminOrderDAO extends DBContext {
 
             try {
                 String current;
+                String method;
+                String payment;
+                boolean restored;
 
                 try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                     ps.setInt(1, orderId);
@@ -212,6 +215,9 @@ public class AdminOrderDAO extends DBContext {
                         current = OrderStatusPolicy.normalize(
                                 rs.getString("order_status")
                         );
+                        method = rs.getString("payment_method");
+                        payment = rs.getString("payment_status");
+                        restored = rs.getTimestamp("stock_restored_at") != null;
 
                     }
                 }
@@ -219,6 +225,16 @@ public class AdminOrderDAO extends DBContext {
                 if (!next.equals(OrderStatusPolicy.nextStatus(current))) {
                     conn.rollback();
                     return false;
+                }
+
+                if ("CONFIRMED".equals(next)) {
+                    if (restored) {
+                        throw new IllegalArgumentException("Đơn đã hoàn kho, cần kiểm tra lại trước khi xác nhận.");
+                    }
+                    if (!"COD".equalsIgnoreCase(method) && !"PAID".equalsIgnoreCase(payment)) {
+                        throw new IllegalArgumentException("Đơn thanh toán online cần thanh toán thành công trước khi xác nhận.");
+                    }
+                    new OrderInventoryDAO().deduct(conn, orderId);
                 }
 
                 try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
