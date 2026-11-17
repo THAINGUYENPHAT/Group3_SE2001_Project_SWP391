@@ -14,12 +14,14 @@ public class Voucher {
     private Double maxDiscount;
     private Integer usageLimit;
     private Integer perUserLimit;
+    private int usedCount;
+    private String availabilityStatus;
 
     public Voucher() {
     }
 
-    public Voucher(int voucherId, String code, double minOrderValue, Timestamp validFrom, Timestamp validTo, 
-                   String discountType, double discountValue, Double maxDiscount, Integer usageLimit, Integer perUserLimit) {
+    public Voucher(int voucherId, String code, double minOrderValue, Timestamp validFrom, Timestamp validTo,
+            String discountType, double discountValue, Double maxDiscount, Integer usageLimit, Integer perUserLimit) {
         this.voucherId = voucherId;
         this.code = code;
         this.minOrderValue = minOrderValue;
@@ -112,19 +114,43 @@ public class Voucher {
         this.perUserLimit = perUserLimit;
     }
 
+    public int getUsedCount() {
+        return usedCount;
+    }
+
+    public void setUsedCount(int usedCount) {
+        this.usedCount = usedCount;
+    }
+
+    public Integer getRemainingUses() {
+        if (usageLimit == null) {
+            return null;
+        }
+
+        return Math.max(0, usageLimit - usedCount);
+    }
+
+    public String getAvailabilityStatus() {
+        return availabilityStatus;
+    }
+
+    public void setAvailabilityStatus(String availabilityStatus) {
+        this.availabilityStatus = availabilityStatus;
+    }
+
     @Override
     public String toString() {
-        return "Voucher{" +
-                "voucherId=" + voucherId +
-                ", code='" + code + '\'' +
-                ", minOrderValue=" + minOrderValue +
-                ", validFrom=" + validFrom +
-                ", validTo=" + validTo +
-                ", discountType='" + discountType + '\'' +
-                ", discountValue=" + discountValue +
-                ", maxDiscount=" + maxDiscount +
-                ", usageLimit=" + usageLimit +
-                ", perUserLimit=" + perUserLimit +
-                '}';
+        return "Voucher{"
+                + "voucherId=" + voucherId
+                + ", code='" + code + '\''
+                + ", minOrderValue=" + minOrderValue
+                + ", validFrom=" + validFrom
+                + ", validTo=" + validTo
+                + ", discountType='" + discountType + '\''
+                + ", discountValue=" + discountValue
+                + ", maxDiscount=" + maxDiscount
+                + ", usageLimit=" + usageLimit
+                + ", perUserLimit=" + perUserLimit
+                + '}';
     }
 }

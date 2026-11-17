@@ -1,3 +1,4 @@
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core"%>
 
@@ -113,9 +114,7 @@
 <div class="delete-page">
 
     <div class="mb-4">
-        <h1 class="page-title">
-            Xóa đánh giá
-        </h1>
+        <h1 class="page-title">Xóa đánh giá</h1>
         <div class="page-description">
             Xác nhận trước khi xóa đánh giá của bạn.
         </div>
@@ -176,13 +175,18 @@
 
         <div class="alert alert-warning text-start">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            Khi xóa đánh giá, các hình ảnh liên quan đến đánh giá cũng sẽ bị xóa khỏi cơ sở dữ liệu.
+            Khi xóa đánh giá, các hình ảnh liên quan đến đánh giá
+            cũng sẽ bị xóa khỏi cơ sở dữ liệu.
         </div>
 
-        <form action="${pageContext.request.contextPath}/review" method="post">
+        <form action="${pageContext.request.contextPath}/review"
+              method="post">
 
             <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="reviewId" value="${review.reviewId}">
+            <input type="hidden" name="csrfToken"
+                   value="${sessionScope.reviewCsrfToken}">
+            <input type="hidden" name="reviewId"
+                   value="${review.reviewId}">
 
             <div class="d-flex justify-content-center gap-2 mt-4">
                 <button type="submit" class="btn-delete">
@@ -190,16 +194,13 @@
                     Xóa đánh giá
                 </button>
 
-                <a href="${pageContext.request.contextPath}/review?view=create&orderItemId=${review.orderItemId}"
+                <a href="${pageContext.request.contextPath}/review?view=create&amp;orderItemId=${review.orderItemId}"
                    class="btn-cancel">
                     Hủy
                 </a>
             </div>
-
         </form>
-
     </div>
-
 </div>
 
 <%@include file="/WEB-INF/include/footer.jsp"%>

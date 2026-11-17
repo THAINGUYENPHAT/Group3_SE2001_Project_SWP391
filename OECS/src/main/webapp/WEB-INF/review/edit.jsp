@@ -1,5 +1,7 @@
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="jakarta.tags.core"%>
+<%@taglib prefix="fn" uri="jakarta.tags.functions"%>
 
 <%@include file="/WEB-INF/include/header.jsp"%>
 
@@ -98,6 +100,31 @@
         border: 1px solid #e2e8f0;
     }
 
+    .review-image-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.82rem;
+        color: #475569;
+        cursor: pointer;
+    }
+
+    .review-image-item:has(input:checked) img {
+        opacity: 0.4;
+        outline: 2px solid #ef4444;
+    }
+
+    .review-image-item input {
+        margin-right: 4px;
+    }
+
+    .image-hint {
+        font-size: 0.83rem;
+        color: #64748b;
+        margin-top: 8px;
+    }
+
     .btn-save {
         background: #2563eb;
         color: white;
@@ -133,13 +160,13 @@
             Chỉnh sửa đánh giá
         </h1>
         <div class="page-description">
-            Cập nhật số sao và nội dung đánh giá của bạn.
+            Cập nhật số sao, nội dung và hình ảnh đánh giá của bạn.
         </div>
     </div>
 
     <c:if test="${not empty sessionScope.errorMessage}">
         <div class="alert alert-danger">
-            ${sessionScope.errorMessage}
+            <c:out value="${sessionScope.errorMessage}"/>
         </div>
         <c:remove var="errorMessage" scope="session"/>
     </c:if>
@@ -155,30 +182,39 @@
 
         <div class="review-card-body">
 
-            <form action="${pageContext.request.contextPath}/review" method="post">
+            <form action="${pageContext.request.contextPath}/review"
+                  method="post"
+                  enctype="multipart/form-data"
+                  id="reviewEditForm">
 
                 <input type="hidden" name="action" value="update">
-                <input type="hidden" name="reviewId" value="${review.reviewId}">
+                <input type="hidden" name="reviewId"
+                       value="${review.reviewId}">
+                <input type="hidden" name="csrfToken"
+                       value="${sessionScope.reviewCsrfToken}">
 
                 <div class="mb-4">
-                    <label class="form-label">
-                        Đánh giá
-                    </label>
+                    <label class="form-label">Đánh giá</label>
 
                     <div class="rating-box">
-                        <input type="radio" id="star5" name="rating" value="5" ${review.rating == 5 ? 'checked' : ''}>
+                        <input type="radio" id="star5" name="rating"
+                               value="5" ${review.rating == 5 ? 'checked' : ''}>
                         <label for="star5">★</label>
 
-                        <input type="radio" id="star4" name="rating" value="4" ${review.rating == 4 ? 'checked' : ''}>
+                        <input type="radio" id="star4" name="rating"
+                               value="4" ${review.rating == 4 ? 'checked' : ''}>
                         <label for="star4">★</label>
 
-                        <input type="radio" id="star3" name="rating" value="3" ${review.rating == 3 ? 'checked' : ''}>
+                        <input type="radio" id="star3" name="rating"
+                               value="3" ${review.rating == 3 ? 'checked' : ''}>
                         <label for="star3">★</label>
 
-                        <input type="radio" id="star2" name="rating" value="2" ${review.rating == 2 ? 'checked' : ''}>
+                        <input type="radio" id="star2" name="rating"
+                               value="2" ${review.rating == 2 ? 'checked' : ''}>
                         <label for="star2">★</label>
 
-                        <input type="radio" id="star1" name="rating" value="1" ${review.rating == 1 ? 'checked' : ''}>
+                        <input type="radio" id="star1" name="rating"
+                               value="1" ${review.rating == 1 ? 'checked' : ''}>
                         <label for="star1">★</label>
                     </div>
                 </div>
@@ -187,21 +223,55 @@
                     <label class="form-label">
                         Nội dung đánh giá
                     </label>
-                   <textarea name="comment" class="form-control" rows="6" maxlength="2000"><c:out value="${review.comment}"/></textarea>
+
+                    <textarea name="comment"
+                              class="form-control"
+                              rows="6"
+                              maxlength="2000"><c:out value="${review.comment}"/></textarea>
                 </div>
 
-                <c:if test="${not empty review.images}">
-                    <div class="mb-4">
-                        <label class="form-label">
-                            Hình ảnh đã đăng
-                        </label>
-                        <div class="review-images">
+                <div class="mb-4">
+                    <label class="form-label">
+                        Hình ảnh đánh giá
+                    </label>
+
+                    <c:if test="${not empty review.images}">
+                        <div class="review-images mb-3">
                             <c:forEach var="img" items="${review.images}">
-                                <img src="${pageContext.request.contextPath}${img}" alt="Review image">
+                                <label class="review-image-item">
+                                    <img src="${pageContext.request.contextPath}${fn:escapeXml(img)}"
+                                         alt="Ảnh đánh giá hiện tại">
+
+                                    <span>
+                                        <input type="checkbox"
+                                               name="removeImages"
+                                               value="${fn:escapeXml(img)}"
+                                               class="image-remove">
+                                        Xóa ảnh
+                                    </span>
+                                </label>
                             </c:forEach>
                         </div>
+                    </c:if>
+
+                    <input id="newReviewImages"
+                           class="form-control"
+                           type="file"
+                           name="images"
+                           multiple
+                           accept="image/jpeg,image/png,image/webp">
+
+                    <div class="image-hint">
+                        Chọn ảnh cần xóa hoặc thêm ảnh mới.
+                        Tổng số ảnh sau khi lưu tối đa 3,
+                        mỗi ảnh không quá 5MB.
+                        Không chọn ảnh mới thì ảnh cũ vẫn giữ nguyên.
                     </div>
-                </c:if>
+
+                    <div id="editImageCount" class="image-hint"></div>
+                    <div id="editImagePreview"
+                         class="review-images mt-2"></div>
+                </div>
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn-save">
@@ -209,18 +279,82 @@
                         Lưu thay đổi
                     </button>
 
-                    <a href="${pageContext.request.contextPath}/review?view=create&orderItemId=${review.orderItemId}"
+                    <a href="${pageContext.request.contextPath}/review?view=create&amp;orderItemId=${review.orderItemId}"
                        class="btn-back">
                         Hủy
                     </a>
                 </div>
 
             </form>
-
         </div>
-
     </div>
-
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const input = document.getElementById("newReviewImages");
+        const preview = document.getElementById("editImagePreview");
+        const label = document.getElementById("editImageCount");
+        const removals =
+            Array.from(document.querySelectorAll(".image-remove"));
+
+        let urls = [];
+
+        function clearPreview() {
+            urls.forEach(url => URL.revokeObjectURL(url));
+            urls = [];
+            preview.innerHTML = "";
+        }
+
+        function refresh() {
+            const kept =
+                removals.filter(box => !box.checked).length;
+
+            const files = Array.from(input.files);
+            const validTypes = [
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+            ];
+
+            if (kept + files.length > 3
+                    || files.some(file =>
+                        !validTypes.includes(file.type)
+                        || file.size > 5 * 1024 * 1024)) {
+
+                alert(
+                    "Tối đa 3 ảnh sau khi lưu; chỉ nhận "
+                    + "JPG, PNG, WEBP dưới 5MB/ảnh."
+                );
+
+                input.value = "";
+            }
+
+            clearPreview();
+
+            Array.from(input.files).forEach(file => {
+                const url = URL.createObjectURL(file);
+                urls.push(url);
+
+                const img = document.createElement("img");
+                img.src = url;
+                img.alt = "Ảnh mới";
+                preview.appendChild(img);
+            });
+
+            label.textContent =
+                (kept + input.files.length)
+                + "/3 ảnh sau khi lưu";
+        }
+
+        removals.forEach(box =>
+            box.addEventListener("change", refresh));
+
+        input.addEventListener("change", refresh);
+        window.addEventListener("pagehide", clearPreview);
+
+        refresh();
+    });
+</script>
 
 <%@include file="/WEB-INF/include/footer.jsp"%>
