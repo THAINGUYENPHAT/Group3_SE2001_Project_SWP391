@@ -409,6 +409,79 @@
 
     .notification-icon {
         flex-shrink: 0;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .success-message .notification-icon {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .error-message .notification-icon {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    @keyframes notification-in {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes notification-out {
+        to {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+    }
+
+    .notification-hide {
+        animation: notification-out 0.25s ease-in forwards;
+        pointer-events: none;
+    }
+
+    @media (max-width: 600px) {
+        .success-message,
+        .error-message {
+            top: 82px;
+            right: 12px;
+            max-width: calc(100vw - 24px);
+            padding: 12px 14px;
+        }
+    }
+
+    .success-message {
+        color: #166534;
+        background: #f0fdf4;
+        border: 1px solid #86efac;
+        border-left: 5px solid #22c55e;
+    }
+
+    .error-message {
+        color: #b91c1c;
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
+        border-left: 5px solid #ef4444;
+    }
+
+    .notification-icon {
+        flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -582,14 +655,52 @@
         cursor: not-allowed;
     }
 
-    .order-action-row { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
-    .order-action-row form { margin:0; }
-    .order-action-row .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:10px 16px; border:1px solid transparent; border-radius:8px; line-height:1.4; }
-    .order-action-row .btn-danger { background:#fff; color:#dc2626; border-color:#fca5a5; }
-    .order-action-row .btn-danger:hover { background:#fff1f2; border-color:#ef4444; }
-    .order-action-row .btn:focus-visible { outline:3px solid #93c5fd; outline-offset:3px; }
-    .order-action-row .cancel-request-note { flex-basis:100%; margin:0; }
-    @media (max-width:600px) { .order-action-row { flex-direction:column; align-items:stretch; } .order-action-row form,.order-action-row .btn { width:100%; } }
+    .order-action-row {
+        display:flex;
+        flex-wrap:wrap;
+        align-items:center;
+        gap:12px;
+    }
+    .order-action-row form {
+        margin:0;
+    }
+    .order-action-row .btn {
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+        min-height:44px;
+        padding:10px 16px;
+        border:1px solid transparent;
+        border-radius:8px;
+        line-height:1.4;
+    }
+    .order-action-row .btn-danger {
+        background:#fff;
+        color:#dc2626;
+        border-color:#fca5a5;
+    }
+    .order-action-row .btn-danger:hover {
+        background:#fff1f2;
+        border-color:#ef4444;
+    }
+    .order-action-row .btn:focus-visible {
+        outline:3px solid #93c5fd;
+        outline-offset:3px;
+    }
+    .order-action-row .cancel-request-note {
+        flex-basis:100%;
+        margin:0;
+    }
+    @media (max-width:600px) {
+        .order-action-row {
+            flex-direction:column;
+            align-items:stretch;
+        }
+        .order-action-row form,.order-action-row .btn {
+            width:100%;
+        }
+    }
 </style>
 </head>
 
@@ -600,7 +711,9 @@
 
         <c:if test="${not empty sessionScope.successMessage}">
             <div class="success-message notification" role="status">
-                <span class="notification-icon">✓</span>
+                <span class="notification-icon">
+                    <i class="bi bi-check-lg"></i>
+                </span>
                 <span>
                     <c:out value="${sessionScope.successMessage}" />
                 </span>
@@ -610,7 +723,9 @@
 
         <c:if test="${not empty sessionScope.errorMessage}">
             <div class="error-message notification" role="alert">
-                <span class="notification-icon">!</span>
+                <span class="notification-icon">
+                    <i class="bi bi-exclamation-lg"></i>
+                </span>
                 <span>
                     <c:out value="${sessionScope.errorMessage}" />
                 </span>
@@ -749,18 +864,18 @@
                             </c:if>
                             <c:if test="${status eq 'PENDING_PAYMENT' or status eq 'PENDING_CONFIRMATION' or status eq 'PENDING' or status eq 'CONFIRMED' or status eq 'PACKING'}">
 
-        <form method="post" action="${pageContext.request.contextPath}/admin/orders"
-              onsubmit="return showCancelModal(event);">
-            <input type="hidden" name="csrfToken" value="${sessionScope.staffOrderToken}">
-            <input type="hidden" name="orderId" value="${order.orderId}">
-            <input type="hidden" name="action" value="cancel">
-            <button type="submit" class="btn btn-danger">
-                <i class="bi bi-x-circle me-1"></i> Hủy đơn hàng
-            </button>
-        </form>
+                                <form method="post" action="${pageContext.request.contextPath}/admin/orders"
+                                      onsubmit="return showCancelModal(event);">
+                                    <input type="hidden" name="csrfToken" value="${sessionScope.staffOrderToken}">
+                                    <input type="hidden" name="orderId" value="${order.orderId}">
+                                    <input type="hidden" name="action" value="cancel">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="bi bi-x-circle me-1"></i> Hủy đơn hàng
+                                    </button>
+                                </form>
 
 
-</c:if>
+                            </c:if>
                         </div>
                     </div>
 

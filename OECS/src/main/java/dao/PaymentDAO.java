@@ -77,15 +77,15 @@ public class PaymentDAO {
             int orderId
     ) throws SQLException {
 
-        String sql =
-                "SELECT *, "
+        String sql
+                = "SELECT *, "
                 + "DATEDIFF_BIG(SECOND, SYSUTCDATETIME(), "
                 + "payment_expires_at) AS seconds_left "
                 + "FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE order_id = ?";
 
-        try (PreparedStatement ps =
-                connection.prepareStatement(sql)) {
+        try (PreparedStatement ps
+                = connection.prepareStatement(sql)) {
 
             ps.setInt(1, orderId);
 
@@ -105,8 +105,8 @@ public class PaymentDAO {
                 order.payment = rs.getString("payment_status");
                 order.amount = rs.getBigDecimal("total_amount");
                 order.seconds = rs.getLong("seconds_left");
-                order.restored =
-                        rs.getTimestamp("stock_restored_at") != null;
+                order.restored
+                        = rs.getTimestamp("stock_restored_at") != null;
 
                 return order;
             }
@@ -119,8 +119,8 @@ public class PaymentDAO {
             Object... values
     ) throws SQLException {
 
-        try (PreparedStatement ps =
-                connection.prepareStatement(sql)) {
+        try (PreparedStatement ps
+                = connection.prepareStatement(sql)) {
 
             for (int i = 0; i < values.length; i++) {
                 ps.setObject(i + 1, values[i]);
@@ -167,28 +167,40 @@ public class PaymentDAO {
             return false;
         }
 
-        cancel(connection, order);
+        cancel(connection, order, false);
         return true;
     }
 
     private void cancel(
             Connection connection,
-            LockedOrder order
+            LockedOrder order,
+            boolean customerInitiated
     ) throws SQLException {
 
-        // Only pending online orders enter this path; confirmation has not deducted stock.
+        // Customer cancellation is recorded by OrderPolicyDAO afterward.
+        // System expiration is marked immediately.
         update(
                 connection,
-                "UPDATE dbo.[ORDER] SET order_status = 'CANCELLED', "
-                + "payment_status = 'UNPAID', payment_expires_at = NULL WHERE order_id = ?",
+                "UPDATE dbo.[ORDER] SET "
+                + "order_status = 'CANCELLED', "
+                + "cancellation_source = CASE "
+                + "WHEN ? = 1 THEN NULL ELSE 'SYSTEM' END, "
+                + "cancelled_at = CASE "
+                + "WHEN ? = 1 THEN NULL ELSE SYSUTCDATETIME() END, "
+                + "payment_status = 'UNPAID', "
+                + "payment_expires_at = NULL "
+                + "WHERE order_id = ?",
+                customerInitiated ? 1 : 0,
+                customerInitiated ? 1 : 0,
                 order.id
         );
 
         update(
                 connection,
                 "UPDATE dbo.PAYMENT_TRANSACTION "
-                + "SET status = 'EXPIRED' "
+                + "SET status = ? "
                 + "WHERE order_id = ? AND status = 'PENDING'",
+                customerInitiated ? "CANCELLED" : "EXPIRED",
                 order.id
         );
 
@@ -234,8 +246,8 @@ public class PaymentDAO {
 
                 PaymentGateway.requireConfigured(order.method);
 
-                String sql =
-                        "SELECT TOP 1 transaction_code, pay_url, "
+                String sql
+                        = "SELECT TOP 1 transaction_code, pay_url, "
                         + "DATEDIFF(SECOND, created_at, "
                         + "SYSUTCDATETIME()) AS age "
                         + "FROM dbo.PAYMENT_TRANSACTION "
@@ -244,8 +256,8 @@ public class PaymentDAO {
                         + "AND status = 'PENDING' "
                         + "ORDER BY transaction_id DESC";
 
-                try (PreparedStatement ps =
-                        connection.prepareStatement(sql)) {
+                try (PreparedStatement ps
+                        = connection.prepareStatement(sql)) {
 
                     ps.setInt(1, orderId);
                     ps.setString(2, order.method);
@@ -413,7 +425,7 @@ public class PaymentDAO {
                     );
 
                 } else {
-                    cancel(connection, order);
+                    cancel(connection, order, true);
                     policy.recordCancellation(connection, userId, orderId);
                 }
 
@@ -441,14 +453,14 @@ public class PaymentDAO {
             try {
                 int orderId;
 
-                String sql =
-                        "SELECT order_id "
+                String sql
+                        = "SELECT order_id "
                         + "FROM dbo.PAYMENT_TRANSACTION "
                         + "WHERE transaction_code = ? "
                         + "AND payment_method = ?";
 
-                try (PreparedStatement ps =
-                        connection.prepareStatement(sql)) {
+                try (PreparedStatement ps
+                        = connection.prepareStatement(sql)) {
 
                     ps.setString(1, ref);
                     ps.setString(2, method);
@@ -469,15 +481,15 @@ public class PaymentDAO {
                 String transactionStatus;
                 BigDecimal expectedAmount;
 
-                sql =
-                        "SELECT transaction_id, status, amount "
+                sql
+                        = "SELECT transaction_id, status, amount "
                         + "FROM dbo.PAYMENT_TRANSACTION "
                         + "WITH (UPDLOCK, HOLDLOCK) "
                         + "WHERE transaction_code = ? "
                         + "AND payment_method = ?";
 
-                try (PreparedStatement ps =
-                        connection.prepareStatement(sql)) {
+                try (PreparedStatement ps
+                        = connection.prepareStatement(sql)) {
 
                     ps.setString(1, ref);
                     ps.setString(2, method);
@@ -548,8 +560,8 @@ public class PaymentDAO {
                         transactionId
                 );
 
-                boolean canConfirm =
-                        "PENDING_PAYMENT".equals(order.status)
+                boolean canConfirm
+                        = "PENDING_PAYMENT".equals(order.status)
                         && !"PAID".equals(order.payment)
                         && !order.restored
                         && method.equals(order.method)
@@ -647,19 +659,16 @@ public class PaymentDAO {
     public void expireBatch() throws SQLException {
         List<int[]> orders = new ArrayList<>();
 
-        String sql =
-                "SELECT TOP 200 order_id, user_id "
+        String sql
+                = "SELECT TOP 200 order_id, user_id "
                 + "FROM dbo.[ORDER] "
                 + "WHERE order_status = 'PENDING_PAYMENT' "
                 + "AND payment_expires_at <= SYSUTCDATETIME() "
                 + "ORDER BY order_id";
 
         try (
-                Connection connection = open();
-                PreparedStatement ps =
-                        connection.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()
-        ) {
+                Connection connection = open(); PreparedStatement ps
+                = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 orders.add(new int[]{
                     rs.getInt("order_id"),

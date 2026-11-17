@@ -1,3 +1,4 @@
+
 <%@ page pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
@@ -132,6 +133,127 @@
             right: 16px;
         }
     }
+
+    /* =========================
+       CANCEL CONFIRMATION MODAL
+       ========================= */
+
+    .cancel-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(15, 23, 42, .55);
+        justify-content: center;
+        align-items: center;
+        padding: 16px;
+    }
+
+    .cancel-modal.show {
+        display: flex;
+    }
+
+    .cancel-modal-content {
+        width: 100%;
+        max-width: 420px;
+        background: #fff;
+        border-radius: 14px;
+        padding: 26px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, .2);
+        animation: cancelModalIn .2s ease;
+    }
+
+    .cancel-modal-icon {
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        border-radius: 50%;
+        background: #fef2f2;
+        color: #dc2626;
+        font-size: 25px;
+    }
+
+    .cancel-modal-content h3 {
+        margin: 0 0 10px;
+        color: #1e293b;
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+    .cancel-modal-content p {
+        margin: 0;
+        color: #64748b;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .cancel-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 24px;
+    }
+
+    .cancel-modal-btn {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .2s ease;
+    }
+
+    .cancel-modal-btn:disabled {
+        opacity: .6;
+        cursor: not-allowed;
+    }
+
+    .cancel-modal-btn-secondary {
+        background: #f1f5f9;
+        color: #334155;
+    }
+
+    .cancel-modal-btn-secondary:hover {
+        background: #e2e8f0;
+    }
+
+    .cancel-modal-btn-danger {
+        background: #dc2626;
+        color: #fff;
+    }
+
+    .cancel-modal-btn-danger:hover {
+        background: #b91c1c;
+    }
+
+    @keyframes cancelModalIn {
+        from {
+            opacity: 0;
+            transform: translateY(12px) scale(.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .cancel-modal-content {
+            padding: 22px;
+        }
+
+        .cancel-modal-actions {
+            flex-direction: column-reverse;
+        }
+
+        .cancel-modal-btn {
+            width: 100%;
+        }
+    }
 </style>
 
 <div class="purchases-root">
@@ -205,8 +327,11 @@
             <span class="purchase-eyebrow">THEO DÕI ĐƠN HÀNG</span>
 
             <h1>Đơn hàng #${order.orderId}</h1>
+
             <c:if test="${not empty orderingRestriction}">
-                <div class="alert alert-warning" role="alert"><c:out value="${orderingRestriction}"/></div>
+                <div class="alert alert-warning" role="alert">
+                    <c:out value="${orderingRestriction}"/>
+                </div>
             </c:if>
 
             <p>
@@ -278,7 +403,6 @@
             </section>
         </c:when>
     </c:choose>
-
 
     <c:if test="${not empty latestReturnExchangeRequest}">
         <c:choose>
@@ -388,18 +512,33 @@
 
         <div>
 
-
             <c:if test="${not empty refunds}">
                 <section class="purchase-panel mb-3">
                     <h2>Hoàn tiền thanh toán</h2>
+
                     <c:forEach var="refund" items="${refunds}">
-                        <div class="mb-3"><p>Yêu cầu #${refund.id} · <fmt:formatNumber value="${refund.amount}" pattern="#,##0"/> đ · <c:out value="${refund.statusLabel}"/></p>
-                            <p><c:out value="${refund.reason}"/></p>
-                            <c:if test="${refund.status == 'SUCCESS'}"><p>Mã tham chiếu hoàn tiền <c:out value="${refund.reference}"/></p></c:if>
+                        <div class="mb-3">
+                            <p>
+                                Yêu cầu #${refund.id}
+                                · <fmt:formatNumber value="${refund.amount}" pattern="#,##0"/> đ
+                                · <c:out value="${refund.statusLabel}"/>
+                            </p>
+
+                            <p>
+                                <c:out value="${refund.reason}"/>
+                            </p>
+
+                            <c:if test="${refund.status == 'SUCCESS'}">
+                                <p>
+                                    Mã tham chiếu hoàn tiền
+                                    <c:out value="${refund.reference}"/>
+                                </p>
+                            </c:if>
                         </div>
                     </c:forEach>
                 </section>
             </c:if>
+
             <section class="purchase-panel purchase-address">
                 <h2>
                     <i class="bi bi-geo-alt me-2" aria-hidden="true"></i>
@@ -463,6 +602,7 @@
                                         <img src="<c:out value='${productImage}'/>" alt=""
                                              style="width:100%; height:100%; object-fit:contain; border-radius:inherit;" />
                                     </c:when>
+
                                     <c:otherwise>
                                         <i class="bi bi-box-seam" aria-hidden="true"></i>
                                     </c:otherwise>
@@ -491,6 +631,7 @@
                                               or order.orderStatus eq 'Completed'
                                               or order.orderStatus eq 'DELIVERED'
                                               or order.orderStatus eq 'Delivered'}">
+
                                     <c:if test="${not empty item.orderItemId}">
                                         <c:url var="reviewUrl" value="/review">
                                             <c:param name="view" value="create" />
@@ -554,6 +695,7 @@
                     </a>
                 </div>
             </c:if>
+
         </div>
 
         <aside class="purchase-panel"
@@ -618,8 +760,14 @@
                             Đã thanh toán
                         </c:when>
 
-                        <c:when test="${order.paymentStatus == 'REFUND_PENDING'}">Đang chờ xử lý hoàn tiền</c:when>
-                        <c:when test="${order.paymentStatus == 'REFUNDED'}">Đã hoàn tiền</c:when>
+                        <c:when test="${order.paymentStatus == 'REFUND_PENDING'}">
+                            Đang chờ xử lý hoàn tiền
+                        </c:when>
+
+                        <c:when test="${order.paymentStatus == 'REFUNDED'}">
+                            Đã hoàn tiền
+                        </c:when>
+
                         <c:when test="${order.paymentStatus == 'UNPAID'}">
                             Chưa thanh toán
                         </c:when>
@@ -631,75 +779,117 @@
                 </p>
             </div>
 
-                <c:if test="${order.orderStatus == 'PENDING_PAYMENT'}">
-                    <a href="${pageContext.request.contextPath}/payment?id=${order.orderId}"
-                       style="display: flex;
-                       align-items: center;
-                       justify-content: center;
-                       gap: 8px;
-                       width: 100%;
-                       box-sizing: border-box;
-                       padding: 12px 16px;
-                       margin-top: 16px;
-                       background: #c2410c;
-                       color: #ffffff;
-                       border: 1px solid #c2410c;
-                       border-radius: 10px;
-                       font-size: 15px;
-                       font-weight: 700;
-                       text-decoration: none;
-                       box-shadow: 0 4px 10px rgba(194, 65, 12, 0.2);">
-                        <i class="bi bi-credit-card" aria-hidden="true"></i>
-                        Tiếp tục thanh toán
-                        <i class="bi bi-arrow-right" aria-hidden="true"></i>
-                    </a>
+            <c:if test="${order.orderStatus == 'PENDING_PAYMENT'}">
+                <a href="${pageContext.request.contextPath}/payment?id=${order.orderId}"
+                   style="display: flex;
+                   align-items: center;
+                   justify-content: center;
+                   gap: 8px;
+                   width: 100%;
+                   box-sizing: border-box;
+                   padding: 12px 16px;
+                   margin-top: 16px;
+                   background: #c2410c;
+                   color: #ffffff;
+                   border: 1px solid #c2410c;
+                   border-radius: 10px;
+                   font-size: 15px;
+                   font-weight: 700;
+                   text-decoration: none;
+                   box-shadow: 0 4px 10px rgba(194, 65, 12, 0.2);">
+                    <i class="bi bi-credit-card" aria-hidden="true"></i>
+                    Tiếp tục thanh toán
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </a>
 
-                    <p class="purchase-cancel-note">
-                        Bạn có thể thanh toán, đổi sang COD hoặc hủy đơn
-                        trong thời gian chờ thanh toán.
-                    </p>
-                </c:if>
+                <p class="purchase-cancel-note">
+                    Bạn có thể thanh toán, đổi sang COD hoặc hủy đơn
+                    trong thời gian chờ thanh toán.
+                </p>
+            </c:if>
 
-                <c:if test="${canCancelOrder}">
-                    <form class="purchase-cancel-form"
-                          action="${pageContext.request.contextPath}/my-orders/cancel"
-                          method="post"
-                          onsubmit="
-                                  if (!confirm('Bạn chắc chắn muốn hủy đơn hàng này?')) {
-                                      return false;
-                                  }
-                                  this.querySelector('button').disabled = true;
-                          ">
+            <c:if test="${canCancelOrder}">
+                <form class="purchase-cancel-form"
+                      action="${pageContext.request.contextPath}/my-orders/cancel"
+                      method="post"
+                      onsubmit="return showCancelModal(event);">
 
-                        <input type="hidden"
-                               name="id"
-                               value="${order.orderId}">
+                    <input type="hidden"
+                           name="id"
+                           value="${order.orderId}">
 
-                        <input type="hidden"
-                               name="csrfToken"
-                               value="<c:out value='${sessionScope.customerOrderToken}' />">
+                    <input type="hidden"
+                           name="csrfToken"
+                           value="<c:out value='${sessionScope.customerOrderToken}' />">
 
-                        <button type="submit"
-                                class="purchase-button-secondary">
-                            Hủy đơn hàng
-                        </button>
-                    </form>
+                    <button type="submit" class="purchase-button-secondary">
+                        Hủy đơn hàng
+                    </button>
+                </form>
 
-                    <p class="purchase-cancel-note">
-                        Có thể hủy đơn hàng trước khi vận chuyển. Lượt sử dụng voucher của đơn đã đặt vẫn được giữ.
-                    </p>
-                </c:if>
+                <p class="purchase-cancel-note">
+                    Có thể hủy đơn hàng trước khi vận chuyển.
+                    Lượt sử dụng voucher của đơn đã đặt vẫn được giữ.
+                </p>
+            </c:if>
 
-                <c:if test="${!canCancelOrder && order.orderStatus != 'CANCELLED'}">
-                    <p class="purchase-cancel-note">
-                        Chỉ được hủy đơn hàng trước khi vận chuyển.
-                    </p>
-                </c:if>
+            <c:if test="${!canCancelOrder && order.orderStatus != 'CANCELLED'}">
+                <p class="purchase-cancel-note">
+                    Chỉ được hủy đơn hàng trước khi vận chuyển.
+                </p>
+            </c:if>
+
         </aside>
     </div>
 </div>
 
+<!-- CANCEL CONFIRMATION MODAL -->
+<div id="cancelModal"
+     class="cancel-modal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="cancelModalTitle">
+
+    <div class="cancel-modal-content">
+
+        <div class="cancel-modal-icon">
+            <i class="bi bi-exclamation-triangle-fill"
+               aria-hidden="true"></i>
+        </div>
+
+        <h3 id="cancelModalTitle">
+            Xác nhận hủy đơn hàng
+        </h3>
+
+        <p>
+            Bạn có chắc chắn muốn hủy đơn hàng này không?
+            Sau khi xác nhận, đơn hàng sẽ được gửi yêu cầu hủy.
+        </p>
+
+        <div class="cancel-modal-actions">
+
+            <button type="button"
+                    class="cancel-modal-btn cancel-modal-btn-secondary"
+                    onclick="closeCancelModal()">
+                Không, giữ đơn hàng
+            </button>
+
+            <button type="button"
+                    id="confirmCancelButton"
+                    class="cancel-modal-btn cancel-modal-btn-danger"
+                    onclick="confirmCancelOrder()">
+                Xác nhận hủy
+            </button>
+
+        </div>
+    </div>
+</div>
+
 <script>
+    /* =========================
+       CUSTOMER TOAST
+       ========================= */
+
     function closeCustomerToast(button) {
         const toast = button.closest(".customer-toast");
 
@@ -724,6 +914,89 @@
                 }
             }, 4000);
         });
+    });
+
+    /* =========================
+       CANCEL ORDER MODAL
+       ========================= */
+
+    let cancelForm = null;
+
+    function showCancelModal(event) {
+        event.preventDefault();
+
+        cancelForm = event.currentTarget;
+
+        const modal = document.getElementById("cancelModal");
+        const confirmButton = document.getElementById("confirmCancelButton");
+
+        if (!modal || !confirmButton) {
+            return false;
+        }
+
+        confirmButton.disabled = false;
+        confirmButton.textContent = "Xác nhận hủy";
+
+        modal.classList.add("show");
+
+        return false;
+    }
+
+    function closeCancelModal() {
+        const modal = document.getElementById("cancelModal");
+
+        if (modal) {
+            modal.classList.remove("show");
+        }
+
+        cancelForm = null;
+    }
+
+    function confirmCancelOrder() {
+        if (!cancelForm) {
+            return;
+        }
+
+        const form = cancelForm;
+        const confirmButton = document.getElementById("confirmCancelButton");
+
+        if (confirmButton) {
+            confirmButton.disabled = true;
+            confirmButton.textContent = "Đang xử lý...";
+        }
+
+        // Khóa nút hủy để tránh gửi form nhiều lần.
+        const submitButton = form.querySelector('button[type="submit"]');
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = "Đang xử lý...";
+        }
+
+        document.getElementById("cancelModal").classList.remove("show");
+
+        // Gửi form trực tiếp, không kích hoạt lại onsubmit.
+        HTMLFormElement.prototype.submit.call(form);
+
+        cancelForm = null;
+    }
+
+    // Đóng modal khi nhấn ra ngoài vùng nội dung.
+    document.getElementById("cancelModal").addEventListener("click", function (event) {
+        if (event.target === this) {
+            closeCancelModal();
+        }
+    });
+
+    // Đóng modal bằng phím Escape.
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            const modal = document.getElementById("cancelModal");
+
+            if (modal && modal.classList.contains("show")) {
+                closeCancelModal();
+            }
+        }
     });
 </script>
 

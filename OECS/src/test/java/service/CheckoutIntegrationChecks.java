@@ -22,12 +22,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Run explicitly with scripts/check-checkout.ps1; creates and removes its own isolated SQL Server database. */
+/**
+ * Run explicitly with scripts/check-checkout.ps1; creates and removes its own
+ * isolated SQL Server database.
+ */
 public final class CheckoutIntegrationChecks {
+
     private final String database = "OECS_checkout_test_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
     private final CheckoutConnectionFactory connections = () -> {
         Connection connection = new DBContext().getConnection();
-        if (connection == null) throw new SQLException("SQL Server is unavailable");
+        if (connection == null) {
+            throw new SQLException("SQL Server is unavailable");
+        }
         connection.setCatalog(database);
         return connection;
     };
@@ -35,14 +41,18 @@ public final class CheckoutIntegrationChecks {
     private int passed;
 
     public static void main(String[] args) throws Exception {
-        if (args.length < 1 || args.length > 2) throw new IllegalArgumentException("Pass the path to DB_OECS.sql");
+        if (args.length < 1 || args.length > 2) {
+            throw new IllegalArgumentException("Pass the path to DB_OECS.sql");
+        }
         new CheckoutIntegrationChecks().run(Path.of(args[0]), args.length == 2 && "--staff-cancel-only".equals(args[1]));
     }
 
     private void run(Path schemaFile, boolean staffOnly) throws Exception {
         boolean created = false;
         try (Connection admin = new DBContext().getConnection()) {
-            if (admin == null) throw new SQLException("SQL Server is unavailable");
+            if (admin == null) {
+                throw new SQLException("SQL Server is unavailable");
+            }
             admin.setCatalog("master");
             try {
                 try (Statement statement = admin.createStatement()) {
@@ -52,21 +62,24 @@ public final class CheckoutIntegrationChecks {
                 createSchema(schemaFile);
                 seed();
                 migrationChecks(schemaFile);
-                if (staffOnly) { staffCancellationChecks(); customerCancellationChecks(); } else {
-                rememberAddress();
-                int orderId = duplicateCheckout();
-                ownershipAndSnapshots(orderId);
-                cancelTwice(orderId);
-                invalidAndRollback();
-                purchaseHistoryChecks();
-                selectedCheckoutChecks();
-                servletGuards();
-                cancellationPolicyChecks();
-                refundWorkflowChecks();
-                shippingFeeChecks();
-                staffCancellationChecks();
-                stockConfirmationChecks();
-                customerCancellationChecks();
+                if (staffOnly) {
+                    staffCancellationChecks();
+                    customerCancellationChecks();
+                } else {
+                    rememberAddress();
+                    int orderId = duplicateCheckout();
+                    ownershipAndSnapshots(orderId);
+                    cancelTwice(orderId);
+                    invalidAndRollback();
+                    purchaseHistoryChecks();
+                    selectedCheckoutChecks();
+                    servletGuards();
+                    cancellationPolicyChecks();
+                    refundWorkflowChecks();
+                    shippingFeeChecks();
+                    staffCancellationChecks();
+                    stockConfirmationChecks();
+                    customerCancellationChecks();
                 }
                 System.out.println("PASS: " + passed + " checkout/order integration assertions");
             } finally {
@@ -87,10 +100,14 @@ public final class CheckoutIntegrationChecks {
         String schema = new String(bytes, bytes.length > 1 && bytes[0] == (byte) 0xff
                 && bytes[1] == (byte) 0xfe ? StandardCharsets.UTF_16LE : StandardCharsets.UTF_8);
         String[] tables = {"USER", "ADDRESSBOOK", "CATEGORY", "BRAND", "PRODUCT", "PRODUCT_SKU",
-            "CART", "CART_ITEMS", "VOUCHER", "ORDER", "ORDER_ITEM", "ORDER_STATUS_HISTORY", "VOUCHER_USAGES", "ORDER_CUSTOMER_POLICY", "ORDER_CUSTOMER_CANCELLATION", "PAYMENT_TRANSACTION", "PAYMENT_REFUND", "NOTIFICATION", "AUDIT_LOG"};
+            "CART", "CART_ITEMS", "VOUCHER", "ORDER", "ORDER_ITEM", "ORDER_STATUS_HISTORY",
+            "VOUCHER_USAGES", "ORDER_CUSTOMER_POLICY", "PAYMENT_TRANSACTION",
+            "PAYMENT_REFUND", "NOTIFICATION", "AUDIT_LOG"};
         for (String table : tables) {
             Matcher match = Pattern.compile("^CREATE TABLE \\[?" + table + "\\]? \\([\\s\\S]*?^\\);", Pattern.MULTILINE).matcher(schema);
-            if (!match.find()) throw new IllegalStateException("Cannot find schema for " + table);
+            if (!match.find()) {
+                throw new IllegalStateException("Cannot find schema for " + table);
+            }
             execute(match.group());
         }
         execute("CREATE UNIQUE INDEX UX_Payment_Refund_Transaction ON dbo.PAYMENT_REFUND(transaction_id)");
@@ -210,9 +227,15 @@ public final class CheckoutIntegrationChecks {
         java.util.List<model.Order> second = orders.findPurchasePage(1, "", OrderService.statusesForTab("ALL"), 10, 10);
         java.util.List<model.Order> last = orders.findPurchasePage(1, "", OrderService.statusesForTab("ALL"), 20, 10);
         java.util.Set<Integer> ids = new java.util.HashSet<>();
-        for (model.Order order : first) ids.add(order.getOrderId());
-        for (model.Order order : second) ids.add(order.getOrderId());
-        for (model.Order order : last) ids.add(order.getOrderId());
+        for (model.Order order : first) {
+            ids.add(order.getOrderId());
+        }
+        for (model.Order order : second) {
+            ids.add(order.getOrderId());
+        }
+        for (model.Order order : last) {
+            ids.add(order.getOrderId());
+        }
         check(first.size() == 10 && second.size() == 10 && last.size() == 1 && ids.size() == 21,
                 "purchase pagination has no duplicates or missing orders");
         check(first.get(0).getOrderId() > second.get(0).getOrderId(), "newest purchases displayed first");
@@ -280,7 +303,6 @@ public final class CheckoutIntegrationChecks {
                 && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=2") == 10,
                 "cancelling selected checkout leaves all SKU stock unchanged");
     }
-
 
     private void shippingFeeChecks() throws Exception {
         check(OrderService.calculateShippingFee(new BigDecimal("4999999")).intValueExact() == 30000,
@@ -374,29 +396,52 @@ public final class CheckoutIntegrationChecks {
         execute("DELETE FROM dbo.CART_ITEMS WHERE cart_id=" + policyCart);
 
         // Reset only this isolated fixture to exercise the online cancellation entry point.
-        execute("DELETE FROM dbo.ORDER_CUSTOMER_CANCELLATION WHERE user_id=" + policyUser);
+        execute("UPDATE dbo.[ORDER] "
+                + "SET cancellation_source=NULL, cancelled_at=NULL "
+                + "WHERE user_id=" + policyUser
+                + " AND cancellation_source='CUSTOMER'");
+
         execute("DELETE FROM dbo.ORDER_CUSTOMER_POLICY WHERE user_id=" + policyUser);
         int expired = policyOrder(5);
         execute("UPDATE dbo.[ORDER] SET payment_method='VNPAY',order_status='PENDING_PAYMENT',payment_expires_at=DATEADD(MINUTE,-1,SYSUTCDATETIME()) WHERE order_id=" + expired);
         dao.PaymentDAO payments = new dao.PaymentDAO(connections);
         payments.changeOrCancel(policyUser, expired, false);
-        check(scalar("SELECT COUNT(*) FROM dbo.ORDER_CUSTOMER_CANCELLATION WHERE order_id=" + expired) == 0,
-                "automatic payment expiry excluded from customer cancellation count");
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] "
+                + "WHERE order_id=" + expired
+                + " AND cancellation_source='SYSTEM'") == 1,
+                "automatic payment expiry is marked as system cancellation");
         int online = policyOrder(5);
         execute("UPDATE dbo.[ORDER] SET payment_method='VNPAY',order_status='PENDING_PAYMENT',payment_expires_at=DATEADD(MINUTE,15,SYSUTCDATETIME()) WHERE order_id=" + online);
         payments.changeOrCancel(policyUser, online, false);
         payments.changeOrCancel(policyUser, online, false);
-        check(scalar("SELECT quantity FROM dbo.ORDER_CUSTOMER_CANCELLATION WHERE order_id=" + online) == 5,
-                "explicit online cancellation counted exactly once");
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] "
+                + "WHERE order_id=" + online
+                + " AND cancellation_source='CUSTOMER'") == 1,
+                "explicit online cancellation recorded exactly once");
+
+        check(scalar("SELECT COALESCE(SUM(CAST(i.quantity AS BIGINT)),0) "
+                + "FROM dbo.ORDER_ITEM i "
+                + "WHERE i.order_id=" + online) == 5,
+                "explicit online cancellation quantity calculated from order items");
         // Old cancellation outside rolling seven days must not combine with a new one.
-        execute("UPDATE dbo.ORDER_CUSTOMER_CANCELLATION SET cancelled_at=DATEADD(DAY,-8,SYSUTCDATETIME()) WHERE user_id=" + policyUser);
+        execute("UPDATE dbo.[ORDER] "
+                + "SET cancelled_at=DATEADD(DAY,-8,SYSUTCDATETIME()) "
+                + "WHERE user_id=" + policyUser
+                + " AND cancellation_source='CUSTOMER'");
         checkout.cancelOrderByCustomer(policyUser, policyOrder(1));
         check(checkout.orderingRestriction(policyUser) == null, "events older than seven days excluded");
     }
 
     private void expirePolicyBlock() throws SQLException {
-        execute("UPDATE dbo.ORDER_CUSTOMER_CANCELLATION SET cancelled_at=DATEADD(DAY,-10,SYSUTCDATETIME()) WHERE user_id=" + policyUser);
-        execute("UPDATE dbo.ORDER_CUSTOMER_POLICY SET blocked_until=DATEADD(SECOND,-1,SYSUTCDATETIME()) WHERE user_id=" + policyUser);
+
+        execute("UPDATE dbo.[ORDER] "
+                + "SET cancelled_at=DATEADD(DAY,-10,SYSUTCDATETIME()) "
+                + "WHERE user_id=" + policyUser
+                + " AND cancellation_source='CUSTOMER'");
+
+        execute("UPDATE dbo.ORDER_CUSTOMER_POLICY "
+                + "SET blocked_until=DATEADD(SECOND,-1,SYSUTCDATETIME()) "
+                + "WHERE user_id=" + policyUser);
     }
 
     private void refundWorkflowChecks() throws Exception {
@@ -408,44 +453,58 @@ public final class CheckoutIntegrationChecks {
                 + "SELECT order_id,'VNPAY',total_amount,'REFUND-B' FROM dbo.[ORDER] WHERE order_id=" + id);
         BigDecimal amount = BigDecimal.valueOf(scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + id));
         dao.PaymentDAO payments = new dao.PaymentDAO(connections);
-        check("04".equals(payments.settle("VNPAY","REFUND-A",amount.add(BigDecimal.ONE),"PROVIDER-A","00",true)),
+        check("04".equals(payments.settle("VNPAY", "REFUND-A", amount.add(BigDecimal.ONE), "PROVIDER-A", "00", true)),
                 "incorrect callback amount rejected");
-        check("00".equals(payments.settle("VNPAY","REFUND-A",amount,"PROVIDER-A","00",true)),
+        check("00".equals(payments.settle("VNPAY", "REFUND-A", amount, "PROVIDER-A", "00", true)),
                 "first payment confirms order");
-        parallel(() -> payments.settle("VNPAY","REFUND-B",amount,"PROVIDER-B","00",true),
-                () -> payments.settle("VNPAY","REFUND-B",amount,"PROVIDER-B","00",true));
+        parallel(() -> payments.settle("VNPAY", "REFUND-B", amount, "PROVIDER-B", "00", true),
+                () -> payments.settle("VNPAY", "REFUND-B", amount, "PROVIDER-B", "00", true));
         check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND") == 1, "duplicate successful payment creates one refund despite repeated callbacks");
         long refundId = scalar("SELECT refund_id FROM dbo.PAYMENT_REFUND");
         dao.PaymentRefundDAO refunds = new dao.PaymentRefundDAO(connections);
-        check(refunds.findForCustomer(id,policyUser).size() == 1, "customer sees own refund");
-        check(refunds.findForCustomer(id,1).isEmpty(), "other customer cannot see refund");
-        expectInvalid(() -> { refunds.updateStatus(refundId,"PENDING","SUCCESS","receipt",1); return null; },
+        check(refunds.findForCustomer(id, policyUser).size() == 1, "customer sees own refund");
+        check(refunds.findForCustomer(id, 1).isEmpty(), "other customer cannot see refund");
+        expectInvalid(() -> {
+            refunds.updateStatus(refundId, "PENDING", "SUCCESS", "receipt", 1);
+            return null;
+        },
                 "cannot skip reconciliation");
-        refunds.updateStatus(refundId,"PENDING","PROCESSING",null,1);
-        expectInvalid(() -> { refunds.updateStatus(refundId,"PENDING","PROCESSING",null,1); return null; },
+        refunds.updateStatus(refundId, "PENDING", "PROCESSING", null, 1);
+        expectInvalid(() -> {
+            refunds.updateStatus(refundId, "PENDING", "PROCESSING", null, 1);
+            return null;
+        },
                 "stale staff update rejected");
-        expectInvalid(() -> { refunds.updateStatus(refundId,"PROCESSING","SUCCESS"," ",1); return null; },
+        expectInvalid(() -> {
+            refunds.updateStatus(refundId, "PROCESSING", "SUCCESS", " ", 1);
+            return null;
+        },
                 "completion needs refund reference");
-        refunds.updateStatus(refundId,"PROCESSING","FAILED",null,1);
-        refunds.updateStatus(refundId,"FAILED","PROCESSING",null,1);
-        refunds.updateStatus(refundId,"PROCESSING","SUCCESS","REFUND-RECEIPT-1",1);
-        check("Đã hoàn tiền".equals(refunds.findForCustomer(id,policyUser).get(0).get("statusLabel")),
+        refunds.updateStatus(refundId, "PROCESSING", "FAILED", null, 1);
+        refunds.updateStatus(refundId, "FAILED", "PROCESSING", null, 1);
+        refunds.updateStatus(refundId, "PROCESSING", "SUCCESS", "REFUND-RECEIPT-1", 1);
+        check("Đã hoàn tiền".equals(refunds.findForCustomer(id, policyUser).get(0).get("statusLabel")),
                 "completed refund visible to customer");
         check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND WHERE processed_by=1 AND completed_at IS NOT NULL AND provider_refund_id='REFUND-RECEIPT-1'") == 1,
                 "completion records staff, date and reference");
         check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id + " AND payment_status='PAID'") == 1,
                 "surplus refund preserves original paid order");
-        expectSql(() -> { execute("INSERT INTO dbo.PAYMENT_REFUND(transaction_id,refund_amount) SELECT transaction_id,refund_amount FROM dbo.PAYMENT_REFUND"); return null; },
+        expectSql(() -> {
+            execute("INSERT INTO dbo.PAYMENT_REFUND(transaction_id,refund_amount) SELECT transaction_id,refund_amount FROM dbo.PAYMENT_REFUND");
+            return null;
+        },
                 "database prevents duplicate refund requests");
         controller.PaymentRefundServlet servlet = new controller.PaymentRefundServlet();
         checkServlet(servlet, "doGet", null, "/staff/payment-refunds", null, 403, "anonymous refund access denied");
-        model.User customer = new model.User(); customer.setRoleName("Customer"); customer.setUserId(policyUser);
+        model.User customer = new model.User();
+        customer.setRoleName("Customer");
+        customer.setUserId(policyUser);
         checkServlet(servlet, "doPost", customer, "/staff/payment-refunds", null, 403, "customer cannot update refunds");
-        model.User staff = new model.User(); staff.setRoleName("Staff"); staff.setUserId(1);
+        model.User staff = new model.User();
+        staff.setRoleName("Staff");
+        staff.setUserId(1);
         checkServlet(servlet, "doPost", staff, "/staff/payment-refunds", null, 403, "refund mutation requires CSRF token");
     }
-
-
 
     private void migrationChecks(Path schemaFile) throws Exception {
         String migration = Files.readString(schemaFile.getParent()
@@ -480,7 +539,6 @@ public final class CheckoutIntegrationChecks {
                 "legacy confirmed cancellation restores once while sample pending does not");
         execute("DELETE FROM dbo.NOTIFICATION");
         execute("DELETE FROM dbo.ORDER_STATUS_HISTORY");
-        execute("DELETE FROM dbo.ORDER_CUSTOMER_CANCELLATION");
         execute("DELETE FROM dbo.ORDER_CUSTOMER_POLICY");
         execute("DELETE FROM dbo.ORDER_ITEM");
         execute("DELETE FROM dbo.[ORDER]");
@@ -605,13 +663,15 @@ public final class CheckoutIntegrationChecks {
                 "customer cancellation racing confirmation keeps inventory consistent");
     }
 
-
     private void servletGuards() throws Exception {
         controller.CustomerOrderServlet servlet = new controller.CustomerOrderServlet();
         checkServlet(servlet, "doGet", null, "/my-orders", null, 302, "anonymous visitor redirects to login");
-        model.User staff = new model.User(); staff.setRoleName("Staff");
+        model.User staff = new model.User();
+        staff.setRoleName("Staff");
         checkServlet(servlet, "doGet", staff, "/my-orders", null, 403, "staff blocked from customer endpoint");
-        model.User customer = new model.User(); customer.setRoleName("Customer"); customer.setUserId(1);
+        model.User customer = new model.User();
+        customer.setRoleName("Customer");
+        customer.setUserId(1);
         checkServlet(servlet, "doGet", customer, "/my-orders/cancel", null, 405, "GET cannot cancel an order");
         checkServlet(servlet, "doPost", customer, "/my-orders/cancel", null, 403, "missing CSRF token rejected");
         checkServlet(servlet, "doPost", customer, "/my-orders/cancel", "wrong-token", 403, "incorrect CSRF token rejected");
@@ -623,27 +683,40 @@ public final class CheckoutIntegrationChecks {
         attributes.put("customerOrderToken", "expected-token");
         jakarta.servlet.http.HttpSession session = (jakarta.servlet.http.HttpSession) java.lang.reflect.Proxy.newProxyInstance(
                 getClass().getClassLoader(), new Class<?>[]{jakarta.servlet.http.HttpSession.class}, (proxy, method, args) -> {
-                    if ("getAttribute".equals(method.getName())) return attributes.get(args[0]);
-                    if ("setAttribute".equals(method.getName())) attributes.put((String) args[0], args[1]);
-                    return null;
-                });
+            if ("getAttribute".equals(method.getName())) {
+                return attributes.get(args[0]);
+            }
+            if ("setAttribute".equals(method.getName())) {
+                attributes.put((String) args[0], args[1]);
+            }
+            return null;
+        });
         jakarta.servlet.http.HttpServletRequest request = (jakarta.servlet.http.HttpServletRequest) java.lang.reflect.Proxy.newProxyInstance(
                 getClass().getClassLoader(), new Class<?>[]{jakarta.servlet.http.HttpServletRequest.class}, (proxy, method, args) -> {
-                    switch (method.getName()) {
-                        case "getSession": return session;
-                        case "getServletPath": return path;
-                        case "getContextPath": return "/OECS";
-                        case "getParameter": return "csrfToken".equals(args[0]) ? token : "1";
-                        default: return null;
-                    }
-                });
+            switch (method.getName()) {
+                case "getSession":
+                    return session;
+                case "getServletPath":
+                    return path;
+                case "getContextPath":
+                    return "/OECS";
+                case "getParameter":
+                    return "csrfToken".equals(args[0]) ? token : "1";
+                default:
+                    return null;
+            }
+        });
         int[] status = {200};
         jakarta.servlet.http.HttpServletResponse response = (jakarta.servlet.http.HttpServletResponse) java.lang.reflect.Proxy.newProxyInstance(
                 getClass().getClassLoader(), new Class<?>[]{jakarta.servlet.http.HttpServletResponse.class}, (proxy, method, args) -> {
-                    if ("sendError".equals(method.getName()) || "setStatus".equals(method.getName())) status[0] = (Integer) args[0];
-                    if ("sendRedirect".equals(method.getName())) status[0] = 302;
-                    return null;
-                });
+            if ("sendError".equals(method.getName()) || "setStatus".equals(method.getName())) {
+                status[0] = (Integer) args[0];
+            }
+            if ("sendRedirect".equals(method.getName())) {
+                status[0] = 302;
+            }
+            return null;
+        });
         java.lang.reflect.Method method = servlet.getClass().getDeclaredMethod(methodName,
                 jakarta.servlet.http.HttpServletRequest.class, jakarta.servlet.http.HttpServletResponse.class);
         method.setAccessible(true);
@@ -654,22 +727,31 @@ public final class CheckoutIntegrationChecks {
     private int cancellationOrder(String status, String method, boolean paid) throws Exception {
         execute("INSERT INTO dbo.[ORDER](user_id,address_id,total_amount,order_status,payment_method,payment_status,payment_expires_at) "
                 + "VALUES (1,1,200000,'" + status + "','" + method + "','" + (paid ? "PAID" : "UNPAID") + "',DATEADD(MINUTE,15,SYSUTCDATETIME()))");
-        int id=(int)scalar("SELECT MAX(order_id) FROM dbo.[ORDER]");
-        execute("INSERT INTO dbo.ORDER_ITEM(order_id,sku_id,quantity,price) VALUES ("+id+",1,2,100000)");
-        if (java.util.Arrays.asList("CONFIRMED","PACKING","SHIPPING","COMPLETED","DELIVERED").contains(status)) {
+        int id = (int) scalar("SELECT MAX(order_id) FROM dbo.[ORDER]");
+        execute("INSERT INTO dbo.ORDER_ITEM(order_id,sku_id,quantity,price) VALUES (" + id + ",1,2,100000)");
+        if (java.util.Arrays.asList("CONFIRMED", "PACKING", "SHIPPING", "COMPLETED", "DELIVERED").contains(status)) {
             execute("UPDATE dbo.PRODUCT_SKU SET stock_quantity=stock_quantity-2 WHERE sku_id=1");
         }
-        if(paid) execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code,status) VALUES ("
-                +id+",'VNPAY',200000,'CANCEL-"+id+"','SUCCESS')");
+        if (paid) {
+            execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code,status) VALUES ("
+                    + id + ",'VNPAY',200000,'CANCEL-" + id + "','SUCCESS')");
+        }
         return id;
     }
+
     private dao.AdminOrderDAO cancellationStaffDAO() {
         return new dao.AdminOrderDAO() {
-            @Override public Connection getConnection() {
-                try {return connections.open();} catch(SQLException e) {throw new IllegalStateException(e);}
+            @Override
+            public Connection getConnection() {
+                try {
+                    return connections.open();
+                } catch (SQLException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         };
     }
+
     private void adminOrderProgressChecks() throws Exception {
         dao.AdminOrderDAO orders = cancellationStaffDAO();
         int id = cancellationOrder("PENDING_CONFIRMATION", "COD", false);
@@ -733,7 +815,10 @@ public final class CheckoutIntegrationChecks {
                 check(!checkout.cancelOrderByCustomer(1, id), "repeat cancellation is unchanged");
                 check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + restored,
                         "repeat cancellation does not restore again");
-                check(scalar("SELECT COUNT(*) FROM dbo.ORDER_CUSTOMER_CANCELLATION WHERE order_id=" + id) == 1,
+                check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] "
+                        + "WHERE order_id=" + id
+                        + " AND cancellation_source='CUSTOMER' "
+                        + "AND cancelled_at IS NOT NULL") == 1,
                         "customer policy records cancellation once");
                 check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id=" + id) == 1,
                         "one cancellation notification");
@@ -750,7 +835,9 @@ public final class CheckoutIntegrationChecks {
             int id = cancellationOrder("PACKING", "COD", false);
             // UNKNOWN is checked by the shared policy without storing an invalid DB status.
             check(!OrderCancellationService.canCancel(state), "policy rejects " + state);
-            if ("UNKNOWN".equals(state)) continue;
+            if ("UNKNOWN".equals(state)) {
+                continue;
+            }
             execute("UPDATE dbo.[ORDER] SET order_status='" + state + "' WHERE order_id=" + id);
             long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
             expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "customer cannot cancel " + state);
@@ -775,8 +862,16 @@ public final class CheckoutIntegrationChecks {
 
         int rollback = cancellationOrder("PACKING", "VNPAY", true);
         stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-        execute("CREATE TRIGGER dbo.fail_customer_policy ON dbo.ORDER_CUSTOMER_CANCELLATION AFTER INSERT "
-                + "AS THROW 51001, 'rollback customer cancellation', 1");
+        execute("CREATE TRIGGER dbo.fail_customer_policy "
+                + "ON dbo.[ORDER] AFTER UPDATE "
+                + "AS "
+                + "BEGIN "
+                + "IF EXISTS ("
+                + "SELECT 1 FROM inserted "
+                + "WHERE cancellation_source='CUSTOMER'"
+                + ") "
+                + "THROW 51001, 'rollback customer cancellation', 1; "
+                + "END");
         expectSql(() -> checkout.cancelOrderByCustomer(1, rollback), "policy failure rolls back cancellation");
         execute("DROP TRIGGER dbo.fail_customer_policy");
         check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock,
@@ -792,8 +887,13 @@ public final class CheckoutIntegrationChecks {
 
         int race = cancellationOrder("PACKING", "COD", false);
         stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-        parallel(() -> { try { return checkout.cancelOrderByCustomer(1, race); }
-                        catch (IllegalArgumentException shipped) { return false; } },
+        parallel(() -> {
+            try {
+                return checkout.cancelOrderByCustomer(1, race);
+            } catch (IllegalArgumentException shipped) {
+                return false;
+            }
+        },
                 () -> cancellationStaffDAO().transitionStatus(race, "SHIPPING"));
         boolean cancelled = "CANCELLED".equals(cancellationStaffDAO().getCurrentStatus(race));
         check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + (cancelled ? 2 : 0),
@@ -802,145 +902,182 @@ public final class CheckoutIntegrationChecks {
 
     private void staffCancellationChecks() throws Exception {
         adminOrderProgressChecks();
-        OrderCancellationService cancel=new OrderCancellationService(connections);
-        for(String state:new String[]{"PENDING_PAYMENT","PENDING_CONFIRMATION","CONFIRMED","PACKING"}) {
-            int id=cancellationOrder(state,"COD",false);
-            long stock=scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-            check("CANCELLED".equals(cancel.staffCancel(2,id)),"Staff cancels "+state+" without reason or request table");
-            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1")==stock+(("CONFIRMED".equals(state)||"PACKING".equals(state))?2:0),"restore only confirmed SKU for "+state);
-            check("UNCHANGED".equals(cancel.staffCancel(2,id)),"repeated "+state+" cancellation is idempotent");
-            check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY WHERE order_id="+id+" AND status='CANCELLED'")==1,"one committed cancellation history for "+state);
-            check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id="+id)==1,"shared DAO sends cancellation once for "+state);
+        OrderCancellationService cancel = new OrderCancellationService(connections);
+        for (String state : new String[]{"PENDING_PAYMENT", "PENDING_CONFIRMATION", "CONFIRMED", "PACKING"}) {
+            int id = cancellationOrder(state, "COD", false);
+            long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+            check("CANCELLED".equals(cancel.staffCancel(2, id)), "Staff cancels " + state + " without reason or request table");
+            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + (("CONFIRMED".equals(state) || "PACKING".equals(state)) ? 2 : 0), "restore only confirmed SKU for " + state);
+            check("UNCHANGED".equals(cancel.staffCancel(2, id)), "repeated " + state + " cancellation is idempotent");
+            check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY WHERE order_id=" + id + " AND status='CANCELLED'") == 1, "one committed cancellation history for " + state);
+            check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id=" + id) == 1, "shared DAO sends cancellation once for " + state);
         }
-        for(String state:new String[]{"SHIPPING","COMPLETED","DELIVERED"}) {
-            int id=cancellationOrder(state,"COD",false);
-            long stock=scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-            expectInvalid(()->cancel.staffCancel(2,id),"cannot cancel "+state);
-            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1")==stock,"blocked "+state+" preserves stock");
+        for (String state : new String[]{"SHIPPING", "COMPLETED", "DELIVERED"}) {
+            int id = cancellationOrder(state, "COD", false);
+            long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+            expectInvalid(() -> cancel.staffCancel(2, id), "cannot cancel " + state);
+            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock, "blocked " + state + " preserves stock");
         }
-        int paid=cancellationOrder("CONFIRMED","VNPAY",true);
-        check("CANCELLED".equals(cancel.staffCancel(2,paid)),"paid order cancellation accepted");
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id="+paid+" AND r.refund_status='PENDING' AND r.refund_amount=200000")==1,"exact refund queued, not marked completed");
-        long refundId=scalar("SELECT r.refund_id FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id="+paid);
-        dao.PaymentRefundDAO refunds=new dao.PaymentRefundDAO(connections);
-        refunds.updateStatus(refundId,"PENDING","PROCESSING",null,2);
-        refunds.updateStatus(refundId,"PROCESSING","SUCCESS","STAFF-REFUND-"+paid,2);
-        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id="+paid+" AND payment_status='REFUNDED'")==1,"confirmed refund updates cancelled order");
-        int duplicate=cancellationOrder("PACKING","COD",false);
-        long stock=scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-        parallel(()->cancel.staffCancel(2,duplicate),()->cancel.staffCancel(2,duplicate));
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1")==stock+2,"concurrent staff cancellation restores once");
-        int rollback=cancellationOrder("PACKING","VNPAY",true);
-        long before=scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+        int paid = cancellationOrder("CONFIRMED", "VNPAY", true);
+        check("CANCELLED".equals(cancel.staffCancel(2, paid)), "paid order cancellation accepted");
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id=" + paid + " AND r.refund_status='PENDING' AND r.refund_amount=200000") == 1, "exact refund queued, not marked completed");
+        long refundId = scalar("SELECT r.refund_id FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id=" + paid);
+        dao.PaymentRefundDAO refunds = new dao.PaymentRefundDAO(connections);
+        refunds.updateStatus(refundId, "PENDING", "PROCESSING", null, 2);
+        refunds.updateStatus(refundId, "PROCESSING", "SUCCESS", "STAFF-REFUND-" + paid, 2);
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + paid + " AND payment_status='REFUNDED'") == 1, "confirmed refund updates cancelled order");
+        int duplicate = cancellationOrder("PACKING", "COD", false);
+        long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+        parallel(() -> cancel.staffCancel(2, duplicate), () -> cancel.staffCancel(2, duplicate));
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + 2, "concurrent staff cancellation restores once");
+        int rollback = cancellationOrder("PACKING", "VNPAY", true);
+        long before = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
         execute("CREATE TRIGGER dbo.fail_cancel_notice ON dbo.ORDER_STATUS_HISTORY AFTER INSERT AS THROW 51001, 'rollback staff cancellation', 1");
-        expectSql(()->cancel.staffCancel(2,rollback),"failed order history rolls back paid cancellation");
+        expectSql(() -> cancel.staffCancel(2, rollback), "failed order history rolls back paid cancellation");
         execute("DROP TRIGGER dbo.fail_cancel_notice");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1")==before,"rollback preserves stock");
-        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id="+rollback+" AND order_status='PACKING' AND stock_restored_at IS NULL")==1,"rollback preserves order");
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id="+rollback)==0,"rollback removes refund queue entry");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == before, "rollback preserves stock");
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + rollback + " AND order_status='PACKING' AND stock_restored_at IS NULL") == 1, "rollback preserves order");
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id=" + rollback) == 0, "rollback removes refund queue entry");
         execute("CREATE TRIGGER dbo.fail_notification ON dbo.NOTIFICATION AFTER INSERT AS THROW 51001, 'notification rollback', 1");
-        expectSql(()->cancel.staffCancel(2,rollback),"notification failure rolls back paid cancellation");
+        expectSql(() -> cancel.staffCancel(2, rollback), "notification failure rolls back paid cancellation");
         execute("DROP TRIGGER dbo.fail_notification");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1")==before,"notification failure preserves stock");
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id="+rollback)==0,"notification failure rolls back refund");
-        int race=cancellationOrder("PACKING","COD",false);
-        parallel(()->{try{return cancel.staffCancel(2,race);}catch(IllegalArgumentException e){return "SHIPPED";}},
-                ()->cancellationStaffDAO().transitionStatus(race,"SHIPPING"));
-        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id="+race+" AND ((order_status='CANCELLED' AND stock_restored_at IS NOT NULL) OR (order_status='SHIPPING' AND stock_restored_at IS NULL))")==1,"shipment versus cancellation preserves consistent state");
-        check(scalar("SELECT COUNT(*) FROM sys.tables WHERE name='ORDER_CANCELLATION_REQUEST'")==0,"all Staff checks pass without new request table");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == before, "notification failure preserves stock");
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id=" + rollback) == 0, "notification failure rolls back refund");
+        int race = cancellationOrder("PACKING", "COD", false);
+        parallel(() -> {
+            try {
+                return cancel.staffCancel(2, race);
+            } catch (IllegalArgumentException e) {
+                return "SHIPPED";
+            }
+        },
+                () -> cancellationStaffDAO().transitionStatus(race, "SHIPPING"));
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + race + " AND ((order_status='CANCELLED' AND stock_restored_at IS NOT NULL) OR (order_status='SHIPPING' AND stock_restored_at IS NULL))") == 1, "shipment versus cancellation preserves consistent state");
+        check(scalar("SELECT COUNT(*) FROM sys.tables WHERE name='ORDER_CANCELLATION_REQUEST'") == 0, "all Staff checks pass without new request table");
         notificationIntegrationChecks();
     }
 
-
     private void notificationIntegrationChecks() throws Exception {
-        dao.NotificationDAO notifications=new dao.NotificationDAO() {
+        dao.NotificationDAO notifications = new dao.NotificationDAO() {
             { // Dispose the inherited default connection; all test operations use the isolated database.
-                Connection bootstrap=super.getConnection();
-                if(bootstrap!=null) bootstrap.close();
+                Connection bootstrap = super.getConnection();
+                if (bootstrap != null) {
+                    bootstrap.close();
+                }
             }
-            @Override public Connection getConnection() {
-                try { return connections.open(); }
-                catch(SQLException e) { throw new IllegalStateException(e); }
+
+            @Override
+            public Connection getConnection() {
+                try {
+                    return connections.open();
+                } catch (SQLException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         };
-        int id=cancellationOrder("PACKING","COD",false);
-        String[] states={"CONFIRMED","PACKING","SHIPPING","COMPLETED","CANCELLED"};
-        String[] titles={"Đơn hàng đã được xác nhận","Đơn hàng đang được đóng gói","Đơn hàng đang được vận chuyển","Đơn hàng đã hoàn tất","Đơn hàng đã bị hủy"};
-        String[] messages={
-            "Đơn hàng #"+id+" của bạn đã được xác nhận và đang được chuẩn bị.",
-            "Đơn hàng #"+id+" đã được xác nhận và đang trong quá trình đóng gói.",
-            "Đơn hàng #"+id+" đã được bàn giao cho đơn vị vận chuyển. Vui lòng chú ý điện thoại để nhận hàng.",
-            "Đơn hàng #"+id+" đã hoàn tất. Hy vọng bạn hài lòng với sản phẩm!",
-            "Đơn hàng #"+id+" của bạn đã bị hủy. Nếu cần hỗ trợ, vui lòng liên hệ nhân viên OECS."};
-        for(int i=0;i<states.length;i++) {
-            check(notifications.createOrderStatusNotification(id,states[i]),"create shared SQL template "+states[i]);
-            final String expectedTitle=titles[i], expectedMessage=messages[i];
-            model.Notification n=notifications.findLatest(1).get(0);
-            check(expectedTitle.equals(n.getTitle()) && expectedMessage.equals(n.getMessage()),"exact SQL wording for "+states[i]);
-            check(n.getOrderId()==id && n.getUserId()==1,"notification keeps order link and owner for "+states[i]);
+        int id = cancellationOrder("PACKING", "COD", false);
+        String[] states = {"CONFIRMED", "PACKING", "SHIPPING", "COMPLETED", "CANCELLED"};
+        String[] titles = {"Đơn hàng đã được xác nhận", "Đơn hàng đang được đóng gói", "Đơn hàng đang được vận chuyển", "Đơn hàng đã hoàn tất", "Đơn hàng đã bị hủy"};
+        String[] messages = {
+            "Đơn hàng #" + id + " của bạn đã được xác nhận và đang được chuẩn bị.",
+            "Đơn hàng #" + id + " đã được xác nhận và đang trong quá trình đóng gói.",
+            "Đơn hàng #" + id + " đã được bàn giao cho đơn vị vận chuyển. Vui lòng chú ý điện thoại để nhận hàng.",
+            "Đơn hàng #" + id + " đã hoàn tất. Hy vọng bạn hài lòng với sản phẩm!",
+            "Đơn hàng #" + id + " của bạn đã bị hủy. Nếu cần hỗ trợ, vui lòng liên hệ nhân viên OECS."};
+        for (int i = 0; i < states.length; i++) {
+            check(notifications.createOrderStatusNotification(id, states[i]), "create shared SQL template " + states[i]);
+            final String expectedTitle = titles[i], expectedMessage = messages[i];
+            model.Notification n = notifications.findLatest(1).get(0);
+            check(expectedTitle.equals(n.getTitle()) && expectedMessage.equals(n.getMessage()), "exact SQL wording for " + states[i]);
+            check(n.getOrderId() == id && n.getUserId() == 1, "notification keeps order link and owner for " + states[i]);
         }
-        check(notifications.findLatest(2).stream().noneMatch(n->n.getOrderId()!=null && n.getOrderId()==id),"other customer does not receive order notification");
-        model.Notification newest=notifications.findLatest(1).get(0);
-        check(!notifications.markAsRead(newest.getNotificationId(),2),"other customer cannot mark notification read");
-        check(notifications.markAsRead(newest.getNotificationId(),1),"owner can mark own notification read");
-        execute("INSERT INTO dbo.NOTIFICATION(user_id,order_id,title,message) VALUES (1,"+id+",'Cap nhat don hang #"+id+"','Don hang #"+id+" da duoc cap nhat trang thai: SHIPPING.')");
-        model.Notification old=notifications.findLatest(1).get(0);
-        check(("Cap nhat don hang #"+id).equals(old.getTitle()),"reading preserves original legacy notification text");
-        check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE notification_id="+old.getNotificationId()+" AND title LIKE 'Cap nhat%'")==1,"reading does not rewrite existing database rows");
-        execute("INSERT INTO dbo.NOTIFICATION(user_id,order_id,title,message) VALUES (1,"+id+",N'Xử lý hủy đơn hàng',N'Đơn đã hủy: Nhân viên hủy đơn hàng')");
-        check("Xử lý hủy đơn hàng".equals(notifications.findLatest(1).get(0).getTitle()),"old cancellation text remains unchanged");
-        execute("INSERT INTO dbo.NOTIFICATION(user_id,order_id,title,message) VALUES (1,"+id+",N'Cập nhật yêu cầu đổi/trả hàng',N'Đã duyệt trả hàng')");
-        check("Đã duyệt trả hàng".equals(notifications.findLatest(1).get(0).getMessage()),"unrelated return notifications are preserved");
-        long before=scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION");
-        try(Connection c=connections.open()) {
+        check(notifications.findLatest(2).stream().noneMatch(n -> n.getOrderId() != null && n.getOrderId() == id), "other customer does not receive order notification");
+        model.Notification newest = notifications.findLatest(1).get(0);
+        check(!notifications.markAsRead(newest.getNotificationId(), 2), "other customer cannot mark notification read");
+        check(notifications.markAsRead(newest.getNotificationId(), 1), "owner can mark own notification read");
+        execute("INSERT INTO dbo.NOTIFICATION(user_id,order_id,title,message) VALUES (1," + id + ",'Cap nhat don hang #" + id + "','Don hang #" + id + " da duoc cap nhat trang thai: SHIPPING.')");
+        model.Notification old = notifications.findLatest(1).get(0);
+        check(("Cap nhat don hang #" + id).equals(old.getTitle()), "reading preserves original legacy notification text");
+        check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE notification_id=" + old.getNotificationId() + " AND title LIKE 'Cap nhat%'") == 1, "reading does not rewrite existing database rows");
+        execute("INSERT INTO dbo.NOTIFICATION(user_id,order_id,title,message) VALUES (1," + id + ",N'Xử lý hủy đơn hàng',N'Đơn đã hủy: Nhân viên hủy đơn hàng')");
+        check("Xử lý hủy đơn hàng".equals(notifications.findLatest(1).get(0).getTitle()), "old cancellation text remains unchanged");
+        execute("INSERT INTO dbo.NOTIFICATION(user_id,order_id,title,message) VALUES (1," + id + ",N'Cập nhật yêu cầu đổi/trả hàng',N'Đã duyệt trả hàng')");
+        check("Đã duyệt trả hàng".equals(notifications.findLatest(1).get(0).getMessage()), "unrelated return notifications are preserved");
+        long before = scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION");
+        try (Connection c = connections.open()) {
             c.setAutoCommit(false);
-            check(dao.NotificationDAO.createOrderStatusNotification(c,id,"CANCELLED"),"shared connection overload inserts notification");
-            check(!c.isClosed() && !c.getAutoCommit(),"DAO does not close connection or change caller transaction");
+            check(dao.NotificationDAO.createOrderStatusNotification(c, id, "CANCELLED"), "shared connection overload inserts notification");
+            check(!c.isClosed() && !c.getAutoCommit(), "DAO does not close connection or change caller transaction");
             c.rollback();
         }
-        check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION")==before,"caller rollback removes notification");
-        model.Notification dated=new model.Notification();
-        check("".equals(dated.getFormattedCreatedAt()),"null notification date displays blank");
+        check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION") == before, "caller rollback removes notification");
+        model.Notification dated = new model.Notification();
+        check("".equals(dated.getFormattedCreatedAt()), "null notification date displays blank");
         dated.setCreatedAt(java.sql.Timestamp.valueOf("2026-11-13 17:05:52.9933333"));
-        check("13/11/2026 17:05".equals(dated.getFormattedCreatedAt()),"notification date has Vietnamese format without fractional seconds");
-        check(notifications.countUnread(1)==scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE user_id=1 AND is_read=0"),"unread count includes all notifications rather than latest twenty");
+        check("13/11/2026 17:05".equals(dated.getFormattedCreatedAt()), "notification date has Vietnamese format without fractional seconds");
+        check(notifications.countUnread(1) == scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE user_id=1 AND is_read=0"), "unread count includes all notifications rather than latest twenty");
     }
 
     private Object[] parallel(java.util.concurrent.Callable<?> first, java.util.concurrent.Callable<?> second) throws Exception {
         ExecutorService pool = Executors.newFixedThreadPool(2);
         CountDownLatch start = new CountDownLatch(1);
         try {
-            Future<?> a = pool.submit(() -> { start.await(); return first.call(); });
-            Future<?> b = pool.submit(() -> { start.await(); return second.call(); });
+            Future<?> a = pool.submit(() -> {
+                start.await();
+                return first.call();
+            });
+            Future<?> b = pool.submit(() -> {
+                start.await();
+                return second.call();
+            });
             start.countDown();
             return new Object[]{a.get(30, TimeUnit.SECONDS), b.get(30, TimeUnit.SECONDS)};
-        } finally { pool.shutdownNow(); pool.awaitTermination(5, TimeUnit.SECONDS); }
+        } finally {
+            pool.shutdownNow();
+            pool.awaitTermination(5, TimeUnit.SECONDS);
+        }
     }
 
     private void execute(String sql) throws SQLException {
-        try (Connection conn = connections.open(); Statement statement = conn.createStatement()) { statement.execute(sql); }
+        try (Connection conn = connections.open(); Statement statement = conn.createStatement()) {
+            statement.execute(sql);
+        }
     }
 
     private long scalar(String sql) throws SQLException {
         try (Connection conn = connections.open(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
-            if (!rs.next()) throw new SQLException("Expected one result");
+            if (!rs.next()) {
+                throw new SQLException("Expected one result");
+            }
             return rs.getLong(1);
         }
     }
 
     private void check(boolean value, String message) {
-        if (!value) throw new AssertionError(message);
+        if (!value) {
+            throw new AssertionError(message);
+        }
         passed++;
         System.out.println("PASS " + message);
     }
 
     private void expectInvalid(java.util.concurrent.Callable<?> action, String message) throws Exception {
-        try { action.call(); } catch (IllegalArgumentException expected) { check(true, message); return; }
+        try {
+            action.call();
+        } catch (IllegalArgumentException expected) {
+            check(true, message);
+            return;
+        }
         throw new AssertionError(message);
     }
 
     private void expectSql(java.util.concurrent.Callable<?> action, String message) throws Exception {
-        try { action.call(); } catch (SQLException expected) { check(true, message); return; }
+        try {
+            action.call();
+        } catch (SQLException expected) {
+            check(true, message);
+            return;
+        }
         throw new AssertionError(message);
     }
 }
