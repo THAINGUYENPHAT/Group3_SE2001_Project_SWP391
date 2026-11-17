@@ -1,29 +1,25 @@
 package controller;
 
 import dao.VoucherDAO;
-import model.User;
 import service.AuditLogService;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-
 import model.User;
 import model.Voucher;
-
 import java.io.IOException;
-
 import java.sql.Timestamp;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @WebServlet(
-        name = "VoucherServlet",urlPatterns = {"/staff/voucher"}
+        name = "VoucherServlet", urlPatterns = {"/staff/voucher"}
 )
 public class VoucherServlet extends HttpServlet {
 
@@ -37,7 +33,6 @@ public class VoucherServlet extends HttpServlet {
                     "yyyy-MM-dd'T'HH:mm"
             );
 
-   
     @Override
     public void init()
             throws ServletException {
@@ -125,7 +120,6 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-    
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -200,7 +194,6 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-   
     private boolean checkStaff(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -260,17 +253,101 @@ public class VoucherServlet extends HttpServlet {
         return true;
     }
 
-    
     private void showList(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
 
+        String status = request.getParameter("status");
+
+        if (status == null) {
+            status = "all";
+        }
+
+        status = status.trim().toLowerCase(Locale.ROOT);
+
+        if (!"available".equals(status)
+                && !"exhausted".equals(status)
+                && !"upcoming".equals(status)
+                && !"expired".equals(status)) {
+
+            status = "all";
+        }
+
+        // Lấy danh sách voucher và trạng thái từ DAO
+        List<Voucher> allVouchers = voucherDAO.getAllVouchers();
+        List<Voucher> filteredVouchers = new ArrayList<>();
+
+        int availableCount = 0;
+        int exhaustedCount = 0;
+        int upcomingCount = 0;
+        int expiredCount = 0;
+
+        for (Voucher voucher : allVouchers) {
+
+            String voucherStatus
+                    = voucher.getAvailabilityStatus();
+
+            if ("AVAILABLE".equals(voucherStatus)) {
+                availableCount++;
+            }
+
+            if ("EXHAUSTED".equals(voucherStatus)) {
+                exhaustedCount++;
+            }
+
+            if ("UPCOMING".equals(voucherStatus)) {
+                upcomingCount++;
+            }
+
+            if ("EXPIRED".equals(voucherStatus)) {
+                expiredCount++;
+            }
+
+            // Chỉ đưa voucher đúng trạng thái vào danh sách
+            if ("all".equals(status)
+                    || status.equalsIgnoreCase(voucherStatus)) {
+
+                filteredVouchers.add(voucher);
+            }
+        }
+
         request.setAttribute(
                 "vouchers",
-                voucherDAO.getAllVouchers()
+                filteredVouchers
         );
 
+        request.setAttribute(
+                "totalVoucherCount",
+                allVouchers.size()
+        );
+
+        request.setAttribute(
+                "voucherStatusFilter",
+                status
+        );
+
+        request.setAttribute(
+                "availableVoucherCount",
+                availableCount
+        );
+
+        request.setAttribute(
+                "exhaustedVoucherCount",
+                exhaustedCount
+        );
+
+        request.setAttribute(
+                "upcomingVoucherCount",
+                upcomingCount
+        );
+
+        request.setAttribute(
+                "expiredVoucherCount",
+                expiredCount
+        );
+
+        // Giữ nguyên thống kê và lịch sử voucher
         request.setAttribute(
                 "usedVoucherCount",
                 voucherDAO.countUsedVouchers()
@@ -283,10 +360,7 @@ public class VoucherServlet extends HttpServlet {
 
         request.getRequestDispatcher(
                 "/WEB-INF/voucher/list.jsp"
-        ).forward(
-                request,
-                response
-        );
+        ).forward(request, response);
     }
 
     private void showUsage(
@@ -320,7 +394,6 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-  
     private void createVoucher(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -414,7 +487,6 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-
     private void showEdit(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -504,7 +576,6 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-   
     private void updateVoucher(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -645,7 +716,6 @@ public class VoucherServlet extends HttpServlet {
         }
     }
 
-    
     private void showDelete(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -706,7 +776,6 @@ public class VoucherServlet extends HttpServlet {
             );
         }
     }
-
 
     private void deleteVoucher(
             HttpServletRequest request,
@@ -794,7 +863,6 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-   
     private Voucher getVoucherFromRequest(
             HttpServletRequest request) {
 
@@ -926,7 +994,6 @@ public class VoucherServlet extends HttpServlet {
         return voucher;
     }
 
-
     private String validateVoucher(
             Voucher voucher,
             boolean isUpdate) {
@@ -1052,7 +1119,6 @@ public class VoucherServlet extends HttpServlet {
         return null;
     }
 
- 
     private Timestamp parseTimestamp(
             String value) {
 
@@ -1073,7 +1139,6 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-  
     private Double parseNullableDouble(
             String value) {
 
@@ -1088,7 +1153,6 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-    
     private Integer parseNullableInteger(
             String value) {
 
@@ -1103,7 +1167,6 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-   
     private void setSuccessMessage(
             HttpServletRequest request,
             String message) {
@@ -1115,7 +1178,6 @@ public class VoucherServlet extends HttpServlet {
                 );
     }
 
-  
     private void setErrorMessage(
             HttpServletRequest request,
             String message) {
@@ -1127,7 +1189,6 @@ public class VoucherServlet extends HttpServlet {
                 );
     }
 
-   
     private void redirectList(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -1139,7 +1200,6 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-  
     private void redirectCreate(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -1151,7 +1211,6 @@ public class VoucherServlet extends HttpServlet {
         );
     }
 
-   
     private void redirectEdit(
             HttpServletRequest request,
             HttpServletResponse response,

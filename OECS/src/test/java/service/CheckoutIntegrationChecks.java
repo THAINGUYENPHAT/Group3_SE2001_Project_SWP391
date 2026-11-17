@@ -51,7 +51,8 @@ public final class CheckoutIntegrationChecks {
                 }
                 createSchema(schemaFile);
                 seed();
-                if (staffOnly) { staffCancellationChecks(); } else {
+                migrationChecks(schemaFile);
+                if (staffOnly) { staffCancellationChecks(); customerCancellationChecks(); } else {
                 rememberAddress();
                 int orderId = duplicateCheckout();
                 ownershipAndSnapshots(orderId);
@@ -64,6 +65,8 @@ public final class CheckoutIntegrationChecks {
                 refundWorkflowChecks();
                 shippingFeeChecks();
                 staffCancellationChecks();
+                stockConfirmationChecks();
+                customerCancellationChecks();
                 }
                 System.out.println("PASS: " + passed + " checkout/order integration assertions");
             } finally {
@@ -84,7 +87,7 @@ public final class CheckoutIntegrationChecks {
         String schema = new String(bytes, bytes.length > 1 && bytes[0] == (byte) 0xff
                 && bytes[1] == (byte) 0xfe ? StandardCharsets.UTF_16LE : StandardCharsets.UTF_8);
         String[] tables = {"USER", "ADDRESSBOOK", "CATEGORY", "BRAND", "PRODUCT", "PRODUCT_SKU",
-            "CART", "CART_ITEMS", "VOUCHER", "ORDER", "ORDER_ITEM", "ORDER_STATUS_HISTORY", "VOUCHER_USAGES", "ORDER_CUSTOMER_POLICY", "ORDER_CUSTOMER_CANCELLATION", "PAYMENT_TRANSACTION", "PAYMENT_REFUND", "NOTIFICATION"};
+            "CART", "CART_ITEMS", "VOUCHER", "ORDER", "ORDER_ITEM", "ORDER_STATUS_HISTORY", "VOUCHER_USAGES", "ORDER_CUSTOMER_POLICY", "ORDER_CUSTOMER_CANCELLATION", "PAYMENT_TRANSACTION", "PAYMENT_REFUND", "NOTIFICATION", "AUDIT_LOG"};
         for (String table : tables) {
             Matcher match = Pattern.compile("^CREATE TABLE \\[?" + table + "\\]? \\([\\s\\S]*?^\\);", Pattern.MULTILINE).matcher(schema);
             if (!match.find()) throw new IllegalStateException("Cannot find schema for " + table);
@@ -124,7 +127,7 @@ public final class CheckoutIntegrationChecks {
         int orderId = (Integer) ids[0];
         check(ids[0].equals(ids[1]), "concurrent duplicate checkout returns same order");
         check(scalar("SELECT COUNT(*) FROM dbo.[ORDER]") == 1, "only one order inserted");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 18, "stock deducted once");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 20, "checkout does not deduct stock");
         check(scalar("SELECT COUNT(*) FROM dbo.CART_ITEMS WHERE cart_id=1") == 0, "cart cleared after success");
         check(scalar("SELECT COUNT(*) FROM dbo.VOUCHER_USAGES") == 1, "voucher consumed once");
         check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY") == 1, "one initial history entry");
@@ -144,14 +147,14 @@ public final class CheckoutIntegrationChecks {
         check("Địa chỉ đã đặt".equals(orders.findByIdAndUser(id, 1).getShippingAddress()), "delivery address is original snapshot");
         check("Chờ xác nhận".equals(checkout.findHistory(id, 1).get(0).get("label")), "history has customer status label");
         expectInvalid(() -> checkout.cancelOrderByCustomer(2, id), "cannot cancel another customer's order");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 18, "unauthorized cancellation leaves stock unchanged");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 20, "unauthorized cancellation leaves stock unchanged");
     }
 
     private void cancelTwice(int id) throws Exception {
         Object[] changed = parallel(() -> checkout.cancelOrderByCustomer(1, id), () -> checkout.cancelOrderByCustomer(1, id));
         check(!changed[0].equals(changed[1]), "only one simultaneous cancellation changes state");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 20, "stock restored exactly once");
-        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id + " AND order_status='CANCELLED' AND stock_restored_at IS NOT NULL") == 1, "cancel status and restoration marker committed");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 20, "cancelling unconfirmed order leaves stock unchanged");
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id + " AND order_status='CANCELLED' AND stock_restored_at IS NULL") == 1, "unconfirmed cancellation does not mark stock as restored");
         check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY WHERE order_id=" + id + " AND status='CANCELLED'") == 1, "one cancellation history entry");
         check(!checkout.cancelOrderByCustomer(1, id), "repeated cancellation is idempotent");
         check(scalar("SELECT COUNT(*) FROM dbo.VOUCHER_USAGES") == 1, "cancellation retains recorded voucher use");
@@ -175,14 +178,14 @@ public final class CheckoutIntegrationChecks {
         int id = checkout.placeCodOrder(1, 1, UUID.randomUUID().toString(), null);
         execute("ALTER TABLE dbo.ORDER_STATUS_HISTORY WITH NOCHECK ADD CONSTRAINT CK_Test_FailCancel CHECK (status <> 'CANCELLED')");
         expectSql(() -> checkout.cancelOrderByCustomer(1, id), "cancellation history failure rolls back");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 19, "cancellation rollback undoes stock restoration");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 20, "cancellation rollback preserves untouched stock");
         check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id + " AND order_status='PENDING_CONFIRMATION' AND stock_restored_at IS NULL") == 1, "cancellation rollback preserves status and marker");
         execute("ALTER TABLE dbo.ORDER_STATUS_HISTORY DROP CONSTRAINT CK_Test_FailCancel");
-        execute("UPDATE dbo.[ORDER] SET order_status='CONFIRMED' WHERE order_id=" + id);
-        expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "cannot cancel confirmed order");
+        execute("UPDATE dbo.[ORDER] SET order_status='SHIPPING' WHERE order_id=" + id);
+        expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "cannot cancel shipped order");
         execute("UPDATE dbo.[ORDER] SET order_status='PENDING_CONFIRMATION',payment_method='VNPAY',payment_status='PAID' WHERE order_id=" + id);
-        expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "online payment excluded from customer cancellation");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 19, "rejected cancellations preserve stock");
+        expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "paid order without successful transaction needs reconciliation");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 20, "rejected cancellations preserve stock");
         check("Chờ xác nhận".equals(OrderService.statusLabel("Pending"))
                 && "Đã xác nhận".equals(OrderService.statusLabel("Confirmed")), "staff history formats supported");
     }
@@ -270,12 +273,12 @@ public final class CheckoutIntegrationChecks {
                 && scalar("SELECT quantity FROM dbo.CART_ITEMS WHERE cart_id=1 AND sku_id=2") == 3,
                 "unselected items stay in cart");
         check(checkout.placeCodOrder(1, 1, token, "TEST10", java.util.Arrays.asList(selectedId)) == orderId
-                && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stockBefore - 2,
+                && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stockBefore,
                 "selected checkout replay does not deduct stock again");
         check(checkout.cancelOrderByCustomer(1, orderId)
                 && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stockBefore
                 && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=2") == 10,
-                "cancelling selected checkout restores only purchased stock");
+                "cancelling selected checkout leaves all SKU stock unchanged");
     }
 
 
@@ -443,6 +446,166 @@ public final class CheckoutIntegrationChecks {
     }
 
 
+
+    private void migrationChecks(Path schemaFile) throws Exception {
+        String migration = Files.readString(schemaFile.getParent()
+                .resolve("OECS/scripts/migrate-stock-on-confirmation.sql"));
+        int cod = cancellationOrder("PENDING_CONFIRMATION", "COD", false);
+        int online = cancellationOrder("PENDING_PAYMENT", "VNPAY", false);
+        int confirmed = cancellationOrder("CONFIRMED", "COD", false);
+        int sample = cancellationOrder("PENDING_CONFIRMATION", "COD", false);
+        execute("UPDATE dbo.[ORDER] SET checkout_token=CONVERT(varchar(36),NEWID()) WHERE order_id IN (" + cod + "," + online + "," + confirmed + ")");
+        execute("UPDATE dbo.PRODUCT_SKU SET stock_quantity=stock_quantity-4 WHERE sku_id=1");
+        long columns = scalar("SELECT COUNT(*) FROM sys.columns");
+        execute(migration);
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 18,
+                "migration releases only legacy pending checkout stock");
+        execute(migration);
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 18,
+                "migration replay does not release inventory twice");
+        check(scalar("SELECT COUNT(*) FROM sys.columns") == columns, "migration adds no database columns");
+        check(cancellationStaffDAO().transitionStatus(cod, "CONFIRMED"), "migrated pending order can be confirmed");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 16,
+                "migrated order deducts stock on confirmation");
+        OrderCancellationService cancel = new OrderCancellationService(connections);
+        cancel.staffCancel(1, cod);
+        new dao.PaymentDAO(connections).expireOrder(1, online);
+        // Explicit cancellation before its deadline is also inventory-neutral.
+        new dao.PaymentDAO(connections).changeOrCancel(1, online, false);
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 18,
+                "migrated online cancellation leaves inventory unchanged");
+        cancel.staffCancel(1, confirmed);
+        cancel.staffCancel(1, sample);
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 20,
+                "legacy confirmed cancellation restores once while sample pending does not");
+        execute("DELETE FROM dbo.NOTIFICATION");
+        execute("DELETE FROM dbo.ORDER_STATUS_HISTORY");
+        execute("DELETE FROM dbo.ORDER_CUSTOMER_CANCELLATION");
+        execute("DELETE FROM dbo.ORDER_CUSTOMER_POLICY");
+        execute("DELETE FROM dbo.ORDER_ITEM");
+        execute("DELETE FROM dbo.[ORDER]");
+        execute("DBCC CHECKIDENT ('dbo.[ORDER]', RESEED, 0)");
+    }
+
+    private int confirmationOrder(String method, int quantity) throws Exception {
+        execute("DELETE FROM dbo.CART_ITEMS WHERE cart_id=2");
+        execute("INSERT INTO dbo.CART_ITEMS(cart_id,sku_id,quantity) VALUES (2,1," + quantity + ")");
+        return checkout.placeOrder(2, 3, UUID.randomUUID().toString(), null, null, method);
+    }
+
+    private boolean tryConfirm(int orderId) throws Exception {
+        try {
+            return cancellationStaffDAO().transitionStatus(orderId, "CONFIRMED");
+        } catch (IllegalArgumentException insufficientStock) {
+            return false;
+        }
+    }
+
+    private void stockConfirmationChecks() throws Exception {
+        System.setProperty("PAYMENT_BASE_URL", "https://example.invalid/OECS");
+        System.setProperty("VNPAY_TMN_CODE", "test-merchant");
+        System.setProperty("VNPAY_HASH_SECRET", "test-secret");
+        dao.AdminOrderDAO staff = cancellationStaffDAO();
+        dao.PaymentDAO payments = new dao.PaymentDAO(connections);
+        OrderCancellationService cancel = new OrderCancellationService(connections);
+        execute("UPDATE dbo.PRODUCT_SKU SET stock_quantity=10 WHERE sku_id=1");
+        int cod = confirmationOrder("COD", 2);
+        int online = confirmationOrder("VNPAY", 2);
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 10,
+                "COD and sandbox checkout leave stock unchanged");
+        check(!staff.transitionStatus(online, "CONFIRMED"), "unpaid online order cannot be confirmed");
+        execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code) "
+                + "SELECT order_id,'VNPAY',total_amount,'CONFIRM-ONLINE' FROM dbo.[ORDER] WHERE order_id=" + online);
+        BigDecimal amount = BigDecimal.valueOf(scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + online));
+        check("00".equals(payments.settle("VNPAY", "CONFIRM-ONLINE", amount, "CONFIRM-PROVIDER", "00", true)),
+                "sandbox callback moves order to awaiting staff");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 10,
+                "successful sandbox payment does not deduct stock");
+        check(staff.transitionStatus(cod, "CONFIRMED") && staff.transitionStatus(online, "CONFIRMED"),
+                "staff confirms both COD and paid sandbox");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 6,
+                "staff confirmation deducts exact quantities for both methods");
+        check(!staff.transitionStatus(cod, "CONFIRMED"), "duplicate staff confirmation rejected");
+        cancel.staffCancel(1, cod);
+        cancel.staffCancel(1, online);
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 10,
+                "cancelling confirmed COD and paid sandbox restores their quantities");
+
+        int expired = confirmationOrder("VNPAY", 1);
+        execute("UPDATE dbo.[ORDER] SET payment_expires_at=DATEADD(MINUTE,-1,SYSUTCDATETIME()) WHERE order_id=" + expired);
+        payments.expireOrder(2, expired);
+        payments.expireOrder(2, expired);
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 10,
+                "expiry and repeated expiry never increase unconfirmed stock");
+        int switchCod = confirmationOrder("VNPAY", 1);
+        payments.changeOrCancel(2, switchCod, true);
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 10,
+                "switching online to COD leaves stock untouched");
+        staff.transitionStatus(switchCod, "CONFIRMED");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 9,
+                "switched COD deducts only when staff confirms");
+
+        int concurrent = confirmationOrder("COD", 1);
+        Object[] same = parallel(() -> tryConfirm(concurrent), () -> tryConfirm(concurrent));
+        check(!same[0].equals(same[1]), "concurrent confirmation of one order succeeds once");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 8,
+                "concurrent confirmation deducts stock once");
+
+        execute("UPDATE dbo.PRODUCT_SKU SET stock_quantity=1 WHERE sku_id=1");
+        int first = confirmationOrder("COD", 1);
+        int second = confirmationOrder("VNPAY", 1);
+        execute("UPDATE dbo.[ORDER] SET order_status='PENDING_CONFIRMATION',payment_status='PAID' WHERE order_id=" + second);
+        execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code,status) "
+                + "SELECT order_id,'VNPAY',total_amount,'LAST-UNIT-'+CAST(order_id AS varchar),'SUCCESS' FROM dbo.[ORDER] WHERE order_id=" + second);
+        Object[] last = parallel(() -> tryConfirm(first), () -> tryConfirm(second));
+        check(!last[0].equals(last[1]), "only one of two orders can confirm the final SKU unit");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 0,
+                "last-unit confirmation cannot make stock negative");
+        int rejected = Boolean.TRUE.equals(last[0]) ? second : first;
+        check("PENDING_CONFIRMATION".equals(staff.getCurrentStatus(rejected)),
+                "insufficient-stock order stays pending");
+        cancel.staffCancel(1, rejected);
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 0,
+                "cancelling rejected confirmation does not create inventory");
+
+        execute("UPDATE dbo.PRODUCT_SKU SET stock_quantity=10 WHERE sku_id=1");
+        execute("UPDATE dbo.PRODUCT_SKU SET stock_quantity=10 WHERE sku_id=2");
+        int multi = confirmationOrder("COD", 1);
+        execute("INSERT INTO dbo.ORDER_ITEM(order_id,sku_id,quantity,price) VALUES (" + multi + ",2,1,100000)");
+        execute("UPDATE dbo.PRODUCT_SKU SET stock_quantity=0 WHERE sku_id=2");
+        expectInvalid(() -> staff.transitionStatus(multi, "CONFIRMED"), "multi-SKU confirmation rejects shortage");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 10,
+                "multi-SKU shortage rolls back earlier deductions");
+        check("PENDING_CONFIRMATION".equals(staff.getCurrentStatus(multi)),
+                "multi-SKU shortage rolls back order status");
+
+        int rollback = confirmationOrder("COD", 1);
+        execute("CREATE TRIGGER dbo.fail_confirm_history ON dbo.ORDER_STATUS_HISTORY AFTER INSERT AS THROW 51001, 'confirmation rollback', 1");
+        try {
+            expectSql(() -> staff.transitionStatus(rollback, "CONFIRMED"), "confirmation history failure rolls back transaction");
+        } finally {
+            execute("DROP TRIGGER dbo.fail_confirm_history");
+        }
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 10,
+                "confirmation history failure restores deducted stock");
+        check("PENDING_CONFIRMATION".equals(staff.getCurrentStatus(rollback)),
+                "confirmation history failure preserves pending state");
+
+        int race = confirmationOrder("COD", 1);
+        parallel(() -> tryConfirm(race), () -> {
+            try {
+                return checkout.cancelOrderByCustomer(2, race);
+            } catch (IllegalArgumentException alreadyConfirmed) {
+                return false;
+            }
+        });
+        String state = staff.getCurrentStatus(race);
+        check(("CANCELLED".equals(state) && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 10)
+                || ("CONFIRMED".equals(state) && scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == 9),
+                "customer cancellation racing confirmation keeps inventory consistent");
+    }
+
+
     private void servletGuards() throws Exception {
         controller.CustomerOrderServlet servlet = new controller.CustomerOrderServlet();
         checkServlet(servlet, "doGet", null, "/my-orders", null, 302, "anonymous visitor redirects to login");
@@ -493,6 +656,9 @@ public final class CheckoutIntegrationChecks {
                 + "VALUES (1,1,200000,'" + status + "','" + method + "','" + (paid ? "PAID" : "UNPAID") + "',DATEADD(MINUTE,15,SYSUTCDATETIME()))");
         int id=(int)scalar("SELECT MAX(order_id) FROM dbo.[ORDER]");
         execute("INSERT INTO dbo.ORDER_ITEM(order_id,sku_id,quantity,price) VALUES ("+id+",1,2,100000)");
+        if (java.util.Arrays.asList("CONFIRMED","PACKING","SHIPPING","COMPLETED","DELIVERED").contains(status)) {
+            execute("UPDATE dbo.PRODUCT_SKU SET stock_quantity=stock_quantity-2 WHERE sku_id=1");
+        }
         if(paid) execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code,status) VALUES ("
                 +id+",'VNPAY',200000,'CANCEL-"+id+"','SUCCESS')");
         return id;
@@ -540,8 +706,8 @@ public final class CheckoutIntegrationChecks {
         check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id
                 + " AND delivered_at IS NOT NULL AND stock_restored_at IS NULL") == 1,
                 "completion records delivery without restoring stock");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock,
-                "forward progress preserves stock");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock - 2,
+                "confirmation deducts stock once across all forward stages");
         check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY WHERE order_id=" + id
                 + " AND status IN ('CONFIRMED','PACKING','SHIPPING','COMPLETED')") == 4,
                 "each successful progress stage writes exactly one history row");
@@ -553,6 +719,87 @@ public final class CheckoutIntegrationChecks {
                 "concurrent progress writes one committed shipping history");
     }
 
+    private void customerCancellationChecks() throws Exception {
+        for (String method : new String[]{"COD", "VNPAY", "MOMO"}) {
+            for (String state : new String[]{"PENDING_PAYMENT", "PENDING_CONFIRMATION", "CONFIRMED", "PACKING"}) {
+                boolean paid = !"COD".equals(method) && !"PENDING_PAYMENT".equals(state);
+                int id = cancellationOrder(state, method, paid);
+                long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+                expectInvalid(() -> checkout.cancelOrderByCustomer(2, id), "customer ownership checked for " + state);
+                check(checkout.cancelOrderByCustomer(1, id), "customer cancels " + method + " " + state);
+                long restored = "CONFIRMED".equals(state) || "PACKING".equals(state) ? 2 : 0;
+                check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + restored,
+                        "customer restores only deducted stock for " + method + " " + state);
+                check(!checkout.cancelOrderByCustomer(1, id), "repeat cancellation is unchanged");
+                check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + restored,
+                        "repeat cancellation does not restore again");
+                check(scalar("SELECT COUNT(*) FROM dbo.ORDER_CUSTOMER_CANCELLATION WHERE order_id=" + id) == 1,
+                        "customer policy records cancellation once");
+                check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id=" + id) == 1,
+                        "one cancellation notification");
+                check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
+                        + "ON t.transaction_id=r.transaction_id WHERE t.order_id=" + id) == (paid ? 1 : 0),
+                        "refund queued only for successful payment");
+                if (paid) {
+                    check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id
+                            + " AND payment_status='REFUND_PENDING'") == 1, "paid cancellation awaits refund");
+                }
+            }
+        }
+        for (String state : new String[]{"SHIPPING", "DELIVERED", "COMPLETED", "UNKNOWN"}) {
+            int id = cancellationOrder("PACKING", "COD", false);
+            // UNKNOWN is checked by the shared policy without storing an invalid DB status.
+            check(!OrderCancellationService.canCancel(state), "policy rejects " + state);
+            if ("UNKNOWN".equals(state)) continue;
+            execute("UPDATE dbo.[ORDER] SET order_status='" + state + "' WHERE order_id=" + id);
+            long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+            expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "customer cannot cancel " + state);
+            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock,
+                    "rejected cancellation preserves stock");
+        }
+        int pending = cancellationOrder("PENDING_PAYMENT", "MOMO", false);
+        execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code,status) "
+                + "VALUES (" + pending + ",'MOMO',200000,'CUSTOMER-PENDING-" + pending + "','PENDING')");
+        checkout.cancelOrderByCustomer(1, pending);
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_TRANSACTION WHERE order_id=" + pending
+                + " AND status='CANCELLED'") == 1, "pending payment closed on customer cancellation");
+
+        int duplicate = cancellationOrder("PACKING", "VNPAY", true);
+        long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+        parallel(() -> checkout.cancelOrderByCustomer(1, duplicate), () -> checkout.cancelOrderByCustomer(1, duplicate));
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + 2,
+                "concurrent customer cancellation restores once");
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
+                + "ON t.transaction_id=r.transaction_id WHERE t.order_id=" + duplicate) == 1,
+                "concurrent customer cancellation queues one refund");
+
+        int rollback = cancellationOrder("PACKING", "VNPAY", true);
+        stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+        execute("CREATE TRIGGER dbo.fail_customer_policy ON dbo.ORDER_CUSTOMER_CANCELLATION AFTER INSERT "
+                + "AS THROW 51001, 'rollback customer cancellation', 1");
+        expectSql(() -> checkout.cancelOrderByCustomer(1, rollback), "policy failure rolls back cancellation");
+        execute("DROP TRIGGER dbo.fail_customer_policy");
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock,
+                "customer rollback preserves stock");
+        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + rollback
+                + " AND order_status='PACKING' AND payment_status='PAID' AND stock_restored_at IS NULL") == 1,
+                "customer rollback preserves order and payment");
+        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
+                + "ON t.transaction_id=r.transaction_id WHERE t.order_id=" + rollback) == 0,
+                "customer rollback removes refund");
+        check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id=" + rollback) == 0,
+                "customer rollback removes notification");
+
+        int race = cancellationOrder("PACKING", "COD", false);
+        stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
+        parallel(() -> { try { return checkout.cancelOrderByCustomer(1, race); }
+                        catch (IllegalArgumentException shipped) { return false; } },
+                () -> cancellationStaffDAO().transitionStatus(race, "SHIPPING"));
+        boolean cancelled = "CANCELLED".equals(cancellationStaffDAO().getCurrentStatus(race));
+        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + (cancelled ? 2 : 0),
+                "customer cancellation racing shipment keeps stock consistent");
+    }
+
     private void staffCancellationChecks() throws Exception {
         adminOrderProgressChecks();
         OrderCancellationService cancel=new OrderCancellationService(connections);
@@ -560,7 +807,7 @@ public final class CheckoutIntegrationChecks {
             int id=cancellationOrder(state,"COD",false);
             long stock=scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
             check("CANCELLED".equals(cancel.staffCancel(2,id)),"Staff cancels "+state+" without reason or request table");
-            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1")==stock+2,"restore SKU for "+state);
+            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1")==stock+(("CONFIRMED".equals(state)||"PACKING".equals(state))?2:0),"restore only confirmed SKU for "+state);
             check("UNCHANGED".equals(cancel.staffCancel(2,id)),"repeated "+state+" cancellation is idempotent");
             check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY WHERE order_id="+id+" AND status='CANCELLED'")==1,"one committed cancellation history for "+state);
             check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id="+id)==1,"shared DAO sends cancellation once for "+state);

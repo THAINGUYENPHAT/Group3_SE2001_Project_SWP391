@@ -1,3 +1,4 @@
+
 package dao;
 
 import db.DBContext;
@@ -15,32 +16,48 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ReportDAO extends DBContext {
-    private static final Logger LOGGER = Logger.getLogger(ReportDAO.class.getName());
 
-    private static final String COMPLETED_CONDITION = " o.order_status = 'COMPLETED' ";
+    private static final Logger LOGGER =
+            Logger.getLogger(ReportDAO.class.getName());
+
+    private static final String COMPLETED_CONDITION =
+            " o.order_status = 'COMPLETED' ";
+
+    // Loại toàn bộ đơn hàng nếu có yêu cầu RETURN được duyệt.
+    // EXCHANGE, PENDING và REJECTED vẫn được tính.
+    private static final String RETURN_EXCLUSION_CONDITION =
+            " AND NOT EXISTS ("
+            + " SELECT 1 "
+            + " FROM dbo.RETURN_REQUEST rr "
+            + " WHERE rr.order_id = o.order_id "
+            + " AND rr.request_type = 'RETURN' "
+            + " AND rr.request_status = 'APPROVED' "
+            + ") ";
 
     public BigDecimal getTotalRevenueByRange(
             LocalDate startDate, LocalDate endDate) {
+
         String sql = "SELECT ISNULL(SUM(o.total_amount), 0) AS total_revenue "
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND " + COMPLETED_CONDITION;
+                + "AND " + COMPLETED_CONDITION
+                + RETURN_EXCLUSION_CONDITION;
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     BigDecimal result = rs.getBigDecimal("total_revenue");
 
-                    return result != null
-                            ? result : BigDecimal.ZERO;
+                    return result != null ? result : BigDecimal.ZERO;
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE,
-                    "Error getting total revenue", e);
+            LOGGER.log(Level.SEVERE, "Error getting total revenue", e);
         }
 
         return BigDecimal.ZERO;
@@ -48,13 +65,17 @@ public class ReportDAO extends DBContext {
 
     public int getCompletedOrdersByRange(
             LocalDate startDate, LocalDate endDate) {
+
         String sql = "SELECT COUNT(*) AS total_orders "
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND " + COMPLETED_CONDITION;
+                + "AND " + COMPLETED_CONDITION
+                + RETURN_EXCLUSION_CONDITION;
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -63,8 +84,7 @@ public class ReportDAO extends DBContext {
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE,
-                    "Error getting completed orders", e);
+            LOGGER.log(Level.SEVERE, "Error getting completed orders", e);
         }
 
         return 0;
@@ -72,15 +92,19 @@ public class ReportDAO extends DBContext {
 
     public int getTotalProductsSoldByRange(
             LocalDate startDate, LocalDate endDate) {
+
         String sql = "SELECT ISNULL(SUM(oi.quantity), 0) AS total_products "
-                + "FROM ORDER_ITEM oi "
+                + "FROM dbo.ORDER_ITEM oi "
                 + "INNER JOIN dbo.[ORDER] o "
                 + "ON oi.order_id = o.order_id "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND " + COMPLETED_CONDITION;
+                + "AND " + COMPLETED_CONDITION
+                + RETURN_EXCLUSION_CONDITION;
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -89,8 +113,7 @@ public class ReportDAO extends DBContext {
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE,
-                    "Error getting products sold", e);
+            LOGGER.log(Level.SEVERE, "Error getting products sold", e);
         }
 
         return 0;
@@ -98,19 +121,24 @@ public class ReportDAO extends DBContext {
 
     public List<Object[]> getRevenueByDateRange(
             LocalDate startDate, LocalDate endDate) {
+
         List<Object[]> list = new ArrayList<>();
 
-        String sql = "SELECT CAST(o.created_at AS DATE) AS report_date, "
+        String sql = "SELECT "
+                + "CAST(o.created_at AS DATE) AS report_date, "
                 + "SUM(o.total_amount) AS revenue, "
                 + "COUNT(*) AS order_count "
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
                 + "AND " + COMPLETED_CONDITION
-                + " GROUP BY CAST(o.created_at AS DATE) "
+                + RETURN_EXCLUSION_CONDITION
+                + "GROUP BY CAST(o.created_at AS DATE) "
                 + "ORDER BY report_date DESC";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -123,30 +151,40 @@ public class ReportDAO extends DBContext {
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE,
-                    "Error getting revenue by date", e);
+            LOGGER.log(Level.SEVERE, "Error getting revenue by date", e);
         }
 
         return list;
     }
 
-    public static BigDecimal calculateAverageOrderValue(BigDecimal revenue, int completedOrders) {
-        return completedOrders == 0 ? BigDecimal.ZERO
-                : revenue.divide(BigDecimal.valueOf(completedOrders), 2, RoundingMode.HALF_UP);
+    public static BigDecimal calculateAverageOrderValue(
+            BigDecimal revenue, int completedOrders) {
+
+        return completedOrders == 0
+                ? BigDecimal.ZERO
+                : revenue.divide(
+                        BigDecimal.valueOf(completedOrders),
+                        2,
+                        RoundingMode.HALF_UP
+                );
     }
 
     public List<Object[]> getOrderStatusByRange(
             LocalDate startDate, LocalDate endDate) {
+
         List<Object[]> list = new ArrayList<>();
 
         String sql = "SELECT o.order_status, COUNT(*) AS total "
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
+                + RETURN_EXCLUSION_CONDITION
                 + "GROUP BY o.order_status "
                 + "ORDER BY total DESC";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -158,8 +196,7 @@ public class ReportDAO extends DBContext {
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE,
-                    "Error getting order statuses", e);
+            LOGGER.log(Level.SEVERE, "Error getting order statuses", e);
         }
 
         return list;
@@ -167,6 +204,7 @@ public class ReportDAO extends DBContext {
 
     public List<Object[]> getTopSellingProductsByRange(
             LocalDate startDate, LocalDate endDate) {
+
         List<Object[]> list = new ArrayList<>();
 
         String sql = "SELECT TOP 5 "
@@ -181,21 +219,22 @@ public class ReportDAO extends DBContext {
                 + "ON ps.product_id = p.product_id "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND o.order_status = 'COMPLETED' "
+                + "AND " + COMPLETED_CONDITION
+                + RETURN_EXCLUSION_CONDITION
                 + "GROUP BY p.product_id, p.product_name "
                 + "ORDER BY total_sold DESC, p.product_name ASC";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
             setDateRange(ps, startDate, endDate);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Object[] row = new Object[2];
-
-                    row[0] = rs.getString("product_name");
-                    row[1] = rs.getInt("total_sold");
-
-                    list.add(row);
+                    list.add(new Object[]{
+                        rs.getString("product_name"),
+                        rs.getInt("total_sold")
+                    });
                 }
             }
         } catch (SQLException e) {
@@ -210,9 +249,8 @@ public class ReportDAO extends DBContext {
             PreparedStatement ps,
             LocalDate startDate,
             LocalDate endDate) throws SQLException {
-        ps.setDate(1, java.sql.Date.valueOf(startDate));
 
-        ps.setDate(2,
-                java.sql.Date.valueOf(endDate.plusDays(1)));
+        ps.setDate(1, java.sql.Date.valueOf(startDate));
+        ps.setDate(2, java.sql.Date.valueOf(endDate.plusDays(1)));
     }
 }

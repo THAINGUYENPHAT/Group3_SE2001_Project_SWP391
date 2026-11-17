@@ -5,17 +5,14 @@ public class Attribute {
     private int attributeId;
     private String attributeName;
 
-    // Constructor rỗng
     public Attribute() {
     }
 
-    // Constructor đầy đủ tham số (Chính là cái đang bị gọi thiếu trong ProductDAO)
     public Attribute(int attributeId, String attributeName) {
         this.attributeId = attributeId;
         this.attributeName = attributeName;
     }
 
-    // Getters và Setters
     public int getAttributeId() {
         return attributeId;
     }

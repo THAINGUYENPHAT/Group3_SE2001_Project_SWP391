@@ -202,7 +202,7 @@ public class EmailService {
                     + "</a>"
                     + "</p>"
                     + "<p>Liên kết này có hiệu lực "
-                    + "trong 15 phút.</p>"
+                    + "trong 24h.</p>"
                     + "<p>Sau khi thiết lập mật khẩu, "
                     + "bạn có thể đăng nhập vào OECS.</p>";
 

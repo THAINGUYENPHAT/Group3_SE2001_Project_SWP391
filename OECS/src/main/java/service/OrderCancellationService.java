@@ -2,16 +2,13 @@ package service;
 
 import dao.OrderPolicyDAO;
 import dao.NotificationDAO;
+import dao.OrderInventoryDAO;
 import db.CheckoutConnectionFactory;
 import db.DBContext;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 
-/**
- * Cancellation decisions, stock and refund records share the order lock and
- * transaction.
- */
 public class OrderCancellationService {
 
     private final CheckoutConnectionFactory connections;
@@ -24,12 +21,21 @@ public class OrderCancellationService {
         this.connections = connections;
     }
 
-    /**
-     * Staff may cancel before shipment. Repeated cancellation does not restore
-     * stock again.
-     */
     public String staffCancel(int staffId, int orderId) throws SQLException {
-        if (staffId <= 0 || orderId <= 0) {
+        return cancel(staffId, orderId, false);
+    }
+
+    public boolean customerCancel(int userId, int orderId) throws SQLException {
+        return "CANCELLED".equals(cancel(userId, orderId, true));
+    }
+
+    public static boolean canCancel(String status) {
+        return Arrays.asList("PENDING_PAYMENT", "PENDING_CONFIRMATION", "CONFIRMED", "PACKING")
+                .contains(OrderService.normalizeStatus(status));
+    }
+
+    private String cancel(int actorId, int orderId, boolean customer) throws SQLException {
+        if (actorId <= 0 || orderId <= 0) {
             throw new IllegalArgumentException("Thông tin đơn hàng không hợp lệ.");
         }
         try (Connection c = connections.open()) {
@@ -48,6 +54,9 @@ public class OrderCancellationService {
                         owner = r.getInt(1);
                     }
                 }
+                if (customer && owner != actorId) {
+                    throw new IllegalArgumentException("Không tìm thấy đơn hàng.");
+                }
                 new OrderPolicyDAO().lockCustomer(c, owner);
                 String status, payment;
                 boolean timedOut;
@@ -65,8 +74,8 @@ public class OrderCancellationService {
                             c.commit();
                             return "UNCHANGED";
                         }
-                        if (!Arrays.asList("PENDING_PAYMENT", "PENDING_CONFIRMATION", "CONFIRMED", "PACKING").contains(status)) {
-                            throw new IllegalArgumentException("Không thể hủy đơn đang giao hoặc đã hoàn thành.");
+                        if (!canCancel(status)) {
+                            throw new IllegalArgumentException("Chỉ được hủy đơn hàng trước khi vận chuyển.");
                         }
                         if (r.getTimestamp("stock_restored_at") != null) {
                             throw new IllegalArgumentException("Đơn đã hoàn kho.");
@@ -76,9 +85,9 @@ public class OrderCancellationService {
                         timedOut = "PENDING_PAYMENT".equals(status) && !"PAID".equals(payment) && r.getBoolean("timed_out");
                     }
                 }
-                String cancellationReason = timedOut ? "Hết thời hạn thanh toán online" : "Nhân viên hủy đơn hàng";
+                String cancellationReason = timedOut ? "Hết thời hạn thanh toán online"
+                        : customer ? "Khách hàng hủy đơn hàng" : "Nhân viên hủy đơn hàng";
                 boolean refund = false;
-                // Never label a refund successful here. Staff reconcile using the existing refund screen.
                 try (PreparedStatement p = c.prepareStatement("SELECT t.transaction_id,t.amount FROM dbo.PAYMENT_TRANSACTION t WITH (UPDLOCK,HOLDLOCK) "
                         + "WHERE t.order_id=? AND t.status='SUCCESS' AND t.amount>0 ORDER BY t.transaction_id")) {
                     p.setInt(1, orderId);
@@ -98,29 +107,21 @@ public class OrderCancellationService {
                         refund = true;
                     }
                 }
-                List<int[]> items = new ArrayList<>();
-                try (PreparedStatement p = c.prepareStatement("SELECT sku_id,SUM(quantity) FROM dbo.ORDER_ITEM WHERE order_id=? GROUP BY sku_id ORDER BY sku_id")) {
-                    p.setInt(1, orderId);
-                    try (ResultSet r = p.executeQuery()) {
-                        while (r.next()) {
-                            items.add(new int[]{r.getInt(1), r.getInt(2)});
-                        }
-                    }
+                boolean deducted = "CONFIRMED".equals(status) || "PACKING".equals(status);
+                if (deducted) {
+                    new OrderInventoryDAO().restore(c, orderId);
                 }
-                if (items.isEmpty()) {
-                    throw new SQLException("Đơn không có sản phẩm để hoàn kho.");
-                }
-                for (int[] item : items) {
-                    if (item[1] <= 0 || update(c, "UPDATE dbo.PRODUCT_SKU SET stock_quantity=stock_quantity+? WHERE sku_id=?", item[1], item[0]) != 1) {
-                        throw new SQLException("Không hoàn được tồn kho.");
-                    }
-                }
-                update(c, "UPDATE dbo.[ORDER] SET order_status='CANCELLED',stock_restored_at=SYSDATETIME(),payment_expires_at=NULL,"
-                        + "payment_status=? WHERE order_id=?", refund ? "REFUND_PENDING" : payment, orderId);
+                update(c, "UPDATE dbo.[ORDER] SET order_status='CANCELLED',"
+                        + "stock_restored_at=CASE WHEN ?=1 THEN SYSDATETIME() ELSE stock_restored_at END,"
+                        + "payment_expires_at=NULL,payment_status=? WHERE order_id=?",
+                        deducted ? 1 : 0, refund ? "REFUND_PENDING" : payment, orderId);
                 update(c, "UPDATE dbo.PAYMENT_TRANSACTION SET status=? WHERE order_id=? AND status='PENDING'", timedOut ? "EXPIRED" : "CANCELLED", orderId);
                 update(c, "INSERT INTO dbo.ORDER_STATUS_HISTORY(order_id,status) VALUES (?,'CANCELLED')", orderId);
                 if (!NotificationDAO.createOrderStatusNotification(c, orderId, "CANCELLED")) {
                     throw new SQLException("Không tạo được thông báo hủy đơn.");
+                }
+                if (customer) {
+                    new OrderPolicyDAO().recordCancellation(c, owner, orderId);
                 }
                 c.commit();
                 return "CANCELLED";

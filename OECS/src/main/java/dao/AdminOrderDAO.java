@@ -15,6 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class AdminOrderDAO extends DBContext {
+
     private static final Logger LOGGER = Logger.getLogger(AdminOrderDAO.class.getName());
 
     public List<Order> getList() {
@@ -30,17 +31,20 @@ public class AdminOrderDAO extends DBContext {
                 + "o.recipient_name, "
                 + "o.recipient_phone, "
                 + "o.shipping_address, "
-                + "o.order_status "
+                + "o.order_status, "
+                + "o.payment_status "
                 + "FROM dbo.[ORDER] o "
                 + "ORDER BY o.created_at DESC, o.order_id DESC";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
             while (rs.next()) {
-                list.add(mapOrder(rs));
+                Order order = mapOrder(rs);
+                order.setPaymentStatus(rs.getString("payment_status"));
+                list.add(order);
             }
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE,
-                            "Lỗi lấy danh sách Order!", ex);
+                    "Lỗi lấy danh sách Order!", ex);
         }
 
         return list;
@@ -77,7 +81,7 @@ public class AdminOrderDAO extends DBContext {
             }
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE,
-                            "Lỗi lấy Order theo ID!", ex);
+                    "Lỗi lấy Order theo ID!", ex);
         }
 
         return null;
@@ -179,7 +183,7 @@ public class AdminOrderDAO extends DBContext {
             return false;
         }
 
-        String selectSql = "SELECT order_status "
+        String selectSql = "SELECT order_status, payment_method, payment_status, stock_restored_at "
                 + "FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE order_id = ?";
 
@@ -199,6 +203,9 @@ public class AdminOrderDAO extends DBContext {
 
             try {
                 String current;
+                String method;
+                String payment;
+                boolean restored;
 
                 try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                     ps.setInt(1, orderId);
@@ -212,6 +219,9 @@ public class AdminOrderDAO extends DBContext {
                         current = OrderStatusPolicy.normalize(
                                 rs.getString("order_status")
                         );
+                        method = rs.getString("payment_method");
+                        payment = rs.getString("payment_status");
+                        restored = rs.getTimestamp("stock_restored_at") != null;
 
                     }
                 }
@@ -219,6 +229,16 @@ public class AdminOrderDAO extends DBContext {
                 if (!next.equals(OrderStatusPolicy.nextStatus(current))) {
                     conn.rollback();
                     return false;
+                }
+
+                if ("CONFIRMED".equals(next)) {
+                    if (restored) {
+                        throw new IllegalArgumentException("Đơn đã hoàn kho, cần kiểm tra lại trước khi xác nhận.");
+                    }
+                    if (!"COD".equalsIgnoreCase(method) && !"PAID".equalsIgnoreCase(payment)) {
+                        throw new IllegalArgumentException("Đơn thanh toán online cần thanh toán thành công trước khi xác nhận.");
+                    }
+                    new OrderInventoryDAO().deduct(conn, orderId);
                 }
 
                 try (PreparedStatement ps = conn.prepareStatement(updateSql)) {

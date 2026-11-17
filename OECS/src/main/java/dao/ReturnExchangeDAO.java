@@ -43,7 +43,9 @@ public class ReturnExchangeDAO {
                 + "WHERE o.order_id = ? AND o.user_id = ? "
                 + "AND UPPER(LTRIM(RTRIM(o.order_status))) "
                 + "IN ('COMPLETED', 'DELIVERED') "
-                // Không cho gửi nếu đã có yêu cầu PENDING hoặc APPROVED.
+                + "AND o.delivered_at IS NOT NULL "
+                + "AND o.delivered_at >= DATEADD(DAY, -7, SYSDATETIME()) "
+                + "AND o.delivered_at <= SYSDATETIME() "
                 + "AND NOT EXISTS ( "
                 + "    SELECT 1 FROM dbo.RETURN_REQUEST r "
                 + "    WHERE r.order_id = o.order_id "
@@ -51,7 +53,6 @@ public class ReturnExchangeDAO {
                 + "    AND UPPER(LTRIM(RTRIM(r.request_status))) "
                 + "    IN ('PENDING', 'APPROVED') "
                 + ") "
-                // Không cho gửi nếu đã bị từ chối từ 2 lần trở lên.
                 + "AND ( "
                 + "    SELECT COUNT(*) FROM dbo.RETURN_REQUEST r "
                 + "    WHERE r.order_id = o.order_id "
@@ -174,7 +175,10 @@ public class ReturnExchangeDAO {
                 = "SELECT order_id FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE order_id = ? AND user_id = ? "
                 + "AND UPPER(LTRIM(RTRIM(order_status))) "
-                + "IN ('COMPLETED', 'DELIVERED')";
+                + "IN ('COMPLETED', 'DELIVERED') "
+                + "AND delivered_at IS NOT NULL "
+                + "AND delivered_at >= DATEADD(DAY, -7, SYSDATETIME()) "
+                + "AND delivered_at <= SYSDATETIME()";
 
         String itemSql
                 = "SELECT oi.quantity, oi.sku_id, original.product_id "
@@ -218,7 +222,6 @@ public class ReturnExchangeDAO {
                     }
                 }
 
-                // Kiểm tra lịch sử yêu cầu trả/đổi của đơn hàng.
                 String requestLimitSql
                         = "SELECT "
                         + "COUNT(CASE WHEN UPPER(LTRIM(RTRIM(request_status))) "
@@ -421,7 +424,7 @@ public class ReturnExchangeDAO {
 
         String sql
                 = "SELECT r.request_id, r.order_id, r.user_id, "
-                + "u.username, r.request_type, r.reason, "
+                + "u.username, u.phone, r.request_type, r.reason, "
                 + "r.request_status, r.created_at, "
                 + "r.reviewed_at, r.staff_note "
                 + "FROM dbo.RETURN_REQUEST r "
@@ -437,6 +440,7 @@ public class ReturnExchangeDAO {
                 item.put("orderId", rs.getInt("order_id"));
                 item.put("userId", rs.getInt("user_id"));
                 item.put("username", rs.getString("username"));
+                item.put("phone", rs.getString("phone"));
                 item.put("requestType", rs.getString("request_type"));
                 item.put("reason", rs.getString("reason"));
                 item.put("requestStatus", rs.getString("request_status"));

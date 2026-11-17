@@ -1,7 +1,8 @@
+
 package controller;
 
-import dao.StaffReviewDAO;
 import dao.ReviewReportDAO;
+import dao.StaffReviewDAO;
 import model.User;
 
 import jakarta.servlet.ServletException;
@@ -13,14 +14,17 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 @WebServlet(name = "StaffReviewServlet", urlPatterns = {"/staff/reviews"})
 public class StaffReviewServlet extends HttpServlet {
 
     private User getStaff(HttpServletRequest request,
-                          HttpServletResponse response)
-            throws IOException {
+            HttpServletResponse response) throws IOException {
 
         HttpSession session = request.getSession(false);
 
@@ -58,53 +62,130 @@ public class StaffReviewServlet extends HttpServlet {
             return false;
         }
 
-        String expected =
-                (String) session.getAttribute("reviewCsrfToken");
+        String expected = (String) session.getAttribute("reviewCsrfToken");
         String actual = request.getParameter("csrfToken");
 
         return expected != null && expected.equals(actual);
     }
 
+    private String reviewFilter(String raw) {
+        if (raw == null) {
+            return "all";
+        }
+
+        String value = raw.trim().toLowerCase(Locale.ROOT);
+
+        return "visible".equals(value) || "hidden".equals(value)
+                ? value : "all";
+    }
+
+    private String reportFilter(String raw) {
+        if (raw == null) {
+            return "all";
+        }
+
+        String value = raw.trim().toLowerCase(Locale.ROOT);
+
+        return "pending".equals(value)
+                || "resolved".equals(value)
+                || "rejected".equals(value)
+                ? value : "all";
+    }
+
     @Override
     protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
+            HttpServletResponse response)
             throws ServletException, IOException {
 
-        User user = getStaff(request, response);
-
-        if (user == null) {
+        if (getStaff(request, response) == null) {
             return;
         }
 
-        HttpSession session = request.getSession();
-        ensureToken(session);
+        ensureToken(request.getSession());
+
+        String reviewStatus =
+                reviewFilter(request.getParameter("reviewStatus"));
+
+        String reportStatus =
+                reportFilter(request.getParameter("reportStatus"));
 
         try {
-            StaffReviewDAO reviewDAO = new StaffReviewDAO();
-            ReviewReportDAO reportDAO = new ReviewReportDAO();
+            List<Map<String, Object>> allReviews =
+                    new StaffReviewDAO().getAllReviewsForStaff();
 
-            request.setAttribute(
-                    "reviews", reviewDAO.getAllReviewsForStaff()
-            );
+            List<Map<String, Object>> allReports =
+                    new ReviewReportDAO().getAllReports();
 
-            request.setAttribute(
-                    "reports", reportDAO.getAllReports()
-            );
+            List<Map<String, Object>> filteredReviews = new ArrayList<>();
+            List<Map<String, Object>> filteredReports = new ArrayList<>();
 
-            request.getRequestDispatcher(
-                    "/WEB-INF/review/staff-list.jsp"
-            ).forward(request, response);
+            int visibleCount = 0;
+            int hiddenCount = 0;
+
+            for (Map<String, Object> review : allReviews) {
+                boolean hidden =
+                        Boolean.TRUE.equals(review.get("isHidden"));
+
+                if (hidden) {
+                    hiddenCount++;
+                } else {
+                    visibleCount++;
+                }
+
+                if ("all".equals(reviewStatus)
+                        || (hidden && "hidden".equals(reviewStatus))
+                        || (!hidden && "visible".equals(reviewStatus))) {
+                    filteredReviews.add(review);
+                }
+            }
+
+            int pendingCount = 0;
+            int resolvedCount = 0;
+            int rejectedCount = 0;
+
+            for (Map<String, Object> report : allReports) {
+                String status = String.valueOf(report.get("status"));
+
+                if ("PENDING".equals(status)) {
+                    pendingCount++;
+                } else if ("RESOLVED".equals(status)) {
+                    resolvedCount++;
+                } else if ("REJECTED".equals(status)) {
+                    rejectedCount++;
+                }
+
+                if ("all".equals(reportStatus)
+                        || reportStatus.equalsIgnoreCase(status)) {
+                    filteredReports.add(report);
+                }
+            }
+
+            request.setAttribute("reviews", filteredReviews);
+            request.setAttribute("reports", filteredReports);
+
+            request.setAttribute("allReviewCount", allReviews.size());
+            request.setAttribute("visibleReviewCount", visibleCount);
+            request.setAttribute("hiddenReviewCount", hiddenCount);
+
+            request.setAttribute("allReportCount", allReports.size());
+            request.setAttribute("pendingReportCount", pendingCount);
+            request.setAttribute("resolvedReportCount", resolvedCount);
+            request.setAttribute("rejectedReportCount", rejectedCount);
+
+            request.setAttribute("reviewStatusFilter", reviewStatus);
+            request.setAttribute("reportStatusFilter", reportStatus);
+
+            request.getRequestDispatcher("/WEB-INF/review/staff-list.jsp")
+                    .forward(request, response);
 
         } catch (SQLException e) {
-            throw new ServletException(
-                    "Không thể tải dữ liệu đánh giá.", e
-            );
+            throw new ServletException("Không thể tải dữ liệu đánh giá.", e);
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         User user = getStaff(request, response);
@@ -114,53 +195,76 @@ public class StaffReviewServlet extends HttpServlet {
         }
 
         if (!validToken(request)) {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN,
+            response.sendError(
+                    HttpServletResponse.SC_FORBIDDEN,
                     "Phiên làm việc không hợp lệ. Vui lòng tải lại trang.");
             return;
         }
 
         String action = request.getParameter("action");
+        boolean success;
 
         try {
             if ("visibility".equals(action)) {
-                int reviewId = Integer.parseInt(
-                        request.getParameter("reviewId")
-                );
+                int reviewId =
+                        Integer.parseInt(request.getParameter("reviewId"));
 
-                boolean hidden = Boolean.parseBoolean(
-                        request.getParameter("hidden")
-                );
+                String hiddenParam = request.getParameter("hidden");
 
-                new StaffReviewDAO().setReviewHidden(reviewId, hidden);
+                if (!"true".equals(hiddenParam)
+                        && !"false".equals(hiddenParam)) {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+                }
+
+                success = new StaffReviewDAO().setReviewHidden(
+                        reviewId,
+                        Boolean.parseBoolean(hiddenParam));
 
             } else if ("resolveReport".equals(action)) {
-                int reportId = Integer.parseInt(
-                        request.getParameter("reportId")
-                );
+                int reportId =
+                        Integer.parseInt(request.getParameter("reportId"));
 
                 String decision = request.getParameter("decision");
 
-                new ReviewReportDAO().resolveReport(
-                        reportId, user.getUserId(), decision
-                );
+                if (!"HIDE".equals(decision)
+                        && !"DISMISS".equals(decision)) {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+                }
+
+                success = new ReviewReportDAO().resolveReport(
+                        reportId,
+                        user.getUserId(),
+                        decision);
 
             } else {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
                 return;
             }
 
-            response.sendRedirect(
-                    request.getContextPath() + "/staff/reviews"
-            );
+            request.getSession().setAttribute(
+                    success ? "successMessage" : "errorMessage",
+                    success
+                            ? "Thao tác kiểm duyệt thành công."
+                            : "Không thể thực hiện thao tác; dữ liệu có thể đã thay đổi.");
+
+            String url = request.getContextPath()
+                    + "/staff/reviews?reviewStatus="
+                    + reviewFilter(request.getParameter("reviewStatus"))
+                    + "&reportStatus="
+                    + reportFilter(request.getParameter("reportStatus"));
+
+            response.sendRedirect(url);
 
         } catch (NumberFormatException e) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+            response.sendError(
+                    HttpServletResponse.SC_BAD_REQUEST,
                     "ID không hợp lệ.");
 
         } catch (SQLException e) {
             throw new ServletException(
-                    "Không thể cập nhật đánh giá hoặc báo cáo.", e
-            );
+                    "Không thể cập nhật đánh giá hoặc báo cáo.", e);
         }
     }
 }

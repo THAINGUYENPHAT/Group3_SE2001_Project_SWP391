@@ -44,7 +44,7 @@
                             data-remaining-ms="${empty order.paymentExpiresAt ? '' : order.paymentExpiresAt.time - paymentClock.time}">--:--</strong>
                 </div>
             </div>
-            <p class="payment-reservation">Sản phẩm được giữ trong 15 phút từ lúc đặt đơn. Thử lại không gia hạn thời gian giữ hàng.</p>
+            <p class="payment-reservation">Vui lòng thanh toán trong 15 phút từ lúc đặt đơn. Thử lại không gia hạn thanh toán. Tồn kho được kiểm tra và trừ khi nhân viên xác nhận.</p>
         </section>
         <section class="payment-panel payment-actions" aria-labelledby="payment-action-title">
             <span class="payment-step">BƯỚC TIẾP THEO</span>
@@ -54,7 +54,7 @@
                 <div class="alert alert-warning" role="alert"><c:out value="${sessionScope.paymentError}"/></div>
                 <c:remove var="paymentError" scope="session"/>
             </c:if>
-            <p id="payment-expired-message" class="alert alert-warning" role="status" hidden>Thời gian giữ hàng đã hết. Vui lòng xem trạng thái đơn hàng trước khi đặt lại.</p>
+            <p id="payment-expired-message" class="alert alert-warning" role="status" hidden>Thời hạn thanh toán đã hết. Vui lòng xem trạng thái đơn hàng trước khi đặt lại.</p>
             <form method="post" action="${pageContext.request.contextPath}/payment/action">
                 <input type="hidden" name="id" value="${order.orderId}">
                 <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.paymentCsrf}'/>">
