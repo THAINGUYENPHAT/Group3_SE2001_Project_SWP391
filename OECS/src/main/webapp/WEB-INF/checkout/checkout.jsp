@@ -769,7 +769,7 @@
                         ${vnpayAvailable ? '' : 'disabled'}>
 
                     <span class="fw-semibold ms-2">
-                        VNPay — Thử nghiệm
+                        VNPay
                     </span>
 
                     <div class="text-muted small ms-4 mt-1">
