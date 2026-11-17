@@ -43,6 +43,10 @@ public class ReturnExchangeDAO {
                 + "WHERE o.order_id = ? AND o.user_id = ? "
                 + "AND UPPER(LTRIM(RTRIM(o.order_status))) "
                 + "IN ('COMPLETED', 'DELIVERED') "
+                // Chỉ cho phép yêu cầu trong vòng 7 ngày kể từ khi giao thành công.
+                + "AND o.delivered_at IS NOT NULL "
+                + "AND o.delivered_at >= DATEADD(DAY, -7, SYSDATETIME()) "
+                + "AND o.delivered_at <= SYSDATETIME() "
                 // Không cho gửi nếu đã có yêu cầu PENDING hoặc APPROVED.
                 + "AND NOT EXISTS ( "
                 + "    SELECT 1 FROM dbo.RETURN_REQUEST r "
@@ -174,7 +178,10 @@ public class ReturnExchangeDAO {
                 = "SELECT order_id FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE order_id = ? AND user_id = ? "
                 + "AND UPPER(LTRIM(RTRIM(order_status))) "
-                + "IN ('COMPLETED', 'DELIVERED')";
+                + "IN ('COMPLETED', 'DELIVERED') "
+                + "AND delivered_at IS NOT NULL "
+                + "AND delivered_at >= DATEADD(DAY, -7, SYSDATETIME()) "
+                + "AND delivered_at <= SYSDATETIME()";
 
         String itemSql
                 = "SELECT oi.quantity, oi.sku_id, original.product_id "
@@ -420,14 +427,14 @@ public class ReturnExchangeDAO {
         List<Map<String, Object>> requests = new ArrayList<>();
 
         String sql
-            = "SELECT r.request_id, r.order_id, r.user_id, "
-            + "u.username, u.phone, r.request_type, r.reason, "
-            + "r.request_status, r.created_at, "
-            + "r.reviewed_at, r.staff_note "
-            + "FROM dbo.RETURN_REQUEST r "
-            + "JOIN dbo.[USER] u ON u.user_id = r.user_id "
-            + "ORDER BY CASE WHEN r.request_status = 'PENDING' "
-            + "THEN 0 ELSE 1 END, r.created_at DESC";
+                = "SELECT r.request_id, r.order_id, r.user_id, "
+                + "u.username, u.phone, r.request_type, r.reason, "
+                + "r.request_status, r.created_at, "
+                + "r.reviewed_at, r.staff_note "
+                + "FROM dbo.RETURN_REQUEST r "
+                + "JOIN dbo.[USER] u ON u.user_id = r.user_id "
+                + "ORDER BY CASE WHEN r.request_status = 'PENDING' "
+                + "THEN 0 ELSE 1 END, r.created_at DESC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
