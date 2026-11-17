@@ -99,7 +99,7 @@ public final class CheckoutIntegrationChecks {
         byte[] bytes = Files.readAllBytes(file);
         String schema = new String(bytes, bytes.length > 1 && bytes[0] == (byte) 0xff
                 && bytes[1] == (byte) 0xfe ? StandardCharsets.UTF_16LE : StandardCharsets.UTF_8);
-        String[] tables = {"USER", "ADDRESSBOOK", "CATEGORY", "BRAND", "PRODUCT", "PRODUCT_SKU",
+        String[] tables = {"ROLES", "USER", "ADDRESSBOOK", "CATEGORY", "BRAND", "PRODUCT", "PRODUCT_SKU",
             "CART", "CART_ITEMS", "VOUCHER", "ORDER", "ORDER_ITEM", "ORDER_STATUS_HISTORY",
             "VOUCHER_USAGES", "ORDER_CUSTOMER_POLICY", "PAYMENT_TRANSACTION",
             "PAYMENT_REFUND", "NOTIFICATION", "AUDIT_LOG"};
@@ -115,14 +115,56 @@ public final class CheckoutIntegrationChecks {
     }
 
     private void seed() throws SQLException {
-        execute("INSERT INTO dbo.[USER](username,email,password_hash) VALUES ('checkout-test','test@example.invalid','test'),('other-test','other@example.invalid','test')");
-        execute("INSERT INTO dbo.ADDRESSBOOK(user_id,recipient_name,phone_number,address_line) VALUES (1,N'Người nhận','0901234567',N'Địa chỉ đã đặt'),(1,N'Địa chỉ 2','0901234568',N'Địa chỉ thứ hai'),(2,N'Khách khác','0901234569',N'Địa chỉ khác')");
+
+        execute(
+                "INSERT INTO dbo.ROLES (role_name, description) VALUES "
+                + "(N'ADMIN', N'Quản trị viên hệ thống'), "
+                + "(N'STAFF', N'Nhân viên'), "
+                + "(N'CUSTOMER', N'Khách hàng')"
+        );
+
+        execute(
+                "INSERT INTO dbo.[USER] "
+                + "(username, email, password_hash, role_id) "
+                + "SELECT v.username, v.email, v.password_hash, r.role_id "
+                + "FROM (VALUES "
+                + "('checkout-test', 'test@example.invalid', 'test'), "
+                + "('other-test', 'other@example.invalid', 'test') "
+                + ") AS v(username, email, password_hash) "
+                + "CROSS JOIN dbo.ROLES r "
+                + "WHERE r.role_name = N'CUSTOMER'"
+        );
+
+        execute(
+                "INSERT INTO dbo.ADDRESSBOOK "
+                + "(user_id, recipient_name, phone_number, address_line) VALUES "
+                + "(1, N'Người nhận', '0901234567', N'Địa chỉ đã đặt'), "
+                + "(1, N'Địa chỉ 2', '0901234568', N'Địa chỉ thứ hai'), "
+                + "(2, N'Khách khác', '0901234569', N'Địa chỉ khác')"
+        );
+
         execute("INSERT INTO dbo.CATEGORY(category_name) VALUES ('test')");
         execute("INSERT INTO dbo.BRAND(brand_name) VALUES ('test')");
-        execute("INSERT INTO dbo.PRODUCT(category_id,brand_id,product_name) VALUES (1,1,N'Sản phẩm kiểm thử')");
-        execute("INSERT INTO dbo.PRODUCT_SKU(product_id,sku_code,price,stock_quantity) VALUES (1,'TEST-SKU',100000,20)");
-        execute("INSERT INTO dbo.CART(user_id) VALUES (1),(2)");
-        execute("INSERT INTO dbo.VOUCHER(code,valid_from,valid_to,discount_type,discount_value,usage_limit,per_user_limit) VALUES ('TEST10',DATEADD(day,-1,GETDATE()),DATEADD(day,1,GETDATE()),'AMOUNT',10000,10,10)");
+
+        execute(
+                "INSERT INTO dbo.PRODUCT(category_id, brand_id, product_name) "
+                + "VALUES (1, 1, N'Sản phẩm kiểm thử')"
+        );
+
+        execute(
+                "INSERT INTO dbo.PRODUCT_SKU "
+                + "(product_id, sku_code, price, stock_quantity) "
+                + "VALUES (1, 'TEST-SKU', 100000, 20)"
+        );
+
+        execute("INSERT INTO dbo.CART(user_id) VALUES (1), (2)");
+
+        execute(
+                "INSERT INTO dbo.VOUCHER "
+                + "(code, valid_from, valid_to, discount_type, discount_value, usage_limit, per_user_limit) "
+                + "VALUES ('TEST10', DATEADD(day,-1,GETDATE()), "
+                + "DATEADD(day,1,GETDATE()), 'AMOUNT', 10000, 10, 10)"
+        );
     }
 
     private void rememberAddress() throws Exception {
@@ -347,7 +389,13 @@ public final class CheckoutIntegrationChecks {
     }
 
     private void cancellationPolicyChecks() throws Exception {
-        execute("INSERT INTO dbo.[USER](username,email,password_hash) VALUES ('policy-test','policy@example.invalid','test')");
+        execute(
+                "INSERT INTO dbo.[USER] "
+                + "(username, email, password_hash, role_id) "
+                + "SELECT 'policy-test', 'policy@example.invalid', 'test', role_id "
+                + "FROM dbo.ROLES "
+                + "WHERE role_name = N'CUSTOMER'"
+        );
         policyUser = (int) scalar("SELECT user_id FROM dbo.[USER] WHERE username='policy-test'");
         execute("INSERT INTO dbo.ADDRESSBOOK(user_id,recipient_name,phone_number,address_line) VALUES (" + policyUser + ",N'Policy','0901234567',N'Test')");
         policyAddress = (int) scalar("SELECT address_id FROM dbo.ADDRESSBOOK WHERE user_id=" + policyUser);
