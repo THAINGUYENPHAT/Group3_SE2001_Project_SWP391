@@ -43,11 +43,9 @@ public class ReturnExchangeDAO {
                 + "WHERE o.order_id = ? AND o.user_id = ? "
                 + "AND UPPER(LTRIM(RTRIM(o.order_status))) "
                 + "IN ('COMPLETED', 'DELIVERED') "
-                // Chỉ cho phép yêu cầu trong vòng 7 ngày kể từ khi giao thành công.
                 + "AND o.delivered_at IS NOT NULL "
                 + "AND o.delivered_at >= DATEADD(DAY, -7, SYSDATETIME()) "
                 + "AND o.delivered_at <= SYSDATETIME() "
-                // Không cho gửi nếu đã có yêu cầu PENDING hoặc APPROVED.
                 + "AND NOT EXISTS ( "
                 + "    SELECT 1 FROM dbo.RETURN_REQUEST r "
                 + "    WHERE r.order_id = o.order_id "
@@ -55,7 +53,6 @@ public class ReturnExchangeDAO {
                 + "    AND UPPER(LTRIM(RTRIM(r.request_status))) "
                 + "    IN ('PENDING', 'APPROVED') "
                 + ") "
-                // Không cho gửi nếu đã bị từ chối từ 2 lần trở lên.
                 + "AND ( "
                 + "    SELECT COUNT(*) FROM dbo.RETURN_REQUEST r "
                 + "    WHERE r.order_id = o.order_id "
@@ -225,7 +222,6 @@ public class ReturnExchangeDAO {
                     }
                 }
 
-                // Kiểm tra lịch sử yêu cầu trả/đổi của đơn hàng.
                 String requestLimitSql
                         = "SELECT "
                         + "COUNT(CASE WHEN UPPER(LTRIM(RTRIM(request_status))) "
