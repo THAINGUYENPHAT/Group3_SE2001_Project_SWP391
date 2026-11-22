@@ -6,13 +6,29 @@ public class Brand {
     private String brandName;
     private String logoUrl;
 
+    private boolean active = true;
+
     public Brand() {
     }
 
-    public Brand(int brandId, String brandName, String logoUrl) {
+    public Brand(int brandId,
+            String brandName,
+            String logoUrl) {
+
         this.brandId = brandId;
         this.brandName = brandName;
         this.logoUrl = logoUrl;
+    }
+
+    public Brand(int brandId,
+            String brandName,
+            String logoUrl,
+            boolean active) {
+
+        this.brandId = brandId;
+        this.brandName = brandName;
+        this.logoUrl = logoUrl;
+        this.active = active;
     }
 
     public int getBrandId() {
@@ -37,5 +53,21 @@ public class Brand {
 
     public void setLogoUrl(String logoUrl) {
         this.logoUrl = logoUrl;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public boolean getIsActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public void setIsActive(boolean active) {
+        this.active = active;
     }
 }

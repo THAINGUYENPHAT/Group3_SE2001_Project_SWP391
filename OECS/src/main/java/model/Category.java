@@ -6,13 +6,32 @@ public class Category {
     private String categoryName;
     private Integer parentId;
 
+    private String description;
+    private boolean active = true;
+
     public Category() {
     }
 
-    public Category(int categoryId, String categoryName, Integer parentId) {
+    public Category(int categoryId,
+            String categoryName,
+            Integer parentId) {
+
         this.categoryId = categoryId;
         this.categoryName = categoryName;
         this.parentId = parentId;
+    }
+
+    public Category(int categoryId,
+            String categoryName,
+            Integer parentId,
+            String description,
+            boolean active) {
+
+        this.categoryId = categoryId;
+        this.categoryName = categoryName;
+        this.parentId = parentId;
+        this.description = description;
+        this.active = active;
     }
 
     public int getCategoryId() {
@@ -37,5 +56,29 @@ public class Category {
 
     public void setParentId(Integer parentId) {
         this.parentId = parentId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public boolean getIsActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public void setIsActive(boolean active) {
+        this.active = active;
     }
 }
