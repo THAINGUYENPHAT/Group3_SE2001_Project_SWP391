@@ -111,16 +111,33 @@ public class OrderCancellationService {
                 if (deducted) {
                     new OrderInventoryDAO().restore(c, orderId);
                 }
-                update(c, "UPDATE dbo.[ORDER] SET order_status='CANCELLED',"
-                        + "stock_restored_at=CASE WHEN ?=1 THEN SYSDATETIME() ELSE stock_restored_at END,"
-                        + "payment_expires_at=NULL,payment_status=? WHERE order_id=?",
-                        deducted ? 1 : 0, refund ? "REFUND_PENDING" : payment, orderId);
+                String cancellationSource = timedOut
+                        ? "SYSTEM"
+                        : customer ? "CUSTOMER" : "STAFF";
+
+                update(c, "UPDATE dbo.[ORDER] SET "
+                        + "order_status='CANCELLED', "
+                        + "cancellation_source=CASE WHEN ?='CUSTOMER' "
+                        + "THEN NULL ELSE ? END, "
+                        + "cancelled_at=CASE WHEN ?='CUSTOMER' "
+                        + "THEN NULL ELSE SYSUTCDATETIME() END, "
+                        + "stock_restored_at=CASE WHEN ?=1 "
+                        + "THEN SYSDATETIME() ELSE stock_restored_at END, "
+                        + "payment_expires_at=NULL, "
+                        + "payment_status=? "
+                        + "WHERE order_id=?",
+                        cancellationSource,
+                        cancellationSource,
+                        cancellationSource,
+                        deducted ? 1 : 0,
+                        refund ? "REFUND_PENDING" : payment,
+                        orderId);
                 update(c, "UPDATE dbo.PAYMENT_TRANSACTION SET status=? WHERE order_id=? AND status='PENDING'", timedOut ? "EXPIRED" : "CANCELLED", orderId);
                 update(c, "INSERT INTO dbo.ORDER_STATUS_HISTORY(order_id,status) VALUES (?,'CANCELLED')", orderId);
                 if (!NotificationDAO.createOrderStatusNotification(c, orderId, "CANCELLED")) {
                     throw new SQLException("Không tạo được thông báo hủy đơn.");
                 }
-                if (customer) {
+                if (customer && !timedOut) {
                     new OrderPolicyDAO().recordCancellation(c, owner, orderId);
                 }
                 c.commit();

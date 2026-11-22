@@ -26,12 +26,10 @@ public class UserDAO extends DBContext {
         String sql
                 = "SELECT u.user_id, u.username, u.email, u.password_hash, "
                 + "u.phone, u.created_at, u.is_active, "
-                + "ISNULL(ur.role_id, 0) AS role_id, "
-                + "r.role_name, "
+                + "u.role_id, r.role_name, "
                 + "a.address_line AS default_address "
                 + "FROM [USER] u "
-                + "LEFT JOIN USER_ROLES ur ON u.user_id = ur.user_id "
-                + "LEFT JOIN ROLES r ON ur.role_id = r.role_id "
+                + "LEFT JOIN ROLES r ON u.role_id = r.role_id "
                 + "LEFT JOIN ADDRESSBOOK a "
                 + "ON u.user_id = a.user_id AND a.is_default = 1 "
                 + "WHERE (u.username = ? OR u.email = ?) "
@@ -110,8 +108,10 @@ public class UserDAO extends DBContext {
 
         String sql
                 = "INSERT INTO [USER] "
-                + "(username, email, password_hash, phone) "
-                + "VALUES (?, ?, ?, ?)";
+                + "(username, email, password_hash, phone, role_id) "
+                + "SELECT ?, ?, ?, ?, role_id "
+                + "FROM ROLES "
+                + "WHERE role_name = N'CUSTOMER'";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -120,12 +120,7 @@ public class UserDAO extends DBContext {
             ps.setString(3, hashMd5(password));
             ps.setString(4, phone);
 
-            int rowsAffected = ps.executeUpdate();
-
-            if (rowsAffected > 0) {
-                assignDefaultRole(username);
-                return true;
-            }
+            return ps.executeUpdate() > 0;
 
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE,
@@ -169,11 +164,10 @@ public class UserDAO extends DBContext {
                 + "u.phone, "
                 + "u.is_active, "
                 + "u.created_at, "
-                + "r.role_id, "
+                + "u.role_id, "
                 + "r.role_name "
                 + "FROM [USER] u "
-                + "LEFT JOIN USER_ROLES ur ON u.user_id = ur.user_id "
-                + "LEFT JOIN ROLES r ON ur.role_id = r.role_id "
+                + "LEFT JOIN ROLES r ON u.role_id = r.role_id "
                 + "WHERE 1 = 1 "
         );
 
@@ -272,13 +266,9 @@ public class UserDAO extends DBContext {
         String sql
                 = "SELECT u.user_id, u.username, u.email, "
                 + "u.password_hash, u.phone, u.created_at, u.is_active, "
-                + "ISNULL(ur.role_id, 0) AS role_id, "
-                + "r.role_name "
+                + "u.role_id, r.role_name "
                 + "FROM [USER] u "
-                + "LEFT JOIN USER_ROLES ur "
-                + "ON u.user_id = ur.user_id "
-                + "LEFT JOIN ROLES r "
-                + "ON ur.role_id = r.role_id "
+                + "LEFT JOIN ROLES r ON u.role_id = r.role_id "
                 + "WHERE u.user_id = ?";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -289,14 +279,6 @@ public class UserDAO extends DBContext {
 
                 if (rs.next()) {
 
-                    int roleId = rs.getInt("role_id");
-                    String roleName = rs.getString("role_name");
-                    boolean active = rs.getBoolean("is_active");
-
-                    if (roleId == 0 || roleName == null) {
-                        roleName = "NO_ROLE";
-                    }
-
                     return new User(
                             rs.getInt("user_id"),
                             rs.getString("username"),
@@ -304,19 +286,16 @@ public class UserDAO extends DBContext {
                             rs.getString("password_hash"),
                             rs.getString("phone"),
                             rs.getTimestamp("created_at"),
-                            roleId,
-                            roleName,
-                            active
+                            rs.getInt("role_id"),
+                            rs.getString("role_name"),
+                            rs.getBoolean("is_active")
                     );
                 }
             }
 
         } catch (SQLException ex) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi lấy user theo ID!",
-                    ex
-            );
+            LOGGER.log(Level.SEVERE,
+                    "Lỗi lấy user theo ID!", ex);
         }
 
         return null;
@@ -351,83 +330,24 @@ public class UserDAO extends DBContext {
 
     public boolean createUser(User user, String rawPassword) {
 
-        String userSql
+        String sql
                 = "INSERT INTO [USER] "
-                + "(username, email, password_hash, phone) "
-                + "VALUES (?, ?, ?, ?)";
+                + "(username, email, password_hash, phone, role_id) "
+                + "VALUES (?, ?, ?, ?, ?)";
 
-        String roleSql
-                = "INSERT INTO USER_ROLES "
-                + "(user_id, role_id) "
-                + "VALUES (?, ?)";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
-        Connection conn = null;
+            ps.setString(1, user.getUsername());
+            ps.setString(2, user.getEmail());
+            ps.setString(3, hashMd5(rawPassword));
+            ps.setString(4, user.getPhone());
+            ps.setInt(5, user.getRoleId());
 
-        try {
-            conn = getConnection();
-            conn.setAutoCommit(false);
-
-            int userId;
-
-            try (PreparedStatement ps
-                    = conn.prepareStatement(
-                            userSql,
-                            Statement.RETURN_GENERATED_KEYS)) {
-
-                ps.setString(1, user.getUsername());
-                ps.setString(2, user.getEmail());
-                ps.setString(3, hashMd5(rawPassword));
-                ps.setString(4, user.getPhone());
-
-                ps.executeUpdate();
-
-                try (ResultSet rs = ps.getGeneratedKeys()) {
-
-                    if (!rs.next()) {
-                        conn.rollback();
-                        return false;
-                    }
-
-                    userId = rs.getInt(1);
-                }
-            }
-
-            try (PreparedStatement ps
-                    = conn.prepareStatement(roleSql)) {
-
-                ps.setInt(1, userId);
-                ps.setInt(2, user.getRoleId());
-                ps.executeUpdate();
-            }
-
-            conn.commit();
-            return true;
+            return ps.executeUpdate() > 0;
 
         } catch (SQLException ex) {
-
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException rollbackEx) {
-                    LOGGER.log(Level.SEVERE,
-                            "Rollback lỗi!", rollbackEx);
-                }
-            }
-
             LOGGER.log(Level.SEVERE,
                     "Lỗi tạo user!", ex);
-
-        } finally {
-
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                    conn.close();
-                } catch (SQLException ex) {
-                    LOGGER.log(Level.SEVERE,
-                            "Lỗi đóng connection!", ex);
-                }
-            }
         }
 
         return false;
@@ -622,12 +542,9 @@ public class UserDAO extends DBContext {
         String sql
                 = "SELECT u.user_id, u.username, u.email, "
                 + "u.password_hash, u.phone, u.created_at, "
-                + "u.is_active, r.role_id, r.role_name "
+                + "u.is_active, u.role_id, r.role_name "
                 + "FROM [USER] u "
-                + "LEFT JOIN USER_ROLES ur "
-                + "ON u.user_id = ur.user_id "
-                + "LEFT JOIN ROLES r "
-                + "ON ur.role_id = r.role_id "
+                + "LEFT JOIN ROLES r ON u.role_id = r.role_id "
                 + "WHERE u.email = ?";
 
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
