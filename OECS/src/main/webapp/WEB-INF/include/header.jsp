@@ -474,7 +474,7 @@
 
                         <c:choose>
 
-                            
+
                             <c:when test="${sessionScope.loggedInUser.staff
                                             or sessionScope.loggedInUser.admin}">
 
@@ -593,6 +593,13 @@
                                                     </a>
                                                 </li>
 
+                                                <li>
+                                                    <a class="dropdown-item rounded-2 py-2"
+                                                       href="${pageContext.request.contextPath}/inventory">
+                                                        <i class="bi bi-box-seam text-blue me-2"></i>
+                                                        Quản lý Tồn Kho
+                                                    </a>
+                                                </li>
                                                 <li>
                                                     <a class="dropdown-item rounded-2 py-2"
                                                        href="${pageContext.request.contextPath}/category">

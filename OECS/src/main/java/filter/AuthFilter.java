@@ -60,13 +60,16 @@ public class AuthFilter implements Filter {
             "/brand",
             "/category",
             "/product",
+            "/product-sku",
+            "/sku-images",
+            "/sku-bulk",
             "/admin/orders",
             "/staff/voucher",
-            "/product-sku",
             "/staff/banner",
             "/staff/return-exchange",
             "/staff/reviews",
-            "/staff/payment-refunds"
+            "/staff/payment-refunds",
+            "/inventory"
     );
 
     private static final List<String> ADMIN_URLS = Arrays.asList(
@@ -248,7 +251,7 @@ public class AuthFilter implements Filter {
         httpResponse.sendRedirect(
                 contextPath + "/home"
         );
-        
+
         return;
     }
 
