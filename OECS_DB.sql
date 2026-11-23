@@ -19,7 +19,6 @@ SET XACT_ABORT ON;
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
--- ==================== SECTION A: PERMANENT SCHEMA ============================
 CREATE TABLE ROLES (
     role_id INT IDENTITY(1,1) PRIMARY KEY,
     role_name NVARCHAR(50) NOT NULL UNIQUE,
@@ -235,11 +234,9 @@ CREATE TABLE [ORDER] (
     checkout_token VARCHAR(64) NULL,
     delivered_at DATETIME2 NULL,
 
-    -- Cancellation information
     cancellation_source VARCHAR(20) NULL,
     cancelled_at DATETIME2 NULL,
 
-    -- One current customer cancellation request per order (no extra table).
     cancel_request_status VARCHAR(20) NULL,
     cancel_request_reason NVARCHAR(500) NULL,
     cancel_requested_at DATETIME2 NULL,
@@ -252,10 +249,8 @@ CREATE TABLE [ORDER] (
 
     CONSTRAINT FK_Order_Address FOREIGN KEY (address_id)
         REFERENCES ADDRESSBOOK(address_id),
-    -- Enforce that the saved address belongs to the ordering customer.
     CONSTRAINT FK_Order_AddressOwner FOREIGN KEY (address_id, user_id)
         REFERENCES ADDRESSBOOK(address_id, user_id),
-    -- Candidate key to enforce voucher usage ownership.
     CONSTRAINT UQ_Order_Id_User UNIQUE (order_id, user_id),
 
     CONSTRAINT FK_Order_CancelReviewer FOREIGN KEY (cancel_reviewed_by)
@@ -523,9 +518,6 @@ CREATE TABLE PAYMENT_REFUND (
 CREATE UNIQUE INDEX UX_Payment_Provider_Success
     ON PAYMENT_TRANSACTION(payment_method, provider_transaction_id)
     WHERE status = 'SUCCESS' AND provider_transaction_id IS NOT NULL;
-
--- Multiple partial refunds per payment are allowed, but only 3 SUCCESS refunds.
--- The transactional validator below enforces quantity and amount ceilings.
 CREATE INDEX IX_Payment_Refund_Transaction
     ON PAYMENT_REFUND(transaction_id, refund_status);
 
@@ -539,19 +531,13 @@ CREATE UNIQUE INDEX UX_Order_CheckoutToken
     ON [ORDER](checkout_token)
     WHERE checkout_token IS NOT NULL;
 
-/* ---- Integrity + performance additions ------------------------------------ */
-
--- Each user has at most one active default address.
--- NOTE: app code must UNSET the old default before SETTING a new one.
 CREATE UNIQUE INDEX UX_AddressBook_OneDefault
     ON ADDRESSBOOK(user_id)
     WHERE is_default = 1 AND is_deleted = 0;
 
--- One review per purchased order item.
 CREATE UNIQUE INDEX UX_PRODUCT_REVIEWS_order_item
     ON PRODUCT_REVIEWS(order_item_id);
 
--- A voucher can be recorded only once per order.
 CREATE UNIQUE INDEX UX_VoucherUsages_Voucher_Order
     ON VOUCHER_USAGES(voucher_id, order_id);
 
@@ -659,8 +645,6 @@ CREATE TABLE RETURN_REQUEST_ITEM (
     CONSTRAINT UQ_RETURN_REQUEST_ITEM_ID_REQUEST UNIQUE(request_item_id, request_id)
 );
 
--- Allocation: each refund maps to specific approved returned line quantities.
--- Keep refund events separate from return request approval events.
 CREATE TABLE REFUND_ALLOCATION (
     allocation_id BIGINT IDENTITY(1,1) CONSTRAINT PK_REFUND_ALLOCATION PRIMARY KEY,
     refund_id BIGINT NOT NULL,
@@ -824,7 +808,6 @@ CREATE TABLE dbo.PRODUCT_CONTENT_SECTION (
     CONSTRAINT CK_PRODUCT_CONTENT_BODY CHECK(LEN(LTRIM(RTRIM(section_content)))>0)
   );
 
--- Unique primary picture rules, catalog variant uniqueness, inventory lookup
 CREATE UNIQUE INDEX UX_PI_PrimaryProduct
     ON dbo.PRODUCT_IMAGES(product_id) WHERE sku_id IS NULL AND is_primary = 1;
 CREATE UNIQUE INDEX UX_PI_PrimarySKU
@@ -835,31 +818,19 @@ CREATE INDEX IX_INVENTORY_MOVEMENT_sku_time
     ON dbo.INVENTORY_MOVEMENT(sku_id, movement_id DESC);
 
 GO
-IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
+---------------------------------------Create Table & Db------------------------------------------
 
-/* =============================================================================
-  OECS - CHI NAP DU LIEU MAU, KHONG XOA DB / KHONG TAO LAI BANG
-  Phuc hoi cho ban SQL co lenh kiem tra CONTEXT_INFO nhung thieu SET CONTEXT_INFO.
-  Dieu kien an toan: database OECS co DU 35 bang va TAT CA dang rong.
-  Neu da co bat ky du lieu nao, dung lai de tranh trung khoa / hong du lieu.
-  Khong su dung file nay de nang cap database dang co du lieu.
-  CHAY TOAN BO FILE TRONG MOT CUA SO SSMS (F5); KHONG CAT LE BATCH.
-  Luu y: chua kiem thu truc tiep tren SQL Server 2022.
- ============================================================================= */
+
+
+
+
 USE [OECS];
 GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
--- TAT co phien truoc, de cac batch sau KHONG nap du lieu khi khong dat dieu kien.
 SET CONTEXT_INFO 0x00;
 
-IF DB_NAME() <> N'OECS'
-    THROW 60011, N'Sai database! Phai chon OECS.', 1;
 
-IF (SELECT COUNT(*) FROM sys.tables WHERE schema_id=SCHEMA_ID(N'dbo')) <> 35
-    THROW 60012, N'OECS phai co dung 35 bang dbo. Dung lai va kiem tra schema.', 1;
-
--- Tuyet doi khong nap neu DB co du lieu (ke ca seed dang do).
 IF
     EXISTS (SELECT TOP (1) 1 FROM dbo.ROLES)
     OR EXISTS (SELECT TOP (1) 1 FROM dbo.[USER])
@@ -900,12 +871,10 @@ BEGIN
     THROW 60013, N'OECS da co du lieu trong it nhat 1 bang. Dung lai, KHONG nap lai seed!', 1;
 END;
 
--- Khoi tao co session; moi GO batch ben duoi moi duoc phep INSERT.
 SET CONTEXT_INFO 0x4F45435353454544;
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
--- ==================== SECTION B: INITIAL SEED ===============================
 INSERT INTO ROLES (role_name, description)
 VALUES
 (N'ADMIN', N'Quản trị viên hệ thống - Toàn quyền'),
@@ -1034,8 +1003,6 @@ VALUES
 (N'Loại kết nối');
 
 
--- Add the catalog and variant attribute definitions before creating initial SKUs.
--- This also makes dynamic SHA2-256 keys deterministic from actual attribute_id values.
 INSERT INTO dbo.ATTRIBUTE(attribute_name) VALUES
 (N'Camera'),
 (N'Tần số quét'),
@@ -1190,8 +1157,6 @@ INSERT INTO @InitialSkuOptions(sku_code,attribute_name,text_value) VALUES
 ('LEN-BP15-BLK', N'Màu sắc', N'Đen'),
 ('LEN-BPG17-BLK', N'Màu sắc', N'Đen');
 
--- Preserve the historical SKU identity sequence (1..32) for demo order items.
--- Values are hashed with the exact same attribute_id/T:VALUE formula as Java.
 SET IDENTITY_INSERT dbo.PRODUCT_SKU ON;
 INSERT INTO dbo.PRODUCT_SKU(sku_id,product_id,sku_code,price,stock_quantity,variant_key)
 SELECT v.sku_id,v.product_id,v.sku_code,v.price,v.stock_quantity,
@@ -1442,7 +1407,6 @@ CROSS JOIN (SELECT user_id FROM dbo.[USER] WHERE username='staff') staff;
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
--- Historical cancelled orders: meet the cancellation CHECK at INSERT time.
 INSERT INTO dbo.ORDER_STATUS_HISTORY
     (order_id, status, old_status, updated_at, actor_type, changed_by, reason)
 SELECT o.order_id, N'CANCELLED', N'PENDING_CONFIRMATION', v.cancelled_at, 'CUSTOMER', o.user_id,
@@ -1455,7 +1419,6 @@ JOIN dbo.[ORDER] o ON o.order_id=v.order_id;
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
--- Historical snapshots, actors and cancellation metadata were inserted directly.
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
@@ -1651,7 +1614,6 @@ WHERE NOT EXISTS (
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
--- Product images and delivery timestamps were seeded in initial INSERTs.
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
@@ -1714,10 +1676,6 @@ IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
 
--- ==================== SECTION C: SKU ATTRIBUTE SEED ==========================
-/* =========================================================
-   PHAN 7 - CHUYEN DU LIEU DIEN THOAI SANG SKU ATTRIBUTE
-========================================================= */
 
 BEGIN TRY
     BEGIN TRANSACTION;
@@ -1727,11 +1685,6 @@ BEGIN TRY
         attribute_name NVARCHAR(100),
         attribute_value NVARCHAR(255)
     );
-
-    /*
-       Gia tri lay tu quy uoc SKU trong SQL mau.
-       Can kiem tra lai mau thuc te neu su dung that.
-    */
 
     INSERT INTO @PhoneVariants VALUES
         ('IP15P-128-BLK', N'Dung lượng lưu trữ', N'128GB'),
@@ -1791,9 +1744,6 @@ GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
-/* =========================================================
-   PHAN 8 - CHUYEN RAM LAPTOP SANG SKU ATTRIBUTE
-========================================================= */
 
 BEGIN TRY
     BEGIN TRANSACTION;
@@ -1838,9 +1788,6 @@ GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
-/* =========================================================
-   PHAN 9 - SSD LENOVO LOQ
-========================================================= */
 
 BEGIN TRY
     BEGIN TRANSACTION;
@@ -1874,10 +1821,6 @@ END CATCH;
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
-
-/* =========================================================
-   PHAN 10 - CHUYEN ANH DAI DIEN CU
-========================================================= */
 
 BEGIN TRY
     BEGIN TRANSACTION;
@@ -1920,11 +1863,6 @@ IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
 
--- ==================== SECTION D: ADDITIONAL VARIANTS ========================
-/* ==============================================================================
-   STAGE 3: SKU SEED FOR 39 PRODUCTS
-   Seed variant attributes and refresh variant keys; Java handles live updates.
-   ============================================================================== */
 
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -1955,14 +1893,10 @@ BEGIN TRY
         attr3 NVARCHAR(100) NULL, val3 NVARCHAR(255) NULL
     );
 
-    -- SECTION A: SKU seed for 39 products; rich choices per category.
-    -- For existing SKU codes, seed prices and stock are ignored; only new SKUs
-    -- receive the price/stock defined here.
     INSERT INTO @Seed (
         product_name, sku_code, price, initial_stock,
         attr1, val1, attr2, val2, attr3, val3
     ) VALUES
-        -- iPhone 15 Pro (6 SKU choices)
     (N'iPhone 15 Pro', 'IP15P-128-BLK', 27990000, 15, N'Dung lượng lưu trữ', N'128GB', N'Màu sắc', N'Đen', NULL, NULL),
     (N'iPhone 15 Pro', 'IP15P-128-SLV', 27990000, 18, N'Dung lượng lưu trữ', N'128GB', N'Màu sắc', N'Bạc', NULL, NULL),
     (N'iPhone 15 Pro', 'IP15P-256-BLK', 30990000, 16, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Đen', NULL, NULL),
@@ -1970,7 +1904,6 @@ BEGIN TRY
     (N'iPhone 15 Pro', 'IP15P-512-BLK', 34490000, 12, N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Đen', NULL, NULL),
     (N'iPhone 15 Pro', 'IP15P-512-SLV', 34490000, 10, N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Bạc', NULL, NULL),
 
-        -- iPhone 15 Pro Max (6 SKU choices)
     (N'iPhone 15 Pro Max', 'IP15PM-256-NAT', 33990000, 12, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Titan tự nhiên', NULL, NULL),
     (N'iPhone 15 Pro Max', 'IP15PM-256-BLK', 33990000, 18, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Titan đen', NULL, NULL),
     (N'iPhone 15 Pro Max', 'IP15PM-512-NAT', 36990000, 16, N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Titan tự nhiên', NULL, NULL),
@@ -1978,7 +1911,6 @@ BEGIN TRY
     (N'iPhone 15 Pro Max', 'IP15PM-1T-NAT', 40990000, 12, N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Titan tự nhiên', NULL, NULL),
     (N'iPhone 15 Pro Max', 'IP15PM-1T-BLK', 40990000, 10, N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Titan đen', NULL, NULL),
 
-        -- iPhone 16 Pro (6 SKU choices)
     (N'iPhone 16 Pro', 'IP16P-128-BLK', 28990000, 20, N'Dung lượng lưu trữ', N'128GB', N'Màu sắc', N'Đen', NULL, NULL),
     (N'iPhone 16 Pro', 'IP16P-128-WHT', 28990000, 18, N'Dung lượng lưu trữ', N'128GB', N'Màu sắc', N'Trắng', NULL, NULL),
     (N'iPhone 16 Pro', 'IP16P-256-BLK', 32990000, 16, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Đen', NULL, NULL),
@@ -1986,7 +1918,6 @@ BEGIN TRY
     (N'iPhone 16 Pro', 'IP16P-512-BLK', 36990000, 12, N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Đen', NULL, NULL),
     (N'iPhone 16 Pro', 'IP16P-512-WHT', 36990000, 10, N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Trắng', NULL, NULL),
 
-        -- iPhone 16 Pro Max (6 SKU choices)
     (N'iPhone 16 Pro Max', 'IP16PM-256-DES', 34990000, 25, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Titan sa mạc', NULL, NULL),
     (N'iPhone 16 Pro Max', 'IP16PM-256-BLK', 34990000, 18, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Titan đen', NULL, NULL),
     (N'iPhone 16 Pro Max', 'IP16PM-512-DES', 38990000, 16, N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Titan sa mạc', NULL, NULL),
@@ -1994,7 +1925,6 @@ BEGIN TRY
     (N'iPhone 16 Pro Max', 'IP16PM-1T-DES', 42990000, 12, N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Titan sa mạc', NULL, NULL),
     (N'iPhone 16 Pro Max', 'IP16PM-1T-BLK', 42990000, 10, N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Titan đen', NULL, NULL),
 
-        -- Samsung Galaxy S24 Ultra (6 SKU choices)
     (N'Samsung Galaxy S24 Ultra', 'SS-S24U-256-GRY', 29990000, 20, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Xám', NULL, NULL),
     (N'Samsung Galaxy S24 Ultra', 'SS-S24U-256-BLK', 29990000, 18, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Đen', NULL, NULL),
     (N'Samsung Galaxy S24 Ultra', 'SS-S24U-512-GRY', 33490000, 16, N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám', NULL, NULL),
@@ -2002,167 +1932,130 @@ BEGIN TRY
     (N'Samsung Galaxy S24 Ultra', 'SS-S24U-1T-GRY', 37990000, 12, N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám', NULL, NULL),
     (N'Samsung Galaxy S24 Ultra', 'SS-S24U-1T-BLK', 37990000, 10, N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Đen', NULL, NULL),
 
-        -- Samsung Galaxy S24 Plus (4 SKU choices)
     (N'Samsung Galaxy S24 Plus', 'SS-S24P-256-BLK', 25990000, 15, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Đen', NULL, NULL),
     (N'Samsung Galaxy S24 Plus', 'SS-S24P-256-VIO', 25990000, 18, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Tím', NULL, NULL),
     (N'Samsung Galaxy S24 Plus', 'SS-S24P-512-BLK', 28990000, 16, N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Đen', NULL, NULL),
     (N'Samsung Galaxy S24 Plus', 'SS-S24P-512-VIO', 28990000, 14, N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Tím', NULL, NULL),
 
-        -- Samsung Galaxy A55 5G (4 SKU choices)
     (N'Samsung Galaxy A55 5G', 'SS-A55-128-BLU', 9990000, 30, N'Dung lượng lưu trữ', N'128GB', N'Màu sắc', N'Xanh', NULL, NULL),
     (N'Samsung Galaxy A55 5G', 'SS-A55-128-BLK', 9990000, 18, N'Dung lượng lưu trữ', N'128GB', N'Màu sắc', N'Đen', NULL, NULL),
     (N'Samsung Galaxy A55 5G', 'SS-A55-256-BLU', 10990000, 16, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Xanh', NULL, NULL),
     (N'Samsung Galaxy A55 5G', 'SS-A55-256-BLK', 10990000, 14, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Đen', NULL, NULL),
 
-        -- Samsung Galaxy A35 5G (4 SKU choices)
     (N'Samsung Galaxy A35 5G', 'SS-A35-128-YLW', 8290000, 35, N'Dung lượng lưu trữ', N'128GB', N'Màu sắc', N'Vàng', NULL, NULL),
     (N'Samsung Galaxy A35 5G', 'SS-A35-128-BLU', 8290000, 18, N'Dung lượng lưu trữ', N'128GB', N'Màu sắc', N'Xanh', NULL, NULL),
     (N'Samsung Galaxy A35 5G', 'SS-A35-256-YLW', 9290000, 16, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Vàng', NULL, NULL),
     (N'Samsung Galaxy A35 5G', 'SS-A35-256-BLU', 9290000, 14, N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Xanh', NULL, NULL),
 
-        -- AirPods Pro 2 (2 SKU choices)
     (N'AirPods Pro 2', 'APP-AP2-WHT', 5990000, 50, N'Phiên bản', N'Hộp Lightning', N'Màu sắc', N'Trắng', NULL, NULL),
     (N'AirPods Pro 2', 'APP-AP2-USBC', 6390000, 18, N'Phiên bản', N'Hộp USB-C', N'Màu sắc', N'Trắng', NULL, NULL),
 
-        -- AirPods 4 (2 SKU choices)
     (N'AirPods 4', 'APP-AP4-WHT', 3490000, 45, N'Phiên bản', N'Tiêu chuẩn', N'Màu sắc', N'Trắng', NULL, NULL),
     (N'AirPods 4', 'APP-AP4-ANC', 4490000, 24, N'Phiên bản', N'Chống ồn ANC', N'Màu sắc', N'Trắng', NULL, NULL),
 
-        -- Samsung Galaxy Buds3 Pro (2 SKU choices)
     (N'Samsung Galaxy Buds3 Pro', 'SS-B3P-SLV', 4990000, 40, N'Màu sắc', N'Bạc', NULL, NULL, NULL, NULL),
     (N'Samsung Galaxy Buds3 Pro', 'SS-BUDS3-PRO', 4990000, 20, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Samsung Galaxy Buds FE (2 SKU choices)
     (N'Samsung Galaxy Buds FE', 'SS-BFE-BLK', 1990000, 60, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Samsung Galaxy Buds FE', 'SS-BFE-WHT', 1990000, 25, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Sony WH-1000XM5 (2 SKU choices)
     (N'Sony WH-1000XM5', 'SONY-WH1000XM5', 6990000, 15, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Sony WH-1000XM5', 'SONY-WH1000XM5-SLV', 6990000, 12, N'Màu sắc', N'Bạc', NULL, NULL, NULL, NULL),
 
-        -- JBL Tune 770NC (2 SKU choices)
     (N'JBL Tune 770NC', 'JBL-T770NC', 2490000, 25, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'JBL Tune 770NC', 'JBL-T770NC-WHT', 2490000, 18, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Apple USB-C 20W Power Adapter (2 SKU choices)
     (N'Apple USB-C 20W Power Adapter', 'APP-20W-WHT', 550000, 100, N'Gói bán', N'1 củ sạc', NULL, NULL, NULL, NULL),
     (N'Apple USB-C 20W Power Adapter', 'APP-20W-2PACK', 1050000, 20, N'Gói bán', N'Bộ 2 củ sạc', NULL, NULL, NULL, NULL),
 
-        -- Samsung 25W USB-C Fast Charger (2 SKU choices)
     (N'Samsung 25W USB-C Fast Charger', 'SS-25W-BLK', 390000, 100, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Samsung 25W USB-C Fast Charger', 'SS-25W-WHT', 390000, 32, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Apple USB-C Charge Cable 1m (2 SKU choices)
     (N'Apple USB-C Charge Cable 1m', 'APP-C2C-1M', 450000, 80, N'Gói bán', N'1 dây', NULL, NULL, NULL, NULL),
     (N'Apple USB-C Charge Cable 1m', 'APP-C2C-1M-2PK', 850000, 25, N'Gói bán', N'Bộ 2 dây', NULL, NULL, NULL, NULL),
 
-        -- Apple USB-C to Lightning Cable (2 SKU choices)
     (N'Apple USB-C to Lightning Cable', 'APP-C2L-1M', 490000, 80, N'Chiều dài', N'1m', NULL, NULL, NULL, NULL),
     (N'Apple USB-C to Lightning Cable', 'APP-C2L-2M', 790000, 15, N'Chiều dài', N'2m', NULL, NULL, NULL, NULL),
 
-        -- Samsung USB-C Cable 1m (2 SKU choices)
     (N'Samsung USB-C Cable 1m', 'SS-C2C-1M', 250000, 90, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Samsung USB-C Cable 1m', 'SS-C2C-1M-WHT', 250000, 45, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Lenovo IdeaPad Slim 3 (4 SKU choices)
     (N'Lenovo IdeaPad Slim 3', 'LEN-IDP3-I3', 10490000, 12, N'RAM', N'8GB DDR4', N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Xám'),
     (N'Lenovo IdeaPad Slim 3', 'LEN-IDP3-8GB-512GB', 11590000, 8, N'RAM', N'8GB DDR4', N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám'),
     (N'Lenovo IdeaPad Slim 3', 'LEN-IDP3-16GB-256GB', 11990000, 7, N'RAM', N'16GB DDR4', N'Dung lượng lưu trữ', N'256GB', N'Màu sắc', N'Xám'),
     (N'Lenovo IdeaPad Slim 3', 'LEN-IDP3-16GB-512GB', 13090000, 6, N'RAM', N'16GB DDR4', N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám'),
 
-        -- Lenovo ThinkBook 14 (4 SKU choices)
     (N'Lenovo ThinkBook 14', 'LEN-TB14-I5', 16990000, 12, N'RAM', N'16GB DDR5', N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám'),
     (N'Lenovo ThinkBook 14', 'LEN-TB14-16GB-1TB', 18990000, 8, N'RAM', N'16GB DDR5', N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám'),
     (N'Lenovo ThinkBook 14', 'LEN-TB14-32GB-512GB', 20990000, 7, N'RAM', N'32GB DDR5', N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám'),
     (N'Lenovo ThinkBook 14', 'LEN-TB14-32GB-1TB', 22990000, 6, N'RAM', N'32GB DDR5', N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám'),
 
-        -- Lenovo IdeaPad 5 (4 SKU choices)
     (N'Lenovo IdeaPad 5', 'LEN-IDP5-R5', 14490000, 12, N'RAM', N'16GB DDR4', N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám'),
     (N'Lenovo IdeaPad 5', 'LEN-IDP5-16GB-1TB', 16490000, 8, N'RAM', N'16GB DDR4', N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám'),
     (N'Lenovo IdeaPad 5', 'LEN-IDP5-32GB-512GB', 18490000, 7, N'RAM', N'32GB DDR4', N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám'),
     (N'Lenovo IdeaPad 5', 'LEN-IDP5-32GB-1TB', 20490000, 6, N'RAM', N'32GB DDR4', N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám'),
 
-        -- Lenovo LOQ 15 (4 SKU choices)
     (N'Lenovo LOQ 15', 'LOQ-15-16GB-512GB', 21490000, 12, N'RAM', N'16GB DDR5', N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám'),
     (N'Lenovo LOQ 15', 'LOQ-15-16GB-1TB', 24490000, 8, N'RAM', N'16GB DDR5', N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám'),
     (N'Lenovo LOQ 15', 'LOQ-15-32GB-512GB', 25490000, 7, N'RAM', N'32GB DDR5', N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám'),
     (N'Lenovo LOQ 15', 'LOQ-15-32GB-1TB', 28490000, 6, N'RAM', N'32GB DDR5', N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám'),
 
-        -- Lenovo Legion 5 (4 SKU choices)
     (N'Lenovo Legion 5', 'LEN-LEG5-R7', 32990000, 12, N'RAM', N'16GB DDR5', N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám'),
     (N'Lenovo Legion 5', 'LEN-LEG5-16GB-1TB', 35990000, 8, N'RAM', N'16GB DDR5', N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám'),
     (N'Lenovo Legion 5', 'LEN-LEG5-32GB-512GB', 36990000, 7, N'RAM', N'32GB DDR5', N'Dung lượng lưu trữ', N'512GB', N'Màu sắc', N'Xám'),
     (N'Lenovo Legion 5', 'LEN-LEG5-32GB-1TB', 39990000, 6, N'RAM', N'32GB DDR5', N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám'),
 
-        -- Lenovo Legion Pro 5 (4 SKU choices)
     (N'Lenovo Legion Pro 5', 'LEN-LEG5P-I9', 45990000, 12, N'RAM', N'32GB DDR5', N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám'),
     (N'Lenovo Legion Pro 5', 'LEN-LEG5P-32GB-2TB', 50990000, 8, N'RAM', N'32GB DDR5', N'Dung lượng lưu trữ', N'2TB', N'Màu sắc', N'Xám'),
     (N'Lenovo Legion Pro 5', 'LEN-LEG5P-64GB-1TB', 51990000, 7, N'RAM', N'64GB DDR5', N'Dung lượng lưu trữ', N'1TB', N'Màu sắc', N'Xám'),
     (N'Lenovo Legion Pro 5', 'LEN-LEG5P-64GB-2TB', 56990000, 6, N'RAM', N'64GB DDR5', N'Dung lượng lưu trữ', N'2TB', N'Màu sắc', N'Xám'),
 
-        -- Lenovo Legion M300 RGB (2 SKU choices)
     (N'Lenovo Legion M300 RGB', 'LEN-M300-BLK', 690000, 30, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Lenovo Legion M300 RGB', 'LEN-M300-WHT', 690000, 14, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Lenovo Legion M600 Wireless (2 SKU choices)
     (N'Lenovo Legion M600 Wireless', 'LEN-M600-BLK', 1490000, 30, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Lenovo Legion M600 Wireless', 'LEN-M600-WHT', 1490000, 14, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Lenovo Legion K300 RGB (2 SKU choices)
     (N'Lenovo Legion K300 RGB', 'LEN-K300-BLK', 890000, 30, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Lenovo Legion K300 RGB', 'LEN-K300-WHT', 890000, 14, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Lenovo Go Wireless Split Keyboard (2 SKU choices)
     (N'Lenovo Go Wireless Split Keyboard', 'LEN-GOW-GRY', 1990000, 30, N'Màu sắc', N'Xám', NULL, NULL, NULL, NULL),
     (N'Lenovo Go Wireless Split Keyboard', 'LEN-GOW-BLK', 1990000, 14, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
 
-        -- Lenovo 300 FHD Webcam (2 SKU choices)
     (N'Lenovo 300 FHD Webcam', 'LEN-W300-BLK', 750000, 30, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Lenovo 300 FHD Webcam', 'LEN-W300-WHT', 750000, 14, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Lenovo Performance FHD Webcam (2 SKU choices)
     (N'Lenovo Performance FHD Webcam', 'LEN-WPF-BLK', 1250000, 30, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Lenovo Performance FHD Webcam', 'LEN-WPF-WHT', 1250000, 14, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Lenovo Laptop Backpack 15.6" (2 SKU choices)
     (N'Lenovo Laptop Backpack 15.6"', 'LEN-BP15-BLK', 450000, 30, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Lenovo Laptop Backpack 15.6"', 'LEN-BP15-BLU', 450000, 14, N'Màu sắc', N'Xanh', NULL, NULL, NULL, NULL),
 
-        -- Lenovo Legion Gaming Backpack (2 SKU choices)
     (N'Lenovo Legion Gaming Backpack', 'LEN-BPG17-BLK', 890000, 30, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Lenovo Legion Gaming Backpack', 'LEN-BPG17-GRY', 890000, 14, N'Màu sắc', N'Xám', NULL, NULL, NULL, NULL),
 
-        -- Apple Watch SE 2 (4 SKU choices)
     (N'Apple Watch SE 2', 'WATCH-SE2-40', 5990000, 20, N'Kích thước vỏ', N'40mm', N'Màu sắc', N'Đen', NULL, NULL),
     (N'Apple Watch SE 2', 'WATCH-SE2-40-SLV', 5990000, 9, N'Kích thước vỏ', N'40mm', N'Màu sắc', N'Bạc', NULL, NULL),
     (N'Apple Watch SE 2', 'WATCH-SE2-44-BLK', 6490000, 13, N'Kích thước vỏ', N'44mm', N'Màu sắc', N'Đen', NULL, NULL),
     (N'Apple Watch SE 2', 'WATCH-SE2-44-SLV', 6490000, 8, N'Kích thước vỏ', N'44mm', N'Màu sắc', N'Bạc', NULL, NULL),
 
-        -- Samsung Galaxy Watch7 (4 SKU choices)
     (N'Samsung Galaxy Watch7', 'WATCH-GW7-44', 6990000, 15, N'Kích thước vỏ', N'44mm', N'Màu sắc', N'Bạc', NULL, NULL),
     (N'Samsung Galaxy Watch7', 'WATCH-GW7-40-SLV', 6490000, 12, N'Kích thước vỏ', N'40mm', N'Màu sắc', N'Bạc', NULL, NULL),
     (N'Samsung Galaxy Watch7', 'WATCH-GW7-40-GRN', 6490000, 9, N'Kích thước vỏ', N'40mm', N'Màu sắc', N'Xanh', NULL, NULL),
     (N'Samsung Galaxy Watch7', 'WATCH-GW7-44-GRN', 6990000, 10, N'Kích thước vỏ', N'44mm', N'Màu sắc', N'Xanh', NULL, NULL),
 
-        -- Garmin Forerunner 165 (2 SKU choices)
     (N'Garmin Forerunner 165', 'WATCH-GARMIN-165', 6490000, 12, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Garmin Forerunner 165', 'WATCH-GARMIN-165-WHT', 6490000, 7, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-        -- Canon EOS R50 (2 SKU choices)
     (N'Canon EOS R50', 'CAM-CANON-R50', 18990000, 8, N'Bộ sản phẩm', N'Thân máy', NULL, NULL, NULL, NULL),
     (N'Canon EOS R50', 'CAM-CANON-R50-KIT1845', 21990000, 5, N'Bộ sản phẩm', N'Kit RF-S 18-45mm', NULL, NULL, NULL, NULL),
 
-        -- Sony Alpha A6400 (2 SKU choices)
     (N'Sony Alpha A6400', 'CAM-SONY-A6400', 16990000, 6, N'Bộ sản phẩm', N'Thân máy', NULL, NULL, NULL, NULL),
     (N'Sony Alpha A6400', 'CAM-SONY-A6400-KIT1650', 19990000, 4, N'Bộ sản phẩm', N'Kit E PZ 16-50mm', NULL, NULL, NULL, NULL),
 
-        -- Fujifilm X-S20 (2 SKU choices)
     (N'Fujifilm X-S20', 'CAM-FUJI-XS20', 28990000, 5, N'Bộ sản phẩm', N'Thân máy', NULL, NULL, NULL, NULL),
     (N'Fujifilm X-S20', 'CAM-FUJI-XS20-KIT1545', 31990000, 4, N'Bộ sản phẩm', N'Kit XC 15-45mm', NULL, NULL, NULL, NULL);
 
-    -- SECTION B: Preflight validation. Stop if any of the 39 names differ
-    -- from the OECS dataset, if SKU codes belong to the wrong products,
-    -- or if demo combinations are duplicated.
     IF (SELECT COUNT(DISTINCT product_name) FROM @Seed) <> 39
         THROW 55101, N'Du lieu seed khong du 39 san pham.', 1;
 
@@ -2191,7 +2084,6 @@ BEGIN TRY
     IF EXISTS (SELECT 1 FROM @Seed WHERE price <= 0 OR initial_stock < 0)
         THROW 55105, N'Gia SKU phai duong va ton kho khong am.', 1;
 
-    -- SECTION C: Create missing attribute definitions for variant options.
     INSERT INTO dbo.ATTRIBUTE (attribute_name)
     SELECT DISTINCT option_name FROM @Seed AS v
     CROSS APPLY (VALUES (v.attr1), (v.attr2), (v.attr3)) AS x(option_name)
@@ -2213,11 +2105,6 @@ BEGIN TRY
     )
         THROW 55106, N'Trung ten ATTRIBUTE trong database. Can xu ly thu cong.', 1;
 
-    -- Build options with the SAME storage types used by existing data.
-    -- For existing (SKU, attribute) rows, preserve the real stored values.
-    -- For new SKUs, numeric options use numeric_value if the ATTRIBUTE is
-    -- NUMBER or any older SKU uses a numeric representation for that attribute.
-    -- TEXT values (color, configuration, packages) stay in text_value.
     DECLARE @Options TABLE (
         sku_code VARCHAR(100) NOT NULL,
         attribute_id INT NOT NULL,
@@ -2294,7 +2181,6 @@ BEGIN TRY
     ) AS numeric_mode
     WHERE x.option_name IS NOT NULL;
 
-    -- All prepared options must result in precisely one stored value.
     IF EXISTS (
         SELECT 1 FROM @Options
         WHERE (CASE WHEN text_value IS NOT NULL THEN 1 ELSE 0 END)
@@ -2303,16 +2189,12 @@ BEGIN TRY
     )
         THROW 55111, N'Khong the chuan hoa mot gia tri bien the.', 1;
 
-    -- Every combination must have at least one meaningful option.
     IF EXISTS (
         SELECT 1 FROM @Seed v
         WHERE NOT EXISTS (SELECT 1 FROM @Options o WHERE o.sku_code=v.sku_code)
     )
         THROW 55107, N'Mot SKU khong co thuoc tinh bien the.', 1;
 
-
-    -- SECTION D: Preserve existing SKU values; add only attributes not yet set.
-    -- Numeric values such as 128.0000 remain numeric (not overwritten as TEXT).
     INSERT INTO dbo.SKU_ATTRIBUTE_VALUE (
         sku_id, attribute_id, text_value, numeric_value, boolean_value
     )
@@ -2327,9 +2209,6 @@ BEGIN TRY
     SET @AddedAttributeRows = @@ROWCOUNT;
 
 
-    -- Compute the deterministic SHA2_256 key using the same formula as above,
-    -- to skip a variant already represented by another SKU
-    -- with a different code.
     DECLARE @Expected TABLE (
         sku_code VARCHAR(100) NOT NULL PRIMARY KEY,
         product_id INT NOT NULL,
@@ -2380,7 +2259,6 @@ BEGIN TRY
         SELECT 1 FROM dbo.PRODUCT_SKU s WHERE s.sku_code=e.sku_code
     );
 
-    -- New SKU rows only. Existing price and stock are NEVER modified.
     INSERT INTO dbo.PRODUCT_SKU (
         product_id, sku_code, price, stock_quantity, original_price, is_active, variant_key
     )
@@ -2395,7 +2273,6 @@ BEGIN TRY
     );
     SET @Inserted = @@ROWCOUNT;
 
-    -- Add attributes to newly inserted SKUs. Old values are left intact.
     INSERT INTO dbo.SKU_ATTRIBUTE_VALUE (
         sku_id, attribute_id, text_value, numeric_value, boolean_value
     )
@@ -2409,8 +2286,6 @@ BEGIN TRY
     );
 
 
-    -- Safety: all 39 listed products must have at least two sellable SKUs,
-    -- and each active variant must have a unique key if one was assigned.
     IF EXISTS (
         SELECT 1 FROM (SELECT DISTINCT product_name FROM @Seed) v
         JOIN dbo.PRODUCT p ON p.product_name=v.product_name
@@ -2434,11 +2309,6 @@ GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
--- ==================== SECTION E: TECHNICAL SPECIFICATIONS ==================
-/* ==============================================================================
-   STAGE 4: TECHNICAL SPECIFICATIONS FOR 39 PRODUCTS
-   Technical specification seed.
-   ============================================================================== */
 
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -2452,7 +2322,7 @@ BEGIN
 END;
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
-
+DROP TABLE IF EXISTS #SpecSeed;
 CREATE TABLE #SpecSeed (
   product_name NVARCHAR(255) NOT NULL,
   group_name NVARCHAR(100) NOT NULL,
@@ -2950,7 +2820,6 @@ VALUES
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
--- Validation: fail clearly instead of silently doing an incomplete 39-product seed.
 BEGIN TRY
 IF (SELECT COUNT(DISTINCT product_name) FROM #SpecSeed) <> 39
     THROW 56002, N'Seed phai du 39 product_name.', 1;
@@ -2975,7 +2844,6 @@ IF EXISTS (
 
  BEGIN TRANSACTION;
 
- -- 1. Register new spec attributes only; existing Attribute rows are retained.
  INSERT INTO dbo.ATTRIBUTE(attribute_name)
  SELECT DISTINCT x.attribute_name FROM #SpecSeed x
  WHERE NOT EXISTS (
@@ -2984,7 +2852,6 @@ IF EXISTS (
  );
 
 
- -- 3. Add only missing product specifications. All current values are preserved.
  INSERT INTO dbo.PRODUCT_SPECIFICATION(product_id,attribute_id,value)
  SELECT p.product_id,a.attribute_id,x.spec_value
  FROM #SpecSeed x
@@ -3005,8 +2872,6 @@ GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
--- Reconcile category-specific attributes in a single INSERT, after all specs/variants exist.
--- A property found in both specifications and SKU options is marked BOTH.
 ;WITH CategoryAttributePairs AS (
     SELECT DISTINCT p.category_id, ps.attribute_id, CAST(1 AS BIT) AS has_spec, CAST(0 AS BIT) AS has_variant
     FROM dbo.PRODUCT_SPECIFICATION ps JOIN dbo.PRODUCT p ON p.product_id=ps.product_id
@@ -3079,11 +2944,6 @@ GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
--- ==================== SECTION F: PRODUCT EDITORIAL ==========================
-/* ==============================================================================
-   STAGE 5: PRODUCT OVERVIEW EDITORIAL SECTIONS
-   Product overview seed.
-   ============================================================================== */
 
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -3093,10 +2953,9 @@ IF OBJECT_ID(N'dbo.PRODUCT',N'U') IS NULL
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
--- PRODUCT_CONTENT_SECTION was created in the schema section.
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
-
+DROP TABLE IF EXISTS #OverviewSeed;
 CREATE TABLE #OverviewSeed(
   product_name NVARCHAR(255) NOT NULL,
   section_key VARCHAR(40) NOT NULL,
@@ -3228,7 +3087,6 @@ VALUES
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
--- Fail explicitly for renamed/missing/duplicate products.
 IF (SELECT COUNT(DISTINCT product_name) FROM #OverviewSeed) <> 39
   THROW 57002,N'Expected 39 products in overview seed.',1;
 IF EXISTS(
@@ -3245,7 +3103,6 @@ IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 BEGIN TRY
   BEGIN TRANSACTION;
 
-  -- Insert only NEW sections. Re-running preserves edited content and image URLs.
   INSERT INTO dbo.PRODUCT_CONTENT_SECTION
     (product_id,section_key,section_title,section_content,image_url,image_alt,display_order)
   SELECT p.product_id,s.section_key,s.section_title,s.section_content,
@@ -3267,7 +3124,6 @@ GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
--- ==================== SECTION G: INITIAL INVENTORY SNAPSHOTS =================
 INSERT INTO dbo.INVENTORY_MOVEMENT
  (sku_id,movement_type,quantity_delta,quantity_before,quantity_after,note,actor_user_id)
 SELECT s.sku_id,'OPENING',s.stock_quantity,0,s.stock_quantity,
@@ -3275,11 +3131,7 @@ SELECT s.sku_id,'OPENING',s.stock_quantity,0,s.stock_quantity,
 FROM dbo.PRODUCT_SKU s;
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
-
-/* ===========================================================================
-   STAGE 6: BOOTSTRAP VERIFICATION
-   Run SELECTs after integrity assertions. These checks do not modify tables.
-   =========================================================================== */
+------------------------------------------------Insert Data-----------------------------------------------------
 
 IF (SELECT COUNT(*) FROM dbo.PRODUCT) <> 39
 BEGIN
@@ -3337,8 +3189,6 @@ GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
--- All order, refund, voucher, inventory and review workflows are implemented
--- in Java Service/DAO. This bootstrap installs no procedures or triggers.
 
 PRINT N'OECS schema and development seed script reached the end. Review any earlier errors before using database.';
 SET CONTEXT_INFO 0x00;
