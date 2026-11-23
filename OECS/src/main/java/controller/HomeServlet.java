@@ -1,4 +1,3 @@
-
 package controller;
 
 import dao.BannerDAO;
@@ -26,8 +25,10 @@ public class HomeServlet extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
 
         ProductDAO productDao = new ProductDAO();
-        List<Product> productList = productDao.getList();
 
+        List<Product> productList = productDao.getActiveProducts();
+
+        
         BannerDAO bannerDAO = new BannerDAO();
         List<Banner> bannerList = bannerDAO.getActive();
 

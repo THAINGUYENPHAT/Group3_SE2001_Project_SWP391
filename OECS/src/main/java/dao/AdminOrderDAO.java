@@ -24,7 +24,6 @@ public class AdminOrderDAO extends DBContext {
         String sql = "SELECT o.order_id, "
                 + "o.user_id, "
                 + "o.address_id, "
-                + "o.shipping_partner_id, "
                 + "o.total_amount, "
                 + "o.shipping_fee, "
                 + "o.created_at, "
@@ -54,7 +53,6 @@ public class AdminOrderDAO extends DBContext {
         String sql = "SELECT o.order_id, "
                 + "o.user_id, "
                 + "o.address_id, "
-                + "o.shipping_partner_id, "
                 + "o.total_amount, "
                 + "o.shipping_fee, "
                 + "o.created_at, "
@@ -164,7 +162,6 @@ public class AdminOrderDAO extends DBContext {
         order.setOrderId(rs.getInt("order_id"));
         order.setUserId(rs.getInt("user_id"));
         order.setAddressId(rs.getInt("address_id"));
-        order.setShippingPartnerId((Integer) rs.getObject("shipping_partner_id"));
         order.setTotalAmount(rs.getBigDecimal("total_amount"));
         order.setShippingFee(rs.getBigDecimal("shipping_fee"));
         order.setCreatedAt(rs.getTimestamp("created_at"));

@@ -12,29 +12,78 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ProductDAO extends DBContext {
 
-    private Product mapProduct(ResultSet rs) throws SQLException {
+    private static final Logger LOGGER
+            = Logger.getLogger(ProductDAO.class.getName());
+
+    // ========================================
+    // SQL DÙNG CHUNG KHI ĐỌC PRODUCT
+    // ========================================
+    private static final String PRODUCT_SELECT
+            = "SELECT "
+            + "p.product_id, "
+            + "p.category_id, "
+            + "p.brand_id, "
+            + "p.product_name, "
+            + "p.description, "
+            + "p.image_url, "
+            + "p.created_at, "
+            + "p.model_code, "
+            + "p.is_active AS product_active, "
+            + "p.updated_at, "
+            + "c.category_name, "
+            + "c.parent_id, "
+            + "c.description AS category_description, "
+            + "c.is_active AS category_active, "
+            + "b.brand_name, "
+            + "b.logo_url, "
+            + "b.is_active AS brand_active, "
+            + "(SELECT MIN(s.price) "
+            + " FROM PRODUCT_SKU s "
+            + " WHERE s.product_id = p.product_id "
+            + " AND s.is_active = 1) AS min_price "
+            + "FROM PRODUCT p "
+            + "INNER JOIN CATEGORY c "
+            + "ON p.category_id = c.category_id "
+            + "INNER JOIN BRAND b "
+            + "ON p.brand_id = b.brand_id ";
+
+    // ========================================
+    // MAP PRODUCT
+    // ========================================
+    private Product mapProduct(ResultSet rs)
+            throws SQLException {
+
+        Integer parentId = (Integer) rs.getObject("parent_id");
+
         Category category = new Category(
                 rs.getInt("category_id"),
                 rs.getString("category_name"),
-                rs.getObject("parent_id") != null ? rs.getInt("parent_id") : null
+                parentId,
+                rs.getString("category_description"),
+                rs.getBoolean("category_active")
         );
 
         Brand brand = new Brand(
                 rs.getInt("brand_id"),
                 rs.getString("brand_name"),
-                rs.getString("logo_url")
+                rs.getString("logo_url"),
+                rs.getBoolean("brand_active")
         );
 
-        return new Product(
+        Product product = new Product(
                 rs.getInt("product_id"),
                 rs.getInt("category_id"),
                 rs.getInt("brand_id"),
@@ -45,284 +94,750 @@ public class ProductDAO extends DBContext {
                 category,
                 brand
         );
+
+        product.setModelCode(rs.getString("model_code"));
+        product.setActive(rs.getBoolean("product_active"));
+        product.setUpdatedAt(rs.getTimestamp("updated_at"));
+
+        double minPrice = rs.getDouble("min_price");
+
+        if (!rs.wasNull()) {
+            product.setMinPrice(minPrice);
+        }
+
+        return product;
     }
 
+    // ========================================
+    // 1. LẤY DANH SÁCH SẢN PHẨM
+    // ========================================
     public List<Product> getList() {
+
         List<Product> list = new ArrayList<>();
-        String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
-                + "c.category_id, c.category_name, c.parent_id, "
-                + "b.brand_id, b.brand_name, b.logo_url "
-                + "FROM PRODUCT p "
-                + "INNER JOIN CATEGORY c ON p.category_id = c.category_id "
-                + "INNER JOIN BRAND b ON p.brand_id = b.brand_id "
+
+        // Giữ tất cả trạng thái để trang admin
+        // vẫn quản lý được sản phẩm đã ngừng bán.
+        String sql = PRODUCT_SELECT
                 + "ORDER BY p.product_id DESC";
 
-        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql); ResultSet rs = statement.executeQuery()) {
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 list.add(mapProduct(rs));
             }
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy danh sách Product!", ex);
+
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Loi truy van danh sach san pham!",
+                    ex
+            );
+
+            throw new IllegalStateException(
+                    "Khong the tai danh sach san pham tu database.",
+                    ex
+            );
         }
+
         return list;
     }
 
+    // ========================================
+    // 2. LẤY SẢN PHẨM ĐANG HOẠT ĐỘNG
+    // ========================================
+    public List<Product> getActiveProducts() {
+
+        List<Product> list = new ArrayList<>();
+
+        String sql = PRODUCT_SELECT
+                + "WHERE p.is_active = 1 "
+                + "AND c.is_active = 1 "
+                + "AND b.is_active = 1 "
+                + "ORDER BY p.product_id DESC";
+
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                list.add(mapProduct(rs));
+            }
+
+        } catch (SQLException ex) {
+
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Loi truy van danh sach san pham dang ban!",
+                    ex
+            );
+
+            throw new IllegalStateException(
+                    "Khong the tai san pham dang ban tu database.",
+                    ex
+            );
+        }
+
+        return list;
+    }
+
+    // ========================================
+    // 3. LẤY PRODUCT THEO ID
+    // ========================================
+    public Product getById(int id) {
+
+        String sql = PRODUCT_SELECT
+                + "WHERE p.product_id = ?";
+
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return mapProduct(rs);
+                }
+            }
+
+        } catch (SQLException ex) {
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi lấy Product theo ID!",
+                    ex
+            );
+        }
+
+        return null;
+    }
+
+    // ========================================
+    // 4. THÊM PRODUCT, TRẢ VỀ ID
+    // ========================================
     public int insertReturnId(Product product) {
-        String sql = "INSERT INTO PRODUCT (product_name, description, category_id, brand_id, image_url) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
 
-            statement.setString(1, product.getProductName());
-            statement.setString(2, product.getDescription());
-            statement.setInt(3, product.getCategoryId());
-            statement.setInt(4, product.getBrandId());
-            statement.setString(5, product.getImageUrl());
+        String sql
+                = "INSERT INTO PRODUCT "
+                + "(product_name, description, "
+                + "category_id, brand_id, image_url, "
+                + "model_code, is_active) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-            if (statement.executeUpdate() > 0) {
-                try (ResultSet rs = statement.getGeneratedKeys()) {
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(
+                sql,
+                Statement.RETURN_GENERATED_KEYS
+        )) {
+
+            ps.setNString(1, product.getProductName());
+            ps.setNString(2, product.getDescription());
+            ps.setInt(3, product.getCategoryId());
+            ps.setInt(4, product.getBrandId());
+            ps.setString(5, product.getImageUrl());
+            ps.setString(6, product.getModelCode());
+            ps.setBoolean(7, product.isActive());
+
+            if (ps.executeUpdate() > 0) {
+
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+
                     if (rs.next()) {
                         return rs.getInt(1);
                     }
                 }
             }
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi insertReturnId Product!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi thêm Product!",
+                    ex
+            );
         }
+
         return 0;
     }
 
+    // ========================================
+    // 5. CẬP NHẬT PRODUCT
+    // ========================================
     public int update(Product product) {
-        String sql = "UPDATE PRODUCT SET product_name=?, description=?, category_id=?, brand_id=?, image_url=COALESCE(?, image_url) WHERE product_id=?";
-        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
-            statement.setString(1, product.getProductName());
-            statement.setString(2, product.getDescription());
-            statement.setInt(3, product.getCategoryId());
-            statement.setInt(4, product.getBrandId());
-            statement.setString(5, product.getImageUrl());
-            statement.setInt(6, product.getProductId());
+        String sql
+                = "UPDATE PRODUCT SET "
+                + "product_name = ?, "
+                + "description = ?, "
+                + "category_id = ?, "
+                + "brand_id = ?, "
+                + "image_url = COALESCE(?, image_url), "
+                + "model_code = COALESCE(?, model_code), "
+                + "updated_at = GETDATE() "
+                + "WHERE product_id = ?";
 
-            return statement.executeUpdate();
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setNString(1, product.getProductName());
+            ps.setNString(2, product.getDescription());
+            ps.setInt(3, product.getCategoryId());
+            ps.setInt(4, product.getBrandId());
+            ps.setString(5, product.getImageUrl());
+            ps.setString(6, product.getModelCode());
+            ps.setInt(7, product.getProductId());
+
+            return ps.executeUpdate();
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi cập nhật Product!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi cập nhật Product!",
+                    ex
+            );
             return 0;
         }
     }
 
+    // ========================================
+    // 6. XÓA MỀM PRODUCT
+    // ========================================
     public int delete(int productId) {
-        String sql = "DELETE FROM PRODUCT WHERE product_id = ?";
-        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
-            statement.setInt(1, productId);
-            return statement.executeUpdate();
+        // Không xóa vật lý vì sản phẩm có thể
+        // đã xuất hiện trong CART hoặc ORDER.
+        return setProductActive(productId, false);
+    }
+
+    // ========================================
+    // 7. BẬT / TẮT TRẠNG THÁI PRODUCT
+    // ========================================
+    public int setProductActive(int productId, boolean active) {
+
+        String sql
+                = "UPDATE PRODUCT "
+                + "SET is_active = ?, "
+                + "updated_at = GETDATE() "
+                + "WHERE product_id = ?";
+
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setBoolean(1, active);
+            ps.setInt(2, productId);
+
+            return ps.executeUpdate();
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi xóa Product!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi cập nhật trạng thái Product!",
+                    ex
+            );
+
             return 0;
         }
     }
 
-    public Product getById(int id) {
-        String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
-                + "c.category_id, c.category_name, c.parent_id, "
-                + "b.brand_id, b.brand_name, b.logo_url "
-                + "FROM PRODUCT p "
-                + "INNER JOIN CATEGORY c ON p.category_id = c.category_id "
-                + "INNER JOIN BRAND b ON p.brand_id = b.brand_id "
-                + "WHERE p.product_id = ?";
-
-        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
-
-            statement.setInt(1, id);
-            try (ResultSet rs = statement.executeQuery()) {
-                if (rs.next()) {
-                    return mapProduct(rs);
-                }
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy Product theo ID!", ex);
-        }
-        return null;
-    }
-
+    // ========================================
+    // 8. TÌM KIẾM PRODUCT
+    // ========================================
     public List<Product> searchProducts(String keyword) {
+
         List<Product> list = new ArrayList<>();
-        String sql = "SELECT p.product_id, p.product_name, p.description, p.created_at, p.image_url, "
-                + "c.category_id, c.category_name, c.parent_id, "
-                + "b.brand_id, b.brand_name, b.logo_url "
-                + "FROM PRODUCT p "
-                + "INNER JOIN CATEGORY c ON p.category_id = c.category_id "
-                + "INNER JOIN BRAND b ON p.brand_id = b.brand_id "
-                + "WHERE p.product_name LIKE ? OR c.category_name LIKE ? OR b.brand_name LIKE ? "
+
+        String sql = PRODUCT_SELECT
+                + "WHERE ("
+                + "p.product_name LIKE ? "
+                + "OR p.model_code LIKE ? "
+                + "OR c.category_name LIKE ? "
+                + "OR b.brand_name LIKE ?"
+                + ") "
                 + "ORDER BY p.product_id DESC";
 
-        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
+        String searchPattern
+                = "%" + (keyword == null ? "" : keyword.trim()) + "%";
 
-            String searchPattern = "%" + keyword + "%";
-            statement.setNString(1, searchPattern);
-            statement.setNString(2, searchPattern);
-            statement.setNString(3, searchPattern);
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            try (ResultSet rs = statement.executeQuery()) {
+            ps.setNString(1, searchPattern);
+            ps.setNString(2, searchPattern);
+            ps.setNString(3, searchPattern);
+            ps.setNString(4, searchPattern);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
                 while (rs.next()) {
                     list.add(mapProduct(rs));
                 }
             }
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi tìm kiếm Product!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi tìm kiếm Product!",
+                    ex
+            );
         }
+
         return list;
     }
 
+    // ========================================
+    // 9. KIỂM TRA TRÙNG TÊN PRODUCT
+    // ========================================
     public boolean checkProductNameExists(String productName) {
-        String sql = "SELECT 1 FROM PRODUCT WHERE product_name = ?";
-        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
-            statement.setString(1, productName);
-            try (ResultSet rs = statement.executeQuery()) {
+
+        String sql
+                = "SELECT 1 FROM PRODUCT "
+                + "WHERE product_name = ?";
+
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setNString(1, productName);
+
+            try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi kiểm tra trùng tên Product!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi kiểm tra trùng tên Product!",
+                    ex
+            );
         }
+
         return false;
     }
 
-    public boolean checkProductNameExistsForUpdate(String productName, int excludeProductId) {
-        String sql = "SELECT 1 FROM PRODUCT WHERE product_name = ? AND product_id != ?";
-        try (Connection conn = this.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
-            statement.setString(1, productName);
-            statement.setInt(2, excludeProductId);
-            try (ResultSet rs = statement.executeQuery()) {
+    // ========================================
+    // 10. KIỂM TRA TRÙNG TÊN KHI EDIT
+    // ========================================
+    public boolean checkProductNameExistsForUpdate(
+            String productName,
+            int excludeProductId) {
+
+        String sql
+                = "SELECT 1 FROM PRODUCT "
+                + "WHERE product_name = ? "
+                + "AND product_id <> ?";
+
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setNString(1, productName);
+            ps.setInt(2, excludeProductId);
+
+            try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi kiểm tra trùng tên Product lúc Edit!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi kiểm tra trùng tên khi Edit!",
+                    ex
+            );
         }
+
         return false;
     }
 
-    public void insertGalleryImages(int productId, List<String> imageUrls) {
+    // ========================================
+    // 11. THÊM ẢNH GALLERY CHUNG
+    // ========================================
+    public void insertGalleryImages(
+            int productId,
+            List<String> imageUrls) {
+
         if (imageUrls == null || imageUrls.isEmpty()) {
             return;
         }
-        String sql = "INSERT INTO PRODUCT_IMAGES (product_id, image_url) VALUES (?, ?)";
-        try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
+
+        String sql
+                = "INSERT INTO PRODUCT_IMAGES "
+                + "(product_id, sku_id, image_url, "
+                + "is_primary, display_order) "
+                + "SELECT ?, NULL, ?, 0, ? "
+                + "WHERE NOT EXISTS ("
+                + "SELECT 1 FROM PRODUCT_IMAGES "
+                + "WHERE product_id = ? "
+                + "AND sku_id IS NULL "
+                + "AND image_url = ?"
+                + ")";
+
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            int order = 0;
+
             for (String url : imageUrls) {
-                stm.setInt(1, productId);
-                stm.setString(2, url);
-                stm.addBatch();
+
+                if (url == null || url.trim().isEmpty()) {
+                    continue;
+                }
+
+                String cleanUrl = url.trim();
+
+                ps.setInt(1, productId);
+                ps.setString(2, cleanUrl);
+                ps.setInt(3, order++);
+                ps.setInt(4, productId);
+                ps.setString(5, cleanUrl);
+
+                ps.addBatch();
             }
-            stm.executeBatch();
+
+            ps.executeBatch();
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lưu ảnh Gallery!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi lưu ảnh Gallery!",
+                    ex
+            );
         }
     }
 
+    // ========================================
+    // 12. LẤY TOÀN BỘ ẢNH CỦA PRODUCT
+    // ========================================
     public List<ProductImage> getProductImages(int productId) {
+
         List<ProductImage> list = new ArrayList<>();
-        String sql = "SELECT image_id, product_id, image_url FROM PRODUCT_IMAGES WHERE product_id = ?";
-        try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
-            stm.setInt(1, productId);
-            try (ResultSet rs = stm.executeQuery()) {
+
+        String sql
+                = "SELECT image_id, product_id, sku_id, "
+                + "image_url, is_primary, display_order, "
+                + "alt_text, created_at "
+                + "FROM PRODUCT_IMAGES "
+                + "WHERE product_id = ? "
+                + "ORDER BY "
+                + "CASE WHEN sku_id IS NULL THEN 0 ELSE 1 END, "
+                + "sku_id, display_order, image_id";
+
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, productId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
                 while (rs.next()) {
-                    list.add(new ProductImage(
+
+                    Integer skuId
+                            = (Integer) rs.getObject("sku_id");
+
+                    ProductImage image = new ProductImage(
                             rs.getInt("image_id"),
                             rs.getInt("product_id"),
-                            rs.getString("image_url")
-                    ));
+                            skuId,
+                            rs.getString("image_url"),
+                            rs.getBoolean("is_primary"),
+                            rs.getInt("display_order"),
+                            rs.getString("alt_text"),
+                            rs.getTimestamp("created_at")
+                    );
+
+                    list.add(image);
                 }
             }
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy ảnh Gallery!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi lấy ảnh Product!",
+                    ex
+            );
         }
+
         return list;
     }
 
+    // ========================================
+    // 13. XÓA ẢNH GALLERY THEO ID
+    // ========================================
     public void deleteGalleryImageById(int imageId) {
-        String sql = "DELETE FROM PRODUCT_IMAGES WHERE image_id = ?";
-        try (Connection conn = this.getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
-            stm.setInt(1, imageId);
-            stm.executeUpdate();
+
+        String sql
+                = "DELETE FROM PRODUCT_IMAGES "
+                + "WHERE image_id = ?";
+
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, imageId);
+            ps.executeUpdate();
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi xóa ảnh Gallery!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi xóa ảnh Gallery!",
+                    ex
+            );
         }
     }
 
+    // ========================================
+    // 14. LẤY TOÀN BỘ ATTRIBUTE
+    // ========================================
     public List<Attribute> getAllAttributes() {
+
         List<Attribute> list = new ArrayList<>();
-        String sql = "SELECT attribute_id, attribute_name FROM ATTRIBUTE";
+
+        String sql
+                = "SELECT attribute_id, attribute_name, "
+                + "data_type, unit, is_active "
+                + "FROM ATTRIBUTE "
+                + "ORDER BY attribute_id";
+
         try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+
             while (rs.next()) {
-                list.add(new Attribute(rs.getInt("attribute_id"), rs.getString("attribute_name")));
+
+                Attribute attribute = new Attribute(
+                        rs.getInt("attribute_id"),
+                        rs.getString("attribute_name"),
+                        rs.getString("data_type"),
+                        rs.getString("unit"),
+                        rs.getBoolean("is_active")
+                );
+
+                list.add(attribute);
             }
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy danh sách Attribute!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi lấy danh sách Attribute!",
+                    ex
+            );
         }
+
         return list;
     }
 
-    public void saveProductSpecs(int productId, String[] attributeIds, String[] specValues) {
-        try (Connection conn = this.getConnection()) {
-            String sqlDelete = "DELETE FROM PRODUCT_SPECIFICATION WHERE product_id = ?";
-            try (PreparedStatement psDel = conn.prepareStatement(sqlDelete)) {
-                psDel.setInt(1, productId);
-                psDel.executeUpdate();
-            }
+    // ========================================
+    // 15. LƯU THÔNG SỐ KỸ THUẬT PRODUCT
+    // ========================================
+    public void saveProductSpecs(
+            int productId,
+            String[] attributeIds,
+            String[] specValues) {
 
-            if (attributeIds == null || specValues == null) {
-                return;
-            }
+        /*
+         * Giữ chữ ký phương thức cũ.
+         *
+         * Tạo danh sách duy nhất theo attributeId.
+         * Sau đó xóa dữ liệu cũ và lưu dữ liệu mới
+         * trong cùng một transaction.
+         */
+        Map<Integer, String> uniqueSpecs
+                = new LinkedHashMap<>();
 
-            Map<Integer, String> uniqueSpecs = new LinkedHashMap<>();
-            int len = Math.min(attributeIds.length, specValues.length);
+        if (attributeIds != null && specValues != null) {
+
+            int len = Math.min(
+                    attributeIds.length,
+                    specValues.length
+            );
+
             for (int i = 0; i < len; i++) {
-                if (attributeIds[i] != null && !attributeIds[i].isEmpty()
-                        && specValues[i] != null && !specValues[i].trim().isEmpty()) {
-                    try {
-                        uniqueSpecs.put(Integer.parseInt(attributeIds[i]), specValues[i].trim());
-                    } catch (NumberFormatException ignored) {
+
+                String attributeId = attributeIds[i];
+                String value = specValues[i];
+
+                if (attributeId == null
+                        || attributeId.trim().isEmpty()
+                        || value == null
+                        || value.trim().isEmpty()) {
+                    continue;
+                }
+
+                try {
+                    int id = Integer.parseInt(
+                            attributeId.trim()
+                    );
+
+                    if (id > 0) {
+                        uniqueSpecs.put(id, value.trim());
+                    }
+
+                } catch (NumberFormatException ex) {
+                    LOGGER.log(
+                            Level.WARNING,
+                            "Attribute ID không hợp lệ: "
+                            + attributeId,
+                            ex
+                    );
+                }
+            }
+        }
+
+        String sqlDelete
+                = "DELETE FROM PRODUCT_SPECIFICATION "
+                + "WHERE product_id = ?";
+
+        String sqlInsert
+                = "INSERT INTO PRODUCT_SPECIFICATION "
+                + "(product_id, attribute_id, value) "
+                + "VALUES (?, ?, ?)";
+
+        try (Connection conn = this.getConnection()) {
+
+            boolean originalAutoCommit
+                    = conn.getAutoCommit();
+
+            try {
+                conn.setAutoCommit(false);
+
+                try (PreparedStatement psDel
+                        = conn.prepareStatement(sqlDelete)) {
+
+                    psDel.setInt(1, productId);
+                    psDel.executeUpdate();
+                }
+
+                if (!uniqueSpecs.isEmpty()) {
+
+                    try (PreparedStatement psIns
+                            = conn.prepareStatement(sqlInsert)) {
+
+                        for (Map.Entry<Integer, String> entry
+                                : uniqueSpecs.entrySet()) {
+
+                            psIns.setInt(1, productId);
+                            psIns.setInt(2, entry.getKey());
+                            psIns.setNString(3, entry.getValue());
+
+                            psIns.addBatch();
+                        }
+
+                        psIns.executeBatch();
                     }
                 }
-            }
 
-            if (uniqueSpecs.isEmpty()) {
-                return;
-            }
+                conn.commit();
 
-            String sqlInsert = "INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value) VALUES (?, ?, ?)";
-            try (PreparedStatement psIns = conn.prepareStatement(sqlInsert)) {
-                for (Map.Entry<Integer, String> entry : uniqueSpecs.entrySet()) {
-                    psIns.setInt(1, productId);
-                    psIns.setInt(2, entry.getKey());
-                    psIns.setString(3, entry.getValue());
-                    psIns.addBatch();
+            } catch (SQLException ex) {
+
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    ex.addSuppressed(rollbackEx);
                 }
-                psIns.executeBatch();
+
+                LOGGER.log(
+                        Level.SEVERE,
+                        "Lỗi lưu thông số kỹ thuật!",
+                        ex
+                );
+
+            } finally {
+                try {
+                    conn.setAutoCommit(originalAutoCommit);
+                } catch (SQLException ex) {
+                    LOGGER.log(
+                            Level.WARNING,
+                            "Không khôi phục được autoCommit!",
+                            ex
+                    );
+                }
             }
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lưu thông số kỹ thuật!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi kết nối khi lưu thông số!",
+                    ex
+            );
         }
     }
 
-    public List<ProductSpec> getProductSpecsForAdmin(int productId) {
+    // ========================================
+    // 16. LẤY THÔNG SỐ CHO ADMIN
+    // ========================================
+    public List<ProductSpec> getProductSpecsForAdmin(
+            int productId) {
+
         List<ProductSpec> list = new ArrayList<>();
-        String sql = "SELECT ps.attribute_id, a.attribute_name, ps.value "
+
+        String sql
+                = "SELECT "
+                + "ps.product_id, "
+                + "ps.attribute_id, "
+                + "ps.value, "
+                + "ps.numeric_value, "
+                + "ps.boolean_value, "
+                + "a.attribute_name, "
+                + "a.unit, "
+                + "ca.group_name, "
+                + "ca.display_order "
                 + "FROM PRODUCT_SPECIFICATION ps "
-                + "JOIN ATTRIBUTE a ON ps.attribute_id = a.attribute_id "
-                + "WHERE ps.product_id = ?";
+                + "INNER JOIN PRODUCT p "
+                + "ON p.product_id = ps.product_id "
+                + "INNER JOIN ATTRIBUTE a "
+                + "ON a.attribute_id = ps.attribute_id "
+                + "LEFT JOIN CATEGORY_ATTRIBUTE ca "
+                + "ON ca.category_id = p.category_id "
+                + "AND ca.attribute_id = ps.attribute_id "
+                + "WHERE ps.product_id = ? "
+                + "ORDER BY ca.display_order, "
+                + "ps.attribute_id";
+
         try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
             ps.setInt(1, productId);
+
             try (ResultSet rs = ps.executeQuery()) {
+
                 while (rs.next()) {
-                    list.add(new ProductSpec(
-                            rs.getInt("attribute_id"),
-                            rs.getString("attribute_name"),
+
+                    ProductSpec spec = new ProductSpec();
+
+                    spec.setProductId(
+                            rs.getInt("product_id")
+                    );
+
+                    spec.setAttributeId(
+                            rs.getInt("attribute_id")
+                    );
+
+                    spec.setAttributeName(
+                            rs.getString("attribute_name")
+                    );
+
+                    spec.setValue(
                             rs.getString("value")
-                    ));
+                    );
+
+                    spec.setNumericValue(
+                            rs.getBigDecimal("numeric_value")
+                    );
+
+                    Object booleanObject
+                            = rs.getObject("boolean_value");
+
+                    spec.setBooleanValue(
+                            booleanObject == null
+                                    ? null
+                                    : rs.getBoolean("boolean_value")
+                    );
+
+                    spec.setGroupName(
+                            rs.getString("group_name")
+                    );
+
+                    spec.setUnit(
+                            rs.getString("unit")
+                    );
+
+                    spec.setDisplayOrder(
+                            rs.getInt("display_order")
+                    );
+
+                    list.add(spec);
                 }
             }
+
         } catch (SQLException ex) {
-            Logger.getLogger(ProductDAO.class.getName()).log(Level.SEVERE, "Lỗi lấy thông số kỹ thuật!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Lỗi lấy thông số Product!",
+                    ex
+            );
         }
+
         return list;
     }
 }

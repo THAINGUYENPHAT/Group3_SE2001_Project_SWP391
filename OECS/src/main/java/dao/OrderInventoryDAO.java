@@ -7,8 +7,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The caller must hold the order lock and commit inventory with the order status. */
+/**
+ * The caller must hold the order lock and commit inventory with the order
+ * status.
+ */
 public final class OrderInventoryDAO {
+
     public void deduct(Connection connection, int orderId) throws SQLException {
         adjust(connection, orderId, true);
     }
@@ -38,7 +42,7 @@ public final class OrderInventoryDAO {
         }
         String updateSql = deduct
                 ? "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity - ? "
-                    + "WHERE sku_id = ? AND stock_quantity >= ?"
+                + "WHERE sku_id = ? AND stock_quantity >= ?"
                 : "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity + ? WHERE sku_id = ?";
         try (PreparedStatement statement = connection.prepareStatement(updateSql)) {
             for (long[] item : items) {
@@ -54,6 +58,22 @@ public final class OrderInventoryDAO {
                     }
                     throw new SQLException("Không hoàn được tồn kho SKU " + item[0] + ".");
                 }
+
+                int skuId = Math.toIntExact(item[0]);
+                int qty = Math.toIntExact(item[1]);
+
+                InventoryMovementHelper.recordAfterDelta(
+                        connection,
+                        skuId,
+                        deduct ? -qty : qty,
+                        deduct ? "OUT" : "IN",
+                        (deduct
+                                ? "Xac nhan don hang #"
+                                : "Hoan kho don hang #") + orderId,
+                        null
+                );
+
+                
             }
         }
     }
