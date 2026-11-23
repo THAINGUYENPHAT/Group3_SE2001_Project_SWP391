@@ -23,26 +23,23 @@ public class ReportDAO extends DBContext {
     private static final String COMPLETED_CONDITION =
             " o.order_status = 'COMPLETED' ";
 
-    // Loại toàn bộ đơn hàng nếu có yêu cầu RETURN được duyệt.
-    // EXCHANGE, PENDING và REJECTED vẫn được tính.
-    private static final String RETURN_EXCLUSION_CONDITION =
-            " AND NOT EXISTS ("
-            + " SELECT 1 "
-            + " FROM dbo.RETURN_REQUEST rr "
-            + " WHERE rr.order_id = o.order_id "
-            + " AND rr.request_type = 'RETURN' "
-            + " AND rr.request_status = 'APPROVED' "
-            + ") ";
-
     public BigDecimal getTotalRevenueByRange(
             LocalDate startDate, LocalDate endDate) {
 
-        String sql = "SELECT ISNULL(SUM(o.total_amount), 0) AS total_revenue "
+        String sql = "SELECT ISNULL(SUM(o.total_amount - COALESCE(rf.return_refunded,0)), 0) AS total_revenue "
                 + "FROM dbo.[ORDER] o "
+                + "OUTER APPLY ( "
+                + "    SELECT COALESCE(SUM(r.refund_amount),0) AS return_refunded "
+                + "    FROM dbo.PAYMENT_REFUND r "
+                + "    JOIN dbo.PAYMENT_TRANSACTION t "
+                + "        ON r.transaction_id = t.transaction_id "
+                + "    WHERE t.order_id = o.order_id "
+                + "      AND r.refund_type = 'RETURN' "
+                + "      AND r.refund_status = 'SUCCESS' "
+                + ") rf "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND " + COMPLETED_CONDITION
-                + RETURN_EXCLUSION_CONDITION;
+                + "AND " + COMPLETED_CONDITION;
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -70,8 +67,7 @@ public class ReportDAO extends DBContext {
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND " + COMPLETED_CONDITION
-                + RETURN_EXCLUSION_CONDITION;
+                + "AND " + COMPLETED_CONDITION;
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -93,14 +89,22 @@ public class ReportDAO extends DBContext {
     public int getTotalProductsSoldByRange(
             LocalDate startDate, LocalDate endDate) {
 
-        String sql = "SELECT ISNULL(SUM(oi.quantity), 0) AS total_products "
+        String sql = "SELECT ISNULL(SUM(oi.quantity - COALESCE(ri_ret.returned_qty,0)), 0) AS total_products "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "INNER JOIN dbo.[ORDER] o "
                 + "ON oi.order_id = o.order_id "
+                 + "OUTER APPLY ( "
+                + "    SELECT COALESCE(SUM(ri.quantity),0) AS returned_qty "
+                + "    FROM dbo.RETURN_REQUEST_ITEM ri "
+                + "    JOIN dbo.RETURN_REQUEST rr "
+                + "        ON rr.request_id = ri.request_id "
+                + "    WHERE ri.order_item_id = oi.order_item_id "
+                + "      AND rr.request_type = 'RETURN' "
+                + "      AND rr.request_status = 'APPROVED' "
+                + ") ri_ret "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND " + COMPLETED_CONDITION
-                + RETURN_EXCLUSION_CONDITION;
+                + "AND " + COMPLETED_CONDITION;
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -126,13 +130,21 @@ public class ReportDAO extends DBContext {
 
         String sql = "SELECT "
                 + "CAST(o.created_at AS DATE) AS report_date, "
-                + "SUM(o.total_amount) AS revenue, "
+                + "SUM(o.total_amount - COALESCE(rf.return_refunded,0)) AS revenue, "
                 + "COUNT(*) AS order_count "
                 + "FROM dbo.[ORDER] o "
+                + "OUTER APPLY ( "
+                + "    SELECT COALESCE(SUM(r.refund_amount),0) AS return_refunded "
+                + "    FROM dbo.PAYMENT_REFUND r "
+                + "    JOIN dbo.PAYMENT_TRANSACTION t "
+                + "        ON r.transaction_id = t.transaction_id "
+                + "    WHERE t.order_id = o.order_id "
+                + "      AND r.refund_type = 'RETURN' "
+                + "      AND r.refund_status = 'SUCCESS' "
+                + ") rf "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
                 + "AND " + COMPLETED_CONDITION
-                + RETURN_EXCLUSION_CONDITION
                 + "GROUP BY CAST(o.created_at AS DATE) "
                 + "ORDER BY report_date DESC";
 
@@ -178,7 +190,7 @@ public class ReportDAO extends DBContext {
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + RETURN_EXCLUSION_CONDITION
+
                 + "GROUP BY o.order_status "
                 + "ORDER BY total DESC";
 
@@ -209,7 +221,7 @@ public class ReportDAO extends DBContext {
 
         String sql = "SELECT TOP 5 "
                 + "p.product_name, "
-                + "SUM(oi.quantity) AS total_sold "
+                + "SUM(oi.quantity - COALESCE(ri_ret.returned_qty,0)) AS total_sold "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "INNER JOIN dbo.[ORDER] o "
                 + "ON oi.order_id = o.order_id "
@@ -217,10 +229,18 @@ public class ReportDAO extends DBContext {
                 + "ON oi.sku_id = ps.sku_id "
                 + "INNER JOIN dbo.PRODUCT p "
                 + "ON ps.product_id = p.product_id "
+                 + "OUTER APPLY ( "
+                + "    SELECT COALESCE(SUM(ri.quantity),0) AS returned_qty "
+                + "    FROM dbo.RETURN_REQUEST_ITEM ri "
+                + "    JOIN dbo.RETURN_REQUEST rr "
+                + "        ON rr.request_id = ri.request_id "
+                + "    WHERE ri.order_item_id = oi.order_item_id "
+                + "      AND rr.request_type = 'RETURN' "
+                + "      AND rr.request_status = 'APPROVED' "
+                + ") ri_ret "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
                 + "AND " + COMPLETED_CONDITION
-                + RETURN_EXCLUSION_CONDITION
                 + "GROUP BY p.product_id, p.product_name "
                 + "ORDER BY total_sold DESC, p.product_name ASC";
 

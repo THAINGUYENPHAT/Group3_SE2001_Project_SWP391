@@ -21,23 +21,26 @@ public class DashboardDAO extends DBContext {
             = Logger.getLogger(DashboardDAO.class.getName());
 
     // 1. Tổng doanh thu trong khoảng thời gian.
-    // Không tính các đơn đã được duyệt yêu cầu RETURN.
+    // Count orders independent of return requests; revenue subtracts SUCCESS refunds.
     public BigDecimal getTotalRevenueByRange(
             LocalDate start, LocalDate end) {
 
         String sql
-                = "SELECT COALESCE(SUM(o.total_amount), 0) "
+                = "SELECT COALESCE(SUM(o.total_amount - COALESCE(rf.return_refunded,0)), 0) "
                 + "FROM dbo.[ORDER] o "
+                + "OUTER APPLY ( "
+                + "    SELECT COALESCE(SUM(r.refund_amount),0) AS return_refunded "
+                + "    FROM dbo.PAYMENT_REFUND r "
+                + "    JOIN dbo.PAYMENT_TRANSACTION t "
+                + "        ON r.transaction_id = t.transaction_id "
+                + "    WHERE t.order_id = o.order_id "
+                + "      AND r.refund_type = 'RETURN' "
+                + "      AND r.refund_status = 'SUCCESS' "
+                + ") rf "
                 + "WHERE o.order_status = 'COMPLETED' "
                 + "AND o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND NOT EXISTS ( "
-                + "    SELECT 1 "
-                + "    FROM RETURN_REQUEST rr "
-                + "    WHERE rr.order_id = o.order_id "
-                + "      AND rr.request_type = 'RETURN' "
-                + "      AND rr.request_status = 'APPROVED' "
-                + ")";
+                + " ";
 
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -59,7 +62,7 @@ public class DashboardDAO extends DBContext {
     }
 
     // 2. Tổng số đơn hàng trong khoảng thời gian.
-    // Không tính các đơn đã được duyệt yêu cầu RETURN.
+    // Count orders independent of return requests; revenue subtracts SUCCESS refunds.
     public int getTotalOrdersByRange(
             LocalDate start, LocalDate end) {
 
@@ -68,19 +71,13 @@ public class DashboardDAO extends DBContext {
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND NOT EXISTS ( "
-                + "    SELECT 1 "
-                + "    FROM RETURN_REQUEST rr "
-                + "    WHERE rr.order_id = o.order_id "
-                + "      AND rr.request_type = 'RETURN' "
-                + "      AND rr.request_status = 'APPROVED' "
-                + ")";
+                + " ";
 
         return countByRange(sql, start, end);
     }
 
     // 3. Tổng số đơn hoàn thành.
-    // Không tính các đơn đã được duyệt yêu cầu RETURN.
+    // Count orders independent of return requests; revenue subtracts SUCCESS refunds.
     public int getCompletedOrdersByRange(
             LocalDate start, LocalDate end) {
 
@@ -90,19 +87,13 @@ public class DashboardDAO extends DBContext {
                 + "WHERE o.order_status = 'COMPLETED' "
                 + "AND o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND NOT EXISTS ( "
-                + "    SELECT 1 "
-                + "    FROM RETURN_REQUEST rr "
-                + "    WHERE rr.order_id = o.order_id "
-                + "      AND rr.request_type = 'RETURN' "
-                + "      AND rr.request_status = 'APPROVED' "
-                + ")";
+                + " ";
 
         return countByRange(sql, start, end);
     }
 
     // 4. Tổng số đơn đã hủy.
-    // Không tính các đơn đã được duyệt yêu cầu RETURN.
+    // Count orders independent of return requests; revenue subtracts SUCCESS refunds.
     public int getCancelledOrdersByRange(
             LocalDate start, LocalDate end) {
 
@@ -112,19 +103,13 @@ public class DashboardDAO extends DBContext {
                 + "WHERE o.order_status = 'CANCELLED' "
                 + "AND o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND NOT EXISTS ( "
-                + "    SELECT 1 "
-                + "    FROM RETURN_REQUEST rr "
-                + "    WHERE rr.order_id = o.order_id "
-                + "      AND rr.request_type = 'RETURN' "
-                + "      AND rr.request_status = 'APPROVED' "
-                + ")";
+                + " ";
 
         return countByRange(sql, start, end);
     }
 
     // 5. Doanh thu theo ngày tạo đơn.
-    // Không tính các đơn đã được duyệt yêu cầu RETURN.
+    // Count orders independent of return requests; revenue subtracts SUCCESS refunds.
     public List<Object[]> getRevenueByDateRange(
             LocalDate start, LocalDate end) {
 
@@ -133,18 +118,21 @@ public class DashboardDAO extends DBContext {
         String sql
                 = "SELECT "
                 + "    CAST(o.created_at AS DATE) AS order_date, "
-                + "    SUM(o.total_amount) AS total_value "
+                + "    SUM(o.total_amount - COALESCE(rf.return_refunded,0)) AS total_value "
                 + "FROM dbo.[ORDER] o "
+                + "OUTER APPLY ( "
+                + "    SELECT COALESCE(SUM(r.refund_amount),0) AS return_refunded "
+                + "    FROM dbo.PAYMENT_REFUND r "
+                + "    JOIN dbo.PAYMENT_TRANSACTION t "
+                + "        ON r.transaction_id = t.transaction_id "
+                + "    WHERE t.order_id = o.order_id "
+                + "      AND r.refund_type = 'RETURN' "
+                + "      AND r.refund_status = 'SUCCESS' "
+                + ") rf "
                 + "WHERE o.order_status = 'COMPLETED' "
                 + "AND o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND NOT EXISTS ( "
-                + "    SELECT 1 "
-                + "    FROM RETURN_REQUEST rr "
-                + "    WHERE rr.order_id = o.order_id "
-                + "      AND rr.request_type = 'RETURN' "
-                + "      AND rr.request_status = 'APPROVED' "
-                + ") "
+                + " "
                 + "GROUP BY CAST(o.created_at AS DATE) "
                 + "ORDER BY order_date ASC";
 
@@ -171,7 +159,7 @@ public class DashboardDAO extends DBContext {
     }
 
     // 6. Thống kê trạng thái đơn hàng.
-    // Không tính các đơn đã được duyệt yêu cầu RETURN.
+    // Count orders independent of return requests; revenue subtracts SUCCESS refunds.
     public List<Object[]> getOrderStatusByRange(
             LocalDate start, LocalDate end) {
 
@@ -182,13 +170,7 @@ public class DashboardDAO extends DBContext {
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND NOT EXISTS ( "
-                + "    SELECT 1 "
-                + "    FROM RETURN_REQUEST rr "
-                + "    WHERE rr.order_id = o.order_id "
-                + "      AND rr.request_type = 'RETURN' "
-                + "      AND rr.request_status = 'APPROVED' "
-                + ") "
+                + " "
                 + "GROUP BY o.order_status "
                 + "ORDER BY total DESC, o.order_status ASC";
 
@@ -215,7 +197,7 @@ public class DashboardDAO extends DBContext {
     }
 
     // 7. Top 5 sản phẩm theo số lượng bán.
-    // Không tính sản phẩm thuộc các đơn đã được duyệt yêu cầu RETURN.
+    // Net sold quantities subtract items in approved RETURN requests.
     public List<Object[]> getTopSellingProductsByRange(
             LocalDate start, LocalDate end) {
 
@@ -227,7 +209,7 @@ public class DashboardDAO extends DBContext {
                 + "    p.product_name, "
                 + "    p.image_url, "
                 + "    price_info.min_price, "
-                + "    SUM(oi.quantity) AS total_sold "
+                + "    SUM(oi.quantity - COALESCE(ri_ret.returned_qty,0)) AS total_sold "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "INNER JOIN dbo.[ORDER] o "
                 + "    ON oi.order_id = o.order_id "
@@ -241,16 +223,19 @@ public class DashboardDAO extends DBContext {
                 + "    GROUP BY product_id "
                 + ") price_info "
                 + "    ON price_info.product_id = p.product_id "
+                 + "OUTER APPLY ( "
+                + "    SELECT COALESCE(SUM(ri.quantity),0) AS returned_qty "
+                + "    FROM dbo.RETURN_REQUEST_ITEM ri "
+                + "    JOIN dbo.RETURN_REQUEST rr "
+                + "        ON rr.request_id = ri.request_id "
+                + "    WHERE ri.order_item_id = oi.order_item_id "
+                + "      AND rr.request_type = 'RETURN' "
+                + "      AND rr.request_status = 'APPROVED' "
+                + ") ri_ret "
                 + "WHERE o.order_status = 'COMPLETED' "
                 + "AND o.created_at >= ? "
                 + "AND o.created_at < ? "
-                + "AND NOT EXISTS ( "
-                + "    SELECT 1 "
-                + "    FROM RETURN_REQUEST rr "
-                + "    WHERE rr.order_id = o.order_id "
-                + "      AND rr.request_type = 'RETURN' "
-                + "      AND rr.request_status = 'APPROVED' "
-                + ") "
+                + " "
                 + "GROUP BY "
                 + "    p.product_id, "
                 + "    p.product_name, "

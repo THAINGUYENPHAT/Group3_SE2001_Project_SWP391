@@ -101,8 +101,8 @@ public class OrderCancellationService {
                         throw new IllegalArgumentException("Chưa tìm thấy giao dịch thu tiền để hoàn. Cần đối soát trước khi hủy.");
                     }
                     for (Object[] tx : paid) {
-                        update(c, "INSERT INTO dbo.PAYMENT_REFUND(transaction_id,refund_amount,reason) SELECT ?,?,? "
-                                + "WHERE NOT EXISTS (SELECT 1 FROM dbo.PAYMENT_REFUND WHERE transaction_id=?)",
+                        update(c, "INSERT INTO dbo.PAYMENT_REFUND(transaction_id,refund_amount,refund_type,reason) SELECT ?,?,'CANCELLATION',? "
+                                + "WHERE NOT EXISTS (SELECT 1 FROM dbo.PAYMENT_REFUND WHERE transaction_id=? AND refund_type='CANCELLATION')",
                                 tx[0], tx[1], cancellationReason, tx[0]);
                         refund = true;
                     }
@@ -110,6 +110,8 @@ public class OrderCancellationService {
                 boolean deducted = "CONFIRMED".equals(status) || "PACKING".equals(status);
                 if (deducted) {
                     new OrderInventoryDAO().restore(c, orderId);
+                } else {
+                    new OrderInventoryDAO().releaseReservation(c, orderId);
                 }
                 String cancellationSource = timedOut
                         ? "SYSTEM"
@@ -117,10 +119,11 @@ public class OrderCancellationService {
 
                 update(c, "UPDATE dbo.[ORDER] SET "
                         + "order_status='CANCELLED', "
-                        + "cancellation_source=CASE WHEN ?='CUSTOMER' "
-                        + "THEN NULL ELSE ? END, "
-                        + "cancelled_at=CASE WHEN ?='CUSTOMER' "
-                        + "THEN NULL ELSE SYSUTCDATETIME() END, "
+                        + "cancellation_source=CASE WHEN ?='CUSTOMER' THEN NULL ELSE ? END, "
+                        + "cancelled_at=CASE WHEN ?='CUSTOMER' THEN NULL ELSE SYSUTCDATETIME() END, "
+                        + "cancel_request_status=NULL, cancel_request_reason=NULL, "
+                        + "cancel_requested_at=NULL, cancel_reviewed_by=NULL, "
+                        + "cancel_reviewed_at=NULL, cancel_review_note=NULL, "
                         + "stock_restored_at=CASE WHEN ?=1 "
                         + "THEN SYSDATETIME() ELSE stock_restored_at END, "
                         + "payment_expires_at=NULL, "
@@ -130,10 +133,13 @@ public class OrderCancellationService {
                         cancellationSource,
                         cancellationSource,
                         deducted ? 1 : 0,
-                        refund ? "REFUND_PENDING" : payment,
+                        refund ? "PAID" : payment,
                         orderId);
                 update(c, "UPDATE dbo.PAYMENT_TRANSACTION SET status=? WHERE order_id=? AND status='PENDING'", timedOut ? "EXPIRED" : "CANCELLED", orderId);
-                update(c, "INSERT INTO dbo.ORDER_STATUS_HISTORY(order_id,status) VALUES (?,'CANCELLED')", orderId);
+                update(c, "INSERT INTO dbo.ORDER_STATUS_HISTORY "
+                        + "(order_id,status,old_status,actor_type,changed_by,reason) "
+                        + "VALUES (?,'CANCELLED',?,?,?,?)", orderId, status, cancellationSource,
+                        "SYSTEM".equals(cancellationSource) ? null : actorId, cancellationReason);
                 if (!NotificationDAO.createOrderStatusNotification(c, orderId, "CANCELLED")) {
                     throw new SQLException("Không tạo được thông báo hủy đơn.");
                 }

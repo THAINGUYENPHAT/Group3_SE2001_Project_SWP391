@@ -135,14 +135,24 @@ public class PaymentDAO {
             int orderId,
             String status
     ) throws SQLException {
+        if ("CANCELLED".equals(status)) {
+            throw new SQLException("Cancellation history requires actor and reason.");
+        }
+        update(connection,
+                "INSERT INTO dbo.ORDER_STATUS_HISTORY (order_id, status) VALUES (?, ?)",
+                orderId, status);
+    }
 
-        update(
-                connection,
+    private void cancellationHistory(Connection connection, LockedOrder order,
+            boolean customerInitiated) throws SQLException {
+        update(connection,
                 "INSERT INTO dbo.ORDER_STATUS_HISTORY "
-                + "(order_id, status) VALUES (?, ?)",
-                orderId,
-                status
-        );
+                + "(order_id,status,old_status,actor_type,changed_by,reason) "
+                + "VALUES (?,'CANCELLED',?,?,?,?)",
+                order.id, order.status, customerInitiated ? "CUSTOMER" : "SYSTEM",
+                customerInitiated ? order.owner : null,
+                customerInitiated ? "Khách hàng hủy đơn chờ thanh toán"
+                        : "Hết hạn thanh toán online");
     }
 
     private static void rollback(
@@ -177,8 +187,9 @@ public class PaymentDAO {
             boolean customerInitiated
     ) throws SQLException {
 
+        // Release stock held at checkout before cancelling a pending-payment order.
+        new OrderInventoryDAO().releaseReservation(connection, order.id);
         // Customer cancellation is recorded by OrderPolicyDAO afterward.
-        // System expiration is marked immediately.
         update(
                 connection,
                 "UPDATE dbo.[ORDER] SET "
@@ -204,7 +215,7 @@ public class PaymentDAO {
                 order.id
         );
 
-        history(connection, order.id, "CANCELLED");
+        cancellationHistory(connection, order, customerInitiated);
 
         order.status = "CANCELLED";
     }
@@ -599,8 +610,8 @@ public class PaymentDAO {
                     update(
                             connection,
                             "INSERT INTO dbo.PAYMENT_REFUND "
-                            + "(transaction_id, refund_amount, reason) "
-                            + "VALUES (?, ?, ?)",
+                            + "(transaction_id, refund_amount, refund_type, reason) "
+                            + "VALUES (?, ?, 'CANCELLATION', ?)",
                             transactionId,
                             amount,
                             "Thanh toán về trễ, đổi COD hoặc "
@@ -609,13 +620,9 @@ public class PaymentDAO {
                     );
 
                     if ("CANCELLED".equals(order.status)) {
-                        update(
-                                connection,
-                                "UPDATE dbo.[ORDER] "
-                                + "SET payment_status = 'REFUND_PENDING' "
-                                + "WHERE order_id = ?",
-                                orderId
-                        );
+                        update(connection,
+                                "UPDATE dbo.[ORDER] SET payment_status='PAID' WHERE order_id=?",
+                                orderId);
                     }
                 }
 

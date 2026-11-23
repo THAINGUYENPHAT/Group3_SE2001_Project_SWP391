@@ -222,13 +222,24 @@ public class ProductSkuDAO extends DBContext {
                 + "stock_quantity, original_price, is_active) "
                 + "VALUES (?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = this.getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            bindSkuInsert(ps, sku);
-
-            return ps.executeUpdate();
-
+        try (Connection conn = this.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                bindSkuInsert(ps, sku);
+                if (ps.executeUpdate() != 1) throw new SQLException("Cannot create SKU.");
+                int skuId;
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    if (!keys.next()) throw new SQLException("Cannot read new SKU ID.");
+                    skuId = keys.getInt(1);
+                }
+                recordOpeningStock(conn, skuId, sku.getStockQuantity());
+                conn.commit();
+                sku.setSkuId(skuId);
+                return 1;
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            }
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
@@ -252,13 +263,21 @@ public class ProductSkuDAO extends DBContext {
                 + "WHERE sku_id = ? "
                 + "AND product_id = ?";
 
-        try (Connection conn = this.getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            bindSkuUpdate(ps, sku);
-
-            return ps.executeUpdate();
-
+        try (Connection conn = this.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int oldStock = lockSkuStock(conn, sku.getSkuId(), sku.getProductId());
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    bindSkuUpdate(ps, sku);
+                    if (ps.executeUpdate() != 1) throw new SQLException("SKU no longer exists.");
+                }
+                recordSkuStockCorrection(conn, sku.getSkuId(), oldStock, sku.getStockQuantity());
+                conn.commit();
+                return 1;
+            } catch (SQLException | RuntimeException ex) {
+                conn.rollback();
+                throw ex;
+            }
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
@@ -461,6 +480,7 @@ public class ProductSkuDAO extends DBContext {
                         );
 
                         refreshVariantKey(conn, newSkuId);
+                        recordOpeningStock(conn, newSkuId, sku.getStockQuantity());
 
                         conn.commit();
 
@@ -524,6 +544,7 @@ public class ProductSkuDAO extends DBContext {
             try {
                 conn.setAutoCommit(false);
 
+                int oldStock = lockSkuStock(conn, sku.getSkuId(), sku.getProductId());
                 int affectedRows;
 
                 try (PreparedStatement ps
@@ -549,6 +570,7 @@ public class ProductSkuDAO extends DBContext {
                         conn,
                         sku.getSkuId()
                 );
+                recordSkuStockCorrection(conn, sku.getSkuId(), oldStock, sku.getStockQuantity());
 
                 conn.commit();
 
@@ -582,6 +604,36 @@ public class ProductSkuDAO extends DBContext {
         return 0;
     }
 
+    private static int lockSkuStock(Connection conn, int skuId, int productId)
+            throws SQLException {
+        String sql = "SELECT stock_quantity FROM dbo.PRODUCT_SKU WITH (UPDLOCK,HOLDLOCK) "
+                + "WHERE sku_id=? AND product_id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, skuId);
+            ps.setInt(2, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) throw new SQLException("SKU không tồn tại.");
+                return rs.getInt(1);
+            }
+        }
+    }
+
+    private static void recordOpeningStock(Connection conn, int skuId, int stock)
+            throws SQLException {
+        if (stock > 0) {
+            InventoryMovementHelper.record(conn, skuId, "OPENING", 0, stock,
+                    "Tồn đầu kỳ khi tạo SKU", null);
+        }
+    }
+
+    private static void recordSkuStockCorrection(Connection conn, int skuId,
+            int oldStock, int newStock) throws SQLException {
+        if (oldStock != newStock) {
+            InventoryMovementHelper.record(conn, skuId, "SET", oldStock, newStock,
+                    "Điều chỉnh tồn kho khi cập nhật SKU", null);
+        }
+    }
+
     private void bindSkuInsert(
             PreparedStatement ps,
             ProductSku sku) throws SQLException {
@@ -596,7 +648,7 @@ public class ProductSkuDAO extends DBContext {
 
         ps.setInt(1, sku.getProductId());
         ps.setString(2, sku.getSkuCode().trim());
-        ps.setDouble(3, sku.getPrice());
+        ps.setBigDecimal(3, BigDecimal.valueOf(sku.getPrice()));
         ps.setInt(4, sku.getStockQuantity());
 
         bindOriginalPrice(ps, 5, sku.getOriginalPrice());
@@ -617,7 +669,7 @@ public class ProductSkuDAO extends DBContext {
         validateSku(sku);
 
         ps.setString(1, sku.getSkuCode().trim());
-        ps.setDouble(2, sku.getPrice());
+        ps.setBigDecimal(2, BigDecimal.valueOf(sku.getPrice()));
         ps.setInt(3, sku.getStockQuantity());
 
         bindOriginalPrice(ps, 4, sku.getOriginalPrice());
@@ -641,10 +693,7 @@ public class ProductSkuDAO extends DBContext {
 
         } else {
 
-            ps.setDouble(
-                    parameterIndex,
-                    originalPrice
-            );
+            ps.setBigDecimal(parameterIndex, BigDecimal.valueOf(originalPrice));
         }
     }
 

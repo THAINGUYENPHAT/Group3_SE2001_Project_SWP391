@@ -46,7 +46,7 @@ public class OrderDAO {
             + "AND (? = N'' OR CONVERT(varchar(20), o.order_id) = ? OR EXISTS ("
             + "SELECT 1 FROM dbo.ORDER_ITEM si JOIN dbo.PRODUCT_SKU ss ON ss.sku_id = si.sku_id "
             + "JOIN dbo.PRODUCT sp ON sp.product_id = ss.product_id WHERE si.order_id = o.order_id "
-            + "AND (sp.product_name LIKE ? ESCAPE '\\' OR ss.sku_code LIKE ? ESCAPE '\\'))) ";
+            + "AND (COALESCE(si.product_name_snapshot,sp.product_name) LIKE ? ESCAPE '\\' OR COALESCE(si.sku_code_snapshot,ss.sku_code) LIKE ? ESCAPE '\\'))) ";
 
     private int bindPurchaseSearch(PreparedStatement ps, int userId, String query) throws SQLException {
         String text = query == null ? "" : query.trim();
@@ -108,7 +108,7 @@ public class OrderDAO {
         if (ids.size() > 50) {
             throw new IllegalArgumentException("Too many orders");
         }
-        String sql = "SELECT i.order_id, i.sku_id, i.price, i.quantity, s.sku_code, p.product_name, p.image_url "
+        String sql = "SELECT i.order_id, i.sku_id, i.price, i.quantity, COALESCE(i.sku_code_snapshot,s.sku_code) AS sku_code, COALESCE(i.product_name_snapshot,p.product_name) AS product_name, p.image_url "
                 + "FROM dbo.ORDER_ITEM i JOIN dbo.[ORDER] o ON o.order_id = i.order_id "
                 + "LEFT JOIN dbo.PRODUCT_SKU s ON s.sku_id = i.sku_id "
                 + "LEFT JOIN dbo.PRODUCT p ON p.product_id = s.product_id WHERE o.user_id = ? "
@@ -191,16 +191,21 @@ public class OrderDAO {
     ) throws SQLException {
 
         String sql = "INSERT INTO dbo.ORDER_ITEM "
-                + "(order_id, sku_id, price, quantity) "
-                + "VALUES (?, ?, ?, ?)";
+                + "(order_id, sku_id, price, quantity, product_name_snapshot, sku_code_snapshot) "
+                + "SELECT ?, ?, ?, ?, p.product_name, s.sku_code "
+                + "FROM dbo.PRODUCT_SKU s JOIN dbo.PRODUCT p ON p.product_id=s.product_id "
+                + "WHERE s.sku_id=?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, orderId);
             ps.setInt(2, skuId);
             ps.setBigDecimal(3, price);
             ps.setInt(4, quantity);
+            ps.setInt(5, skuId);
 
-            ps.executeUpdate();
+            if (ps.executeUpdate() != 1) {
+                throw new SQLException("Không lưu được sản phẩm trong đơn hàng.");
+            }
         }
     }
 
@@ -349,7 +354,7 @@ public class OrderDAO {
     }
 
     public List<Map<String, Object>> findItems(int orderId, int userId) throws SQLException {
-        String sql = "SELECT i.order_item_id, i.sku_id, i.price, i.quantity, s.sku_code, p.product_name, p.image_url "
+        String sql = "SELECT i.order_item_id, i.sku_id, i.price, i.quantity, COALESCE(i.sku_code_snapshot,s.sku_code) AS sku_code, COALESCE(i.product_name_snapshot,p.product_name) AS product_name, p.image_url "
                 + "FROM dbo.ORDER_ITEM i JOIN dbo.[ORDER] o ON o.order_id = i.order_id "
                 + "LEFT JOIN dbo.PRODUCT_SKU s ON s.sku_id = i.sku_id "
                 + "LEFT JOIN dbo.PRODUCT p ON p.product_id = s.product_id "
