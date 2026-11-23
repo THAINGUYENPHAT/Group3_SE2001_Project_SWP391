@@ -130,11 +130,9 @@ CREATE TABLE PRODUCT_SKU (
     original_price DECIMAL(18,2) NULL,
     is_active BIT NOT NULL CONSTRAINT DF_SKU_IsActive DEFAULT (1),
     variant_key VARBINARY(32) NULL,
-    reserved_quantity INT NOT NULL CONSTRAINT DF_SKU_Reserved DEFAULT (0),
     CONSTRAINT CK_SKU_Price CHECK (price >= 0),
     CONSTRAINT CK_SKU_OriginalPrice CHECK (original_price IS NULL OR original_price >= 0),
     CONSTRAINT CK_SKU_Stock CHECK (stock_quantity IS NULL OR stock_quantity >= 0),
-    CONSTRAINT CK_SKU_Reserved CHECK (reserved_quantity >= 0 AND (stock_quantity IS NULL OR reserved_quantity <= stock_quantity)),
     CONSTRAINT CK_OECS_Inventory_StockValid CHECK (stock_quantity IS NOT NULL AND stock_quantity >= 0),
     CONSTRAINT UQ_SKU_IdProduct UNIQUE (sku_id, product_id),
     CONSTRAINT FK_SKU_Product FOREIGN KEY (product_id)
@@ -169,13 +167,20 @@ CREATE TABLE CART_ITEMS (
     cart_id INT NOT NULL,
     sku_id INT NOT NULL,
     quantity INT NOT NULL DEFAULT (1),
-    reservation_expires_at DATETIME2 NULL,
-    CONSTRAINT FK_CartItems_Cart FOREIGN KEY (cart_id)
+
+    CONSTRAINT FK_CartItems_Cart
+        FOREIGN KEY (cart_id)
         REFERENCES CART(cart_id) ON DELETE CASCADE,
-    CONSTRAINT FK_CartItems_SKU FOREIGN KEY (sku_id)
+
+    CONSTRAINT FK_CartItems_SKU
+        FOREIGN KEY (sku_id)
         REFERENCES PRODUCT_SKU(sku_id) ON DELETE CASCADE,
-    CONSTRAINT UQ_CartItems_Cart_SKU UNIQUE (cart_id, sku_id),
-    CONSTRAINT CK_CartItems_Quantity CHECK (quantity > 0)
+
+    CONSTRAINT UQ_CartItems_Cart_SKU
+        UNIQUE (cart_id, sku_id),
+
+    CONSTRAINT CK_CartItems_Quantity
+        CHECK (quantity > 0)
 );
 
 CREATE TABLE VOUCHER (
@@ -556,9 +561,6 @@ CREATE INDEX IX_OrderItem_SKU
 CREATE INDEX IX_OrderStatusHistory_Order
     ON ORDER_STATUS_HISTORY(order_id, updated_at);
 
-CREATE INDEX IX_CartItems_ReservationExpiry
-    ON CART_ITEMS(reservation_expires_at)
-    WHERE reservation_expires_at IS NOT NULL;
 
 CREATE TABLE PASSWORD_RESET_TOKEN (
     reset_id INT IDENTITY(1,1) PRIMARY KEY,
@@ -609,10 +611,9 @@ CREATE TABLE RETURN_REQUEST (
     reviewed_at DATETIME2 NULL,
     staff_note NVARCHAR(1000) NULL,
 
-    CONSTRAINT FK_RETURN_REQUEST_ORDER FOREIGN KEY (order_id)
-        REFERENCES [ORDER](order_id),
-    CONSTRAINT FK_RETURN_REQUEST_USER FOREIGN KEY (user_id)
-        REFERENCES [USER](user_id),
+    CONSTRAINT FK_RETURN_REQUEST_ORDER_OWNER
+    FOREIGN KEY (order_id, user_id)
+    REFERENCES dbo.[ORDER](order_id, user_id),
     CONSTRAINT FK_RETURN_REQUEST_REVIEWER FOREIGN KEY (reviewed_by)
         REFERENCES [USER](user_id),
     CONSTRAINT CK_RETURN_REQUEST_TYPE
@@ -645,21 +646,6 @@ CREATE TABLE RETURN_REQUEST_ITEM (
     CONSTRAINT UQ_RETURN_REQUEST_ITEM_ID_REQUEST UNIQUE(request_item_id, request_id)
 );
 
-CREATE TABLE REFUND_ALLOCATION (
-    allocation_id BIGINT IDENTITY(1,1) CONSTRAINT PK_REFUND_ALLOCATION PRIMARY KEY,
-    refund_id BIGINT NOT NULL,
-    request_item_id INT NOT NULL,
-    quantity INT NOT NULL,
-    allocated_amount DECIMAL(18,2) NOT NULL,
-    CONSTRAINT FK_RefundAllocation_Refund FOREIGN KEY(refund_id)
-        REFERENCES PAYMENT_REFUND(refund_id),
-    CONSTRAINT FK_RefundAllocation_ReturnItem FOREIGN KEY(request_item_id)
-        REFERENCES RETURN_REQUEST_ITEM(request_item_id),
-    CONSTRAINT UQ_RefundAllocation_RefundItem UNIQUE(refund_id, request_item_id),
-    CONSTRAINT CK_RefundAllocation_Quantity CHECK(quantity > 0),
-    CONSTRAINT CK_RefundAllocation_Amount CHECK(allocated_amount > 0)
-);
-CREATE INDEX IX_RefundAllocation_ReturnItem ON REFUND_ALLOCATION(request_item_id);
 
 CREATE TABLE RETURN_REQUEST_HISTORY (
     history_id INT IDENTITY(1,1) PRIMARY KEY,
@@ -861,7 +847,6 @@ IF
     OR EXISTS (SELECT TOP (1) 1 FROM dbo.BANNER)
     OR EXISTS (SELECT TOP (1) 1 FROM dbo.RETURN_REQUEST)
     OR EXISTS (SELECT TOP (1) 1 FROM dbo.RETURN_REQUEST_ITEM)
-    OR EXISTS (SELECT TOP (1) 1 FROM dbo.REFUND_ALLOCATION)
     OR EXISTS (SELECT TOP (1) 1 FROM dbo.RETURN_REQUEST_HISTORY)
     OR EXISTS (SELECT TOP (1) 1 FROM dbo.CATEGORY_ATTRIBUTE)
     OR EXISTS (SELECT TOP (1) 1 FROM dbo.SKU_ATTRIBUTE_VALUE)
@@ -1325,27 +1310,42 @@ JOIN ADDRESSBOOK a ON a.address_id = v.address_id;
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
+
 INSERT INTO ORDER_ITEM (order_id, sku_id, price, quantity)
 VALUES
 (3, 1, 27990000, 1),
 (3, 3, 29990000, 1),
-(3, 9, 5990000, 1),
-(4, 21, 21490000, 1),
-(4, 24, 690000, 2),
-(5, 10, 3490000, 1),
+(3, 11, 5990000, 1),
+
+(4, 4, 21490000, 1),
+(4, 25, 690000, 2),
+
+(5, 12, 3490000, 1),
+
 (6, 3, 29990000, 1),
-(7, 19, 16990000, 1),
+
+(7, 21, 16990000, 1),
+
 (8, 3, 29990000, 1),
+
 (9, 4, 21490000, 1),
-(10, 7, 9990000, 1),
-(10, 9, 5990000, 1),
-(11, 23, 45990000, 1),
-(11, 25, 1490000, 1),
-(12, 8, 8290000, 1),
-(13, 9, 5990000, 1),
-(14, 18, 10490000, 1),
-(15, 24, 690000, 1),
-(16, 25, 1490000, 1);
+
+(10, 9, 9990000, 1),
+(10, 11, 5990000, 1),
+
+(11, 24, 45990000, 1),
+(11, 26, 1490000, 1),
+
+(12, 10, 8290000, 1),
+
+(13, 11, 5990000, 1),
+
+(14, 20, 10490000, 1),
+
+(15, 25, 690000, 1),
+
+(16, 26, 1490000, 1);
+
 
 INSERT INTO dbo.ORDER_STATUS_HISTORY
     (order_id,status,old_status,updated_at,actor_type,changed_by)
@@ -2047,13 +2047,13 @@ BEGIN TRY
     (N'Garmin Forerunner 165', 'WATCH-GARMIN-165', 6490000, 12, N'Màu sắc', N'Đen', NULL, NULL, NULL, NULL),
     (N'Garmin Forerunner 165', 'WATCH-GARMIN-165-WHT', 6490000, 7, N'Màu sắc', N'Trắng', NULL, NULL, NULL, NULL),
 
-    (N'Canon EOS R50', 'CAM-CANON-R50', 18990000, 8, N'Bộ sản phẩm', N'Thân máy', NULL, NULL, NULL, NULL),
+    (N'Canon EOS R50', 'CAM-CANON-R50', 18990000, 8, N'Bộ sản phẩm', N'Máy ảnh không kèm ống kính', NULL, NULL, NULL, NULL),
     (N'Canon EOS R50', 'CAM-CANON-R50-KIT1845', 21990000, 5, N'Bộ sản phẩm', N'Kit RF-S 18-45mm', NULL, NULL, NULL, NULL),
 
-    (N'Sony Alpha A6400', 'CAM-SONY-A6400', 16990000, 6, N'Bộ sản phẩm', N'Thân máy', NULL, NULL, NULL, NULL),
+    (N'Sony Alpha A6400', 'CAM-SONY-A6400', 16990000, 6, N'Bộ sản phẩm', N'Máy ảnh không kèm ống kính', NULL, NULL, NULL, NULL),
     (N'Sony Alpha A6400', 'CAM-SONY-A6400-KIT1650', 19990000, 4, N'Bộ sản phẩm', N'Kit E PZ 16-50mm', NULL, NULL, NULL, NULL),
 
-    (N'Fujifilm X-S20', 'CAM-FUJI-XS20', 28990000, 5, N'Bộ sản phẩm', N'Thân máy', NULL, NULL, NULL, NULL),
+    (N'Fujifilm X-S20', 'CAM-FUJI-XS20', 28990000, 5, N'Bộ sản phẩm', N'Máy ảnh không kèm ống kính', NULL, NULL, NULL, NULL),
     (N'Fujifilm X-S20', 'CAM-FUJI-XS20-KIT1545', 31990000, 4, N'Bộ sản phẩm', N'Kit XC 15-45mm', NULL, NULL, NULL, NULL);
 
     IF (SELECT COUNT(DISTINCT product_name) FROM @Seed) <> 39
