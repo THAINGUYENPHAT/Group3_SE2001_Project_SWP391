@@ -22,7 +22,7 @@ public class ProfileServlet extends HttpServlet {
 
     private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
 
-    private static final String PHONE_REGEX = "^0\\d{8,9}$";
+    private static final String PHONE_REGEX = "^0[35789]\\d{8}$";
     
     private final AuditLogService auditLogService
         = new AuditLogService();
@@ -40,7 +40,7 @@ public class ProfileServlet extends HttpServlet {
                 return;
             }
 
-            request.getRequestDispatcher("/WEB-INF/profile.jsp").forward(request, response);
+            forwardWithProfile(request, response, new UserDAO(), user);
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Lỗi khi hiển thị trang Profile!", e);
@@ -73,36 +73,36 @@ public class ProfileServlet extends HttpServlet {
 
                 if (email == null || !Pattern.matches(EMAIL_REGEX, email.trim())) {
                     request.setAttribute("profileError", "Email không đúng định dạng!");
-                    request.getRequestDispatcher("/WEB-INF/profile.jsp").forward(request, response);
+                    forwardWithProfile(request, response, dao, user);
                     return;
                 }
 
                 if (phone == null || !Pattern.matches(PHONE_REGEX, phone.trim())) {
                     request.setAttribute(
                             "profileError",
-                            "Số điện thoại phải gồm 9-10 chữ số và bắt đầu bằng 0!"
+                            "Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 03, 05, 07, 08 hoặc 09!"
                     );
-                    request.getRequestDispatcher("/WEB-INF/profile.jsp")
-                            .forward(request, response);
+                    forwardWithProfile(request, response, dao, user);
                     return;
                 }
 
-                if (!email.trim().equalsIgnoreCase(user.getEmail())) {
+                User currentProfile = dao.getProfileById(user.getUserId());
+                if (currentProfile == null) {
+                    request.setAttribute("profileError", "Không thể tải thông tin tài khoản!");
+                    forwardWithProfile(request, response, dao, user);
+                    return;
+                }
+                if (!email.trim().equalsIgnoreCase(currentProfile.getEmail())) {
                     if (dao.checkUserExist("", email.trim())) {
                         request.setAttribute("profileError", "Email này đã được sử dụng!");
-                        request.getRequestDispatcher("/WEB-INF/profile.jsp").forward(request, response);
+                        forwardWithProfile(request, response, dao, user);
                         return;
                     }
                 }
 
-                boolean isUpdated = dao.updateProfile(user.getUserId(), email.trim(), phone, address, user.getUsername());
+                boolean isUpdated = dao.updateProfile(user.getUserId(), email.trim(), phone.trim(), address, user.getUsername());
 
                 if (isUpdated) {
-                    user.setEmail(email.trim());
-                    user.setPhone(phone.trim());
-                    user.setAddress(address != null ? address.trim() : "");
-                    session.setAttribute("loggedInUser", user);
-
                     request.setAttribute("profileSuccess", "Cập nhật thông tin cá nhân thành công!");
                 } else {
                     request.setAttribute("profileError", "Cập nhật thất bại, vui lòng thử lại!");
@@ -144,6 +144,27 @@ public class ProfileServlet extends HttpServlet {
             request.setAttribute("profileError", "Có lỗi hệ thống xảy ra. Vui lòng thử lại sau!");
         }
 
+        forwardWithProfile(request, response, dao, user);
+    }
+
+    private void forwardWithProfile(HttpServletRequest request,
+            HttpServletResponse response, UserDAO dao, User sessionUser)
+            throws ServletException, IOException {
+
+        User profile = dao.getProfileById(sessionUser.getUserId());
+        if (profile == null) {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Không thể tải thông tin tài khoản. Vui lòng thử lại sau.");
+            return;
+        }
+        sessionUser.setEmail(profile.getEmail());
+        sessionUser.setPhone(profile.getPhone());
+        sessionUser.setAddress(profile.getAddress());
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.setAttribute("loggedInUser", sessionUser);
+        }
+        request.setAttribute("profileUser", profile);
         request.getRequestDispatcher("/WEB-INF/profile.jsp").forward(request, response);
     }
 }

@@ -103,7 +103,7 @@ public class PaymentRefundDAO {
                         orderId = rs.getInt(1);
                     }
                 }
-                // Match payment and cancellation lock ordering: order before refund.
+                
                 try (PreparedStatement lock = c.prepareStatement("SELECT order_id FROM dbo.[ORDER] WITH (UPDLOCK,HOLDLOCK) WHERE order_id=?")) {
                     lock.setInt(1, orderId);
                     try (ResultSet rs = lock.executeQuery()) {
@@ -124,12 +124,22 @@ public class PaymentRefundDAO {
                 }
                 }
                 if ("SUCCESS".equals(nextStatus)) {
-                    try (PreparedStatement done = c.prepareStatement("UPDATE dbo.[ORDER] SET payment_status='REFUNDED' "
-                            + "WHERE order_id=? AND order_status='CANCELLED' AND payment_status='REFUND_PENDING' "
-                            + "AND NOT EXISTS (SELECT 1 FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
-                            + "ON t.transaction_id=r.transaction_id WHERE t.order_id=? AND r.refund_status<>'SUCCESS')")) {
+
+                    String fullyRefundedSql = "UPDATE dbo.[ORDER] SET payment_status='REFUNDED' "
+                            + "WHERE order_id=? AND order_status IN ('CANCELLED','COMPLETED','RETURNED') AND payment_status='PAID' "
+                            + "AND (SELECT COALESCE(SUM(r.refund_amount),0) "
+                            + "FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
+                            + "ON t.transaction_id=r.transaction_id "
+                            + "WHERE t.order_id=? AND r.refund_status='SUCCESS') >= "
+                            + "(SELECT COALESCE(SUM(t.amount),0) FROM dbo.PAYMENT_TRANSACTION t "
+                            + "WHERE t.order_id=? AND t.status='SUCCESS') "
+                            + "AND EXISTS (SELECT 1 FROM dbo.PAYMENT_TRANSACTION t "
+                            + "WHERE t.order_id=? AND t.status='SUCCESS')";
+                    try (PreparedStatement done = c.prepareStatement(fullyRefundedSql)) {
                         done.setInt(1, orderId);
                         done.setInt(2, orderId);
+                        done.setInt(3, orderId);
+                        done.setInt(4, orderId);
                         done.executeUpdate();
                     }
                 }

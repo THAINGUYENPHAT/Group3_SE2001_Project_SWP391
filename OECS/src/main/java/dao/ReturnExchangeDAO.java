@@ -559,7 +559,7 @@ public class ReturnExchangeDAO {
         String subtractStockSql
                 = "UPDATE dbo.PRODUCT_SKU "
                 + "SET stock_quantity = stock_quantity - ? "
-                + "WHERE sku_id = ? AND stock_quantity >= ?";
+                + "WHERE sku_id = ? AND stock_quantity - reserved_quantity >= ?";
 
         String updateRequestSql
                 = "UPDATE dbo.RETURN_REQUEST "
@@ -665,6 +665,8 @@ public class ReturnExchangeDAO {
                                             "Không cập nhật được tồn kho hàng trả.");
                                 }
                             }
+                            InventoryMovementHelper.recordAfterDelta(conn, originalSkuId, quantity,
+                                    "IN", "Nhận hàng trả theo yêu cầu #" + requestId, staffId);
                         } else {
                             Integer exchangeSkuId
                                     = (Integer) item.get("exchangeSkuId");
@@ -700,6 +702,8 @@ public class ReturnExchangeDAO {
                                             "SKU đổi không đủ tồn kho.");
                                 }
                             }
+                            InventoryMovementHelper.recordAfterDelta(conn, exchangeSkuId, -quantity,
+                                    "OUT", "Xuất SKU đổi theo yêu cầu #" + requestId, staffId);
 
                             try (PreparedStatement ps
                                     = conn.prepareStatement(addStockSql)) {
@@ -711,6 +715,8 @@ public class ReturnExchangeDAO {
                                             "Không cập nhật được tồn kho SKU cũ.");
                                 }
                             }
+                            InventoryMovementHelper.recordAfterDelta(conn, originalSkuId, quantity,
+                                    "IN", "Nhận SKU đổi theo yêu cầu #" + requestId, staffId);
                         }
                     }
                 }
@@ -737,6 +743,13 @@ public class ReturnExchangeDAO {
                     ps.setString(4, staffNote == null
                             ? "" : staffNote.trim());
                     ps.executeUpdate();
+                }
+
+                // An approved online RETURN produces a PENDING refund to be
+                // manually processed; this does not transfer money.
+                // COD refunds remain manual with no online refund record.
+                if ("APPROVED".equals(newStatus) && "RETURN".equals(requestType)) {
+                    ReturnRefundHelper.createPendingOnlineRefund(conn, orderId, requestId);
                 }
 
                 NotificationDAO notificationDAO = new NotificationDAO();

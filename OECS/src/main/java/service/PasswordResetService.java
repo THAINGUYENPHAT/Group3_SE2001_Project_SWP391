@@ -77,23 +77,8 @@ public class PasswordResetService {
         if (newPassword == null || newPassword.length() < 6) {
             return false;
         }
-
-        PasswordResetToken token = validateToken(rawToken);
-
-        if (token == null) {
-            return false;
-        }
-
-        boolean passwordUpdated = userDAO.resetPassword(
-                token.getUserId(),
-                newPassword
-        );
-
-        if (!passwordUpdated) {
-            return false;
-        }
-
-        return passwordResetDAO.markAsUsed(token.getResetId());
+        return passwordResetDAO.resetPasswordAtomically(
+                hashToken(rawToken), newPassword, userDAO);
     }
 
     private String generateToken() {
