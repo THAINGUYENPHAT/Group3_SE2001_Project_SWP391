@@ -568,36 +568,6 @@ public class CategoryDAO extends DBContext {
         return list;
     }
 
-    public Map<Integer, String> getCategoryNames() {
-
-        Map<Integer, String> names = new HashMap<>();
-
-        String sql
-                = "SELECT category_id, category_name "
-                + "FROM CATEGORY";
-
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                names.put(
-                        rs.getInt("category_id"),
-                        rs.getString("category_name")
-                );
-            }
-
-        } catch (SQLException ex) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Cannot get category names",
-                    ex
-            );
-            throw new RuntimeException(
-                    "Cannot get category names", ex
-            );
-        }
-
-        return names;
-    }
 
     public Map<Integer, Integer> getProductCounts(
             List<Category> categories) {

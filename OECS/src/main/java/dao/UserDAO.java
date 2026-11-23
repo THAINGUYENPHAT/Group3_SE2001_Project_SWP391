@@ -130,25 +130,6 @@ public class UserDAO extends DBContext {
         return false;
     }
 
-    private void assignDefaultRole(String username) {
-
-        String sql
-                = "INSERT INTO USER_ROLES (user_id, role_id) "
-                + "SELECT user_id, 3 "
-                + "FROM [USER] "
-                + "WHERE username = ?";
-
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, username);
-            ps.executeUpdate();
-
-        } catch (SQLException ex) {
-            LOGGER.log(Level.SEVERE,
-                    "Lỗi gán vai trò mặc định!", ex);
-        }
-    }
-
     public List<User> getAllUsers(
             String keyword,
             Integer roleId,
