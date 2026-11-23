@@ -1,5 +1,8 @@
 package service;
 
+import java.util.Map;
+import java.util.LinkedHashMap;
+
 import db.DBContext;
 import model.ProductImage;
 
@@ -76,6 +79,77 @@ public class SkuImageService extends DBContext {
         }
 
         return images;
+    }
+
+    public Map<Integer, List<ProductImage>> getImagesByProductId(
+            int productId) throws SQLException {
+
+        if (productId <= 0) {
+            throw new IllegalArgumentException(
+                    "Product ID khong hop le."
+            );
+        }
+
+        Map<Integer, List<ProductImage>> imagesBySkuId
+                = new LinkedHashMap<>();
+
+        String sql
+                = "SELECT "
+                + "image_id, "
+                + "product_id, "
+                + "sku_id, "
+                + "image_url, "
+                + "is_primary, "
+                + "display_order, "
+                + "alt_text, "
+                + "created_at "
+                + "FROM PRODUCT_IMAGES "
+                + "WHERE product_id = ? "
+                + "AND sku_id IS NOT NULL "
+                + "ORDER BY sku_id, "
+                + "is_primary DESC, "
+                + "display_order ASC, "
+                + "image_id ASC";
+
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, productId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+
+                    int skuId = rs.getInt("sku_id");
+
+                    ProductImage image = new ProductImage(
+                            rs.getInt("image_id"),
+                            rs.getInt("product_id"),
+                            rs.getString("image_url")
+                    );
+
+                    image.setSkuId(skuId);
+                    image.setPrimary(
+                            rs.getBoolean("is_primary")
+                    );
+                    image.setDisplayOrder(
+                            rs.getInt("display_order")
+                    );
+                    image.setAltText(
+                            rs.getString("alt_text")
+                    );
+                    image.setCreatedAt(
+                            rs.getTimestamp("created_at")
+                    );
+
+                    imagesBySkuId.computeIfAbsent(
+                            skuId,
+                            key -> new ArrayList<>()
+                    ).add(image);
+                }
+            }
+        }
+
+        return imagesBySkuId;
     }
 
     // ========================================

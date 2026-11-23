@@ -264,23 +264,27 @@ public class ShopDAO extends DBContext {
         }
     }
 
-    // ========================================
-    // 5. THÔNG SỐ KỸ THUẬT
-    // ========================================
-    public List<ProductSpec> getProductSpecs(
-            int productId) {
+    public List<ProductSpec> getProductSpecs(int productId) {
 
         List<ProductSpec> specs = new ArrayList<>();
 
         String sql
                 = "SELECT "
+                + "ps.attribute_id, "
                 + "a.attribute_name, "
-                + "ps.value "
-                + "FROM PRODUCT_SPECIFICATION ps "
-                + "INNER JOIN ATTRIBUTE a "
-                + "ON ps.attribute_id = a.attribute_id "
+                + "ps.value, "
+                + "ca.group_name, "
+                + "COALESCE(ca.display_order, 2147483647) AS display_order "
+                + "FROM dbo.PRODUCT_SPECIFICATION ps "
+                + "INNER JOIN dbo.PRODUCT p "
+                + "ON p.product_id = ps.product_id "
+                + "INNER JOIN dbo.ATTRIBUTE a "
+                + "ON a.attribute_id = ps.attribute_id "
+                + "LEFT JOIN dbo.CATEGORY_ATTRIBUTE ca "
+                + "ON ca.category_id = p.category_id "
+                + "AND ca.attribute_id = ps.attribute_id "
                 + "WHERE ps.product_id = ? "
-                + "ORDER BY a.attribute_name";
+                + "ORDER BY display_order ASC, ps.attribute_id ASC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -290,12 +294,21 @@ public class ShopDAO extends DBContext {
 
                 while (rs.next()) {
 
-                    specs.add(
-                            new ProductSpec(
-                                    rs.getString("attribute_name"),
-                                    rs.getString("value")
-                            )
+                    ProductSpec spec = new ProductSpec(
+                            rs.getInt("attribute_id"),
+                            rs.getString("attribute_name"),
+                            rs.getString("value")
                     );
+
+                    spec.setProductId(productId);
+                    spec.setGroupName(
+                            rs.getString("group_name")
+                    );
+                    spec.setDisplayOrder(
+                            rs.getInt("display_order")
+                    );
+
+                    specs.add(spec);
                 }
             }
 
@@ -303,7 +316,12 @@ public class ShopDAO extends DBContext {
 
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi lấy thông số kỹ thuật",
+                    "Loi lay thong so ky thuat san pham",
+                    ex
+            );
+
+            throw new IllegalStateException(
+                    "Khong the tai thong so ky thuat.",
                     ex
             );
         }

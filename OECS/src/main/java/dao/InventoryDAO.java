@@ -175,9 +175,23 @@ public class InventoryDAO extends DBContext {
                         throw new SQLException("Dữ liệu tồn kho đã thay đổi. Vui lòng tải lại.");
                     }
                 }
-                // Trigger runs atomically with the UPDATE. On rollback, both revert.
+
+                // Ghi lịch sử nhập/xuất kho bằng Java
+                // Sử dụng cùng transaction với cập nhật tồn kho
+                InventoryMovementHelper.record(
+                        conn,
+                        skuId,
+                        action,
+                        oldQty,
+                        newQty,
+                        note.trim(),
+                        actorUserId
+                );
+
+                // Chỉ commit khi cập nhật kho và lịch sử đều thành công
                 conn.commit();
                 return newQty;
+
             } catch (SQLException | RuntimeException ex) {
                 try {
                     conn.rollback();

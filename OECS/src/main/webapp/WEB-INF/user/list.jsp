@@ -138,27 +138,22 @@
                     Vai trò
                 </label>
 
-                <select name="role"
-                        class="form-select">
+
+                <select name="roleId" class="form-select">
 
                     <option value="">Tất cả</option>
 
-                    <option value="CUSTOMER"
-                            ${role eq 'CUSTOMER' ? 'selected' : ''}>
-                        Customer
-                    </option>
+                    <c:forEach var="roleItem" items="${roleList}">
 
-                    <option value="STAFF"
-                            ${role eq 'STAFF' ? 'selected' : ''}>
-                        Staff
-                    </option>
+                        <option value="${roleItem.roleId}"
+                                ${roleId eq roleItem.roleId ? 'selected' : ''}>
+                            <c:out value="${roleItem.roleName}"/>
+                        </option>
 
-                    <option value="ADMIN"
-                            ${role eq 'ADMIN' ? 'selected' : ''}>
-                        Admin
-                    </option>
+                    </c:forEach>
 
                 </select>
+
             </div>
 
             <!-- Status -->

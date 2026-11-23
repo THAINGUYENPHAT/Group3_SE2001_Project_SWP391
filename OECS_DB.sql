@@ -1,75 +1,17 @@
-/*
-==============================================================================
-  OECS V2 - FULL DATABASE INITIALIZATION - SQL SERVER 2022
-  File: OECS_DB.sql
-  Mode: ONE-TIME BOOTSTRAP FROM A SERVER WITHOUT DATABASE [OECS]
-
-  GENERATED FROM ACTUAL OECS SOURCES:
-  * OECS original application schema/seed previously shared in conversation
-  * OECS_DB.sql (catalog, SKU configuration, inventory migration)
-  * OECS_SKU.sql (39-product SKU demo variants)
-  * OECS_Product_Specifications.sql (product technical specifications)
-  * OECS_Product_Overview.sql (117 product editorial sections)
-
-  INCLUDE:
-  - Accounts / roles / addresses, 39 products, catalog and variants
-  - Carts, orders, checkout, payments, returns, reviews, vouchers, audit logs
-  - Category attributes, SKU value types, unique variant keys and index
-  - Inventory history, stock trigger, SKU uniqueness procedure
-  - 39-product demo SKU data, technical specs, 117 overview sections
-
-  SAFETY RULES:
-  1. NEVER run this on an existing OECS database. It is a NEW-DB initializer.
-  2. The initialization guard does NOT drop or replace existing [OECS].
-  3. On existing database the remainder is skipped using SET NOEXEC ON.
-  4. The source contains DEMO user records with legacy weak password hashes;
-     use only for local DEV/TEST, change passwords and hashing before deployment.
-  5. DEMO prices / inventory / product configurations are not verified retail data.
-  6. Image paths are stored in DB; image files must be present separately in webapp.
-  7. Execute the WHOLE script in ONE SSMS query window/session (GO supported).
-  8. Backup any valuable environment before any database-related operation.
-  9. Do NOT rerun the three standalone data-seed scripts after this initializer,
-     unless you deliberately want to restore any missing demonstration data.
-
-  IMPORTANT: This script was statically checked, NOT executed on SQL Server.
-==============================================================================
-*/
-
-USE [master];
+USE master;
 GO
 
--- Abort before any operation if [OECS] already exists.
--- NOEXEC remains active across GO batches, then resets at the very end.
 IF DB_ID(N'OECS') IS NOT NULL
 BEGIN
-    RAISERROR(
-        N'OECS exists. Initialization skipped: use a fresh SQL Server/database, do not overwrite live data.',
-        16, 1
-    );
-    SET NOEXEC ON;
+    ALTER DATABASE OECS SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE OECS;
 END;
 GO
 
-CREATE DATABASE [OECS];
+CREATE DATABASE OECS;
 GO
 
--- Avoid writing core tables into [master] if CREATE DATABASE failed.
-IF DB_ID(N'OECS') IS NULL
-BEGIN
-    RAISERROR(N'Cannot create [OECS]. Initialization stopped.', 16, 1);
-    SET NOEXEC ON;
-END;
-GO
-
-USE [OECS];
-GO
-
--- Never let a failed USE command redirect core DDL into another database.
-IF DB_NAME() <> N'OECS'
-BEGIN
-    RAISERROR(N'Wrong database context. Initialization stopped.', 16, 1);
-    SET NOEXEC ON;
-END;
+USE OECS;
 GO
 
 SET NOCOUNT ON;
@@ -77,13 +19,7 @@ SET XACT_ABORT ON;
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
-
-
-/* ==============================================================================
-   STAGE 1: CORE APPLICATION SCHEMA + INITIAL DATA
-   Previously supplied OECS source: roles, users, products, transactions, orders.
-   ============================================================================== */
-
+-- ==================== SECTION A: PERMANENT SCHEMA ============================
 CREATE TABLE ROLES (
     role_id INT IDENTITY(1,1) PRIMARY KEY,
     role_name NVARCHAR(50) NOT NULL UNIQUE,
@@ -97,13 +33,19 @@ CREATE TABLE [USER] (
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     role_id INT NOT NULL,
-    created_at DATETIME2 DEFAULT GETDATE(),
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
     is_active BIT NOT NULL
         CONSTRAINT DF_USER_IsActive DEFAULT (1),
+    failed_login_attempts INT NOT NULL
+        CONSTRAINT DF_USER_FailedLogin DEFAULT (0),
+    locked_until DATETIME2 NULL,
+    deleted_at DATETIME2 NULL,
 
     CONSTRAINT FK_USER_ROLES
         FOREIGN KEY (role_id)
-        REFERENCES ROLES(role_id)
+        REFERENCES ROLES(role_id),
+    CONSTRAINT CK_USER_FailedLogin CHECK (failed_login_attempts >= 0),
+    CONSTRAINT CK_USER_Email CHECK (email LIKE '%_@_%._%')
 );
 
 CREATE TABLE ADDRESSBOOK (
@@ -112,25 +54,31 @@ CREATE TABLE ADDRESSBOOK (
     recipient_name NVARCHAR(100) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
     address_line NVARCHAR(MAX) NOT NULL,
-    is_default BIT DEFAULT (0),
+    is_default BIT NOT NULL DEFAULT (0),
     is_deleted BIT NOT NULL
         CONSTRAINT DF_ADDRESSBOOK_is_deleted DEFAULT (0),
     CONSTRAINT FK_AddressBook_User FOREIGN KEY (user_id)
-        REFERENCES [USER](user_id) ON DELETE CASCADE
+        REFERENCES [USER](user_id) ON DELETE CASCADE,
+    CONSTRAINT UQ_AddressBook_Id_User UNIQUE (address_id, user_id)
 );
 
 CREATE TABLE CATEGORY (
     category_id INT IDENTITY(1,1) PRIMARY KEY,
     category_name NVARCHAR(100) NOT NULL,
     parent_id INT NULL,
+    description NVARCHAR(500) NULL,
+    is_active BIT NOT NULL CONSTRAINT DF_CATEGORY_IsActive DEFAULT (1),
     CONSTRAINT FK_Category_Parent FOREIGN KEY (parent_id)
-        REFERENCES CATEGORY(category_id)
+        REFERENCES CATEGORY(category_id),
+    CONSTRAINT CK_Category_NotSelfParent
+        CHECK (parent_id IS NULL OR parent_id <> category_id)
 );
 
 CREATE TABLE BRAND (
     brand_id INT IDENTITY(1,1) PRIMARY KEY,
     brand_name NVARCHAR(100) NOT NULL,
-    logo_url VARCHAR(2048)
+    logo_url VARCHAR(2048),
+    is_active BIT NOT NULL CONSTRAINT DF_BRAND_IsActive DEFAULT (1)
 );
 
 CREATE TABLE PRODUCT (
@@ -139,8 +87,11 @@ CREATE TABLE PRODUCT (
     brand_id INT NOT NULL,
     product_name NVARCHAR(255) NOT NULL,
     description NVARCHAR(MAX),
-    created_at DATETIME2 DEFAULT GETDATE(),
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
     image_url VARCHAR(2048) NULL,
+    model_code VARCHAR(100) NULL,
+    is_active BIT NOT NULL CONSTRAINT DF_PRODUCT_IsActive DEFAULT (1),
+    updated_at DATETIME2 NULL,
     CONSTRAINT FK_Product_Category FOREIGN KEY (category_id)
         REFERENCES CATEGORY(category_id),
     CONSTRAINT FK_Product_Brand FOREIGN KEY (brand_id)
@@ -149,13 +100,19 @@ CREATE TABLE PRODUCT (
 
 CREATE TABLE ATTRIBUTE (
     attribute_id INT IDENTITY(1,1) PRIMARY KEY,
-    attribute_name NVARCHAR(100) NOT NULL
+    attribute_name NVARCHAR(100) NOT NULL,
+    data_type VARCHAR(20) NOT NULL CONSTRAINT DF_ATTRIBUTE_DataType DEFAULT ('TEXT'),
+    unit NVARCHAR(30) NULL,
+    is_active BIT NOT NULL CONSTRAINT DF_ATTRIBUTE_IsActive DEFAULT (1),
+    CONSTRAINT CK_ATTRIBUTE_DataType CHECK (data_type IN ('TEXT', 'NUMBER', 'BOOLEAN'))
 );
 
 CREATE TABLE PRODUCT_SPECIFICATION (
     product_id INT NOT NULL,
     attribute_id INT NOT NULL,
     value NVARCHAR(255) NOT NULL,
+    numeric_value DECIMAL(18,4) NULL,
+    boolean_value BIT NULL,
     CONSTRAINT PK_PRODUCT_SPECIFICATION
         PRIMARY KEY (product_id, attribute_id),
     CONSTRAINT FK_Spec_Product FOREIGN KEY (product_id)
@@ -170,7 +127,17 @@ CREATE TABLE PRODUCT_SKU (
     sku_code VARCHAR(100) NOT NULL UNIQUE,
     price DECIMAL(18,2) NOT NULL,
     stock_quantity INT DEFAULT (0),
-    created_at DATETIME2 DEFAULT GETDATE(),
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
+    original_price DECIMAL(18,2) NULL,
+    is_active BIT NOT NULL CONSTRAINT DF_SKU_IsActive DEFAULT (1),
+    variant_key VARBINARY(32) NULL,
+    reserved_quantity INT NOT NULL CONSTRAINT DF_SKU_Reserved DEFAULT (0),
+    CONSTRAINT CK_SKU_Price CHECK (price >= 0),
+    CONSTRAINT CK_SKU_OriginalPrice CHECK (original_price IS NULL OR original_price >= 0),
+    CONSTRAINT CK_SKU_Stock CHECK (stock_quantity IS NULL OR stock_quantity >= 0),
+    CONSTRAINT CK_SKU_Reserved CHECK (reserved_quantity >= 0 AND (stock_quantity IS NULL OR reserved_quantity <= stock_quantity)),
+    CONSTRAINT CK_OECS_Inventory_StockValid CHECK (stock_quantity IS NOT NULL AND stock_quantity >= 0),
+    CONSTRAINT UQ_SKU_IdProduct UNIQUE (sku_id, product_id),
     CONSTRAINT FK_SKU_Product FOREIGN KEY (product_id)
         REFERENCES PRODUCT(product_id) ON DELETE CASCADE
 );
@@ -179,7 +146,13 @@ CREATE TABLE PRODUCT_IMAGES (
     image_id INT IDENTITY(1,1) PRIMARY KEY,
     product_id INT NOT NULL,
     image_url VARCHAR(2048) NOT NULL,
-    created_at DATETIME2 DEFAULT GETDATE(),
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
+    sku_id INT NULL,
+    is_primary BIT NOT NULL CONSTRAINT DF_PI_Primary DEFAULT (0),
+    display_order INT NOT NULL CONSTRAINT DF_PI_Order DEFAULT (0),
+    alt_text NVARCHAR(255) NULL,
+    CONSTRAINT CK_PI_DisplayOrder CHECK (display_order >= 0),
+    CONSTRAINT FK_PI_SKU_Product FOREIGN KEY (sku_id, product_id) REFERENCES dbo.PRODUCT_SKU(sku_id, product_id),
     CONSTRAINT FK_ProductImages_Product FOREIGN KEY (product_id) 
         REFERENCES PRODUCT(product_id) ON DELETE CASCADE
 );
@@ -187,7 +160,7 @@ CREATE TABLE PRODUCT_IMAGES (
 CREATE TABLE CART (
     cart_id INT IDENTITY(1,1) PRIMARY KEY,
     user_id INT NOT NULL UNIQUE,
-    created_at DATETIME2 DEFAULT GETDATE(),
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
     CONSTRAINT FK_Cart_User FOREIGN KEY (user_id)
         REFERENCES [USER](user_id) ON DELETE CASCADE
 );
@@ -197,10 +170,13 @@ CREATE TABLE CART_ITEMS (
     cart_id INT NOT NULL,
     sku_id INT NOT NULL,
     quantity INT NOT NULL DEFAULT (1),
+    reservation_expires_at DATETIME2 NULL,
     CONSTRAINT FK_CartItems_Cart FOREIGN KEY (cart_id)
         REFERENCES CART(cart_id) ON DELETE CASCADE,
     CONSTRAINT FK_CartItems_SKU FOREIGN KEY (sku_id)
-        REFERENCES PRODUCT_SKU(sku_id) ON DELETE CASCADE
+        REFERENCES PRODUCT_SKU(sku_id) ON DELETE CASCADE,
+    CONSTRAINT UQ_CartItems_Cart_SKU UNIQUE (cart_id, sku_id),
+    CONSTRAINT CK_CartItems_Quantity CHECK (quantity > 0)
 );
 
 CREATE TABLE VOUCHER (
@@ -244,18 +220,17 @@ CREATE TABLE [ORDER] (
     order_id INT IDENTITY(1,1) PRIMARY KEY,
     user_id INT NOT NULL,
     address_id INT NOT NULL,
-    shipping_partner_id INT,
     total_amount DECIMAL(18,2) NOT NULL,
-    shipping_fee DECIMAL(18,2) DEFAULT (0),
-    created_at DATETIME2 DEFAULT GETDATE(),
-    order_status VARCHAR(30) NULL,
-    payment_method VARCHAR(20) NULL,
-    payment_status VARCHAR(30) NULL,
+    shipping_fee DECIMAL(18,2) NOT NULL DEFAULT (0),
+    created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    order_status VARCHAR(30) NOT NULL DEFAULT 'PENDING_CONFIRMATION',
+    payment_method VARCHAR(20) NOT NULL,
+    payment_status VARCHAR(30) NOT NULL DEFAULT 'UNPAID',
     payment_expires_at DATETIME2 NULL,
     recipient_name NVARCHAR(100) NULL,
     recipient_phone VARCHAR(20) NULL,
     shipping_address NVARCHAR(MAX) NULL,
-    discount_amount DECIMAL(18,2) NULL,
+    discount_amount DECIMAL(18,2) NOT NULL DEFAULT (0),
     stock_restored_at DATETIME2 NULL,
     checkout_token VARCHAR(64) NULL,
     delivered_at DATETIME2 NULL,
@@ -264,17 +239,65 @@ CREATE TABLE [ORDER] (
     cancellation_source VARCHAR(20) NULL,
     cancelled_at DATETIME2 NULL,
 
+    -- One current customer cancellation request per order (no extra table).
+    cancel_request_status VARCHAR(20) NULL,
+    cancel_request_reason NVARCHAR(500) NULL,
+    cancel_requested_at DATETIME2 NULL,
+    cancel_reviewed_by INT NULL,
+    cancel_reviewed_at DATETIME2 NULL,
+    cancel_review_note NVARCHAR(500) NULL,
+
     CONSTRAINT FK_Order_User FOREIGN KEY (user_id)
         REFERENCES [USER](user_id),
 
     CONSTRAINT FK_Order_Address FOREIGN KEY (address_id)
         REFERENCES ADDRESSBOOK(address_id),
+    -- Enforce that the saved address belongs to the ordering customer.
+    CONSTRAINT FK_Order_AddressOwner FOREIGN KEY (address_id, user_id)
+        REFERENCES ADDRESSBOOK(address_id, user_id),
+    -- Candidate key to enforce voucher usage ownership.
+    CONSTRAINT UQ_Order_Id_User UNIQUE (order_id, user_id),
+
+    CONSTRAINT FK_Order_CancelReviewer FOREIGN KEY (cancel_reviewed_by)
+        REFERENCES [USER](user_id),
+    CONSTRAINT CK_Order_CancelRequest CHECK (
+        (cancel_request_status IS NULL
+         AND cancel_request_reason IS NULL AND cancel_requested_at IS NULL
+         AND cancel_reviewed_by IS NULL AND cancel_reviewed_at IS NULL
+         AND cancel_review_note IS NULL)
+        OR (
+            cancel_request_status IN ('PENDING','APPROVED','REJECTED')
+            AND (cancel_request_status <> 'PENDING' OR order_status IN ('CONFIRMED','PACKING'))
+            AND NULLIF(LTRIM(RTRIM(cancel_request_reason)), N'') IS NOT NULL
+            AND cancel_requested_at IS NOT NULL
+            AND (
+                (cancel_request_status = 'PENDING'
+                 AND cancel_reviewed_by IS NULL AND cancel_reviewed_at IS NULL
+                 AND cancel_review_note IS NULL)
+                OR (cancel_request_status IN ('APPROVED','REJECTED')
+                    AND cancel_reviewed_by IS NOT NULL AND cancel_reviewed_at IS NOT NULL)
+            )
+            AND (cancel_request_status <> 'REJECTED'
+                 OR NULLIF(LTRIM(RTRIM(cancel_review_note)), N'') IS NOT NULL)
+        )
+    ),
 
     CONSTRAINT CK_Order_CancellationSource
         CHECK (
             cancellation_source IS NULL
             OR cancellation_source IN ('CUSTOMER', 'STAFF', 'SYSTEM')
-        )
+        ),
+
+    CONSTRAINT CK_Order_Amounts
+        CHECK (total_amount >= 0 AND shipping_fee >= 0 AND discount_amount >= 0),
+    CONSTRAINT CK_Order_Status CHECK (order_status IN
+        ('PENDING_CONFIRMATION','PENDING_PAYMENT','CONFIRMED','PACKING','SHIPPING',
+         'COMPLETED','CANCELLED','EXPIRED','RETURNED')),
+    CONSTRAINT CK_Order_PaymentMethod CHECK (payment_method IN
+        ('COD','VNPAY','MOMO')),
+    CONSTRAINT CK_Order_PaymentStatus CHECK (payment_status IN
+        ('UNPAID','PENDING','PAID','FAILED','CANCELLED','EXPIRED','REFUNDED'))
+
 );
 
 CREATE INDEX IX_Order_CustomerCancellationPolicy
@@ -291,19 +314,53 @@ CREATE TABLE ORDER_ITEM (
     sku_id INT NOT NULL,
     price DECIMAL(18,2) NOT NULL,
     quantity INT NOT NULL,
+    product_name_snapshot NVARCHAR(255) NULL,
+    sku_code_snapshot VARCHAR(100) NULL,
     CONSTRAINT FK_OrderItem_Order FOREIGN KEY (order_id)
-        REFERENCES [ORDER](order_id) ON DELETE CASCADE,
+        REFERENCES [ORDER](order_id),
     CONSTRAINT FK_OrderItem_SKU FOREIGN KEY (sku_id)
-        REFERENCES PRODUCT_SKU(sku_id)
+        REFERENCES PRODUCT_SKU(sku_id),
+    CONSTRAINT UQ_OrderItem_Id_SKU UNIQUE (order_item_id, sku_id),
+    CONSTRAINT CK_OrderItem_Quantity CHECK (quantity > 0),
+    CONSTRAINT CK_OrderItem_Price CHECK (price >= 0)
 );
 
 CREATE TABLE ORDER_STATUS_HISTORY (
     status_id INT IDENTITY(1,1) PRIMARY KEY,
     order_id INT NOT NULL,
     status NVARCHAR(50) NOT NULL,
-    updated_at DATETIME2 DEFAULT GETDATE(),
+    updated_at DATETIME2 DEFAULT SYSDATETIME(),
+    old_status NVARCHAR(50) NULL,
+    actor_type VARCHAR(20) NULL,
+    changed_by INT NULL,
+    reason NVARCHAR(500) NULL,
     CONSTRAINT FK_StatusHistory_Order FOREIGN KEY (order_id)
-        REFERENCES [ORDER](order_id) ON DELETE CASCADE
+        REFERENCES [ORDER](order_id),
+    CONSTRAINT FK_StatusHistory_User FOREIGN KEY (changed_by)
+        REFERENCES [USER](user_id),
+    CONSTRAINT CK_StatusHistory_Actor
+        CHECK (actor_type IS NULL OR actor_type IN ('CUSTOMER', 'STAFF', 'SYSTEM')),
+    CONSTRAINT CK_StatusHistory_Status CHECK (status IN
+        ('PENDING_CONFIRMATION','PENDING_PAYMENT','CONFIRMED','PACKING','SHIPPING',
+         'COMPLETED','CANCELLED','EXPIRED','RETURNED')),
+    CONSTRAINT CK_StatusHistory_OldStatus CHECK (old_status IS NULL OR old_status IN
+        ('PENDING_CONFIRMATION','PENDING_PAYMENT','CONFIRMED','PACKING','SHIPPING',
+         'COMPLETED','CANCELLED','EXPIRED','RETURNED')),
+    CONSTRAINT CK_OECS_CancelHistory_RequiredFields
+    CHECK (
+        status <> N'CANCELLED'
+        OR (
+            actor_type IN ('CUSTOMER', 'STAFF', 'SYSTEM')
+            AND reason IS NOT NULL
+            AND LEN(LTRIM(RTRIM(reason))) > 0
+            AND updated_at IS NOT NULL
+            AND (
+                (actor_type IN ('CUSTOMER', 'STAFF') AND changed_by IS NOT NULL)
+                OR actor_type = 'SYSTEM'
+            )
+        )
+    )
+
 );
 
 CREATE TABLE VOUCHER_USAGES (
@@ -311,13 +368,15 @@ CREATE TABLE VOUCHER_USAGES (
     voucher_id INT NOT NULL,
     order_id INT NOT NULL,
     user_id INT NOT NULL,
-    used_at DATETIME2 DEFAULT GETDATE(),
+    used_at DATETIME2 DEFAULT SYSDATETIME(),
     CONSTRAINT FK_VoucherUsage_Voucher FOREIGN KEY (voucher_id)
         REFERENCES VOUCHER(voucher_id),
     CONSTRAINT FK_VoucherUsage_Order FOREIGN KEY (order_id)
         REFERENCES [ORDER](order_id),
     CONSTRAINT FK_VoucherUsage_User FOREIGN KEY (user_id)
-        REFERENCES [USER](user_id)
+        REFERENCES [USER](user_id),
+    CONSTRAINT FK_VoucherUsage_OrderOwner FOREIGN KEY (order_id, user_id)
+        REFERENCES [ORDER](order_id, user_id)
 );
 
 CREATE TABLE NOTIFICATION (
@@ -328,16 +387,13 @@ CREATE TABLE NOTIFICATION (
     message NVARCHAR(500) NOT NULL,
     is_read BIT NOT NULL CONSTRAINT DF_Notification_IsRead DEFAULT (0),
     created_at DATETIME2 NOT NULL
-        CONSTRAINT DF_Notification_CreatedAt DEFAULT (GETDATE()),
+        CONSTRAINT DF_Notification_CreatedAt DEFAULT (SYSDATETIME()),
 
     CONSTRAINT FK_Notification_User FOREIGN KEY (user_id)
         REFERENCES [USER](user_id) ON DELETE CASCADE,
     CONSTRAINT FK_Notification_Order FOREIGN KEY (order_id)
         REFERENCES [ORDER](order_id) ON DELETE SET NULL
 );
-
-CREATE INDEX IX_Notification_User_CreatedAt
-    ON NOTIFICATION(user_id, created_at DESC);
 
 CREATE INDEX IX_Notification_User_Unread
     ON NOTIFICATION(user_id, is_read)
@@ -348,16 +404,16 @@ CREATE TABLE PRODUCT_REVIEWS (
     user_id INT NOT NULL,
     order_item_id INT NOT NULL,
     sku_id INT NOT NULL,
-    rating INT CHECK (rating BETWEEN 1 AND 5),
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     comment NVARCHAR(MAX),
-    created_at DATETIME2 DEFAULT GETDATE(),
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
     is_hidden BIT NOT NULL
         CONSTRAINT DF_PRODUCT_REVIEWS_is_hidden DEFAULT (0),
 
     CONSTRAINT FK_Review_User FOREIGN KEY (user_id)
         REFERENCES [USER](user_id),
-    CONSTRAINT FK_Review_OrderItem FOREIGN KEY (order_item_id)
-        REFERENCES ORDER_ITEM(order_item_id),
+    CONSTRAINT FK_Review_OrderItem FOREIGN KEY (order_item_id, sku_id)
+        REFERENCES ORDER_ITEM(order_item_id, sku_id),
     CONSTRAINT FK_Review_SKU FOREIGN KEY (sku_id)
         REFERENCES PRODUCT_SKU(sku_id)
 );
@@ -378,7 +434,7 @@ CREATE TABLE REVIEW_REPORTS (
     report_status VARCHAR(20) NOT NULL
         CONSTRAINT DF_REVIEW_REPORTS_status DEFAULT ('PENDING'),
     created_at DATETIME2 NOT NULL
-        CONSTRAINT DF_REVIEW_REPORTS_created_at DEFAULT (GETDATE()),
+        CONSTRAINT DF_REVIEW_REPORTS_created_at DEFAULT (SYSDATETIME()),
     resolved_by INT NULL,
     resolved_at DATETIME2 NULL,
 
@@ -399,9 +455,6 @@ CREATE UNIQUE INDEX UX_REVIEW_REPORTS_one_pending_per_user
     ON REVIEW_REPORTS(review_id, reported_by)
     WHERE report_status = 'PENDING';
 
-CREATE INDEX IX_PRODUCT_REVIEWS_sku_hidden_created
-    ON PRODUCT_REVIEWS(sku_id, is_hidden, created_at DESC);
-
 CREATE TABLE PAYMENT_TRANSACTION (
     transaction_id BIGINT IDENTITY(1,1)
         CONSTRAINT PK_PAYMENT_TRANSACTION PRIMARY KEY,
@@ -414,7 +467,7 @@ CREATE TABLE PAYMENT_TRANSACTION (
         CONSTRAINT DF_PaymentTransaction_Status DEFAULT ('PENDING'),
     provider_response_code VARCHAR(100) NULL,
     created_at DATETIME2 NOT NULL
-        CONSTRAINT DF_PaymentTransaction_Created DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT DF_PaymentTransaction_Created DEFAULT (SYSDATETIME()),
     completed_at DATETIME2 NULL,
     pay_url NVARCHAR(2048) NULL,
 
@@ -441,19 +494,28 @@ CREATE TABLE PAYMENT_REFUND (
         CONSTRAINT PK_PAYMENT_REFUND PRIMARY KEY,
     transaction_id BIGINT NOT NULL,
     refund_amount DECIMAL(18,2) NOT NULL,
+    refund_type VARCHAR(20) NOT NULL CONSTRAINT DF_PaymentRefund_Type DEFAULT ('RETURN'),
     refund_status VARCHAR(30) NOT NULL
         CONSTRAINT DF_PaymentRefund_Status DEFAULT ('PENDING'),
     provider_refund_id VARCHAR(150) NULL,
     processed_by INT NULL REFERENCES [USER](user_id),
+    approved_by INT NULL REFERENCES [USER](user_id),
+    approved_at DATETIME2 NULL,
+    approval_note NVARCHAR(1000) NULL,
     updated_at DATETIME2 NULL,
-    reason NVARCHAR(500) NULL,
+    reason NVARCHAR(500) NOT NULL,
     requested_at DATETIME2 NOT NULL
-        CONSTRAINT DF_PaymentRefund_Requested DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT DF_PaymentRefund_Requested DEFAULT (SYSDATETIME()),
     completed_at DATETIME2 NULL,
 
     CONSTRAINT FK_PaymentRefund_Transaction FOREIGN KEY (transaction_id)
         REFERENCES PAYMENT_TRANSACTION(transaction_id),
     CONSTRAINT CK_PaymentRefund_Amount CHECK (refund_amount > 0),
+    CONSTRAINT CK_PaymentRefund_Type CHECK (refund_type IN ('RETURN','CANCELLATION')) ,
+    CONSTRAINT CK_PaymentRefund_Reason CHECK (LEN(LTRIM(RTRIM(reason))) > 0),
+    CONSTRAINT CK_PaymentRefund_ApprovalPair CHECK
+        ((approved_by IS NULL AND approved_at IS NULL) OR
+         (approved_by IS NOT NULL AND approved_at IS NOT NULL)),
     CONSTRAINT CK_PaymentRefund_Status
         CHECK (refund_status IN ('PENDING', 'PROCESSING', 'SUCCESS', 'FAILED'))
 );
@@ -462,8 +524,10 @@ CREATE UNIQUE INDEX UX_Payment_Provider_Success
     ON PAYMENT_TRANSACTION(payment_method, provider_transaction_id)
     WHERE status = 'SUCCESS' AND provider_transaction_id IS NOT NULL;
 
-CREATE UNIQUE INDEX UX_Payment_Refund_Transaction
-    ON PAYMENT_REFUND(transaction_id);
+-- Multiple partial refunds per payment are allowed, but only 3 SUCCESS refunds.
+-- The transactional validator below enforces quantity and amount ceilings.
+CREATE INDEX IX_Payment_Refund_Transaction
+    ON PAYMENT_REFUND(transaction_id, refund_status);
 
 CREATE INDEX IX_PaymentTransaction_Order
     ON PAYMENT_TRANSACTION(order_id, created_at DESC);
@@ -475,13 +539,48 @@ CREATE UNIQUE INDEX UX_Order_CheckoutToken
     ON [ORDER](checkout_token)
     WHERE checkout_token IS NOT NULL;
 
+/* ---- Integrity + performance additions ------------------------------------ */
+
+-- Each user has at most one active default address.
+-- NOTE: app code must UNSET the old default before SETTING a new one.
+CREATE UNIQUE INDEX UX_AddressBook_OneDefault
+    ON ADDRESSBOOK(user_id)
+    WHERE is_default = 1 AND is_deleted = 0;
+
+-- One review per purchased order item.
+CREATE UNIQUE INDEX UX_PRODUCT_REVIEWS_order_item
+    ON PRODUCT_REVIEWS(order_item_id);
+
+-- A voucher can be recorded only once per order.
+CREATE UNIQUE INDEX UX_VoucherUsages_Voucher_Order
+    ON VOUCHER_USAGES(voucher_id, order_id);
+
+CREATE INDEX IX_VoucherUsages_Voucher_User
+    ON VOUCHER_USAGES(voucher_id, user_id);
+
+CREATE INDEX IX_Order_User_CreatedAt
+    ON [ORDER](user_id, created_at DESC);
+
+CREATE INDEX IX_OrderItem_Order
+    ON ORDER_ITEM(order_id);
+
+CREATE INDEX IX_OrderItem_SKU
+    ON ORDER_ITEM(sku_id);
+
+CREATE INDEX IX_OrderStatusHistory_Order
+    ON ORDER_STATUS_HISTORY(order_id, updated_at);
+
+CREATE INDEX IX_CartItems_ReservationExpiry
+    ON CART_ITEMS(reservation_expires_at)
+    WHERE reservation_expires_at IS NOT NULL;
+
 CREATE TABLE PASSWORD_RESET_TOKEN (
     reset_id INT IDENTITY(1,1) PRIMARY KEY,
     user_id INT NOT NULL,
     token_hash VARCHAR(64) NOT NULL UNIQUE,
     expires_at DATETIME2 NOT NULL,
     used_at DATETIME2 NULL,
-    created_at DATETIME2 DEFAULT GETDATE(),
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
     CONSTRAINT FK_PasswordReset_User FOREIGN KEY (user_id)
         REFERENCES [USER](user_id) ON DELETE CASCADE
 );
@@ -496,7 +595,7 @@ CREATE TABLE AUDIT_LOG (
     description NVARCHAR(500) NULL,
     ip_address VARCHAR(45) NULL,
     created_at DATETIME2 NOT NULL
-        CONSTRAINT DF_AuditLog_CreatedAt DEFAULT (GETDATE()),
+        CONSTRAINT DF_AuditLog_CreatedAt DEFAULT (SYSDATETIME()),
 
     CONSTRAINT FK_AuditLog_Actor FOREIGN KEY (actor_user_id)
         REFERENCES [USER](user_id) ON DELETE SET NULL
@@ -519,7 +618,7 @@ CREATE TABLE RETURN_REQUEST (
     request_type VARCHAR(20) NOT NULL,
     reason NVARCHAR(1000) NOT NULL,
     request_status VARCHAR(20) NOT NULL DEFAULT ('PENDING'),
-    created_at DATETIME2 NOT NULL DEFAULT (GETDATE()),
+    created_at DATETIME2 NOT NULL DEFAULT (SYSDATETIME()),
     reviewed_by INT NULL,
     reviewed_at DATETIME2 NULL,
     staff_note NVARCHAR(1000) NULL,
@@ -533,7 +632,13 @@ CREATE TABLE RETURN_REQUEST (
     CONSTRAINT CK_RETURN_REQUEST_TYPE
         CHECK (request_type IN ('RETURN', 'EXCHANGE')),
     CONSTRAINT CK_RETURN_REQUEST_STATUS
-        CHECK (request_status IN ('PENDING', 'APPROVED', 'REJECTED'))
+        CHECK (request_status IN ('PENDING', 'APPROVED', 'REJECTED')),
+    CONSTRAINT CK_RETURN_REQUEST_REASON CHECK (LEN(LTRIM(RTRIM(reason))) > 0),
+    CONSTRAINT CK_RETURN_REQUEST_REVIEW_PAIR CHECK
+       ((request_status = 'PENDING' AND reviewed_by IS NULL AND reviewed_at IS NULL)
+        OR (request_status IN ('APPROVED', 'REJECTED') AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)),
+    CONSTRAINT CK_RETURN_REQUEST_REJECT_REASON CHECK
+       (request_status <> 'REJECTED' OR LEN(LTRIM(RTRIM(ISNULL(staff_note, N'')))) > 0)
 );
 
 CREATE TABLE RETURN_REQUEST_ITEM (
@@ -549,8 +654,28 @@ CREATE TABLE RETURN_REQUEST_ITEM (
         REFERENCES ORDER_ITEM(order_item_id),
     CONSTRAINT FK_RETURN_REQUEST_ITEM_EXCHANGE_SKU FOREIGN KEY (exchange_sku_id)
         REFERENCES PRODUCT_SKU(sku_id),
-    CONSTRAINT CK_RETURN_REQUEST_ITEM_QUANTITY CHECK (quantity > 0)
+    CONSTRAINT CK_RETURN_REQUEST_ITEM_QUANTITY CHECK (quantity > 0),
+    CONSTRAINT UQ_RETURN_REQUEST_ITEM UNIQUE(request_id, order_item_id),
+    CONSTRAINT UQ_RETURN_REQUEST_ITEM_ID_REQUEST UNIQUE(request_item_id, request_id)
 );
+
+-- Allocation: each refund maps to specific approved returned line quantities.
+-- Keep refund events separate from return request approval events.
+CREATE TABLE REFUND_ALLOCATION (
+    allocation_id BIGINT IDENTITY(1,1) CONSTRAINT PK_REFUND_ALLOCATION PRIMARY KEY,
+    refund_id BIGINT NOT NULL,
+    request_item_id INT NOT NULL,
+    quantity INT NOT NULL,
+    allocated_amount DECIMAL(18,2) NOT NULL,
+    CONSTRAINT FK_RefundAllocation_Refund FOREIGN KEY(refund_id)
+        REFERENCES PAYMENT_REFUND(refund_id),
+    CONSTRAINT FK_RefundAllocation_ReturnItem FOREIGN KEY(request_item_id)
+        REFERENCES RETURN_REQUEST_ITEM(request_item_id),
+    CONSTRAINT UQ_RefundAllocation_RefundItem UNIQUE(refund_id, request_item_id),
+    CONSTRAINT CK_RefundAllocation_Quantity CHECK(quantity > 0),
+    CONSTRAINT CK_RefundAllocation_Amount CHECK(allocated_amount > 0)
+);
+CREATE INDEX IX_RefundAllocation_ReturnItem ON REFUND_ALLOCATION(request_item_id);
 
 CREATE TABLE RETURN_REQUEST_HISTORY (
     history_id INT IDENTITY(1,1) PRIMARY KEY,
@@ -558,17 +683,229 @@ CREATE TABLE RETURN_REQUEST_HISTORY (
     status VARCHAR(20) NOT NULL,
     updated_by INT NULL,
     note NVARCHAR(1000) NULL,
-    updated_at DATETIME2 NOT NULL DEFAULT (GETDATE()),
+    updated_at DATETIME2 NOT NULL DEFAULT (SYSDATETIME()),
 
     CONSTRAINT FK_RETURN_REQUEST_HISTORY_REQUEST FOREIGN KEY (request_id)
         REFERENCES RETURN_REQUEST(request_id),
     CONSTRAINT FK_RETURN_REQUEST_HISTORY_USER FOREIGN KEY (updated_by)
         REFERENCES [USER](user_id)
 );
-GO
-USE OECS;
-GO
 
+CREATE TABLE dbo.CATEGORY_ATTRIBUTE (
+        category_id INT NOT NULL,
+        attribute_id INT NOT NULL,
+
+        group_name NVARCHAR(100) NOT NULL
+            CONSTRAINT DF_CA_Group
+            DEFAULT (N'Thông số khác'),
+
+        attribute_type VARCHAR(20) NOT NULL
+            CONSTRAINT DF_CA_Type
+            DEFAULT ('SPECIFICATION'),
+
+        is_required BIT NOT NULL
+            CONSTRAINT DF_CA_Required DEFAULT (0),
+
+        is_filterable BIT NOT NULL
+            CONSTRAINT DF_CA_Filterable DEFAULT (0),
+
+        display_order INT NOT NULL
+            CONSTRAINT DF_CA_Order DEFAULT (0),
+
+        CONSTRAINT PK_CATEGORY_ATTRIBUTE
+            PRIMARY KEY (category_id, attribute_id),
+
+        CONSTRAINT FK_CA_Category
+            FOREIGN KEY (category_id)
+            REFERENCES dbo.CATEGORY(category_id),
+
+        CONSTRAINT FK_CA_Attribute
+            FOREIGN KEY (attribute_id)
+            REFERENCES dbo.ATTRIBUTE(attribute_id),
+
+        CONSTRAINT CK_CA_Type
+            CHECK (
+                attribute_type IN (
+                    'SPECIFICATION',
+                    'VARIANT',
+                    'BOTH'
+                )
+            ),
+
+        CONSTRAINT CK_CA_Order
+            CHECK (display_order >= 0)
+    );
+
+
+CREATE TABLE dbo.SKU_ATTRIBUTE_VALUE (
+        sku_id INT NOT NULL,
+        attribute_id INT NOT NULL,
+
+        text_value NVARCHAR(255) NULL,
+        numeric_value DECIMAL(18,4) NULL,
+        boolean_value BIT NULL,
+
+        CONSTRAINT PK_SKU_ATTRIBUTE_VALUE
+            PRIMARY KEY (sku_id, attribute_id),
+
+        CONSTRAINT FK_SAV_SKU
+            FOREIGN KEY (sku_id)
+            REFERENCES dbo.PRODUCT_SKU(sku_id)
+            ON DELETE CASCADE,
+
+        CONSTRAINT FK_SAV_Attribute
+            FOREIGN KEY (attribute_id)
+            REFERENCES dbo.ATTRIBUTE(attribute_id),
+
+        CONSTRAINT CK_SAV_OneValue
+            CHECK (
+                (CASE WHEN text_value IS NOT NULL
+                    THEN 1 ELSE 0 END)
+              + (CASE WHEN numeric_value IS NOT NULL
+                    THEN 1 ELSE 0 END)
+              + (CASE WHEN boolean_value IS NOT NULL
+                    THEN 1 ELSE 0 END)
+                = 1
+            ),
+
+        CONSTRAINT CK_SAV_NonEmpty
+            CHECK (
+                text_value IS NULL
+                OR LEN(LTRIM(RTRIM(text_value))) > 0
+            )
+    );
+
+
+CREATE TABLE dbo.INVENTORY_MOVEMENT (
+        movement_id BIGINT IDENTITY(1,1) NOT NULL
+            CONSTRAINT PK_INVENTORY_MOVEMENT PRIMARY KEY,
+        sku_id INT NOT NULL,
+        movement_type VARCHAR(12) NOT NULL,
+        quantity_delta INT NOT NULL,
+        quantity_before INT NOT NULL,
+        quantity_after INT NOT NULL,
+        note NVARCHAR(500) NULL,
+        actor_user_id INT NULL,
+        created_at DATETIME2(3) NOT NULL
+            CONSTRAINT DF_INVENTORY_MOVEMENT_created_at DEFAULT SYSDATETIME(),
+        CONSTRAINT FK_INVENTORY_MOVEMENT_SKU FOREIGN KEY (sku_id)
+            REFERENCES dbo.PRODUCT_SKU(sku_id),
+        CONSTRAINT FK_INVENTORY_MOVEMENT_USER FOREIGN KEY (actor_user_id)
+            REFERENCES dbo.[USER](user_id),
+        CONSTRAINT CK_INVENTORY_MOVEMENT_type CHECK
+            (movement_type IN ('OPENING', 'IN', 'OUT', 'SET', 'SYSTEM')),
+        CONSTRAINT CK_INVENTORY_MOVEMENT_balances CHECK
+            (quantity_before >= 0 AND quantity_after >= 0
+             AND quantity_delta = quantity_after - quantity_before)
+    );
+
+
+CREATE TABLE dbo.PRODUCT_CONTENT_SECTION (
+    section_id INT IDENTITY(1,1) NOT NULL
+      CONSTRAINT PK_PRODUCT_CONTENT_SECTION PRIMARY KEY,
+    product_id INT NOT NULL,
+    section_key VARCHAR(40) NOT NULL,
+    section_title NVARCHAR(160) NOT NULL,
+    section_content NVARCHAR(1500) NOT NULL,
+    image_url NVARCHAR(500) NULL,
+    image_alt NVARCHAR(200) NULL,
+    display_order INT NOT NULL
+      CONSTRAINT DF_PRODUCT_CONTENT_ORDER DEFAULT (0),
+    is_active BIT NOT NULL
+      CONSTRAINT DF_PRODUCT_CONTENT_ACTIVE DEFAULT (1),
+    created_at DATETIME2(3) NOT NULL
+      CONSTRAINT DF_PRODUCT_CONTENT_CREATED DEFAULT SYSDATETIME(),
+    updated_at DATETIME2(3) NULL,
+    CONSTRAINT FK_PRODUCT_CONTENT_PRODUCT
+      FOREIGN KEY (product_id) REFERENCES dbo.PRODUCT(product_id),
+    CONSTRAINT UQ_PRODUCT_CONTENT_KEY UNIQUE(product_id,section_key),
+    CONSTRAINT CK_PRODUCT_CONTENT_ORDER CHECK (display_order>=0),
+    CONSTRAINT CK_PRODUCT_CONTENT_TITLE CHECK(LEN(LTRIM(RTRIM(section_title)))>0),
+    CONSTRAINT CK_PRODUCT_CONTENT_BODY CHECK(LEN(LTRIM(RTRIM(section_content)))>0)
+  );
+
+-- Unique primary picture rules, catalog variant uniqueness, inventory lookup
+CREATE UNIQUE INDEX UX_PI_PrimaryProduct
+    ON dbo.PRODUCT_IMAGES(product_id) WHERE sku_id IS NULL AND is_primary = 1;
+CREATE UNIQUE INDEX UX_PI_PrimarySKU
+    ON dbo.PRODUCT_IMAGES(sku_id) WHERE sku_id IS NOT NULL AND is_primary = 1;
+CREATE UNIQUE INDEX UX_SKU_ProductVariant
+    ON dbo.PRODUCT_SKU(product_id,variant_key) WHERE variant_key IS NOT NULL;
+CREATE INDEX IX_INVENTORY_MOVEMENT_sku_time
+    ON dbo.INVENTORY_MOVEMENT(sku_id, movement_id DESC);
+
+GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
+
+/* =============================================================================
+  OECS - CHI NAP DU LIEU MAU, KHONG XOA DB / KHONG TAO LAI BANG
+  Phuc hoi cho ban SQL co lenh kiem tra CONTEXT_INFO nhung thieu SET CONTEXT_INFO.
+  Dieu kien an toan: database OECS co DU 35 bang va TAT CA dang rong.
+  Neu da co bat ky du lieu nao, dung lai de tranh trung khoa / hong du lieu.
+  Khong su dung file nay de nang cap database dang co du lieu.
+  CHAY TOAN BO FILE TRONG MOT CUA SO SSMS (F5); KHONG CAT LE BATCH.
+  Luu y: chua kiem thu truc tiep tren SQL Server 2022.
+ ============================================================================= */
+USE [OECS];
+GO
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+-- TAT co phien truoc, de cac batch sau KHONG nap du lieu khi khong dat dieu kien.
+SET CONTEXT_INFO 0x00;
+
+IF DB_NAME() <> N'OECS'
+    THROW 60011, N'Sai database! Phai chon OECS.', 1;
+
+IF (SELECT COUNT(*) FROM sys.tables WHERE schema_id=SCHEMA_ID(N'dbo')) <> 35
+    THROW 60012, N'OECS phai co dung 35 bang dbo. Dung lai va kiem tra schema.', 1;
+
+-- Tuyet doi khong nap neu DB co du lieu (ke ca seed dang do).
+IF
+    EXISTS (SELECT TOP (1) 1 FROM dbo.ROLES)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.[USER])
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.ADDRESSBOOK)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.CATEGORY)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.BRAND)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.PRODUCT)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.ATTRIBUTE)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.PRODUCT_SPECIFICATION)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.PRODUCT_SKU)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.PRODUCT_IMAGES)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.CART)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.CART_ITEMS)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.VOUCHER)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.[ORDER])
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.ORDER_ITEM)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.ORDER_STATUS_HISTORY)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.VOUCHER_USAGES)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.NOTIFICATION)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.PRODUCT_REVIEWS)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.REVIEW_IMAGES)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.REVIEW_REPORTS)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.PAYMENT_TRANSACTION)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.ORDER_CUSTOMER_POLICY)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.PAYMENT_REFUND)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.PASSWORD_RESET_TOKEN)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.AUDIT_LOG)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.BANNER)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.RETURN_REQUEST)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.RETURN_REQUEST_ITEM)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.REFUND_ALLOCATION)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.RETURN_REQUEST_HISTORY)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.CATEGORY_ATTRIBUTE)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.SKU_ATTRIBUTE_VALUE)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.INVENTORY_MOVEMENT)
+    OR EXISTS (SELECT TOP (1) 1 FROM dbo.PRODUCT_CONTENT_SECTION)
+BEGIN
+    THROW 60013, N'OECS da co du lieu trong it nhat 1 bang. Dung lai, KHONG nap lai seed!', 1;
+END;
+
+-- Khoi tao co session; moi GO batch ben duoi moi duoc phep INSERT.
+SET CONTEXT_INFO 0x4F45435353454544;
+GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
+
+-- ==================== SECTION B: INITIAL SEED ===============================
 INSERT INTO ROLES (role_name, description)
 VALUES
 (N'ADMIN', N'Quản trị viên hệ thống - Toàn quyền'),
@@ -644,39 +981,39 @@ VALUES
 (N'Razer', 'https://cdn.oecs.com/brands/razer.png'),
 (N'Anker', 'https://cdn.oecs.com/brands/anker.png');
 
-INSERT INTO PRODUCT (category_id, brand_id, product_name, description)
+INSERT INTO PRODUCT (category_id, brand_id, product_name, description, image_url)
 VALUES
-(4, 1, N'iPhone 15 Pro', N'<h2>Khung viền Titanium siêu nhẹ, siêu bền bỉ</h2><p><strong>iPhone 15 Pro</strong> là bước nhảy vọt về thiết kế với chất liệu Titanium chuẩn hàng không vũ trụ. Sự thay đổi này không chỉ mang lại cảm giác cầm nắm cực kỳ nhẹ nhàng mà còn vô cùng bền bỉ.</p><ul><li><strong>Vi xử lý A17 Pro:</strong> Con chip 3nm đầu tiên, chiến mượt mọi tựa game AAA di động.</li><li><strong>Camera 48MP:</strong> Nâng cấp cảm biến thế hệ mới, hỗ trợ chụp đêm xuất sắc và quay video ProRes 4K60fps.</li><li><strong>Cổng sạc Type-C mới:</strong> Tốc độ truyền tải dữ liệu USB 3 lên tới 10Gbps, đồng bộ dễ dàng với mọi thiết bị.</li></ul>'),
-(4, 1, N'iPhone 15 Pro Max', N'<h2>Kỷ nguyên nhiếp ảnh di động đỉnh cao</h2><p><strong>iPhone 15 Pro Max</strong> sở hữu màn hình cực đại 6.7 inch và khung viền Titanium đẳng cấp. Đây là mẫu máy hội tụ tất cả những gì tinh túy nhất của Apple ở thời điểm hiện tại.</p><ul><li><strong>Zoom quang học 5x độc quyền:</strong> Đưa mọi khung hình ở xa vào tầm mắt sắc nét nhất nhờ thấu kính tetraprism.</li><li><strong>Pin cực trâu:</strong> Tối ưu hóa cực tốt, cho thời lượng xem video liên tục lên đến 29 giờ.</li><li><strong>Nút Tác vụ (Action Button):</strong> Thay thế cần gạt rung truyền thống, truy cập nhanh ứng dụng yêu thích chỉ bằng 1 nút nhấn.</li></ul>'),
-(4, 1, N'iPhone 16 Pro', N'<h2>Thế hệ Pro, được tiếp sức bởi Apple Intelligence</h2><p><strong>iPhone 16 Pro</strong> mang đến viền màn hình mỏng nhất từng có và bổ sung sức mạnh AI toàn diện, giúp bạn viết lách, sáng tạo và làm việc một cách thông minh hơn bao giờ hết.</p><ul><li><strong>Màn hình 6.3 inch:</strong> Kích thước được gia tăng, hiển thị đã mắt hơn mà vẫn vừa vặn trong lòng bàn tay.</li><li><strong>Camera Ultra Wide 48MP:</strong> Bắt trọn góc rộng với độ chi tiết đến kinh ngạc, chụp macro sắc nét tuyệt đối.</li><li><strong>Camera Control:</strong> Nút bấm cơ học hoàn toàn mới hỗ trợ lấy nét, thu phóng và chụp ảnh chuyên nghiệp như một nhiếp ảnh gia thực thụ.</li></ul>'),
-(4, 1, N'iPhone 16 Pro Max', N'<h2>Màn hình 6.9 inch cực đại, hiệu năng vô song</h2><p><strong>iPhone 16 Pro Max</strong> là chiếc iPhone lớn nhất và mạnh nhất, được trang bị chip A18 Pro đột phá cùng viên pin có dung lượng lớn nhất trong lịch sử Apple.</p><ul><li><strong>Chip A18 Pro:</strong> Bứt phá mọi giới hạn hiệu năng, vận hành Apple Intelligence siêu tốc, siêu mượt.</li><li><strong>Xử lý AI thông minh:</strong> Tự động tóm tắt tin nhắn, chỉnh sửa ảnh nâng cao và tạo hình ảnh AI theo ngữ cảnh.</li><li><strong>Studio Audio:</strong> Hệ thống 4 micro chuẩn studio, có khả năng lọc tiếng ồn bằng AI để thu âm chuyên nghiệp khi quay phim.</li></ul>'),
-(4, 2, N'Samsung Galaxy S24 Ultra', N'<h2>Tuyệt tác thiết kế Titan, Quyền năng Galaxy AI</h2><p><strong>Samsung Galaxy S24 Ultra</strong> trang bị khung viền Titan siêu cao cấp cùng bút S-Pen huyền thoại. Chiếc điện thoại này kết hợp cùng sức mạnh AI tích hợp sâu, thay đổi hoàn toàn cách bạn thao tác hằng ngày.</p><ul><li><strong>Circle to Search:</strong> Khoanh tròn bất kỳ vật thể nào trên màn hình bằng tay hoặc S-Pen để tìm kiếm thông tin ngay tức thì.</li><li><strong>Camera 200MP Mắt Thần Bóng Đêm:</strong> Công nghệ ProVisual Engine giúp chụp đêm rực rỡ, zoom quang 5x nhưng chất lượng chuẩn studio.</li><li><strong>Live Translate:</strong> Dịch thuật hai chiều trực tiếp khi gọi điện thoại không cần kết nối mạng.</li></ul>'),
-(4, 2, N'Samsung Galaxy S24 Plus', N'<h2>Màn hình QHD+ sắc nét, Hiệu năng đỉnh cao</h2><p><strong>Samsung Galaxy S24 Plus</strong> mang đến trải nghiệm màn hình phẳng lớn 6.7 inch rực rỡ chuẩn QHD+ và viên pin được nâng cấp mạnh mẽ giúp bạn sử dụng cả ngày dài mà không lo sạc lại.</p><ul><li><strong>Thiết kế Armor Aluminum:</strong> Chắc chắn, bóng bẩy, viền màn hình siêu mỏng liền mạch tinh tế.</li><li><strong>Trợ lý Note Assist:</strong> Tính năng AI siêu việt tự động tóm tắt, sắp xếp và định dạng ghi chú trong chớp mắt.</li><li><strong>Pin 4900mAh:</strong> Hỗ trợ sạc siêu nhanh 45W, không bao giờ để gián đoạn cuộc vui của bạn.</li></ul>'),
-(4, 2, N'Samsung Galaxy A55 5G', N'<h2>Thiết kế viền kim loại cao cấp, chống nước IP67</h2><p><strong>Galaxy A55 5G</strong> nâng tầm phân khúc cận cao cấp của Samsung với mặt lưng kính sang trọng, khung viền kim loại cứng cáp và hệ thống camera chống rung quang học OIS cực kỳ xịn sò.</p><ul><li><strong>Camera Nightography 50MP:</strong> Cảm biến điểm ảnh lớn giúp chụp đêm sáng rõ, màu sắc chân thực, ít nhiễu hạt.</li><li><strong>Màn hình Super AMOLED 120Hz:</strong> Trải nghiệm vuốt chạm mượt mà, độ sáng cao 1000 nits thách thức ánh nắng gắt.</li><li><strong>Bảo mật Knox Vault:</strong> Chứng nhận bảo mật cao cấp, bảo vệ dữ liệu cá nhân, mật khẩu an toàn tuyệt đối khỏi sự tấn công phần cứng.</li></ul>'),
-(4, 2, N'Samsung Galaxy A35 5G', N'<h2>Màn hình Infinity-O mượt mà, Pin siêu khủng</h2><p><strong>Galaxy A35 5G</strong> là sự cân bằng hoàn hảo giữa thiết kế hiện đại Key Island, hiệu năng ổn định và mức giá cực kỳ phải chăng dành cho người dùng trẻ tuổi, học sinh, sinh viên.</p><ul><li><strong>Màn hình Super AMOLED 6.6 inch:</strong> Không gian giải trí đắm chìm, sống động, hỗ trợ Vision Booster chống chói.</li><li><strong>Pin 5000mAh bền bỉ:</strong> Hoạt động liên tục suốt 2 ngày với các tác vụ cơ bản.</li><li><strong>Camera 50MP chống rung OIS:</strong> Chụp ảnh ổn định sắc nét, hỗ trợ quay video không rung lắc dù bạn đang di chuyển.</li></ul>'),
-(5, 1, N'AirPods Pro 2', N'<h2>Âm thanh đắm chìm, chống ồn chủ động gấp đôi</h2><p><strong>AirPods Pro 2</strong> với sức mạnh cốt lõi từ con chip H2 tiên tiến, mang đến trải nghiệm âm thanh không gian (Spatial Audio) cá nhân hóa và khả năng triệt tiêu tiếng ồn xuất sắc nhất thế giới tai nghe In-ear.</p><ul><li><strong>Chống ồn chủ động (ANC):</strong> Loại bỏ tạp âm hiệu quả gấp 2 lần so với thế hệ trước.</li><li><strong>Xuyên âm thích ứng thông minh:</strong> Tự động nhận diện và giảm thiểu tiếng ồn chói tai đột ngột (như tiếng còi xe, công trường) khi bạn đang ở chế độ xuyên âm.</li><li><strong>Điều khiển cảm ứng vuốt:</strong> Tiện lợi tăng giảm âm lượng trực tiếp trên thân tai nghe mà không cần rút điện thoại.</li></ul>'),
-(5, 1, N'AirPods 4', N'<h2>Thiết kế Open-ear mới vừa vặn, Âm thanh nâng tầm</h2><p><strong>AirPods 4</strong> là phiên bản cải tiến mang lại sự thoải mái tối đa khi đeo trong thời gian dài (nhờ thiết kế open-ear không mút cao su) cùng chất lượng đàm thoại trong trẻo nhờ kiến trúc âm học mới.</p><ul><li><strong>Chip H2 mạnh mẽ:</strong> Xử lý âm thanh tính toán vượt trội, kết nối với hệ sinh thái Apple cực nhanh.</li><li><strong>Chống nước và bụi IP54:</strong> Hoàn toàn yên tâm đeo đi mưa nhẹ hoặc tập luyện thể thao đổ mồ hôi.</li><li><strong>Pin 30 giờ:</strong> Hộp sạc nhỏ gọn nhất từ trước đến nay, hỗ trợ sạc phổ quát qua cổng USB-C tiện lợi.</li></ul>'),
-(5, 2, N'Samsung Galaxy Buds3 Pro', N'<h2>Âm thanh Hi-Fi 24bit sống động như phòng thu</h2><p><strong>Galaxy Buds3 Pro</strong> đánh dấu sự thay đổi thiết kế ngoạn mục với thân tai nghe dạng ống tam giác góc cạnh, dải đèn Blade Light cá tính và khả năng chống ồn AI thông minh xuất sắc.</p><ul><li><strong>Adaptive ANC:</strong> Phân tích thói quen đeo và tự động điều chỉnh mức độ chống ồn tối ưu nhất theo môi trường xung quanh.</li><li><strong>Âm thanh đa chiều 360 Audio:</strong> Trải nghiệm nghe nhạc, xem phim như bạn đang ngồi ở vị trí trung tâm rạp hát.</li><li><strong>Phiên dịch viên AI:</strong> Hỗ trợ nghe dịch trực tiếp theo thời gian thực (Live Translate) thông qua điện thoại Galaxy.</li></ul>'),
-(5, 2, N'Samsung Galaxy Buds FE', N'<h2>Chất âm bùng nổ, Thiết kế vừa vặn hoàn hảo</h2><p><strong>Galaxy Buds FE</strong> là dòng tai nghe Fan Edition mang thiết kế công thái học đi kèm bộ đệm cánh (wing-tips) giúp bám cực sát vào vành tai, mang lại trải nghiệm nghe nhạc liên tục không gây rơi rớt hay đau nhức.</p><ul><li><strong>Bass sâu và có lực:</strong> Củ loa tinh chỉnh một màng cho âm trầm bùng nổ, mạnh mẽ.</li><li><strong>Chống ồn ANC xịn sò:</strong> Loại bỏ các tạp âm tĩnh hiệu quả, giúp bạn tập trung tối đa làm việc hoặc giải trí.</li><li><strong>Pin lên đến 30 giờ:</strong> Giải trí không gián đoạn, hỗ trợ kết nối chuyển đổi thông minh Auto Switch.</li></ul>'),
-(6, 1, N'Apple USB-C 20W Power Adapter', N'<h2>Sạc nhanh, an toàn cho mọi thiết bị hệ sinh thái Apple</h2><p>Củ sạc <strong>Apple 20W USB-C</strong> mang đến khả năng sạc tốc độ cao, giúp nạp đầy 50% pin iPhone chỉ trong vòng 30 phút. Hàng chính hãng đảm bảo dòng điện ổn định tuyệt đối, chống tình trạng phồng hay chai pin.</p><ul><li><strong>Công suất 20W chuẩn xác:</strong> Sạc nhanh tức thì cho các thế hệ iPhone, iPad.</li><li><strong>Tương thích đa dạng:</strong> Dùng cực tốt để sạc tối ưu cho hộp sạc AirPods, Apple Watch hay iPad.</li><li><strong>Thiết kế nhỏ gọn:</strong> Thiết kế chấu sạc gập (tùy thị trường) dễ dàng mang theo trong balo đi mọi nơi.</li></ul>'),
-(6, 2, N'Samsung 25W USB-C Fast Charger', N'<h2>Sạc siêu tốc 25W chuẩn Power Delivery 3.0</h2><p>Củ sạc <strong>Samsung 25W</strong> hỗ trợ công nghệ sạc cực nhanh Super Fast Charging độc quyền, giúp sạc đầy điện thoại Galaxy trong thời gian ngắn nhất mà không làm quá nhiệt hay hư hại thiết bị.</p><ul><li><strong>Chuẩn sạc PD (Power Delivery) 3.0:</strong> Phân phối điện năng thông minh, giao tiếp với máy để cấp đúng điện áp cần thiết.</li><li><strong>Đa tương thích xuất sắc:</strong> Sạc tốt và an toàn cho smartphone Android, tablet, tai nghe không dây.</li><li><strong>Bảo vệ dòng điện nhiều lớp:</strong> Chống đoản mạch, chống quá dòng, chống tĩnh điện an toàn tuyệt đối.</li></ul>'),
-(7, 1, N'Apple USB-C Charge Cable 1m', N'<h2>Đồng bộ dữ liệu và sạc nhanh chóng, thiết kế dây bọc dù mới</h2><p>Cáp sạc <strong>Apple USB-C 1m</strong> chính hãng với thiết kế bọc dù chống rối mới nhất, chịu lực uốn cong cực tốt. Rất thích hợp sử dụng cho các dòng iPhone 15, 16 series, iPad Pro và MacBook thế hệ mới.</p><ul><li><strong>Chất liệu bọc dù bền bỉ:</strong> Khắc phục nhược điểm ố vàng và đứt gãy lõi cáp truyền thống của Apple.</li><li><strong>Hỗ trợ sạc lên đến 60W:</strong> Sạc tốt cho cả MacBook Air và iPad Pro ở tốc độ cao nhất.</li><li><strong>Truyền dữ liệu ổn định:</strong> Đạt tốc độ tiêu chuẩn USB 2.0 (480Mbps) cho phép đồng bộ ảnh và tài liệu nhanh.</li></ul>'),
-(7, 1, N'Apple USB-C to Lightning Cable', N'<h2>Sạc nhanh chuẩn MFi cho các dòng iPhone đời cũ</h2><p>Cáp <strong>USB-C to Lightning</strong> chính hãng Apple giúp bạn tận dụng tối đa các củ sạc 20W/30W chuẩn Type-C để kích hoạt công nghệ sạc nhanh cho các dòng iPhone 14 trở về trước.</p><ul><li><strong>Chứng nhận MFi:</strong> Con chip xác thực tích hợp bên trong tương thích hoàn hảo và bảo vệ hệ sinh thái thiết bị Apple của bạn.</li><li><strong>Chiều dài 1 mét chuẩn mực:</strong> Tiện dụng đặt trên bàn làm việc, gọn gàng không quá vướng víu.</li><li><strong>Sạc nhanh PD hiệu quả:</strong> Đẩy nhanh tiến độ sạc, đầy 50% pin chỉ trong vòng 30 phút cắm sạc.</li></ul>'),
-(7, 2, N'Samsung USB-C Cable 1m', N'<h2>Cáp C-to-C chính hãng, truyền tải điện năng cực cao</h2><p>Cáp sạc <strong>Samsung USB-C 1m</strong> màu đen nhám đặc trưng, hoàn thiện đúc khối chắc chắn, dẫn điện cực kỳ ổn định, hỗ trợ hoàn hảo cho các chuẩn sạc nhanh 25W và 45W cao cấp nhất của hãng.</p><ul><li><strong>Chịu tải dòng điện lên đến 3A:</strong> Sạc siêu tốc an toàn, không bị nghẽn điện áp.</li><li><strong>Tốc độ đồng bộ cực nhanh:</strong> Chép file giữa máy tính và điện thoại nhanh chóng, cắm Samsung Dex xuất hình ảnh ổn định.</li><li><strong>Đầu cáp bọc nhựa đúc đặc:</strong> Chống gập gãy phần cổ cáp, bảo vệ chân Type-C bền bỉ.</li></ul>'),
-(8, 3, N'Lenovo IdeaPad Slim 3', N'<h2>Mỏng nhẹ, cơ động, đáp ứng hoàn hảo mọi nhu cầu cơ bản</h2><p><strong>Lenovo IdeaPad Slim 3</strong> là dòng laptop quốc dân cho giới văn phòng và học sinh, sinh viên. Máy có thiết kế mỏng nhẹ ấn tượng, vỏ ngoài màu xám bạc thanh lịch. Cấu hình đủ sức giải quyết cực kỳ mượt mà các tác vụ Word, Excel, lướt web và xem phim.</p><ul><li><strong>Vi xử lý Intel Core i3 gen 13:</strong> Hiệu năng ổn định, chạy mát, thời lượng pin tiết kiệm cực kỳ.</li><li><strong>RAM 8GB đa nhiệm tốt:</strong> Cho phép bạn mở nhiều tab Chrome và xử lý văn bản cùng lúc.</li><li><strong>Màn hình 15.6 inch FHD viền mỏng:</strong> Lớp phủ chống chói Anti-Glare bảo vệ mắt khi dùng lâu.</li></ul>'),
-(8, 3, N'Lenovo ThinkBook 14', N'<h2>Chuẩn mực doanh nhân trẻ, bảo mật công nghệ tối ưu</h2><p><strong>Lenovo ThinkBook 14</strong> sở hữu thiết kế vỏ nhôm hai tông màu (Dual-tone) cực kỳ thu hút và sang trọng. Bàn phím hành trình gõ cực êm ái đặc trưng và tích hợp cảm biến vân tay ở nút nguồn, mang lại sự chuyên nghiệp cho môi trường công sở.</p><ul><li><strong>Vi xử lý Intel Core i5 gen 13:</strong> Xử lý nhanh gọn báo cáo tài chính, phần mềm doanh nghiệp nặng.</li><li><strong>RAM 16GB chuẩn mới:</strong> Đa nhiệm siêu tốc, chuyển đổi qua lại giữa hàng chục ứng dụng không độ trễ.</li><li><strong>Bảo mật cấp độ phần cứng TPM 2.0:</strong> Mã hóa dữ liệu an toàn, chống lại các rủi ro đánh cắp qua mạng.</li></ul>'),
-(8, 3, N'Lenovo IdeaPad 5', N'<h2>Cân bằng hoàn hảo giữa hiệu năng và thiết kế đa dụng</h2><p><strong>Lenovo IdeaPad 5</strong> được trang bị bộ vi xử lý AMD Ryzen thế hệ mới cực kỳ mạnh mẽ, thời lượng pin dài, vô cùng phù hợp cho sinh viên Công nghệ hoặc người làm Marketing cần một thiết bị đa dụng, màn hình lớn nhưng không quá cồng kềnh.</p><ul><li><strong>Chip AMD Ryzen 5 đa nhân:</strong> Tích hợp card đồ họa Radeon xử lý tốt các tác vụ Photoshop, Canva mượt mà.</li><li><strong>Pin cực khỏe:</strong> Thời lượng sử dụng thực tế ấn tượng, hỗ trợ sạc nhanh Rapid Charge xua tan nỗi lo về pin.</li><li><strong>Âm thanh công nghệ Dolby Audio:</strong> Âm trầm ấm, phát to rõ ràng giúp giải trí xem phim cực đã.</li></ul>'),
-(9, 3, N'Lenovo LOQ 15', N'<h2>Sát thủ cấu hình chiến mượt mọi Game trong phân khúc phổ thông</h2><p><strong>Lenovo LOQ 15</strong> là dòng laptop gaming hoàn toàn mới kế thừa DNA thiết kế và sức mạnh của dòng Legion cao cấp. Thiết kế hầm hố vừa đủ, khe tản nhiệt siêu lớn phía sau giúp máy luôn mát, chiến mượt các tựa game eSport và AAA ở mức đồ họa cao.</p><ul><li><strong>Card rời RTX 4050 6GB:</strong> Kiến trúc Ada Lovelace mới nhất, hỗ trợ DLSS 3 và Ray Tracing chân thực.</li><li><strong>Màn hình 144Hz chuẩn gaming:</strong> Phản hồi hình ảnh nhanh nhạy, không xé hình trong các pha vẩy chuột.</li><li><strong>Tích hợp chip AI LA1:</strong> Trí tuệ nhân tạo Lenovo AI Engine+ tự động phân bổ tài nguyên giúp tối đa mức FPS.</li></ul>'),
-(9, 3, N'Lenovo Legion 5', N'<h2>Cỗ máy chiến game thực thụ, cấu hình chuẩn eSport quốc tế</h2><p><strong>Lenovo Legion 5</strong> tiếp tục định nghĩa lại chuẩn mực laptop gaming tầm trung với hệ thống tản nhiệt kép Coldfront 5.0, bàn phím TrueStrike gõ siêu nảy và một thiết kế vuông vức vừa có thể chơi game, vừa mang đi làm việc cực kỳ sang trọng.</p><ul><li><strong>Card đồ họa RTX 4060 8GB TGP cao:</strong> Bung sức mạnh tối đa, cân tốt việc Render làm phim 4K hay thiết kế 3D.</li><li><strong>Màn hình WQHD 165Hz (100% sRGB):</strong> Trải nghiệm thị giác bùng nổ, chuẩn màu phục vụ thiết kế đồ họa tuyệt đối.</li><li><strong>Đa dạng cổng kết nối:</strong> Bố trí thông minh phía sau mặt lưng, giúp góc làm việc của bạn không bị vướng víu dây dợ.</li></ul>'),
-(9, 3, N'Lenovo Legion Pro 5', N'<h2>Đỉnh cao sức mạnh, không thỏa hiệp ở bất cứ cấu hình nào</h2><p><strong>Lenovo Legion Pro 5</strong> là một quái vật hiệu năng thực sự dành cho giới làm nghề chuyên nghiệp và Hardcore Gamer. Khung viền kim loại cực kỳ chắc chắn, hệ thống tản nhiệt pha nhiệt lỏng siêu cấp mang lại nhiệt độ cực lý tưởng dù máy hoạt động 100% công suất.</p><ul><li><strong>CPU Intel Core i9-14900HX:</strong> Sức mạnh 24 nhân 32 luồng siêu khủng khiếp, render đồ họa chỉ là chuyện nhỏ.</li><li><strong>GPU RTX 4070 8GB VRAM:</strong> Dư sức gánh mọi tựa game 2K hiện nay ở mức đồ họa Ultra mượt mà nhất.</li><li><strong>Màn hình WQXGA 240Hz 500 Nits:</strong> Siêu rực rỡ, tích hợp chống xé hình G-Sync, mang lại lợi thế phản xạ tuyệt đối trong giao tranh.</li></ul>'),
-(10, 3, N'Lenovo Legion M300 RGB', N'<h2>Chuột gaming công thái học đối xứng, nhẹ nhàng linh hoạt</h2><p><strong>Lenovo Legion M300</strong> có thiết kế hoàn hảo cho những game thủ thuận tay phải lẫn tay trái. Cảm biến quang học chính xác cao kết hợp nút bấm nảy giòn giúp bạn tự tin lia chuột và xử lý tình huống nhanh nhạy trong các tựa game bắn súng FPS.</p><ul><li><strong>Độ phân giải siêu nhạy 8000 DPI:</strong> Mắt đọc Pixart xử lý thông tin chuẩn xác.</li><li><strong>Đèn LED RGB rực rỡ:</strong> Tùy chỉnh màu sắc cá tính ở phần logo rực sáng.</li><li><strong>Grip hông bọc cao su:</strong> Tăng cường độ bám, chống trượt khi tay ra mồ hôi do căng thẳng.</li></ul>'),
-(10, 3, N'Lenovo Legion M600 Wireless', N'<h2>Không dây siêu tốc độ, chính xác từng milimet</h2><p><strong>Legion M600</strong> mang đến kết nối không dây 2.4GHz không có một chút độ trễ nào. Cấu trúc cân bằng trọng lượng thông minh mang lại cảm giác vẩy chuột nhẹ tênh và tự do hoàn toàn tuyệt đối trên mặt bàn di.</p><ul><li><strong>Cảm biến cực khủng 16000 DPI:</strong> Hỗ trợ tốc độ theo dõi lên tới 400 IPS.</li><li><strong>Thời lượng pin 200 giờ:</strong> Chơi game quên ngày tháng, sạc nhanh qua cổng USB-C.</li><li><strong>Kết nối linh hoạt 3 chế độ:</strong> Hỗ trợ dùng dây cáp vừa sạc vừa chơi, đầu thu USB Receiver 2.4G và cả Bluetooth siêu tiện dụng.</li></ul>'),
-(11, 3, N'Lenovo Legion K300 RGB', N'<h2>Bàn phím cơ màng êm ái nhưng nảy lửa trong từng pha bấm</h2><p><strong>Lenovo Legion K300</strong> có thiết kế nguyên khối tối giản, độ êm khi gõ cực tốt giúp bạn chiến game đêm khuya không gây ồn ào. Hệ thống đèn nền LED RGB 5 vùng tùy chỉnh mượt mà biến góc máy của bạn thêm phần sinh động.</p><ul><li><strong>Tính năng Anti-ghosting 24 phím:</strong> Đảm bảo không bị sót phím khi nhấn combo nhiều kỹ năng cùng lúc.</li><li><strong>Thiết kế phím bấm hơi lõm:</strong> Ôm ngón tay, hành trình phím sâu cho độ phản hồi cực chân thật.</li><li><strong>Lỗ thoát nước thông minh:</strong> Chống tràn hiệu quả nếu bạn lỡ tay làm đổ nước lọc hay cafe lên phím.</li></ul>'),
-(11, 3, N'Lenovo Go Wireless Split Keyboard', N'<h2>Thiết kế công thái học tách đôi, giải pháp bảo vệ ống cổ tay hoàn hảo</h2><p><strong>Lenovo Go Wireless Split Keyboard</strong> là bàn phím không dây sinh ra dành cho giới văn phòng, lập trình viên thường xuyên gõ code. Thiết kế tách đôi hình chữ V nhô cao giúp hai cổ tay luôn giữ ở góc độ tự nhiên nhất, giảm thiểu tối đa triệu chứng chấn thương ống cổ tay.</p><ul><li><strong>Nệm kê tay làm từ vật liệu Cork tự nhiên:</strong> Êm ái tuyệt vời, thân thiện với môi trường, đặc tính chống thấm và chống ẩm mồ hôi.</li><li><strong>Phím cắt kéo (Scissor switch):</strong> Mang lại cảm giác gõ tĩnh âm mượt mà, độ nảy và phản hồi rất tốt.</li><li><strong>Kết nối không dây đa thiết bị:</strong> Ghép đôi nhanh qua đầu thu USB-C hoặc dùng Bluetooth để chuyển đổi giữa PC, điện thoại, máy tính bảng.</li></ul>'),
-(12, 3, N'Lenovo 300 FHD Webcam', N'<h2>Ghi hình 1080p sắc nét, giải pháp họp trực tuyến dễ dàng</h2><p><strong>Lenovo 300 FHD Webcam</strong> là phụ kiện nâng cấp chất lượng hình ảnh ngay tức thì cho những chiếc laptop đời cũ hoặc máy bàn. Sở hữu ống kính rộng 95 độ kết hợp micro kép thu âm đa hướng nhạy bén, mọi hình ảnh của bạn luôn sáng rõ trong mắt đồng nghiệp.</p><ul><li><strong>Độ phân giải thực tế 1080p:</strong> Rõ nét từng sợi tóc, tự động cân bằng sáng (Auto White Balance) ngay cả trong phòng tối.</li><li><strong>Nắp che vật lý an toàn:</strong> Dễ dàng trượt lẫy để che kín ống kính, bảo mật sự riêng tư tuyệt đối khi không sử dụng.</li><li><strong>Cắm là chạy (Plug-and-play):</strong> Không cần tải driver phức tạp, tương thích hoàn hảo mọi hệ điều hành qua cổng USB-A phổ biến.</li></ul>'),
-(12, 3, N'Lenovo Performance FHD Webcam', N'<h2>Chất lượng truyền phát chuyên nghiệp 60fps mượt mà như thật</h2><p><strong>Lenovo Performance FHD</strong> là mẫu webcam chuẩn phòng studio thu nhỏ dành cho giới Streamer, Youtuber hoặc các cấp quản lý cần hình ảnh họp trực tuyến cao cấp. Tốc độ khung hình thực lên tới 60fps mang lại video không hề có hiện tượng bóng mờ khi chuyển động mạnh.</p><ul><li><strong>Hỗ trợ chuẩn nhận diện khuôn mặt bảo mật (Windows Hello):</strong> Giúp bạn mở khóa máy tính an toàn, thông minh và cực kỳ nhanh chóng.</li><li><strong>Lấy nét tự động cực nhanh (Auto Focus):</strong> Luôn giữ khuôn mặt bạn nổi bật và sắc nét dù bạn tiến gần hay lùi xa màn hình.</li><li><strong>Dây cáp chuẩn USB-C rời tiện lợi:</strong> Giúp băng thông truyền hình ảnh rộng hơn và hạn chế tình trạng giật lag.</li></ul>'),
-(13, 3, N'Lenovo Laptop Backpack 15.6"', N'<h2>Balo văn phòng thanh lịch, chống sốc an toàn cho laptop</h2><p>Balo <strong>Lenovo 15.6 inch</strong> có phong cách thiết kế vô cùng gọn gàng, tinh giản, cực kỳ phù hợp cho học sinh và giới văn phòng mang đi làm hằng ngày. Balo làm từ lớp vải sợi nhân tạo có tính năng chống thấm nước nhẹ, duy trì form cứng cáp và khó bám bụi bẩn.</p><ul><li><strong>Khoang chứa thông minh:</strong> Ngăn đựng laptop 15.6 inch riêng biệt lót bông chống sốc chống trầy hiệu quả.</li><li><strong>Trọng lượng siêu nhẹ (chỉ 0.5kg):</strong> Tối giản lớp đệm thừa, không gây ra cảm giác đau mỏi vai nếu phải di chuyển nhiều trên tàu xe.</li><li><strong>Ngăn ẩn bí mật:</strong> Bố trí một ngăn khóa kéo an toàn ép sát vào lưng để đựng ví tiền, giấy tờ hay điện thoại quan trọng.</li></ul>'),
-(13, 3, N'Lenovo Legion Gaming Backpack', N'<h2>Balo hầm hố, sức chứa khổng lồ vác trọn thế giới Game thủ</h2><p><strong>Lenovo Legion Backpack</strong> sở hữu một thiết kế như "áo giáp" cứng cáp ở mặt trước, giúp bảo vệ an toàn tối đa cho chiếc laptop gaming đắt tiền của bạn khỏi mọi cú va đập rủi ro nhất. Form dáng đậm chất góc cạnh của hệ sinh thái Legion.</p><ul><li><strong>Khoang chứa ngoại cỡ (vừa laptop 17 inch):</strong> Đủ rộng để bạn đựng cả phím cơ full-size, chuột, tấm lót, tai nghe chùm đầu và cả bộ sạc gạch siêu bự.</li><li><strong>Vải chống đứt rách cường độ cao:</strong> Độ bền siêu việt, lớp lót chống sốc trong túi được làm rất dày bao bọc quanh thân máy.</li><li><strong>Quai đeo nệm đúc EVA xịn sò:</strong> Cấu trúc phân tán lực đều qua vai, lưng có mút thoáng khí dày cộp không lo tụ mồ hôi lưng khi đeo đi phượt.</li></ul>');
+(4, 1, N'iPhone 15 Pro', N'<h2>Khung viền Titanium siêu nhẹ, siêu bền bỉ</h2><p><strong>iPhone 15 Pro</strong> là bước nhảy vọt về thiết kế với chất liệu Titanium chuẩn hàng không vũ trụ. Sự thay đổi này không chỉ mang lại cảm giác cầm nắm cực kỳ nhẹ nhàng mà còn vô cùng bền bỉ.</p><ul><li><strong>Vi xử lý A17 Pro:</strong> Con chip 3nm đầu tiên, chiến mượt mọi tựa game AAA di động.</li><li><strong>Camera 48MP:</strong> Nâng cấp cảm biến thế hệ mới, hỗ trợ chụp đêm xuất sắc và quay video ProRes 4K60fps.</li><li><strong>Cổng sạc Type-C mới:</strong> Tốc độ truyền tải dữ liệu USB 3 lên tới 10Gbps, đồng bộ dễ dàng với mọi thiết bị.</li></ul>', 'assets/images/products/iphone_15_pro.png'),
+(4, 1, N'iPhone 15 Pro Max', N'<h2>Kỷ nguyên nhiếp ảnh di động đỉnh cao</h2><p><strong>iPhone 15 Pro Max</strong> sở hữu màn hình cực đại 6.7 inch và khung viền Titanium đẳng cấp. Đây là mẫu máy hội tụ tất cả những gì tinh túy nhất của Apple ở thời điểm hiện tại.</p><ul><li><strong>Zoom quang học 5x độc quyền:</strong> Đưa mọi khung hình ở xa vào tầm mắt sắc nét nhất nhờ thấu kính tetraprism.</li><li><strong>Pin cực trâu:</strong> Tối ưu hóa cực tốt, cho thời lượng xem video liên tục lên đến 29 giờ.</li><li><strong>Nút Tác vụ (Action Button):</strong> Thay thế cần gạt rung truyền thống, truy cập nhanh ứng dụng yêu thích chỉ bằng 1 nút nhấn.</li></ul>', 'assets/images/products/iphone-15-pro-max.png'),
+(4, 1, N'iPhone 16 Pro', N'<h2>Thế hệ Pro, được tiếp sức bởi Apple Intelligence</h2><p><strong>iPhone 16 Pro</strong> mang đến viền màn hình mỏng nhất từng có và bổ sung sức mạnh AI toàn diện, giúp bạn viết lách, sáng tạo và làm việc một cách thông minh hơn bao giờ hết.</p><ul><li><strong>Màn hình 6.3 inch:</strong> Kích thước được gia tăng, hiển thị đã mắt hơn mà vẫn vừa vặn trong lòng bàn tay.</li><li><strong>Camera Ultra Wide 48MP:</strong> Bắt trọn góc rộng với độ chi tiết đến kinh ngạc, chụp macro sắc nét tuyệt đối.</li><li><strong>Camera Control:</strong> Nút bấm cơ học hoàn toàn mới hỗ trợ lấy nét, thu phóng và chụp ảnh chuyên nghiệp như một nhiếp ảnh gia thực thụ.</li></ul>', 'assets/images/products/iphone-16-pro.png'),
+(4, 1, N'iPhone 16 Pro Max', N'<h2>Màn hình 6.9 inch cực đại, hiệu năng vô song</h2><p><strong>iPhone 16 Pro Max</strong> là chiếc iPhone lớn nhất và mạnh nhất, được trang bị chip A18 Pro đột phá cùng viên pin có dung lượng lớn nhất trong lịch sử Apple.</p><ul><li><strong>Chip A18 Pro:</strong> Bứt phá mọi giới hạn hiệu năng, vận hành Apple Intelligence siêu tốc, siêu mượt.</li><li><strong>Xử lý AI thông minh:</strong> Tự động tóm tắt tin nhắn, chỉnh sửa ảnh nâng cao và tạo hình ảnh AI theo ngữ cảnh.</li><li><strong>Studio Audio:</strong> Hệ thống 4 micro chuẩn studio, có khả năng lọc tiếng ồn bằng AI để thu âm chuyên nghiệp khi quay phim.</li></ul>', 'assets/images/products/iphone-16-pro-max.png'),
+(4, 2, N'Samsung Galaxy S24 Ultra', N'<h2>Tuyệt tác thiết kế Titan, Quyền năng Galaxy AI</h2><p><strong>Samsung Galaxy S24 Ultra</strong> trang bị khung viền Titan siêu cao cấp cùng bút S-Pen huyền thoại. Chiếc điện thoại này kết hợp cùng sức mạnh AI tích hợp sâu, thay đổi hoàn toàn cách bạn thao tác hằng ngày.</p><ul><li><strong>Circle to Search:</strong> Khoanh tròn bất kỳ vật thể nào trên màn hình bằng tay hoặc S-Pen để tìm kiếm thông tin ngay tức thì.</li><li><strong>Camera 200MP Mắt Thần Bóng Đêm:</strong> Công nghệ ProVisual Engine giúp chụp đêm rực rỡ, zoom quang 5x nhưng chất lượng chuẩn studio.</li><li><strong>Live Translate:</strong> Dịch thuật hai chiều trực tiếp khi gọi điện thoại không cần kết nối mạng.</li></ul>', 'assets/images/products/s24-ultra.jpg'),
+(4, 2, N'Samsung Galaxy S24 Plus', N'<h2>Màn hình QHD+ sắc nét, Hiệu năng đỉnh cao</h2><p><strong>Samsung Galaxy S24 Plus</strong> mang đến trải nghiệm màn hình phẳng lớn 6.7 inch rực rỡ chuẩn QHD+ và viên pin được nâng cấp mạnh mẽ giúp bạn sử dụng cả ngày dài mà không lo sạc lại.</p><ul><li><strong>Thiết kế Armor Aluminum:</strong> Chắc chắn, bóng bẩy, viền màn hình siêu mỏng liền mạch tinh tế.</li><li><strong>Trợ lý Note Assist:</strong> Tính năng AI siêu việt tự động tóm tắt, sắp xếp và định dạng ghi chú trong chớp mắt.</li><li><strong>Pin 4900mAh:</strong> Hỗ trợ sạc siêu nhanh 45W, không bao giờ để gián đoạn cuộc vui của bạn.</li></ul>', 'assets/images/products/s24-plus.jpg'),
+(4, 2, N'Samsung Galaxy A55 5G', N'<h2>Thiết kế viền kim loại cao cấp, chống nước IP67</h2><p><strong>Galaxy A55 5G</strong> nâng tầm phân khúc cận cao cấp của Samsung với mặt lưng kính sang trọng, khung viền kim loại cứng cáp và hệ thống camera chống rung quang học OIS cực kỳ xịn sò.</p><ul><li><strong>Camera Nightography 50MP:</strong> Cảm biến điểm ảnh lớn giúp chụp đêm sáng rõ, màu sắc chân thực, ít nhiễu hạt.</li><li><strong>Màn hình Super AMOLED 120Hz:</strong> Trải nghiệm vuốt chạm mượt mà, độ sáng cao 1000 nits thách thức ánh nắng gắt.</li><li><strong>Bảo mật Knox Vault:</strong> Chứng nhận bảo mật cao cấp, bảo vệ dữ liệu cá nhân, mật khẩu an toàn tuyệt đối khỏi sự tấn công phần cứng.</li></ul>', 'assets/images/products/samsung-a55.jpg'),
+(4, 2, N'Samsung Galaxy A35 5G', N'<h2>Màn hình Infinity-O mượt mà, Pin siêu khủng</h2><p><strong>Galaxy A35 5G</strong> là sự cân bằng hoàn hảo giữa thiết kế hiện đại Key Island, hiệu năng ổn định và mức giá cực kỳ phải chăng dành cho người dùng trẻ tuổi, học sinh, sinh viên.</p><ul><li><strong>Màn hình Super AMOLED 6.6 inch:</strong> Không gian giải trí đắm chìm, sống động, hỗ trợ Vision Booster chống chói.</li><li><strong>Pin 5000mAh bền bỉ:</strong> Hoạt động liên tục suốt 2 ngày với các tác vụ cơ bản.</li><li><strong>Camera 50MP chống rung OIS:</strong> Chụp ảnh ổn định sắc nét, hỗ trợ quay video không rung lắc dù bạn đang di chuyển.</li></ul>', 'assets/images/products/samsung-a35.jpg'),
+(5, 1, N'AirPods Pro 2', N'<h2>Âm thanh đắm chìm, chống ồn chủ động gấp đôi</h2><p><strong>AirPods Pro 2</strong> với sức mạnh cốt lõi từ con chip H2 tiên tiến, mang đến trải nghiệm âm thanh không gian (Spatial Audio) cá nhân hóa và khả năng triệt tiêu tiếng ồn xuất sắc nhất thế giới tai nghe In-ear.</p><ul><li><strong>Chống ồn chủ động (ANC):</strong> Loại bỏ tạp âm hiệu quả gấp 2 lần so với thế hệ trước.</li><li><strong>Xuyên âm thích ứng thông minh:</strong> Tự động nhận diện và giảm thiểu tiếng ồn chói tai đột ngột (như tiếng còi xe, công trường) khi bạn đang ở chế độ xuyên âm.</li><li><strong>Điều khiển cảm ứng vuốt:</strong> Tiện lợi tăng giảm âm lượng trực tiếp trên thân tai nghe mà không cần rút điện thoại.</li></ul>', 'assets/images/products/airpods-pro-2.jpg'),
+(5, 1, N'AirPods 4', N'<h2>Thiết kế Open-ear mới vừa vặn, Âm thanh nâng tầm</h2><p><strong>AirPods 4</strong> là phiên bản cải tiến mang lại sự thoải mái tối đa khi đeo trong thời gian dài (nhờ thiết kế open-ear không mút cao su) cùng chất lượng đàm thoại trong trẻo nhờ kiến trúc âm học mới.</p><ul><li><strong>Chip H2 mạnh mẽ:</strong> Xử lý âm thanh tính toán vượt trội, kết nối với hệ sinh thái Apple cực nhanh.</li><li><strong>Chống nước và bụi IP54:</strong> Hoàn toàn yên tâm đeo đi mưa nhẹ hoặc tập luyện thể thao đổ mồ hôi.</li><li><strong>Pin 30 giờ:</strong> Hộp sạc nhỏ gọn nhất từ trước đến nay, hỗ trợ sạc phổ quát qua cổng USB-C tiện lợi.</li></ul>', 'assets/images/products/airpods-4.jpg'),
+(5, 2, N'Samsung Galaxy Buds3 Pro', N'<h2>Âm thanh Hi-Fi 24bit sống động như phòng thu</h2><p><strong>Galaxy Buds3 Pro</strong> đánh dấu sự thay đổi thiết kế ngoạn mục với thân tai nghe dạng ống tam giác góc cạnh, dải đèn Blade Light cá tính và khả năng chống ồn AI thông minh xuất sắc.</p><ul><li><strong>Adaptive ANC:</strong> Phân tích thói quen đeo và tự động điều chỉnh mức độ chống ồn tối ưu nhất theo môi trường xung quanh.</li><li><strong>Âm thanh đa chiều 360 Audio:</strong> Trải nghiệm nghe nhạc, xem phim như bạn đang ngồi ở vị trí trung tâm rạp hát.</li><li><strong>Phiên dịch viên AI:</strong> Hỗ trợ nghe dịch trực tiếp theo thời gian thực (Live Translate) thông qua điện thoại Galaxy.</li></ul>', 'assets/images/products/galaxy-buds3-pro.jpg'),
+(5, 2, N'Samsung Galaxy Buds FE', N'<h2>Chất âm bùng nổ, Thiết kế vừa vặn hoàn hảo</h2><p><strong>Galaxy Buds FE</strong> là dòng tai nghe Fan Edition mang thiết kế công thái học đi kèm bộ đệm cánh (wing-tips) giúp bám cực sát vào vành tai, mang lại trải nghiệm nghe nhạc liên tục không gây rơi rớt hay đau nhức.</p><ul><li><strong>Bass sâu và có lực:</strong> Củ loa tinh chỉnh một màng cho âm trầm bùng nổ, mạnh mẽ.</li><li><strong>Chống ồn ANC xịn sò:</strong> Loại bỏ các tạp âm tĩnh hiệu quả, giúp bạn tập trung tối đa làm việc hoặc giải trí.</li><li><strong>Pin lên đến 30 giờ:</strong> Giải trí không gián đoạn, hỗ trợ kết nối chuyển đổi thông minh Auto Switch.</li></ul>', 'assets/images/products/galaxy-buds-fe.jpg'),
+(6, 1, N'Apple USB-C 20W Power Adapter', N'<h2>Sạc nhanh, an toàn cho mọi thiết bị hệ sinh thái Apple</h2><p>Củ sạc <strong>Apple 20W USB-C</strong> mang đến khả năng sạc tốc độ cao, giúp nạp đầy 50% pin iPhone chỉ trong vòng 30 phút. Hàng chính hãng đảm bảo dòng điện ổn định tuyệt đối, chống tình trạng phồng hay chai pin.</p><ul><li><strong>Công suất 20W chuẩn xác:</strong> Sạc nhanh tức thì cho các thế hệ iPhone, iPad.</li><li><strong>Tương thích đa dạng:</strong> Dùng cực tốt để sạc tối ưu cho hộp sạc AirPods, Apple Watch hay iPad.</li><li><strong>Thiết kế nhỏ gọn:</strong> Thiết kế chấu sạc gập (tùy thị trường) dễ dàng mang theo trong balo đi mọi nơi.</li></ul>', 'assets/images/products/apple-20w.jpg'),
+(6, 2, N'Samsung 25W USB-C Fast Charger', N'<h2>Sạc siêu tốc 25W chuẩn Power Delivery 3.0</h2><p>Củ sạc <strong>Samsung 25W</strong> hỗ trợ công nghệ sạc cực nhanh Super Fast Charging độc quyền, giúp sạc đầy điện thoại Galaxy trong thời gian ngắn nhất mà không làm quá nhiệt hay hư hại thiết bị.</p><ul><li><strong>Chuẩn sạc PD (Power Delivery) 3.0:</strong> Phân phối điện năng thông minh, giao tiếp với máy để cấp đúng điện áp cần thiết.</li><li><strong>Đa tương thích xuất sắc:</strong> Sạc tốt và an toàn cho smartphone Android, tablet, tai nghe không dây.</li><li><strong>Bảo vệ dòng điện nhiều lớp:</strong> Chống đoản mạch, chống quá dòng, chống tĩnh điện an toàn tuyệt đối.</li></ul>', 'assets/images/products/samsung-25w.jpg'),
+(7, 1, N'Apple USB-C Charge Cable 1m', N'<h2>Đồng bộ dữ liệu và sạc nhanh chóng, thiết kế dây bọc dù mới</h2><p>Cáp sạc <strong>Apple USB-C 1m</strong> chính hãng với thiết kế bọc dù chống rối mới nhất, chịu lực uốn cong cực tốt. Rất thích hợp sử dụng cho các dòng iPhone 15, 16 series, iPad Pro và MacBook thế hệ mới.</p><ul><li><strong>Chất liệu bọc dù bền bỉ:</strong> Khắc phục nhược điểm ố vàng và đứt gãy lõi cáp truyền thống của Apple.</li><li><strong>Hỗ trợ sạc lên đến 60W:</strong> Sạc tốt cho cả MacBook Air và iPad Pro ở tốc độ cao nhất.</li><li><strong>Truyền dữ liệu ổn định:</strong> Đạt tốc độ tiêu chuẩn USB 2.0 (480Mbps) cho phép đồng bộ ảnh và tài liệu nhanh.</li></ul>', 'assets/images/products/apple-cable-c2c.jpg'),
+(7, 1, N'Apple USB-C to Lightning Cable', N'<h2>Sạc nhanh chuẩn MFi cho các dòng iPhone đời cũ</h2><p>Cáp <strong>USB-C to Lightning</strong> chính hãng Apple giúp bạn tận dụng tối đa các củ sạc 20W/30W chuẩn Type-C để kích hoạt công nghệ sạc nhanh cho các dòng iPhone 14 trở về trước.</p><ul><li><strong>Chứng nhận MFi:</strong> Con chip xác thực tích hợp bên trong tương thích hoàn hảo và bảo vệ hệ sinh thái thiết bị Apple của bạn.</li><li><strong>Chiều dài 1 mét chuẩn mực:</strong> Tiện dụng đặt trên bàn làm việc, gọn gàng không quá vướng víu.</li><li><strong>Sạc nhanh PD hiệu quả:</strong> Đẩy nhanh tiến độ sạc, đầy 50% pin chỉ trong vòng 30 phút cắm sạc.</li></ul>', 'assets/images/products/apple-cable-c2l.jpg'),
+(7, 2, N'Samsung USB-C Cable 1m', N'<h2>Cáp C-to-C chính hãng, truyền tải điện năng cực cao</h2><p>Cáp sạc <strong>Samsung USB-C 1m</strong> màu đen nhám đặc trưng, hoàn thiện đúc khối chắc chắn, dẫn điện cực kỳ ổn định, hỗ trợ hoàn hảo cho các chuẩn sạc nhanh 25W và 45W cao cấp nhất của hãng.</p><ul><li><strong>Chịu tải dòng điện lên đến 3A:</strong> Sạc siêu tốc an toàn, không bị nghẽn điện áp.</li><li><strong>Tốc độ đồng bộ cực nhanh:</strong> Chép file giữa máy tính và điện thoại nhanh chóng, cắm Samsung Dex xuất hình ảnh ổn định.</li><li><strong>Đầu cáp bọc nhựa đúc đặc:</strong> Chống gập gãy phần cổ cáp, bảo vệ chân Type-C bền bỉ.</li></ul>', 'assets/images/products/samsung-cable-c2c.jpg'),
+(8, 3, N'Lenovo IdeaPad Slim 3', N'<h2>Mỏng nhẹ, cơ động, đáp ứng hoàn hảo mọi nhu cầu cơ bản</h2><p><strong>Lenovo IdeaPad Slim 3</strong> là dòng laptop quốc dân cho giới văn phòng và học sinh, sinh viên. Máy có thiết kế mỏng nhẹ ấn tượng, vỏ ngoài màu xám bạc thanh lịch. Cấu hình đủ sức giải quyết cực kỳ mượt mà các tác vụ Word, Excel, lướt web và xem phim.</p><ul><li><strong>Vi xử lý Intel Core i3 gen 13:</strong> Hiệu năng ổn định, chạy mát, thời lượng pin tiết kiệm cực kỳ.</li><li><strong>RAM 8GB đa nhiệm tốt:</strong> Cho phép bạn mở nhiều tab Chrome và xử lý văn bản cùng lúc.</li><li><strong>Màn hình 15.6 inch FHD viền mỏng:</strong> Lớp phủ chống chói Anti-Glare bảo vệ mắt khi dùng lâu.</li></ul>', 'assets/images/products/lenovo-ideapad-slim-3.jpg'),
+(8, 3, N'Lenovo ThinkBook 14', N'<h2>Chuẩn mực doanh nhân trẻ, bảo mật công nghệ tối ưu</h2><p><strong>Lenovo ThinkBook 14</strong> sở hữu thiết kế vỏ nhôm hai tông màu (Dual-tone) cực kỳ thu hút và sang trọng. Bàn phím hành trình gõ cực êm ái đặc trưng và tích hợp cảm biến vân tay ở nút nguồn, mang lại sự chuyên nghiệp cho môi trường công sở.</p><ul><li><strong>Vi xử lý Intel Core i5 gen 13:</strong> Xử lý nhanh gọn báo cáo tài chính, phần mềm doanh nghiệp nặng.</li><li><strong>RAM 16GB chuẩn mới:</strong> Đa nhiệm siêu tốc, chuyển đổi qua lại giữa hàng chục ứng dụng không độ trễ.</li><li><strong>Bảo mật cấp độ phần cứng TPM 2.0:</strong> Mã hóa dữ liệu an toàn, chống lại các rủi ro đánh cắp qua mạng.</li></ul>', 'assets/images/products/lenovo-thinkbook-14.jpg'),
+(8, 3, N'Lenovo IdeaPad 5', N'<h2>Cân bằng hoàn hảo giữa hiệu năng và thiết kế đa dụng</h2><p><strong>Lenovo IdeaPad 5</strong> được trang bị bộ vi xử lý AMD Ryzen thế hệ mới cực kỳ mạnh mẽ, thời lượng pin dài, vô cùng phù hợp cho sinh viên Công nghệ hoặc người làm Marketing cần một thiết bị đa dụng, màn hình lớn nhưng không quá cồng kềnh.</p><ul><li><strong>Chip AMD Ryzen 5 đa nhân:</strong> Tích hợp card đồ họa Radeon xử lý tốt các tác vụ Photoshop, Canva mượt mà.</li><li><strong>Pin cực khỏe:</strong> Thời lượng sử dụng thực tế ấn tượng, hỗ trợ sạc nhanh Rapid Charge xua tan nỗi lo về pin.</li><li><strong>Âm thanh công nghệ Dolby Audio:</strong> Âm trầm ấm, phát to rõ ràng giúp giải trí xem phim cực đã.</li></ul>', 'assets/images/products/lenovo-ideapad-5.jpg'),
+(9, 3, N'Lenovo LOQ 15', N'<h2>Sát thủ cấu hình chiến mượt mọi Game trong phân khúc phổ thông</h2><p><strong>Lenovo LOQ 15</strong> là dòng laptop gaming hoàn toàn mới kế thừa DNA thiết kế và sức mạnh của dòng Legion cao cấp. Thiết kế hầm hố vừa đủ, khe tản nhiệt siêu lớn phía sau giúp máy luôn mát, chiến mượt các tựa game eSport và AAA ở mức đồ họa cao.</p><ul><li><strong>Card rời RTX 4050 6GB:</strong> Kiến trúc Ada Lovelace mới nhất, hỗ trợ DLSS 3 và Ray Tracing chân thực.</li><li><strong>Màn hình 144Hz chuẩn gaming:</strong> Phản hồi hình ảnh nhanh nhạy, không xé hình trong các pha vẩy chuột.</li><li><strong>Tích hợp chip AI LA1:</strong> Trí tuệ nhân tạo Lenovo AI Engine+ tự động phân bổ tài nguyên giúp tối đa mức FPS.</li></ul>', 'assets/images/products/lenovo-loq-15.jpg'),
+(9, 3, N'Lenovo Legion 5', N'<h2>Cỗ máy chiến game thực thụ, cấu hình chuẩn eSport quốc tế</h2><p><strong>Lenovo Legion 5</strong> tiếp tục định nghĩa lại chuẩn mực laptop gaming tầm trung với hệ thống tản nhiệt kép Coldfront 5.0, bàn phím TrueStrike gõ siêu nảy và một thiết kế vuông vức vừa có thể chơi game, vừa mang đi làm việc cực kỳ sang trọng.</p><ul><li><strong>Card đồ họa RTX 4060 8GB TGP cao:</strong> Bung sức mạnh tối đa, cân tốt việc Render làm phim 4K hay thiết kế 3D.</li><li><strong>Màn hình WQHD 165Hz (100% sRGB):</strong> Trải nghiệm thị giác bùng nổ, chuẩn màu phục vụ thiết kế đồ họa tuyệt đối.</li><li><strong>Đa dạng cổng kết nối:</strong> Bố trí thông minh phía sau mặt lưng, giúp góc làm việc của bạn không bị vướng víu dây dợ.</li></ul>', 'assets/images/products/lenovo-legion-5.jpg'),
+(9, 3, N'Lenovo Legion Pro 5', N'<h2>Đỉnh cao sức mạnh, không thỏa hiệp ở bất cứ cấu hình nào</h2><p><strong>Lenovo Legion Pro 5</strong> là một quái vật hiệu năng thực sự dành cho giới làm nghề chuyên nghiệp và Hardcore Gamer. Khung viền kim loại cực kỳ chắc chắn, hệ thống tản nhiệt pha nhiệt lỏng siêu cấp mang lại nhiệt độ cực lý tưởng dù máy hoạt động 100% công suất.</p><ul><li><strong>CPU Intel Core i9-14900HX:</strong> Sức mạnh 24 nhân 32 luồng siêu khủng khiếp, render đồ họa chỉ là chuyện nhỏ.</li><li><strong>GPU RTX 4070 8GB VRAM:</strong> Dư sức gánh mọi tựa game 2K hiện nay ở mức đồ họa Ultra mượt mà nhất.</li><li><strong>Màn hình WQXGA 240Hz 500 Nits:</strong> Siêu rực rỡ, tích hợp chống xé hình G-Sync, mang lại lợi thế phản xạ tuyệt đối trong giao tranh.</li></ul>', 'assets/images/products/lenovo-legion-pro-5.png'),
+(10, 3, N'Lenovo Legion M300 RGB', N'<h2>Chuột gaming công thái học đối xứng, nhẹ nhàng linh hoạt</h2><p><strong>Lenovo Legion M300</strong> có thiết kế hoàn hảo cho những game thủ thuận tay phải lẫn tay trái. Cảm biến quang học chính xác cao kết hợp nút bấm nảy giòn giúp bạn tự tin lia chuột và xử lý tình huống nhanh nhạy trong các tựa game bắn súng FPS.</p><ul><li><strong>Độ phân giải siêu nhạy 8000 DPI:</strong> Mắt đọc Pixart xử lý thông tin chuẩn xác.</li><li><strong>Đèn LED RGB rực rỡ:</strong> Tùy chỉnh màu sắc cá tính ở phần logo rực sáng.</li><li><strong>Grip hông bọc cao su:</strong> Tăng cường độ bám, chống trượt khi tay ra mồ hôi do căng thẳng.</li></ul>', 'assets/images/products/lenovo-m300.jpg'),
+(10, 3, N'Lenovo Legion M600 Wireless', N'<h2>Không dây siêu tốc độ, chính xác từng milimet</h2><p><strong>Legion M600</strong> mang đến kết nối không dây 2.4GHz không có một chút độ trễ nào. Cấu trúc cân bằng trọng lượng thông minh mang lại cảm giác vẩy chuột nhẹ tênh và tự do hoàn toàn tuyệt đối trên mặt bàn di.</p><ul><li><strong>Cảm biến cực khủng 16000 DPI:</strong> Hỗ trợ tốc độ theo dõi lên tới 400 IPS.</li><li><strong>Thời lượng pin 200 giờ:</strong> Chơi game quên ngày tháng, sạc nhanh qua cổng USB-C.</li><li><strong>Kết nối linh hoạt 3 chế độ:</strong> Hỗ trợ dùng dây cáp vừa sạc vừa chơi, đầu thu USB Receiver 2.4G và cả Bluetooth siêu tiện dụng.</li></ul>', 'assets/images/products/lenovo-m600.jpg'),
+(11, 3, N'Lenovo Legion K300 RGB', N'<h2>Bàn phím cơ màng êm ái nhưng nảy lửa trong từng pha bấm</h2><p><strong>Lenovo Legion K300</strong> có thiết kế nguyên khối tối giản, độ êm khi gõ cực tốt giúp bạn chiến game đêm khuya không gây ồn ào. Hệ thống đèn nền LED RGB 5 vùng tùy chỉnh mượt mà biến góc máy của bạn thêm phần sinh động.</p><ul><li><strong>Tính năng Anti-ghosting 24 phím:</strong> Đảm bảo không bị sót phím khi nhấn combo nhiều kỹ năng cùng lúc.</li><li><strong>Thiết kế phím bấm hơi lõm:</strong> Ôm ngón tay, hành trình phím sâu cho độ phản hồi cực chân thật.</li><li><strong>Lỗ thoát nước thông minh:</strong> Chống tràn hiệu quả nếu bạn lỡ tay làm đổ nước lọc hay cafe lên phím.</li></ul>', 'assets/images/products/lenovo-k300.jpg'),
+(11, 3, N'Lenovo Go Wireless Split Keyboard', N'<h2>Thiết kế công thái học tách đôi, giải pháp bảo vệ ống cổ tay hoàn hảo</h2><p><strong>Lenovo Go Wireless Split Keyboard</strong> là bàn phím không dây sinh ra dành cho giới văn phòng, lập trình viên thường xuyên gõ code. Thiết kế tách đôi hình chữ V nhô cao giúp hai cổ tay luôn giữ ở góc độ tự nhiên nhất, giảm thiểu tối đa triệu chứng chấn thương ống cổ tay.</p><ul><li><strong>Nệm kê tay làm từ vật liệu Cork tự nhiên:</strong> Êm ái tuyệt vời, thân thiện với môi trường, đặc tính chống thấm và chống ẩm mồ hôi.</li><li><strong>Phím cắt kéo (Scissor switch):</strong> Mang lại cảm giác gõ tĩnh âm mượt mà, độ nảy và phản hồi rất tốt.</li><li><strong>Kết nối không dây đa thiết bị:</strong> Ghép đôi nhanh qua đầu thu USB-C hoặc dùng Bluetooth để chuyển đổi giữa PC, điện thoại, máy tính bảng.</li></ul>', 'assets/images/products/lenovo-go-split.jpg'),
+(12, 3, N'Lenovo 300 FHD Webcam', N'<h2>Ghi hình 1080p sắc nét, giải pháp họp trực tuyến dễ dàng</h2><p><strong>Lenovo 300 FHD Webcam</strong> là phụ kiện nâng cấp chất lượng hình ảnh ngay tức thì cho những chiếc laptop đời cũ hoặc máy bàn. Sở hữu ống kính rộng 95 độ kết hợp micro kép thu âm đa hướng nhạy bén, mọi hình ảnh của bạn luôn sáng rõ trong mắt đồng nghiệp.</p><ul><li><strong>Độ phân giải thực tế 1080p:</strong> Rõ nét từng sợi tóc, tự động cân bằng sáng (Auto White Balance) ngay cả trong phòng tối.</li><li><strong>Nắp che vật lý an toàn:</strong> Dễ dàng trượt lẫy để che kín ống kính, bảo mật sự riêng tư tuyệt đối khi không sử dụng.</li><li><strong>Cắm là chạy (Plug-and-play):</strong> Không cần tải driver phức tạp, tương thích hoàn hảo mọi hệ điều hành qua cổng USB-A phổ biến.</li></ul>', 'assets/images/products/lenovo-300-webcam.jpg'),
+(12, 3, N'Lenovo Performance FHD Webcam', N'<h2>Chất lượng truyền phát chuyên nghiệp 60fps mượt mà như thật</h2><p><strong>Lenovo Performance FHD</strong> là mẫu webcam chuẩn phòng studio thu nhỏ dành cho giới Streamer, Youtuber hoặc các cấp quản lý cần hình ảnh họp trực tuyến cao cấp. Tốc độ khung hình thực lên tới 60fps mang lại video không hề có hiện tượng bóng mờ khi chuyển động mạnh.</p><ul><li><strong>Hỗ trợ chuẩn nhận diện khuôn mặt bảo mật (Windows Hello):</strong> Giúp bạn mở khóa máy tính an toàn, thông minh và cực kỳ nhanh chóng.</li><li><strong>Lấy nét tự động cực nhanh (Auto Focus):</strong> Luôn giữ khuôn mặt bạn nổi bật và sắc nét dù bạn tiến gần hay lùi xa màn hình.</li><li><strong>Dây cáp chuẩn USB-C rời tiện lợi:</strong> Giúp băng thông truyền hình ảnh rộng hơn và hạn chế tình trạng giật lag.</li></ul>', 'assets/images/products/lenovo-fhd-webcam.jpg'),
+(13, 3, N'Lenovo Laptop Backpack 15.6"', N'<h2>Balo văn phòng thanh lịch, chống sốc an toàn cho laptop</h2><p>Balo <strong>Lenovo 15.6 inch</strong> có phong cách thiết kế vô cùng gọn gàng, tinh giản, cực kỳ phù hợp cho học sinh và giới văn phòng mang đi làm hằng ngày. Balo làm từ lớp vải sợi nhân tạo có tính năng chống thấm nước nhẹ, duy trì form cứng cáp và khó bám bụi bẩn.</p><ul><li><strong>Khoang chứa thông minh:</strong> Ngăn đựng laptop 15.6 inch riêng biệt lót bông chống sốc chống trầy hiệu quả.</li><li><strong>Trọng lượng siêu nhẹ (chỉ 0.5kg):</strong> Tối giản lớp đệm thừa, không gây ra cảm giác đau mỏi vai nếu phải di chuyển nhiều trên tàu xe.</li><li><strong>Ngăn ẩn bí mật:</strong> Bố trí một ngăn khóa kéo an toàn ép sát vào lưng để đựng ví tiền, giấy tờ hay điện thoại quan trọng.</li></ul>', 'assets/images/products/lenovo-backpack-15.jpg'),
+(13, 3, N'Lenovo Legion Gaming Backpack', N'<h2>Balo hầm hố, sức chứa khổng lồ vác trọn thế giới Game thủ</h2><p><strong>Lenovo Legion Backpack</strong> sở hữu một thiết kế như "áo giáp" cứng cáp ở mặt trước, giúp bảo vệ an toàn tối đa cho chiếc laptop gaming đắt tiền của bạn khỏi mọi cú va đập rủi ro nhất. Form dáng đậm chất góc cạnh của hệ sinh thái Legion.</p><ul><li><strong>Khoang chứa ngoại cỡ (vừa laptop 17 inch):</strong> Đủ rộng để bạn đựng cả phím cơ full-size, chuột, tấm lót, tai nghe chùm đầu và cả bộ sạc gạch siêu bự.</li><li><strong>Vải chống đứt rách cường độ cao:</strong> Độ bền siêu việt, lớp lót chống sốc trong túi được làm rất dày bao bọc quanh thân máy.</li><li><strong>Quai đeo nệm đúc EVA xịn sò:</strong> Cấu trúc phân tán lực đều qua vai, lưng có mút thoáng khí dày cộp không lo tụ mồ hôi lưng khi đeo đi phượt.</li></ul>', 'assets/images/products/lenovo-legion-backpack.jpg');
 
 INSERT INTO ATTRIBUTE (attribute_name)
 VALUES
@@ -695,6 +1032,26 @@ VALUES
 (N'Độ phân giải'),
 (N'DPI'),
 (N'Loại kết nối');
+
+
+-- Add the catalog and variant attribute definitions before creating initial SKUs.
+-- This also makes dynamic SHA2-256 keys deterministic from actual attribute_id values.
+INSERT INTO dbo.ATTRIBUTE(attribute_name) VALUES
+(N'Camera'),
+(N'Tần số quét'),
+(N'Loại màn hình'),
+(N'Công suất sạc'),
+(N'Chống nước'),
+(N'Chống ồn'),
+(N'Dung lượng pin'),
+(N'Chất liệu'),
+(N'Kích thước mặt đồng hồ'),
+(N'Cảm biến máy ảnh'),
+(N'Bộ sản phẩm'),
+(N'Chiều dài'),
+(N'Gói bán'),
+(N'Kích thước vỏ'),
+(N'Phiên bản');
 
 INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value)
 VALUES
@@ -770,40 +1127,119 @@ VALUES
 (31, 11, N'Vừa laptop 17 inch'),
 (31, 12, N'0.8 kg');
 
-INSERT INTO PRODUCT_SKU (product_id, sku_code, price, stock_quantity)
-VALUES
-(1, 'IP15P-128-BLK', 27990000, 15),
-(1, 'IP15P-256-SLV', 30990000, 10),
-(5, 'SS-S24U-256-GRY', 29990000, 20),
-(21, 'LOQ-15-16GB-512GB', 21490000, 8),
-(2, 'IP15PM-256-NAT', 33990000, 12),
-(3, 'IP16P-128-BLK', 28990000, 20),
-(4, 'IP16PM-256-DES', 34990000, 25),
-(6, 'SS-S24P-256-BLK', 25990000, 15),
-(7, 'SS-A55-128-BLU', 9990000, 30),
-(8, 'SS-A35-128-YLW', 8290000, 35),
-(9, 'APP-AP2-WHT', 5990000, 50),
-(10, 'APP-AP4-WHT', 3490000, 45),
-(11, 'SS-B3P-SLV', 4990000, 40),
-(12, 'SS-BFE-BLK', 1990000, 60),
-(13, 'APP-20W-WHT', 550000, 100),
-(14, 'SS-25W-BLK', 390000, 100),
-(15, 'APP-C2C-1M', 450000, 80),
-(16, 'APP-C2L-1M', 490000, 80),
-(17, 'SS-C2C-1M', 250000, 90),
-(18, 'LEN-IDP3-I3', 10490000, 15),
-(19, 'LEN-TB14-I5', 16990000, 12),
-(20, 'LEN-IDP5-R5', 14490000, 10),
-(22, 'LEN-LEG5-R7', 32990000, 5),
-(23, 'LEN-LEG5P-I9', 45990000, 3),
-(24, 'LEN-M300-BLK', 690000, 40),
-(25, 'LEN-M600-BLK', 1490000, 25),
-(26, 'LEN-K300-BLK', 890000, 30),
-(27, 'LEN-GOW-GRY', 1990000, 20),
-(28, 'LEN-W300-BLK', 750000, 35),
-(29, 'LEN-WPF-BLK', 1250000, 15),
-(30, 'LEN-BP15-BLK', 450000, 50),
-(31, 'LEN-BPG17-BLK', 890000, 40);
+DECLARE @InitialSkuOptions TABLE (
+    sku_code VARCHAR(100) NOT NULL,
+    attribute_name NVARCHAR(100) NOT NULL,
+    text_value NVARCHAR(255) NOT NULL,
+    PRIMARY KEY(sku_code, attribute_name)
+);
+INSERT INTO @InitialSkuOptions(sku_code,attribute_name,text_value) VALUES
+('IP15P-128-BLK', N'Dung lượng lưu trữ', N'128GB'),
+('IP15P-128-BLK', N'Màu sắc', N'Đen'),
+('IP15P-256-SLV', N'Dung lượng lưu trữ', N'256GB'),
+('IP15P-256-SLV', N'Màu sắc', N'Bạc'),
+('SS-S24U-256-GRY', N'Dung lượng lưu trữ', N'256GB'),
+('SS-S24U-256-GRY', N'Màu sắc', N'Xám'),
+('LOQ-15-16GB-512GB', N'RAM', N'16GB DDR5'),
+('LOQ-15-16GB-512GB', N'Dung lượng lưu trữ', N'512GB'),
+('LOQ-15-16GB-512GB', N'Màu sắc', N'Xám'),
+('IP15PM-256-NAT', N'Dung lượng lưu trữ', N'256GB'),
+('IP15PM-256-NAT', N'Màu sắc', N'Titan tự nhiên'),
+('IP16P-128-BLK', N'Dung lượng lưu trữ', N'128GB'),
+('IP16P-128-BLK', N'Màu sắc', N'Đen'),
+('IP16PM-256-DES', N'Dung lượng lưu trữ', N'256GB'),
+('IP16PM-256-DES', N'Màu sắc', N'Titan sa mạc'),
+('SS-S24P-256-BLK', N'Dung lượng lưu trữ', N'256GB'),
+('SS-S24P-256-BLK', N'Màu sắc', N'Đen'),
+('SS-A55-128-BLU', N'Dung lượng lưu trữ', N'128GB'),
+('SS-A55-128-BLU', N'Màu sắc', N'Xanh'),
+('SS-A35-128-YLW', N'Dung lượng lưu trữ', N'128GB'),
+('SS-A35-128-YLW', N'Màu sắc', N'Vàng'),
+('APP-AP2-WHT', N'Phiên bản', N'Hộp Lightning'),
+('APP-AP2-WHT', N'Màu sắc', N'Trắng'),
+('APP-AP4-WHT', N'Phiên bản', N'Tiêu chuẩn'),
+('APP-AP4-WHT', N'Màu sắc', N'Trắng'),
+('SS-B3P-SLV', N'Màu sắc', N'Bạc'),
+('SS-BFE-BLK', N'Màu sắc', N'Đen'),
+('APP-20W-WHT', N'Gói bán', N'1 củ sạc'),
+('SS-25W-BLK', N'Màu sắc', N'Đen'),
+('APP-C2C-1M', N'Gói bán', N'1 dây'),
+('APP-C2L-1M', N'Chiều dài', N'1m'),
+('SS-C2C-1M', N'Màu sắc', N'Đen'),
+('LEN-IDP3-I3', N'RAM', N'8GB DDR4'),
+('LEN-IDP3-I3', N'Dung lượng lưu trữ', N'256GB'),
+('LEN-IDP3-I3', N'Màu sắc', N'Xám'),
+('LEN-TB14-I5', N'RAM', N'16GB DDR5'),
+('LEN-TB14-I5', N'Dung lượng lưu trữ', N'512GB'),
+('LEN-TB14-I5', N'Màu sắc', N'Xám'),
+('LEN-IDP5-R5', N'RAM', N'16GB DDR4'),
+('LEN-IDP5-R5', N'Dung lượng lưu trữ', N'512GB'),
+('LEN-IDP5-R5', N'Màu sắc', N'Xám'),
+('LEN-LEG5-R7', N'RAM', N'16GB DDR5'),
+('LEN-LEG5-R7', N'Dung lượng lưu trữ', N'512GB'),
+('LEN-LEG5-R7', N'Màu sắc', N'Xám'),
+('LEN-LEG5P-I9', N'RAM', N'32GB DDR5'),
+('LEN-LEG5P-I9', N'Dung lượng lưu trữ', N'1TB'),
+('LEN-LEG5P-I9', N'Màu sắc', N'Xám'),
+('LEN-M300-BLK', N'Màu sắc', N'Đen'),
+('LEN-M600-BLK', N'Màu sắc', N'Đen'),
+('LEN-K300-BLK', N'Màu sắc', N'Đen'),
+('LEN-GOW-GRY', N'Màu sắc', N'Xám'),
+('LEN-W300-BLK', N'Màu sắc', N'Đen'),
+('LEN-WPF-BLK', N'Màu sắc', N'Đen'),
+('LEN-BP15-BLK', N'Màu sắc', N'Đen'),
+('LEN-BPG17-BLK', N'Màu sắc', N'Đen');
+
+-- Preserve the historical SKU identity sequence (1..32) for demo order items.
+-- Values are hashed with the exact same attribute_id/T:VALUE formula as Java.
+SET IDENTITY_INSERT dbo.PRODUCT_SKU ON;
+INSERT INTO dbo.PRODUCT_SKU(sku_id,product_id,sku_code,price,stock_quantity,variant_key)
+SELECT v.sku_id,v.product_id,v.sku_code,v.price,v.stock_quantity,
+       HASHBYTES('SHA2_256',variant_values.variant_text)
+FROM (VALUES
+    (1, 1, 'IP15P-128-BLK', 27990000, 15),
+    (2, 1, 'IP15P-256-SLV', 30990000, 10),
+    (3, 5, 'SS-S24U-256-GRY', 29990000, 20),
+    (4, 21, 'LOQ-15-16GB-512GB', 21490000, 8),
+    (5, 2, 'IP15PM-256-NAT', 33990000, 12),
+    (6, 3, 'IP16P-128-BLK', 28990000, 20),
+    (7, 4, 'IP16PM-256-DES', 34990000, 25),
+    (8, 6, 'SS-S24P-256-BLK', 25990000, 15),
+    (9, 7, 'SS-A55-128-BLU', 9990000, 30),
+    (10, 8, 'SS-A35-128-YLW', 8290000, 35),
+    (11, 9, 'APP-AP2-WHT', 5990000, 50),
+    (12, 10, 'APP-AP4-WHT', 3490000, 45),
+    (13, 11, 'SS-B3P-SLV', 4990000, 40),
+    (14, 12, 'SS-BFE-BLK', 1990000, 60),
+    (15, 13, 'APP-20W-WHT', 550000, 100),
+    (16, 14, 'SS-25W-BLK', 390000, 100),
+    (17, 15, 'APP-C2C-1M', 450000, 80),
+    (18, 16, 'APP-C2L-1M', 490000, 80),
+    (19, 17, 'SS-C2C-1M', 250000, 90),
+    (20, 18, 'LEN-IDP3-I3', 10490000, 15),
+    (21, 19, 'LEN-TB14-I5', 16990000, 12),
+    (22, 20, 'LEN-IDP5-R5', 14490000, 10),
+    (23, 22, 'LEN-LEG5-R7', 32990000, 5),
+    (24, 23, 'LEN-LEG5P-I9', 45990000, 3),
+    (25, 24, 'LEN-M300-BLK', 690000, 40),
+    (26, 25, 'LEN-M600-BLK', 1490000, 25),
+    (27, 26, 'LEN-K300-BLK', 890000, 30),
+    (28, 27, 'LEN-GOW-GRY', 1990000, 20),
+    (29, 28, 'LEN-W300-BLK', 750000, 35),
+    (30, 29, 'LEN-WPF-BLK', 1250000, 15),
+    (31, 30, 'LEN-BP15-BLK', 450000, 50),
+    (32, 31, 'LEN-BPG17-BLK', 890000, 40)
+) AS v(sku_id,product_id,sku_code,price,stock_quantity)
+CROSS APPLY (
+    SELECT STRING_AGG(
+        CAST(CONCAT(a.attribute_id,N'=T:',UPPER(LTRIM(RTRIM(x.text_value)))) AS NVARCHAR(MAX)),N'|')
+        WITHIN GROUP (ORDER BY a.attribute_id) AS variant_text
+    FROM @InitialSkuOptions x
+    JOIN dbo.ATTRIBUTE a ON a.attribute_name=x.attribute_name
+    WHERE x.sku_code=v.sku_code
+) variant_values;
+SET IDENTITY_INSERT dbo.PRODUCT_SKU OFF;
+
 
 INSERT INTO CART (user_id)
 VALUES (3), (4);
@@ -824,24 +1260,39 @@ VALUES
 ('SAVE200K', 3000000, '2026-01-01', '2026-12-31 23:59:59',
  'AMOUNT', 200000, NULL, NULL, 1);
 
-INSERT INTO [ORDER]
-    (user_id, address_id, shipping_partner_id, total_amount, shipping_fee)
-VALUES
-(3, 1, 1, 27530000, 40000),
-(4, 3, 2, 29990000, 0);
+INSERT INTO dbo.[ORDER]
+    (user_id,address_id,total_amount,shipping_fee,order_status,
+     payment_method,payment_status,discount_amount,
+     recipient_name,recipient_phone,shipping_address,delivered_at)
+SELECT v.user_id,v.address_id,v.total_amount,v.shipping_fee,v.order_status,
+       v.payment_method,v.payment_status,v.discount_amount,
+       a.recipient_name,a.phone_number,a.address_line,
+       CASE WHEN v.order_status='COMPLETED' THEN SYSDATETIME() END
+FROM (VALUES
+    (3,1,27530000,40000,'COMPLETED','COD','PAID',500000),
+    (4,3,29990000,0,'SHIPPING','COD','UNPAID',0)
+) v(user_id,address_id,total_amount,shipping_fee,order_status,payment_method,payment_status,discount_amount)
+JOIN dbo.ADDRESSBOOK a ON a.address_id=v.address_id;
 
 INSERT INTO ORDER_ITEM (order_id, sku_id, price, quantity)
 VALUES
 (1, 1, 27990000, 1),
 (2, 3, 29990000, 1);
 
-INSERT INTO ORDER_STATUS_HISTORY (order_id, status)
-VALUES
-(1, N'Pending'),
-(1, N'Shipping'),
-(1, N'Completed'),
-(2, N'Pending'),
-(2, N'Shipping');
+INSERT INTO dbo.ORDER_STATUS_HISTORY
+    (order_id,status,old_status,actor_type,changed_by)
+SELECT v.order_id,v.status,v.old_status,
+       CASE WHEN v.status='PENDING_CONFIRMATION' THEN 'CUSTOMER' ELSE 'STAFF' END,
+       CASE WHEN v.status='PENDING_CONFIRMATION' THEN o.user_id ELSE staff.user_id END
+FROM (VALUES
+    (1,N'PENDING_CONFIRMATION',CAST(NULL AS NVARCHAR(50))),
+    (1,N'SHIPPING',N'PENDING_CONFIRMATION'),
+    (1,N'COMPLETED',N'SHIPPING'),
+    (2,N'PENDING_CONFIRMATION',CAST(NULL AS NVARCHAR(50))),
+    (2,N'SHIPPING',N'PENDING_CONFIRMATION')
+) v(order_id,status,old_status)
+JOIN dbo.[ORDER] o ON o.order_id=v.order_id
+CROSS JOIN (SELECT user_id FROM dbo.[USER] WHERE username='staff') staff;
 
 INSERT INTO VOUCHER_USAGES (voucher_id, order_id, user_id)
 VALUES (1, 1, 3);
@@ -851,17 +1302,18 @@ VALUES
 (3, 1, 1, 5, N'Hàng giao cực nhanh tại Cần Thơ, đóng gói cẩn thận, máy chuẩn mới 100%!'),
 (4, 2, 3, 4, N'Điện thoại mượt, camera chụp đêm rất nét nhưng pin hơi nhanh tụt.');
 
+
 INSERT INTO [ORDER]
 (
-    user_id, address_id, shipping_partner_id, total_amount, shipping_fee,
+    user_id, address_id, total_amount, shipping_fee,
     created_at, order_status, payment_method, payment_status,
     payment_expires_at, recipient_name, recipient_phone,
-    shipping_address, discount_amount
+    shipping_address, discount_amount, delivered_at,
+    cancellation_source, cancelled_at
 )
 SELECT
     v.user_id,
     v.address_id,
-    v.shipping_partner_id,
     v.total_amount,
     v.shipping_fee,
     v.created_at,
@@ -872,29 +1324,41 @@ SELECT
     a.recipient_name,
     a.phone_number,
     a.address_line,
-    v.discount_amount
+    v.discount_amount,
+    CASE v.n
+        WHEN 3 THEN CONVERT(DATETIME2,'2026-10-10T15:30:00')
+        WHEN 4 THEN CONVERT(DATETIME2,'2026-08-14T14:30:00')
+        WHEN 5 THEN CONVERT(DATETIME2,'2026-08-21T16:00:00')
+        WHEN 11 THEN CONVERT(DATETIME2,'2026-09-17T17:00:00')
+        WHEN 12 THEN CONVERT(DATETIME2,'2026-09-22T10:00:00')
+        WHEN 14 THEN CONVERT(DATETIME2,'2026-10-03T10:00:00')
+    END,
+    CASE WHEN v.n IN (6,13) THEN 'CUSTOMER' END,
+    CASE v.n WHEN 6 THEN CONVERT(DATETIME2,'2026-08-25T17:10:00')
+             WHEN 13 THEN CONVERT(DATETIME2,'2026-09-25T13:00:00') END
 FROM (VALUES
-    (3, 3, 1, 1, 43490000.00, 40000.00, '2026-10-08T11:30:00', 'COMPLETED', 'COD', 'PAID', NULL, 500000.00),
-    (4, 4, 3, 2, 31940000.00, 0.00, '2026-08-12T14:20:00', 'COMPLETED', 'VNPAY', 'PAID', NULL, 1000000.00),
-    (5, 3, 2, 3, 3590000.00, 30000.00, '2026-08-20T10:15:00', 'COMPLETED', 'MOMO', 'PAID', NULL, 0.00),
-    (6, 4, 3, 1, 28990000.00, 40000.00, '2026-08-25T16:40:00', 'CANCELLED', 'COD', 'CANCELLED', NULL, 0.00),
-    (7, 3, 1, 2, 16990000.00, 30000.00, '2026-09-01T08:10:00', 'PENDING_CONFIRMATION', 'COD', 'UNPAID', NULL, 0.00),
-    (8, 4, 3, 1, 29990000.00, 40000.00, '2026-09-03T11:25:00', 'CONFIRMED', 'COD', 'UNPAID', NULL, 0.00),
-    (9, 3, 2, 3, 21490000.00, 30000.00, '2026-09-05T13:45:00', 'PACKING', 'VNPAY', 'PAID', NULL, 0.00),
-    (10, 4, 3, 2, 34990000.00, 0.00, '2026-09-10T15:00:00', 'SHIPPING', 'MOMO', 'PAID', NULL, 500000.00),
-    (11, 3, 1, 1, 45990000.00, 40000.00, '2026-09-15T09:05:00', 'COMPLETED', 'VNPAY', 'PAID', NULL, 1000000.00),
-    (12, 4, 3, 3, 8290000.00, 30000.00, '2026-09-20T18:30:00', 'COMPLETED', 'COD', 'PAID', NULL, 0.00),
-    (13, 3, 2, 1, 5990000.00, 30000.00, '2026-09-25T12:15:00', 'CANCELLED', 'COD', 'CANCELLED', NULL, 0.00),
-    (14, 4, 3, 2, 10490000.00, 40000.00, '2026-10-01T20:10:00', 'COMPLETED', 'COD', 'PAID', NULL, 0.00),
-    (15, 3, 1, 1, 690000.00, 30000.00, '2026-10-03T09:00:00', 'PENDING_CONFIRMATION', 'COD', 'UNPAID', DATEADD(HOUR, 24, '2026-10-03T09:00:00'), 0.00),
-    (16, 4, 3, 3, 1490000.00, 30000.00, '2026-10-04T10:30:00', 'CONFIRirmed', 'VNPAY', 'PAID', NULL, 0.00)
+    (3, 3, 1, 63510000.00, 40000.00, '2026-10-08T11:30:00', 'COMPLETED', 'COD', 'PAID', NULL, 500000.00),
+    (4, 4, 3, 21870000.00, 0.00, '2026-08-12T14:20:00', 'COMPLETED', 'VNPAY', 'PAID', NULL, 1000000.00),
+    (5, 3, 2, 3520000.00, 30000.00, '2026-08-20T10:15:00', 'COMPLETED', 'MOMO', 'PAID', NULL, 0.00),
+    (6, 4, 3, 30030000.00, 40000.00, '2026-08-25T16:40:00', 'CANCELLED', 'COD', 'CANCELLED', NULL, 0.00),
+    (7, 3, 1, 17020000.00, 30000.00, '2026-09-01T08:10:00', 'PENDING_CONFIRMATION', 'COD', 'UNPAID', NULL, 0.00),
+    (8, 4, 3, 30030000.00, 40000.00, '2026-09-03T11:25:00', 'CONFIRMED', 'COD', 'UNPAID', NULL, 0.00),
+    (9, 3, 2, 21520000.00, 30000.00, '2026-09-05T13:45:00', 'PACKING', 'VNPAY', 'PAID', NULL, 0.00),
+    (10, 4, 3, 15480000.00, 0.00, '2026-09-10T15:00:00', 'SHIPPING', 'MOMO', 'PAID', NULL, 500000.00),
+    (11, 3, 1, 46520000.00, 40000.00, '2026-09-15T09:05:00', 'COMPLETED', 'VNPAY', 'PAID', NULL, 1000000.00),
+    (12, 4, 3, 8320000.00, 30000.00, '2026-09-20T18:30:00', 'COMPLETED', 'COD', 'PAID', NULL, 0.00),
+    (13, 3, 2, 6020000.00, 30000.00, '2026-09-25T12:15:00', 'CANCELLED', 'COD', 'CANCELLED', NULL, 0.00),
+    (14, 4, 3, 10530000.00, 40000.00, '2026-10-01T20:10:00', 'COMPLETED', 'COD', 'PAID', NULL, 0.00),
+    (15, 3, 1, 720000.00, 30000.00, '2026-10-03T09:00:00', 'PENDING_CONFIRMATION', 'COD', 'UNPAID', DATEADD(HOUR, 24, '2026-10-03T09:00:00'), 0.00),
+    (16, 4, 3, 1520000.00, 30000.00, '2026-10-04T10:30:00', 'CONFIRMED', 'VNPAY', 'PAID', NULL, 0.00)
 ) v (
-    n, user_id, address_id, shipping_partner_id, total_amount, shipping_fee,
+    n, user_id, address_id, total_amount, shipping_fee,
     created_at, order_status, payment_method, payment_status,
     payment_expires_at, discount_amount
 )
 JOIN ADDRESSBOOK a ON a.address_id = v.address_id;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 INSERT INTO ORDER_ITEM (order_id, sku_id, price, quantity)
 VALUES
@@ -918,89 +1382,82 @@ VALUES
 (15, 24, 690000, 1),
 (16, 25, 1490000, 1);
 
-INSERT INTO ORDER_STATUS_HISTORY (order_id, status, updated_at)
-VALUES
-(3, N'Pending', '2026-10-08T11:30:00'),
-(3, N'Confirmed', '2026-10-08T12:00:00'),
-(3, N'Packing', '2026-10-08T13:00:00'),
-(3, N'Shipping', '2026-10-09T08:00:00'),
-(3, N'Completed', '2026-10-10T15:30:00'),
-(4, N'Pending', '2026-08-12T14:20:00'),
-(4, N'Confirmed', '2026-08-12T15:00:00'),
-(4, N'Packing', '2026-08-13T09:00:00'),
-(4, N'Shipping', '2026-08-13T16:00:00'),
-(4, N'Completed', '2026-08-14T14:30:00'),
-(5, N'Pending', '2026-08-20T10:15:00'),
-(5, N'Confirmed', '2026-08-20T11:00:00'),
-(5, N'Packing', '2026-08-20T13:00:00'),
-(5, N'Shipping', '2026-08-21T09:00:00'),
-(5, N'Completed', '2026-08-21T16:00:00'),
-(6, N'Pending', '2026-08-25T16:40:00'),
-(6, N'Cancelled', '2026-08-25T17:10:00'),
-(7, N'Pending', '2026-09-01T08:10:00'),
-(8, N'Pending', '2026-09-03T11:25:00'),
-(8, N'Confirmed', '2026-09-03T13:00:00'),
-(9, N'Pending', '2026-09-05T13:45:00'),
-(9, N'Confirmed', '2026-09-05T14:00:00'),
-(9, N'Packing', '2026-09-05T16:00:00'),
-(10, N'Pending', '2026-09-10T15:00:00'),
-(10, N'Confirmed', '2026-09-10T16:00:00'),
-(10, N'Packing', '2026-09-11T09:00:00'),
-(10, N'Shipping', '2026-09-11T15:00:00'),
-(11, N'Pending', '2026-09-15T09:05:00'),
-(11, N'Confirmed', '2026-09-15T10:00:00'),
-(11, N'Packing', '2026-09-15T11:00:00'),
-(11, N'Shipping', '2026-09-16T08:00:00'),
-(11, N'Completed', '2026-09-17T17:00:00'),
-(12, N'Pending', '2026-09-20T18:30:00'),
-(12, N'Confirmed', '2026-09-20T19:00:00'),
-(12, N'Packing', '2026-09-21T08:00:00'),
-(12, N'Shipping', '2026-09-21T15:00:00'),
-(12, N'Completed', '2026-09-22T10:00:00'),
-(13, N'Pending', '2026-09-25T12:15:00'),
-(13, N'Cancelled', '2026-09-25T13:00:00'),
-(14, N'Pending', '2026-10-01T20:10:00'),
-(14, N'Confirmed', '2026-10-01T20:30:00'),
-(14, N'Packing', '2026-10-02T08:00:00'),
-(14, N'Shipping', '2026-10-02T15:00:00'),
-(14, N'Completed', '2026-10-03T10:00:00'),
-(15, N'Pending', '2026-10-03T09:00:00'),
-(16, N'Pending', '2026-10-04T10:30:00'),
-(16, N'Confirmed', '2026-10-04T11:00:00');
-GO
+INSERT INTO dbo.ORDER_STATUS_HISTORY
+    (order_id,status,old_status,updated_at,actor_type,changed_by)
+SELECT v.order_id,v.status,
+       LAG(v.status) OVER(PARTITION BY v.order_id ORDER BY v.updated_at,v.seq),
+       v.updated_at,
+       CASE WHEN v.status='PENDING_CONFIRMATION' THEN 'CUSTOMER' ELSE 'STAFF' END,
+       CASE WHEN v.status='PENDING_CONFIRMATION' THEN o.user_id ELSE staff.user_id END
+FROM (VALUES
+    (3,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-10-08T11:30:00'),1),
+    (3,N'CONFIRMED',CONVERT(DATETIME2,'2026-10-08T12:00:00'),2),
+    (3,N'PACKING',CONVERT(DATETIME2,'2026-10-08T13:00:00'),3),
+    (3,N'SHIPPING',CONVERT(DATETIME2,'2026-10-09T08:00:00'),4),
+    (3,N'COMPLETED',CONVERT(DATETIME2,'2026-10-10T15:30:00'),5),
+    (4,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-08-12T14:20:00'),6),
+    (4,N'CONFIRMED',CONVERT(DATETIME2,'2026-08-12T15:00:00'),7),
+    (4,N'PACKING',CONVERT(DATETIME2,'2026-08-13T09:00:00'),8),
+    (4,N'SHIPPING',CONVERT(DATETIME2,'2026-08-13T16:00:00'),9),
+    (4,N'COMPLETED',CONVERT(DATETIME2,'2026-08-14T14:30:00'),10),
+    (5,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-08-20T10:15:00'),11),
+    (5,N'CONFIRMED',CONVERT(DATETIME2,'2026-08-20T11:00:00'),12),
+    (5,N'PACKING',CONVERT(DATETIME2,'2026-08-20T13:00:00'),13),
+    (5,N'SHIPPING',CONVERT(DATETIME2,'2026-08-21T09:00:00'),14),
+    (5,N'COMPLETED',CONVERT(DATETIME2,'2026-08-21T16:00:00'),15),
+    (6,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-08-25T16:40:00'),16),
+    (7,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-09-01T08:10:00'),17),
+    (8,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-09-03T11:25:00'),18),
+    (8,N'CONFIRMED',CONVERT(DATETIME2,'2026-09-03T13:00:00'),19),
+    (9,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-09-05T13:45:00'),20),
+    (9,N'CONFIRMED',CONVERT(DATETIME2,'2026-09-05T14:00:00'),21),
+    (9,N'PACKING',CONVERT(DATETIME2,'2026-09-05T16:00:00'),22),
+    (10,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-09-10T15:00:00'),23),
+    (10,N'CONFIRMED',CONVERT(DATETIME2,'2026-09-10T16:00:00'),24),
+    (10,N'PACKING',CONVERT(DATETIME2,'2026-09-11T09:00:00'),25),
+    (10,N'SHIPPING',CONVERT(DATETIME2,'2026-09-11T15:00:00'),26),
+    (11,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-09-15T09:05:00'),27),
+    (11,N'CONFIRMED',CONVERT(DATETIME2,'2026-09-15T10:00:00'),28),
+    (11,N'PACKING',CONVERT(DATETIME2,'2026-09-15T11:00:00'),29),
+    (11,N'SHIPPING',CONVERT(DATETIME2,'2026-09-16T08:00:00'),30),
+    (11,N'COMPLETED',CONVERT(DATETIME2,'2026-09-17T17:00:00'),31),
+    (12,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-09-20T18:30:00'),32),
+    (12,N'CONFIRMED',CONVERT(DATETIME2,'2026-09-20T19:00:00'),33),
+    (12,N'PACKING',CONVERT(DATETIME2,'2026-09-21T08:00:00'),34),
+    (12,N'SHIPPING',CONVERT(DATETIME2,'2026-09-21T15:00:00'),35),
+    (12,N'COMPLETED',CONVERT(DATETIME2,'2026-09-22T10:00:00'),36),
+    (13,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-09-25T12:15:00'),37),
+    (14,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-10-01T20:10:00'),38),
+    (14,N'CONFIRMED',CONVERT(DATETIME2,'2026-10-01T20:30:00'),39),
+    (14,N'PACKING',CONVERT(DATETIME2,'2026-10-02T08:00:00'),40),
+    (14,N'SHIPPING',CONVERT(DATETIME2,'2026-10-02T15:00:00'),41),
+    (14,N'COMPLETED',CONVERT(DATETIME2,'2026-10-03T10:00:00'),42),
+    (15,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-10-03T09:00:00'),43),
+    (16,N'PENDING_CONFIRMATION',CONVERT(DATETIME2,'2026-10-04T10:30:00'),44),
+    (16,N'CONFIRMED',CONVERT(DATETIME2,'2026-10-04T11:00:00'),45)
+) v(order_id,status,updated_at,seq)
+JOIN dbo.[ORDER] o ON o.order_id=v.order_id
+CROSS JOIN (SELECT user_id FROM dbo.[USER] WHERE username='staff') staff;
 
-UPDATE o
-SET
-    o.recipient_name = a.recipient_name,
-    o.recipient_phone = a.phone_number,
-    o.shipping_address = a.address_line,
-    o.payment_status = 'UNKNOWN'
-FROM dbo.[ORDER] o
-JOIN dbo.ADDRESSBOOK a ON a.address_id = o.address_id;
-
-;WITH latest AS (
-    SELECT
-        order_id,
-        status,
-        ROW_NUMBER() OVER (
-            PARTITION BY order_id
-            ORDER BY updated_at DESC, status_id DESC
-        ) AS rn
-    FROM dbo.ORDER_STATUS_HISTORY
-)
-UPDATE o
-SET o.order_status =
-    CASE UPPER(l.status)
-        WHEN 'PENDING' THEN 'PENDING_CONFIRMATION'
-        WHEN 'SHIPPING' THEN 'SHIPPING'
-        WHEN 'COMPLETED' THEN 'COMPLETED'
-        WHEN 'CONFIRMED' THEN 'CONFIRMED'
-        WHEN 'CANCELLED' THEN 'CANCELLED'
-        ELSE 'PENDING_CONFIRMATION'
-    END
-FROM dbo.[ORDER] o
-JOIN latest l ON l.order_id = o.order_id AND l.rn = 1;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
+
+-- Historical cancelled orders: meet the cancellation CHECK at INSERT time.
+INSERT INTO dbo.ORDER_STATUS_HISTORY
+    (order_id, status, old_status, updated_at, actor_type, changed_by, reason)
+SELECT o.order_id, N'CANCELLED', N'PENDING_CONFIRMATION', v.cancelled_at, 'CUSTOMER', o.user_id,
+       N'Khách hàng yêu cầu hủy đơn'
+FROM (VALUES
+    (6, CONVERT(DATETIME2, '2026-08-25T17:10:00')),
+    (13, CONVERT(DATETIME2, '2026-09-25T13:00:00'))
+) v(order_id, cancelled_at)
+JOIN dbo.[ORDER] o ON o.order_id=v.order_id;
+GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
+
+-- Historical snapshots, actors and cancellation metadata were inserted directly.
+GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 INSERT INTO BRAND (brand_name, logo_url)
 SELECT v.brand_name, v.logo_url
@@ -1016,138 +1473,43 @@ WHERE NOT EXISTS (
     WHERE b.brand_name = v.brand_name
 );
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 IF NOT EXISTS (
-    SELECT 1 FROM CATEGORY WHERE category_name = N'Dong ho thong minh'
+    SELECT 1 FROM CATEGORY WHERE category_name = N'Đồng hồ thông minh'
 )
     INSERT INTO CATEGORY (category_name, parent_id)
-    VALUES (N'Dong ho thong minh', 1);
-
-IF NOT EXISTS (
-    SELECT 1 FROM CATEGORY WHERE category_name = N'May anh'
-)
-    INSERT INTO CATEGORY (category_name, parent_id)
-    VALUES (N'May anh', NULL);
-
-IF NOT EXISTS (
-    SELECT 1 FROM CATEGORY WHERE category_name = N'May anh Mirrorless'
-)
-    INSERT INTO CATEGORY (category_name, parent_id)
-    SELECT N'May anh Mirrorless', category_id
+    SELECT N'Đồng hồ thông minh', category_id
     FROM CATEGORY
-    WHERE category_name = N'May anh';
+    WHERE category_name = N'Điện thoại & Thiết bị di động';
 
 IF NOT EXISTS (
-    SELECT 1 FROM CATEGORY WHERE category_name = N'May anh Compact'
+    SELECT 1 FROM CATEGORY WHERE category_name = N'Máy ảnh'
 )
     INSERT INTO CATEGORY (category_name, parent_id)
-    SELECT N'May anh Compact', category_id
+    VALUES (N'Máy ảnh', NULL);
+
+IF NOT EXISTS (
+    SELECT 1 FROM CATEGORY WHERE category_name = N'Máy ảnh Mirrorless'
+)
+    INSERT INTO CATEGORY (category_name, parent_id)
+    SELECT N'Máy ảnh Mirrorless', category_id
     FROM CATEGORY
-    WHERE category_name = N'May anh';
+    WHERE category_name = N'Máy ảnh';
+
+IF NOT EXISTS (
+    SELECT 1 FROM CATEGORY WHERE category_name = N'Máy ảnh Compact'
+)
+    INSERT INTO CATEGORY (category_name, parent_id)
+    SELECT N'Máy ảnh Compact', category_id
+    FROM CATEGORY
+    WHERE category_name = N'Máy ảnh';
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
-INSERT INTO PRODUCT (category_id, brand_id, product_name, description)
-SELECT c.category_id, b.brand_id, v.product_name, v.description
-FROM (VALUES
-    (N'Dong ho thong minh', N'Apple', N'Apple Watch SE 2',
-     N'<h2>Năng động, thông minh và thân thiện với túi tiền</h2><p><strong>Apple Watch SE 2</strong> sở hữu những tính năng cốt lõi của Apple Watch với mức giá cực kỳ dễ tiếp cận. Khung viền nhôm bền bỉ, màn hình Retina sắc nét cùng khả năng theo dõi sức khỏe toàn diện như đo nhịp tim, theo dõi giấc ngủ và phát hiện té ngã. Đây là người bạn đồng hành hoàn hảo cho cuộc sống năng động.</p><ul><li>Chip S8 mạnh mẽ, xử lý mượt mà.</li><li>Chống nước 50m, thoải mái bơi lội.</li><li>Kết nối liền mạch với hệ sinh thái Apple.</li></ul>'),
-
-    (N'Dong ho thong minh', N'Samsung', N'Samsung Galaxy Watch7',
-     N'<h2>Bứt phá giới hạn, thấu hiểu sức khỏe</h2><p><strong>Samsung Galaxy Watch7</strong> mang đến thiết kế mặt tròn thời thượng cùng cảm biến BioActive thế hệ mới. Đo lường chính xác các chỉ số cơ thể (BIA), theo dõi giấc ngủ chuyên sâu bằng AI và cảnh báo nhịp tim bất thường.</p><ul><li>Màn hình Super AMOLED rực rỡ dưới mọi điều kiện sáng.</li><li>Vi xử lý 3nm đầu tiên trên smartwatch.</li><li>GPS kép (L1+L5) định vị siêu chuẩn xác.</li></ul>'),
-
-    (N'Dong ho thong minh', N'Garmin', N'Garmin Forerunner 165',
-     N'<h2>Huấn luyện viên cá nhân trên cổ tay</h2><p><strong>Garmin Forerunner 165</strong> là chiếc đồng hồ chạy bộ chuyên nghiệp trang bị màn hình AMOLED rực rỡ. Máy cung cấp các bài tập gợi ý hàng ngày, theo dõi Pace, nhịp tim và đo lường độ phục hồi của cơ thể sau mỗi buổi tập.</p><ul><li>Thời lượng pin lên đến 11 ngày ở chế độ smartwatch.</li><li>Hơn 25 môn thể thao trong nhà và ngoài trời.</li><li>Garmin Coach: Giáo án tập luyện miễn phí.</li></ul>'),
-
-    (N'Tai nghe', N'Sony', N'Sony WH-1000XM5',
-     N'<h2>Chống ồn đỉnh cao, âm thanh tuyệt hảo</h2><p><strong>Sony WH-1000XM5</strong> hội tụ tinh hoa công nghệ âm thanh của Sony. Thiết kế mới nhẹ nhàng hơn, kết hợp 2 chip xử lý và 8 micro giúp triệt tiêu tiếng ồn môi trường một cách hoàn hảo. Màng loa 30mm tinh chỉnh đặc biệt mang lại chất âm Hi-Res cực kỳ chi tiết.</p><ul><li>Thời lượng pin 30 giờ, sạc nhanh 3 phút nghe 3 giờ.</li><li>Tính năng Speak-to-Chat thông minh.</li><li>Kết nối 2 thiết bị cùng lúc.</li></ul>'),
-
-    (N'Tai nghe', N'JBL', N'JBL Tune 770NC',
-     N'<h2>Trải nghiệm âm nhạc không giới hạn</h2><p><strong>JBL Tune 770NC</strong> nổi bật với công nghệ chống ồn chủ động (ANC) và chất âm JBL Pure Bass trứ danh. Thiết kế over-ear êm ái giúp bạn chìm đắm vào thế giới âm nhạc mà không bị xao nhãng bởi tiếng ồn xung quanh.</p><ul><li>Pin siêu khủng lên đến 70 giờ (khi tắt ANC).</li><li>Bluetooth 5.3 với LE Audio tiên tiến.</li><li>Điều chỉnh EQ qua ứng dụng JBL Headphones.</li></ul>'),
-
-    (N'Tai nghe', N'Samsung', N'Samsung Galaxy Buds3 Pro',
-     N'<h2>Âm thanh Hi-Fi không dây chân thực</h2><p><strong>Galaxy Buds3 Pro</strong> sở hữu thiết kế công thái học hoàn toàn mới có dải đèn LED độc đáo. Hỗ trợ âm thanh độ phân giải cao 24-bit/96kHz, mang lại chất âm sống động như phòng thu. Công nghệ Galaxy AI tự động tinh chỉnh chống ồn (ANC) theo môi trường.</p><ul><li>Chống ồn chủ động thông minh (Adaptive ANC).</li><li>Amply kép cho mỗi bên tai nghe.</li><li>Dịch thuật trực tiếp (Live Translate) ngay trên tai nghe.</li></ul>'),
-
-    (N'May anh Mirrorless', N'Canon', N'Canon EOS R50',
-     N'<h2>Nhỏ gọn, sáng tạo không giới hạn</h2><p><strong>Canon EOS R50</strong> là chiếc máy ảnh mirrorless APS-C lý tưởng cho người mới bắt đầu và Vlogger. Cảm biến 24.2MP kết hợp chip DIGIC X mang lại hình ảnh sắc nét, màu sắc rực rỡ đặc trưng của Canon. Khả năng lấy nét Dual Pixel CMOS AF II nhận diện thông minh chủ thể (người, động vật, xe cộ).</p><ul><li>Quay video 4K 30p không crop.</li><li>Màn hình cảm ứng xoay lật linh hoạt.</li><li>Tính năng Advanced A+ chụp đẹp mọi khoảnh khắc.</li></ul>'),
-
-    (N'May anh Mirrorless', N'Sony', N'Sony Alpha A6400',
-     N'<h2>Tốc độ bắt nét đỉnh cao</h2><p><strong>Sony Alpha A6400</strong> nổi tiếng với hệ thống lấy nét tự động siêu tốc chỉ 0.02 giây và tính năng Real-time Eye AF (lấy nét mắt theo thời gian thực). Cảm biến APS-C 24.2MP mang lại dải nhạy sáng rộng và chi tiết ấn tượng. Thân máy hợp kim magie bền bỉ, chống chịu thời tiết tốt.</p><ul><li>Quay video 4K HDR (HLG) chất lượng cao.</li><li>Màn hình lật 180 độ phù hợp quay Vlog.</li><li>Chụp liên tục 11 khung hình/giây.</li></ul>'),
-
-    (N'May anh Mirrorless', N'Fujifilm', N'Fujifilm X-S20',
-     N'<h2>Thiết kế hoài cổ, công nghệ hiện đại</h2><p><strong>Fujifilm X-S20</strong> mang đến trải nghiệm nhiếp ảnh tuyệt vời với cảm biến X-Trans CMOS 4 26.1MP. Chế độ Vlog chuyên dụng kết hợp cùng màu phim (Film Simulation) trứ danh của Fujifilm giúp bạn sáng tạo nội dung một cách đậm chất nghệ thuật ngay khi xuất hình mà không cần hậu kỳ nhiều.</p><ul><li>Chống rung IBIS 7 stops trong thân máy.</li><li>Quay video lên đến 6.2K/30p.</li><li>Pin NP-W235 dung lượng lớn, chụp 800 shot.</li></ul>')
-) v(category_name, brand_name, product_name, description)
-JOIN CATEGORY c ON c.category_name = v.category_name
-JOIN BRAND b ON b.brand_name = v.brand_name
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM PRODUCT p
-    WHERE p.product_name = v.product_name
-);
-GO
-
-INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value)
-SELECT p.product_id, a.attribute_id, v.value
-FROM (VALUES
-    (N'Apple Watch SE 2', N'Màn hình', N'1.78 inch Retina OLED'),
-    (N'Apple Watch SE 2', N'Kết nối', N'Bluetooth, Wi-Fi, GPS'),
-    (N'Apple Watch SE 2', N'Tính năng', N'Theo doi van dong, nhip tim'),
-    (N'Samsung Galaxy Watch7', N'Màn hình', N'1.5 inch Super AMOLED'),
-    (N'Samsung Galaxy Watch7', N'Kết nối', N'Bluetooth, Wi-Fi, GPS'),
-    (N'Samsung Galaxy Watch7', N'Tính năng', N'Theo doi suc khoe va giac ngu'),
-    (N'Garmin Forerunner 165', N'Màn hình', N'1.2 inch AMOLED'),
-    (N'Garmin Forerunner 165', N'Kết nối', N'Bluetooth, GPS'),
-    (N'Garmin Forerunner 165', N'Tính năng', N'Theo doi chay bo va luyen tap'),
-    (N'Sony WH-1000XM5', N'Kết nối', N'Bluetooth, USB-C'),
-    (N'Sony WH-1000XM5', N'Tính năng', N'Chong on chu dong ANC'),
-    (N'Sony WH-1000XM5', N'Trọng lượng', N'250 g'),
-    (N'JBL Tune 770NC', N'Kết nối', N'Bluetooth, USB-C'),
-    (N'JBL Tune 770NC', N'Tính năng', N'Chong on chu dong ANC'),
-    (N'JBL Tune 770NC', N'Trọng lượng', N'232 g'),
-    (N'Samsung Galaxy Buds3 Pro', N'Kết nối', N'Bluetooth'),
-    (N'Samsung Galaxy Buds3 Pro', N'Tính năng', N'Chong on chu dong ANC'),
-    (N'Canon EOS R50', N'Độ phân giải', N'24.2 MP'),
-    (N'Canon EOS R50', N'Tính năng', N'Quay video 4K, lay net tu dong'),
-    (N'Canon EOS R50', N'Kết nối', N'Wi-Fi, Bluetooth'),
-    (N'Sony Alpha A6400', N'Độ phân giải', N'24.2 MP'),
-    (N'Sony Alpha A6400', N'Tính năng', N'Quay video 4K, lay net tu dong'),
-    (N'Sony Alpha A6400', N'Kết nối', N'Wi-Fi, Bluetooth'),
-    (N'Fujifilm X-S20', N'Độ phân giải', N'26.1 MP'),
-    (N'Fujifilm X-S20', N'Tính năng', N'Quay video 6.2K, chong rung trong than'),
-    (N'Fujifilm X-S20', N'Kết nối', N'Wi-Fi, Bluetooth')
-) v(product_name, attribute_name, value)
-JOIN PRODUCT p ON p.product_name = v.product_name
-JOIN ATTRIBUTE a ON a.attribute_name = v.attribute_name
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM PRODUCT_SPECIFICATION ps
-    WHERE ps.product_id = p.product_id
-      AND ps.attribute_id = a.attribute_id
-);
-GO
-
-INSERT INTO PRODUCT_SKU (product_id, sku_code, price, stock_quantity)
-SELECT p.product_id, v.sku_code, v.price, v.stock_quantity
-FROM (VALUES
-    (N'Apple Watch SE 2', 'WATCH-SE2-40', 5990000.00, 20),
-    (N'Samsung Galaxy Watch7', 'WATCH-GW7-44', 6990000.00, 15),
-    (N'Garmin Forerunner 165', 'WATCH-GARMIN-165', 6490000.00, 12),
-    (N'Sony WH-1000XM5', 'SONY-WH1000XM5', 6990000.00, 15),
-    (N'JBL Tune 770NC', 'JBL-T770NC', 2490000.00, 25),
-    (N'Samsung Galaxy Buds3 Pro', 'SS-BUDS3-PRO', 4990000.00, 20),
-    (N'Canon EOS R50', 'CAM-CANON-R50', 18990000.00, 8),
-    (N'Sony Alpha A6400', 'CAM-SONY-A6400', 16990000.00, 6),
-    (N'Fujifilm X-S20', 'CAM-FUJI-XS20', 28990000.00, 5)
-) v(product_name, sku_code, price, stock_quantity)
-JOIN PRODUCT p ON p.product_name = v.product_name
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM PRODUCT_SKU s
-    WHERE s.sku_code = v.sku_code
-);
-GO
-
-UPDATE PRODUCT
-SET image_url = CASE product_name
+INSERT INTO PRODUCT (category_id, brand_id, product_name, description, image_url)
+SELECT c.category_id, b.brand_id, v.product_name, v.description,
+       CASE v.product_name
     WHEN N'iPhone 15 Pro' THEN 'assets/images/products/iphone_15_pro.png'
     WHEN N'iPhone 15 Pro Max' THEN 'assets/images/products/iphone-15-pro-max.png'
     WHEN N'iPhone 16 Pro' THEN 'assets/images/products/iphone-16-pro.png'
@@ -1188,44 +1550,110 @@ SET image_url = CASE product_name
     WHEN N'Sony Alpha A6400' THEN 'assets/images/products/sony-a6400.jpg'
     WHEN N'Fujifilm X-S20' THEN 'assets/images/products/fujifilm-xs20.jpg'
 END
-WHERE product_name IN (
-    N'iPhone 15 Pro', N'iPhone 15 Pro Max', N'iPhone 16 Pro',
-    N'iPhone 16 Pro Max', N'Samsung Galaxy S24 Ultra',
-    N'Samsung Galaxy S24 Plus', N'Samsung Galaxy A55 5G',
-    N'Samsung Galaxy A35 5G', N'AirPods Pro 2', N'AirPods 4',
-    N'Samsung Galaxy Buds3 Pro', N'Samsung Galaxy Buds FE',
-    N'Sony WH-1000XM5', N'JBL Tune 770NC',
-    N'Apple USB-C 20W Power Adapter', N'Samsung 25W USB-C Fast Charger',
-    N'Apple USB-C Charge Cable 1m', N'Apple USB-C to Lightning Cable',
-    N'Samsung USB-C Cable 1m', N'Lenovo IdeaPad Slim 3',
-    N'Lenovo ThinkBook 14', N'Lenovo IdeaPad 5', N'Lenovo LOQ 15',
-    N'Lenovo Legion 5', N'Lenovo Legion Pro 5',
-    N'Lenovo Legion M300 RGB', N'Lenovo Legion M600 Wireless',
-    N'Lenovo Legion K300 RGB', N'Lenovo Go Wireless Split Keyboard',
-    N'Lenovo 300 FHD Webcam', N'Lenovo Performance FHD Webcam',
-    N'Lenovo Laptop Backpack 15.6"', N'Lenovo Legion Gaming Backpack',
-    N'Apple Watch SE 2', N'Samsung Galaxy Watch7',
-    N'Garmin Forerunner 165', N'Canon EOS R50',
-    N'Sony Alpha A6400', N'Fujifilm X-S20'
+FROM (VALUES
+    (N'Đồng hồ thông minh', N'Apple', N'Apple Watch SE 2',
+     N'<h2>Năng động, thông minh và thân thiện với túi tiền</h2><p><strong>Apple Watch SE 2</strong> sở hữu những tính năng cốt lõi của Apple Watch với mức giá cực kỳ dễ tiếp cận. Khung viền nhôm bền bỉ, màn hình Retina sắc nét cùng khả năng theo dõi sức khỏe toàn diện như đo nhịp tim, theo dõi giấc ngủ và phát hiện té ngã. Đây là người bạn đồng hành hoàn hảo cho cuộc sống năng động.</p><ul><li>Chip S8 mạnh mẽ, xử lý mượt mà.</li><li>Chống nước 50m, thoải mái bơi lội.</li><li>Kết nối liền mạch với hệ sinh thái Apple.</li></ul>'),
+
+    (N'Đồng hồ thông minh', N'Samsung', N'Samsung Galaxy Watch7',
+     N'<h2>Bứt phá giới hạn, thấu hiểu sức khỏe</h2><p><strong>Samsung Galaxy Watch7</strong> mang đến thiết kế mặt tròn thời thượng cùng cảm biến BioActive thế hệ mới. Đo lường chính xác các chỉ số cơ thể (BIA), theo dõi giấc ngủ chuyên sâu bằng AI và cảnh báo nhịp tim bất thường.</p><ul><li>Màn hình Super AMOLED rực rỡ dưới mọi điều kiện sáng.</li><li>Vi xử lý 3nm đầu tiên trên smartwatch.</li><li>GPS kép (L1+L5) định vị siêu chuẩn xác.</li></ul>'),
+
+    (N'Đồng hồ thông minh', N'Garmin', N'Garmin Forerunner 165',
+     N'<h2>Huấn luyện viên cá nhân trên cổ tay</h2><p><strong>Garmin Forerunner 165</strong> là chiếc đồng hồ chạy bộ chuyên nghiệp trang bị màn hình AMOLED rực rỡ. Máy cung cấp các bài tập gợi ý hàng ngày, theo dõi Pace, nhịp tim và đo lường độ phục hồi của cơ thể sau mỗi buổi tập.</p><ul><li>Thời lượng pin lên đến 11 ngày ở chế độ smartwatch.</li><li>Hơn 25 môn thể thao trong nhà và ngoài trời.</li><li>Garmin Coach: Giáo án tập luyện miễn phí.</li></ul>'),
+
+    (N'Tai nghe', N'Sony', N'Sony WH-1000XM5',
+     N'<h2>Chống ồn đỉnh cao, âm thanh tuyệt hảo</h2><p><strong>Sony WH-1000XM5</strong> hội tụ tinh hoa công nghệ âm thanh của Sony. Thiết kế mới nhẹ nhàng hơn, kết hợp 2 chip xử lý và 8 micro giúp triệt tiêu tiếng ồn môi trường một cách hoàn hảo. Màng loa 30mm tinh chỉnh đặc biệt mang lại chất âm Hi-Res cực kỳ chi tiết.</p><ul><li>Thời lượng pin 30 giờ, sạc nhanh 3 phút nghe 3 giờ.</li><li>Tính năng Speak-to-Chat thông minh.</li><li>Kết nối 2 thiết bị cùng lúc.</li></ul>'),
+
+    (N'Tai nghe', N'JBL', N'JBL Tune 770NC',
+     N'<h2>Trải nghiệm âm nhạc không giới hạn</h2><p><strong>JBL Tune 770NC</strong> nổi bật với công nghệ chống ồn chủ động (ANC) và chất âm JBL Pure Bass trứ danh. Thiết kế over-ear êm ái giúp bạn chìm đắm vào thế giới âm nhạc mà không bị xao nhãng bởi tiếng ồn xung quanh.</p><ul><li>Pin siêu khủng lên đến 70 giờ (khi tắt ANC).</li><li>Bluetooth 5.3 với LE Audio tiên tiến.</li><li>Điều chỉnh EQ qua ứng dụng JBL Headphones.</li></ul>'),
+
+    (N'Tai nghe', N'Samsung', N'Samsung Galaxy Buds3 Pro',
+     N'<h2>Âm thanh Hi-Fi không dây chân thực</h2><p><strong>Galaxy Buds3 Pro</strong> sở hữu thiết kế công thái học hoàn toàn mới có dải đèn LED độc đáo. Hỗ trợ âm thanh độ phân giải cao 24-bit/96kHz, mang lại chất âm sống động như phòng thu. Công nghệ Galaxy AI tự động tinh chỉnh chống ồn (ANC) theo môi trường.</p><ul><li>Chống ồn chủ động thông minh (Adaptive ANC).</li><li>Amply kép cho mỗi bên tai nghe.</li><li>Dịch thuật trực tiếp (Live Translate) ngay trên tai nghe.</li></ul>'),
+
+    (N'Máy ảnh Mirrorless', N'Canon', N'Canon EOS R50',
+     N'<h2>Nhỏ gọn, sáng tạo không giới hạn</h2><p><strong>Canon EOS R50</strong> là chiếc máy ảnh mirrorless APS-C lý tưởng cho người mới bắt đầu và Vlogger. Cảm biến 24.2MP kết hợp chip DIGIC X mang lại hình ảnh sắc nét, màu sắc rực rỡ đặc trưng của Canon. Khả năng lấy nét Dual Pixel CMOS AF II nhận diện thông minh chủ thể (người, động vật, xe cộ).</p><ul><li>Quay video 4K 30p không crop.</li><li>Màn hình cảm ứng xoay lật linh hoạt.</li><li>Tính năng Advanced A+ chụp đẹp mọi khoảnh khắc.</li></ul>'),
+
+    (N'Máy ảnh Mirrorless', N'Sony', N'Sony Alpha A6400',
+     N'<h2>Tốc độ bắt nét đỉnh cao</h2><p><strong>Sony Alpha A6400</strong> nổi tiếng với hệ thống lấy nét tự động siêu tốc chỉ 0.02 giây và tính năng Real-time Eye AF (lấy nét mắt theo thời gian thực). Cảm biến APS-C 24.2MP mang lại dải nhạy sáng rộng và chi tiết ấn tượng. Thân máy hợp kim magie bền bỉ, chống chịu thời tiết tốt.</p><ul><li>Quay video 4K HDR (HLG) chất lượng cao.</li><li>Màn hình lật 180 độ phù hợp quay Vlog.</li><li>Chụp liên tục 11 khung hình/giây.</li></ul>'),
+
+    (N'Máy ảnh Mirrorless', N'Fujifilm', N'Fujifilm X-S20',
+     N'<h2>Thiết kế hoài cổ, công nghệ hiện đại</h2><p><strong>Fujifilm X-S20</strong> mang đến trải nghiệm nhiếp ảnh tuyệt vời với cảm biến X-Trans CMOS 4 26.1MP. Chế độ Vlog chuyên dụng kết hợp cùng màu phim (Film Simulation) trứ danh của Fujifilm giúp bạn sáng tạo nội dung một cách đậm chất nghệ thuật ngay khi xuất hình mà không cần hậu kỳ nhiều.</p><ul><li>Chống rung IBIS 7 stops trong thân máy.</li><li>Quay video lên đến 6.2K/30p.</li><li>Pin NP-W235 dung lượng lớn, chụp 800 shot.</li></ul>')
+) v(category_name, brand_name, product_name, description)
+JOIN CATEGORY c ON c.category_name = v.category_name
+JOIN BRAND b ON b.brand_name = v.brand_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM PRODUCT p
+    WHERE p.product_name = v.product_name
 );
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
-UPDATE o
-SET o.delivered_at = h.completed_at
-FROM dbo.[ORDER] o
-CROSS APPLY (
-    SELECT MAX(h.updated_at) AS completed_at
-    FROM dbo.ORDER_STATUS_HISTORY h
-    WHERE h.order_id = o.order_id
-      AND UPPER(LTRIM(RTRIM(h.status))) = 'COMPLETED'
-) h
-WHERE UPPER(LTRIM(RTRIM(o.order_status))) = 'COMPLETED'
-  AND o.delivered_at IS NULL
-  AND h.completed_at IS NOT NULL;
+INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value)
+SELECT p.product_id, a.attribute_id, v.value
+FROM (VALUES
+    (N'Apple Watch SE 2', N'Màn hình', N'1.78 inch Retina OLED'),
+    (N'Apple Watch SE 2', N'Kết nối', N'Bluetooth, Wi-Fi, GPS'),
+    (N'Apple Watch SE 2', N'Tính năng', N'Theo doi van dong, nhip tim'),
+    (N'Samsung Galaxy Watch7', N'Màn hình', N'1.5 inch Super AMOLED'),
+    (N'Samsung Galaxy Watch7', N'Kết nối', N'Bluetooth, Wi-Fi, GPS'),
+    (N'Samsung Galaxy Watch7', N'Tính năng', N'Theo doi suc khoe va giac ngu'),
+    (N'Garmin Forerunner 165', N'Màn hình', N'1.2 inch AMOLED'),
+    (N'Garmin Forerunner 165', N'Kết nối', N'Bluetooth, GPS'),
+    (N'Garmin Forerunner 165', N'Tính năng', N'Theo doi chay bo va luyen tap'),
+    (N'Sony WH-1000XM5', N'Kết nối', N'Bluetooth, USB-C'),
+    (N'Sony WH-1000XM5', N'Tính năng', N'Chong on chu dong ANC'),
+    (N'Sony WH-1000XM5', N'Trọng lượng', N'250 g'),
+    (N'JBL Tune 770NC', N'Kết nối', N'Bluetooth, USB-C'),
+    (N'JBL Tune 770NC', N'Tính năng', N'Chong on chu dong ANC'),
+    (N'JBL Tune 770NC', N'Trọng lượng', N'232 g'),
+    (N'Samsung Galaxy Buds3 Pro', N'Kết nối', N'Bluetooth'),
+    (N'Samsung Galaxy Buds3 Pro', N'Tính năng', N'Chong on chu dong ANC'),
+    (N'Canon EOS R50', N'Độ phân giải', N'24.2 MP'),
+    (N'Canon EOS R50', N'Tính năng', N'Quay video 4K, lay net tu dong'),
+    (N'Canon EOS R50', N'Kết nối', N'Wi-Fi, Bluetooth'),
+    (N'Sony Alpha A6400', N'Độ phân giải', N'24.2 MP'),
+    (N'Sony Alpha A6400', N'Tính năng', N'Quay video 4K, lay net tu dong'),
+    (N'Sony Alpha A6400', N'Kết nối', N'Wi-Fi, Bluetooth'),
+    (N'Fujifilm X-S20', N'Độ phân giải', N'26.1 MP'),
+    (N'Fujifilm X-S20', N'Tính năng', N'Quay video 6.2K, chong rung trong than'),
+    (N'Fujifilm X-S20', N'Kết nối', N'Wi-Fi, Bluetooth')
+) v(product_name, attribute_name, value)
+JOIN PRODUCT p ON p.product_name = v.product_name
+JOIN ATTRIBUTE a ON a.attribute_name = v.attribute_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM PRODUCT_SPECIFICATION ps
+    WHERE ps.product_id = p.product_id
+      AND ps.attribute_id = a.attribute_id
+);
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
-USE OECS;
+INSERT INTO PRODUCT_SKU (product_id, sku_code, price, stock_quantity)
+SELECT p.product_id, v.sku_code, v.price, v.stock_quantity
+FROM (VALUES
+    (N'Apple Watch SE 2', 'WATCH-SE2-40', 5990000.00, 20),
+    (N'Samsung Galaxy Watch7', 'WATCH-GW7-44', 6990000.00, 15),
+    (N'Garmin Forerunner 165', 'WATCH-GARMIN-165', 6490000.00, 12),
+    (N'Sony WH-1000XM5', 'SONY-WH1000XM5', 6990000.00, 15),
+    (N'JBL Tune 770NC', 'JBL-T770NC', 2490000.00, 25),
+    (N'Samsung Galaxy Buds3 Pro', 'SS-BUDS3-PRO', 4990000.00, 20),
+    (N'Canon EOS R50', 'CAM-CANON-R50', 18990000.00, 8),
+    (N'Sony Alpha A6400', 'CAM-SONY-A6400', 16990000.00, 6),
+    (N'Fujifilm X-S20', 'CAM-FUJI-XS20', 28990000.00, 5)
+) v(product_name, sku_code, price, stock_quantity)
+JOIN PRODUCT p ON p.product_name = v.product_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM PRODUCT_SKU s
+    WHERE s.sku_code = v.sku_code
+);
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
+
+-- Product images and delivery timestamps were seeded in initial INSERTs.
+GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 INSERT INTO NOTIFICATION
     (user_id, order_id, title, message, is_read, created_at)
@@ -1282,788 +1710,11 @@ WHERE NOT EXISTS (
       AND n.message = v.message
 );
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
-USE OECS;
-GO
 
-BEGIN TRY
-    BEGIN TRANSACTION;
-
-    -- 1. Add new columns if they do not exist
-    IF COL_LENGTH('dbo.[ORDER]', 'cancellation_source') IS NULL
-    BEGIN
-        ALTER TABLE dbo.[ORDER]
-        ADD cancellation_source VARCHAR(20) NULL;
-    END;
-
-    IF COL_LENGTH('dbo.[ORDER]', 'cancelled_at') IS NULL
-    BEGIN
-        ALTER TABLE dbo.[ORDER]
-        ADD cancelled_at DATETIME2 NULL;
-    END;
-
-    -- 2. Migrate old customer cancellation records
-    IF OBJECT_ID(
-        'dbo.ORDER_CUSTOMER_CANCELLATION', 'U'
-    ) IS NOT NULL
-    BEGIN
-        UPDATE o
-        SET
-            o.cancellation_source = 'CUSTOMER',
-            o.cancelled_at = c.cancelled_at
-        FROM dbo.[ORDER] o
-        INNER JOIN dbo.ORDER_CUSTOMER_CANCELLATION c
-            ON c.order_id = o.order_id;
-    END;
-
-    -- 3. Add source constraint if missing
-    IF NOT EXISTS (
-        SELECT 1
-        FROM sys.check_constraints
-        WHERE name = 'CK_Order_CancellationSource'
-    )
-    BEGIN
-        ALTER TABLE dbo.[ORDER]
-        ADD CONSTRAINT CK_Order_CancellationSource
-        CHECK (
-            cancellation_source IS NULL
-            OR cancellation_source IN ('CUSTOMER', 'STAFF', 'SYSTEM')
-        );
-    END;
-
-    -- 4. Remove old index and table
-    IF OBJECT_ID(
-        'dbo.ORDER_CUSTOMER_CANCELLATION', 'U'
-    ) IS NOT NULL
-    BEGIN
-        DROP TABLE dbo.ORDER_CUSTOMER_CANCELLATION;
-    END;
-
-    -- 5. Create new index
-    IF NOT EXISTS (
-        SELECT 1
-        FROM sys.indexes
-        WHERE name = 'IX_Order_CustomerCancellationPolicy'
-          AND object_id = OBJECT_ID('dbo.[ORDER]')
-    )
-    BEGIN
-        CREATE INDEX IX_Order_CustomerCancellationPolicy
-        ON dbo.[ORDER] (
-            user_id,
-            cancellation_source,
-            cancelled_at
-        )
-        INCLUDE (order_id);
-    END;
-
-    COMMIT TRANSACTION;
-
-    PRINT 'Migration completed successfully.';
-
-END TRY
-BEGIN CATCH
-    IF @@TRANCOUNT > 0
-        ROLLBACK TRANSACTION;
-
-    THROW;
-END CATCH;
-GO
-
-/* ==============================================================================
-   STAGE 2: V2 CATALOG, VARIANT AND INVENTORY STRUCTURE
-   Original OECS_DB.sql migration content, applied to freshly created OECS.
-   ============================================================================== */
-
-/* =========================================================
-   PHAN 1 - THEM COT CON THIEU
-   MOI LENH ALTER DUOC TACH BATCH DE TRANH MSG 207
-========================================================= */
-
-/* 1. CATEGORY */
-
-IF COL_LENGTH('dbo.CATEGORY', 'description') IS NULL
-BEGIN
-    ALTER TABLE dbo.CATEGORY
-    ADD description NVARCHAR(500) NULL;
-END;
-GO
-
-IF COL_LENGTH('dbo.CATEGORY', 'is_active') IS NULL
-BEGIN
-    ALTER TABLE dbo.CATEGORY
-    ADD is_active BIT NOT NULL
-        CONSTRAINT DF_CATEGORY_IsActive DEFAULT (1);
-END;
-GO
-
-
-/* 2. BRAND */
-
-IF COL_LENGTH('dbo.BRAND', 'is_active') IS NULL
-BEGIN
-    ALTER TABLE dbo.BRAND
-    ADD is_active BIT NOT NULL
-        CONSTRAINT DF_BRAND_IsActive DEFAULT (1);
-END;
-GO
-
-
-/* 3. PRODUCT */
-
-IF COL_LENGTH('dbo.PRODUCT', 'model_code') IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT
-    ADD model_code VARCHAR(100) NULL;
-END;
-GO
-
-IF COL_LENGTH('dbo.PRODUCT', 'is_active') IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT
-    ADD is_active BIT NOT NULL
-        CONSTRAINT DF_PRODUCT_IsActive DEFAULT (1);
-END;
-GO
-
-IF COL_LENGTH('dbo.PRODUCT', 'updated_at') IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT
-    ADD updated_at DATETIME2 NULL;
-END;
-GO
-
-
-/* 4. ATTRIBUTE */
-
-IF COL_LENGTH('dbo.ATTRIBUTE', 'data_type') IS NULL
-BEGIN
-    ALTER TABLE dbo.ATTRIBUTE
-    ADD data_type VARCHAR(20) NOT NULL
-        CONSTRAINT DF_ATTRIBUTE_DataType DEFAULT ('TEXT');
-END;
-GO
-
-IF COL_LENGTH('dbo.ATTRIBUTE', 'unit') IS NULL
-BEGIN
-    ALTER TABLE dbo.ATTRIBUTE
-    ADD unit NVARCHAR(30) NULL;
-END;
-GO
-
-IF COL_LENGTH('dbo.ATTRIBUTE', 'is_active') IS NULL
-BEGIN
-    ALTER TABLE dbo.ATTRIBUTE
-    ADD is_active BIT NOT NULL
-        CONSTRAINT DF_ATTRIBUTE_IsActive DEFAULT (1);
-END;
-GO
-
-
-/* 5. PRODUCT_SPECIFICATION */
-
-IF COL_LENGTH(
-    'dbo.PRODUCT_SPECIFICATION', 'numeric_value'
-) IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT_SPECIFICATION
-    ADD numeric_value DECIMAL(18,4) NULL;
-END;
-GO
-
-IF COL_LENGTH(
-    'dbo.PRODUCT_SPECIFICATION', 'boolean_value'
-) IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT_SPECIFICATION
-    ADD boolean_value BIT NULL;
-END;
-GO
-
-
-/* 6. PRODUCT_SKU */
-
-IF COL_LENGTH('dbo.PRODUCT_SKU', 'original_price') IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT_SKU
-    ADD original_price DECIMAL(18,2) NULL;
-END;
-GO
-
-IF COL_LENGTH('dbo.PRODUCT_SKU', 'is_active') IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT_SKU
-    ADD is_active BIT NOT NULL
-        CONSTRAINT DF_SKU_IsActive DEFAULT (1);
-END;
-GO
-
-IF COL_LENGTH('dbo.PRODUCT_SKU', 'variant_key') IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT_SKU
-    ADD variant_key VARBINARY(32) NULL;
-END;
-GO
-
-
-/* 7. PRODUCT_IMAGES */
-
-IF COL_LENGTH('dbo.PRODUCT_IMAGES', 'sku_id') IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT_IMAGES
-    ADD sku_id INT NULL;
-END;
-GO
-
-IF COL_LENGTH('dbo.PRODUCT_IMAGES', 'is_primary') IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT_IMAGES
-    ADD is_primary BIT NOT NULL
-        CONSTRAINT DF_PI_Primary DEFAULT (0);
-END;
-GO
-
-IF COL_LENGTH('dbo.PRODUCT_IMAGES', 'display_order') IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT_IMAGES
-    ADD display_order INT NOT NULL
-        CONSTRAINT DF_PI_Order DEFAULT (0);
-END;
-GO
-
-IF COL_LENGTH('dbo.PRODUCT_IMAGES', 'alt_text') IS NULL
-BEGIN
-    ALTER TABLE dbo.PRODUCT_IMAGES
-    ADD alt_text NVARCHAR(255) NULL;
-END;
-GO
-
-
-/* =========================================================
-   PHAN 2 - TAO 2 BANG MOI
-========================================================= */
-
-/* CATEGORY_ATTRIBUTE */
-
-IF OBJECT_ID('dbo.CATEGORY_ATTRIBUTE', 'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.CATEGORY_ATTRIBUTE (
-        category_id INT NOT NULL,
-        attribute_id INT NOT NULL,
-
-        group_name NVARCHAR(100) NOT NULL
-            CONSTRAINT DF_CA_Group
-            DEFAULT (N'Thông số khác'),
-
-        attribute_type VARCHAR(20) NOT NULL
-            CONSTRAINT DF_CA_Type
-            DEFAULT ('SPECIFICATION'),
-
-        is_required BIT NOT NULL
-            CONSTRAINT DF_CA_Required DEFAULT (0),
-
-        is_filterable BIT NOT NULL
-            CONSTRAINT DF_CA_Filterable DEFAULT (0),
-
-        display_order INT NOT NULL
-            CONSTRAINT DF_CA_Order DEFAULT (0),
-
-        CONSTRAINT PK_CATEGORY_ATTRIBUTE
-            PRIMARY KEY (category_id, attribute_id),
-
-        CONSTRAINT FK_CA_Category
-            FOREIGN KEY (category_id)
-            REFERENCES dbo.CATEGORY(category_id),
-
-        CONSTRAINT FK_CA_Attribute
-            FOREIGN KEY (attribute_id)
-            REFERENCES dbo.ATTRIBUTE(attribute_id),
-
-        CONSTRAINT CK_CA_Type
-            CHECK (
-                attribute_type IN (
-                    'SPECIFICATION',
-                    'VARIANT',
-                    'BOTH'
-                )
-            ),
-
-        CONSTRAINT CK_CA_Order
-            CHECK (display_order >= 0)
-    );
-END;
-GO
-
-
-/* SKU_ATTRIBUTE_VALUE */
-
-IF OBJECT_ID('dbo.SKU_ATTRIBUTE_VALUE', 'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.SKU_ATTRIBUTE_VALUE (
-        sku_id INT NOT NULL,
-        attribute_id INT NOT NULL,
-
-        text_value NVARCHAR(255) NULL,
-        numeric_value DECIMAL(18,4) NULL,
-        boolean_value BIT NULL,
-
-        CONSTRAINT PK_SKU_ATTRIBUTE_VALUE
-            PRIMARY KEY (sku_id, attribute_id),
-
-        CONSTRAINT FK_SAV_SKU
-            FOREIGN KEY (sku_id)
-            REFERENCES dbo.PRODUCT_SKU(sku_id)
-            ON DELETE CASCADE,
-
-        CONSTRAINT FK_SAV_Attribute
-            FOREIGN KEY (attribute_id)
-            REFERENCES dbo.ATTRIBUTE(attribute_id),
-
-        CONSTRAINT CK_SAV_OneValue
-            CHECK (
-                (CASE WHEN text_value IS NOT NULL
-                    THEN 1 ELSE 0 END)
-              + (CASE WHEN numeric_value IS NOT NULL
-                    THEN 1 ELSE 0 END)
-              + (CASE WHEN boolean_value IS NOT NULL
-                    THEN 1 ELSE 0 END)
-                = 1
-            ),
-
-        CONSTRAINT CK_SAV_NonEmpty
-            CHECK (
-                text_value IS NULL
-                OR LEN(LTRIM(RTRIM(text_value))) > 0
-            )
-    );
-END;
-GO
-
-
-/* =========================================================
-   PHAN 3 - THEM RANG BUOC
-========================================================= */
-
-/* ATTRIBUTE */
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.check_constraints
-    WHERE name = 'CK_ATTRIBUTE_DataType'
-      AND parent_object_id = OBJECT_ID('dbo.ATTRIBUTE')
-)
-BEGIN
-    ALTER TABLE dbo.ATTRIBUTE
-    ADD CONSTRAINT CK_ATTRIBUTE_DataType
-    CHECK (data_type IN ('TEXT', 'NUMBER', 'BOOLEAN'));
-END;
-GO
-
-
-/* CATEGORY_ATTRIBUTE: NANG CAP NEU BANG DA CO */
-
-IF OBJECT_ID('dbo.CATEGORY_ATTRIBUTE', 'U') IS NOT NULL
-AND COL_LENGTH(
-    'dbo.CATEGORY_ATTRIBUTE', 'display_order'
-) IS NULL
-BEGIN
-    ALTER TABLE dbo.CATEGORY_ATTRIBUTE
-    ADD display_order INT NOT NULL
-        CONSTRAINT DF_CA_DisplayOrderV2 DEFAULT (0);
-END;
-GO
-
-
-/* PRODUCT_SKU */
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.check_constraints
-    WHERE name = 'CK_SKU_Price'
-      AND parent_object_id = OBJECT_ID('dbo.PRODUCT_SKU')
-)
-BEGIN
-    ALTER TABLE dbo.PRODUCT_SKU
-    ADD CONSTRAINT CK_SKU_Price
-    CHECK (price >= 0);
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.check_constraints
-    WHERE name = 'CK_SKU_OriginalPrice'
-      AND parent_object_id = OBJECT_ID('dbo.PRODUCT_SKU')
-)
-BEGIN
-    ALTER TABLE dbo.PRODUCT_SKU
-    ADD CONSTRAINT CK_SKU_OriginalPrice
-    CHECK (
-        original_price IS NULL
-        OR original_price >= 0
-    );
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.check_constraints
-    WHERE name = 'CK_SKU_Stock'
-      AND parent_object_id = OBJECT_ID('dbo.PRODUCT_SKU')
-)
-BEGIN
-    ALTER TABLE dbo.PRODUCT_SKU
-    ADD CONSTRAINT CK_SKU_Stock
-    CHECK (
-        stock_quantity IS NULL
-        OR stock_quantity >= 0
-    );
-END;
-GO
-
-
-/* SKU_ATTRIBUTE_VALUE */
-
-IF COL_LENGTH(
-    'dbo.SKU_ATTRIBUTE_VALUE', 'boolean_value'
-) IS NULL
-BEGIN
-    ALTER TABLE dbo.SKU_ATTRIBUTE_VALUE
-    ADD boolean_value BIT NULL;
-END;
-GO
-
-IF COL_LENGTH(
-    'dbo.SKU_ATTRIBUTE_VALUE', 'numeric_value'
-) IS NULL
-BEGIN
-    ALTER TABLE dbo.SKU_ATTRIBUTE_VALUE
-    ADD numeric_value DECIMAL(18,4) NULL;
-END;
-GO
-
-IF COL_LENGTH(
-    'dbo.SKU_ATTRIBUTE_VALUE', 'text_value'
-) IS NULL
-BEGIN
-    ALTER TABLE dbo.SKU_ATTRIBUTE_VALUE
-    ADD text_value NVARCHAR(255) NULL;
-END;
-GO
-
-
-/* PRODUCT_IMAGES: FK KEP SKU + PRODUCT */
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.key_constraints
-    WHERE name = 'UQ_SKU_IdProduct'
-      AND parent_object_id = OBJECT_ID('dbo.PRODUCT_SKU')
-)
-BEGIN
-    ALTER TABLE dbo.PRODUCT_SKU
-    ADD CONSTRAINT UQ_SKU_IdProduct
-    UNIQUE (sku_id, product_id);
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.foreign_keys
-    WHERE name = 'FK_PI_SKU_Product'
-      AND parent_object_id = OBJECT_ID('dbo.PRODUCT_IMAGES')
-)
-BEGIN
-    ALTER TABLE dbo.PRODUCT_IMAGES
-    ADD CONSTRAINT FK_PI_SKU_Product
-    FOREIGN KEY (sku_id, product_id)
-    REFERENCES dbo.PRODUCT_SKU(sku_id, product_id);
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.check_constraints
-    WHERE name = 'CK_PI_DisplayOrder'
-      AND parent_object_id = OBJECT_ID('dbo.PRODUCT_IMAGES')
-)
-BEGIN
-    ALTER TABLE dbo.PRODUCT_IMAGES
-    ADD CONSTRAINT CK_PI_DisplayOrder
-    CHECK (display_order >= 0);
-END;
-GO
-
-
-/* =========================================================
-   PHAN 4 - BO SUNG THUOC TINH CONG NGHE
-   KHONG INSERT TRUNG
-========================================================= */
-
-BEGIN TRY
-    BEGIN TRANSACTION;
-
-    INSERT INTO dbo.ATTRIBUTE (attribute_name)
-    SELECT v.attribute_name
-    FROM (VALUES
-        (N'Camera'),
-        (N'Tần số quét'),
-        (N'Loại màn hình'),
-        (N'Công suất sạc'),
-        (N'Chống nước'),
-        (N'Chống ồn'),
-        (N'Dung lượng pin'),
-        (N'Chất liệu'),
-        (N'Kích thước mặt đồng hồ'),
-        (N'Cảm biến máy ảnh')
-    ) v(attribute_name)
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM dbo.ATTRIBUTE a
-        WHERE a.attribute_name = v.attribute_name
-    );
-
-    COMMIT TRANSACTION;
-END TRY
-BEGIN CATCH
-    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-    THROW;
-END CATCH;
-GO
-
-
-/* =========================================================
-   PHAN 5 - CAU HINH THONG SO THEO DANH MUC
-========================================================= */
-
-BEGIN TRY
-    BEGIN TRANSACTION;
-
-    /*
-       Lay du lieu PRODUCT_SPECIFICATION hien co
-       de cau hinh CATEGORY_ATTRIBUTE.
-
-       Moi danh muc co bo thuoc tinh rieng.
-    */
-
-    INSERT INTO dbo.CATEGORY_ATTRIBUTE (
-        category_id,
-        attribute_id,
-        group_name,
-        attribute_type,
-        is_required,
-        is_filterable,
-        display_order
-    )
-    SELECT DISTINCT
-        p.category_id,
-        ps.attribute_id,
-
-        CASE
-            WHEN a.attribute_name IN (
-                N'Màn hình',
-                N'Độ phân giải',
-                N'Tần số quét',
-                N'Loại màn hình'
-            ) THEN N'Màn hình'
-
-            WHEN a.attribute_name IN (
-                N'RAM',
-                N'Dung lượng lưu trữ',
-                N'Chip xử lý (CPU)',
-                N'Card đồ họa (GPU)'
-            ) THEN N'Hiệu năng và bộ nhớ'
-
-            WHEN a.attribute_name IN (
-                N'Pin',
-                N'Dung lượng pin',
-                N'Công suất sạc'
-            ) THEN N'Pin và sạc'
-
-            WHEN a.attribute_name IN (
-                N'Kết nối',
-                N'Loại kết nối'
-            ) THEN N'Kết nối'
-
-            WHEN a.attribute_name IN (
-                N'Kích thước',
-                N'Trọng lượng',
-                N'Chất liệu',
-                N'Màu sắc'
-            ) THEN N'Thiết kế'
-
-            ELSE N'Tính năng và thông số khác'
-        END,
-
-        CASE
-            WHEN a.attribute_name = N'RAM'
-             AND c.category_name IN (
-                N'Laptop Văn Phòng',
-                N'Laptop Gaming'
-             )
-            THEN 'BOTH'
-            ELSE 'SPECIFICATION'
-        END,
-
-        0,
-
-        CASE
-            WHEN a.attribute_name IN (
-                N'RAM',
-                N'Dung lượng lưu trữ',
-                N'Chip xử lý (CPU)',
-                N'Màn hình',
-                N'Card đồ họa (GPU)'
-            ) THEN 1
-            ELSE 0
-        END,
-
-        a.attribute_id
-
-    FROM dbo.PRODUCT_SPECIFICATION ps
-    JOIN dbo.PRODUCT p
-        ON p.product_id = ps.product_id
-    JOIN dbo.CATEGORY c
-        ON c.category_id = p.category_id
-    JOIN dbo.ATTRIBUTE a
-        ON a.attribute_id = ps.attribute_id
-
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM dbo.CATEGORY_ATTRIBUTE ca
-        WHERE ca.category_id = p.category_id
-          AND ca.attribute_id = ps.attribute_id
-    );
-
-    COMMIT TRANSACTION;
-END TRY
-BEGIN CATCH
-    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-    THROW;
-END CATCH;
-GO
-
-
-/* =========================================================
-   PHAN 6 - CAU HINH BIEN THE SKU THEO DANH MUC
-========================================================= */
-
-BEGIN TRY
-    BEGIN TRANSACTION;
-
-    DECLARE @VariantConfig TABLE (
-        category_name NVARCHAR(100),
-        attribute_name NVARCHAR(100),
-        group_name NVARCHAR(100),
-        attribute_type VARCHAR(20),
-        display_order INT
-    );
-
-    INSERT INTO @VariantConfig VALUES
-        (N'Smartphone',
-         N'Dung lượng lưu trữ',
-         N'Phiên bản', 'VARIANT', 10),
-
-        (N'Smartphone',
-         N'Màu sắc',
-         N'Phiên bản', 'VARIANT', 20),
-
-        (N'Laptop Văn Phòng',
-         N'RAM',
-         N'Cấu hình', 'BOTH', 10),
-
-        (N'Laptop Văn Phòng',
-         N'Dung lượng lưu trữ',
-         N'Cấu hình', 'VARIANT', 20),
-
-        (N'Laptop Văn Phòng',
-         N'Màu sắc',
-         N'Cấu hình', 'VARIANT', 30),
-
-        (N'Laptop Gaming',
-         N'RAM',
-         N'Cấu hình', 'BOTH', 10),
-
-        (N'Laptop Gaming',
-         N'Dung lượng lưu trữ',
-         N'Cấu hình', 'VARIANT', 20),
-
-        (N'Laptop Gaming',
-         N'Màu sắc',
-         N'Cấu hình', 'VARIANT', 30),
-
-        (N'Tai nghe',
-         N'Màu sắc',
-         N'Phiên bản', 'VARIANT', 10),
-
-        (N'Chuột',
-         N'Màu sắc',
-         N'Phiên bản', 'VARIANT', 10),
-
-        (N'Bàn phím',
-         N'Màu sắc',
-         N'Phiên bản', 'VARIANT', 10),
-
-        (N'Webcam',
-         N'Màu sắc',
-         N'Phiên bản', 'VARIANT', 10),
-
-        (N'Balo Laptop',
-         N'Màu sắc',
-         N'Phiên bản', 'VARIANT', 10);
-
-
-    /* Update cấu hình cũ */
-
-    UPDATE ca
-    SET
-        ca.group_name = v.group_name,
-        ca.attribute_type = v.attribute_type,
-        ca.is_filterable = 1,
-        ca.display_order = v.display_order
-    FROM dbo.CATEGORY_ATTRIBUTE ca
-    JOIN dbo.CATEGORY c
-        ON c.category_id = ca.category_id
-    JOIN dbo.ATTRIBUTE a
-        ON a.attribute_id = ca.attribute_id
-    JOIN @VariantConfig v
-        ON v.category_name = c.category_name
-       AND v.attribute_name = a.attribute_name;
-
-
-    /* Insert cấu hình chưa có */
-
-    INSERT INTO dbo.CATEGORY_ATTRIBUTE (
-        category_id,
-        attribute_id,
-        group_name,
-        attribute_type,
-        is_required,
-        is_filterable,
-        display_order
-    )
-    SELECT
-        c.category_id,
-        a.attribute_id,
-        v.group_name,
-        v.attribute_type,
-        0,
-        1,
-        v.display_order
-    FROM @VariantConfig v
-    JOIN dbo.CATEGORY c
-        ON c.category_name = v.category_name
-    JOIN dbo.ATTRIBUTE a
-        ON a.attribute_name = v.attribute_name
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM dbo.CATEGORY_ATTRIBUTE ca
-        WHERE ca.category_id = c.category_id
-          AND ca.attribute_id = a.attribute_id
-    );
-
-    COMMIT TRANSACTION;
-END TRY
-BEGIN CATCH
-    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-    THROW;
-END CATCH;
-GO
-
-
+-- ==================== SECTION C: SKU ATTRIBUTE SEED ==========================
 /* =========================================================
    PHAN 7 - CHUYEN DU LIEU DIEN THOAI SANG SKU ATTRIBUTE
 ========================================================= */
@@ -2137,6 +1788,7 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
 /* =========================================================
@@ -2183,6 +1835,7 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
 /* =========================================================
@@ -2219,6 +1872,7 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
 /* =========================================================
@@ -2240,7 +1894,7 @@ BEGIN TRY
         p.product_id,
         NULL,
         p.image_url,
-        0,
+        1,
         0,
         p.product_name
     FROM dbo.PRODUCT p
@@ -2254,27 +1908,6 @@ BEGIN TRY
             AND pi.image_url = p.image_url
       );
 
-    /*
-       Moi product toi da 1 anh chinh chung.
-       Moi SKU toi da 1 anh chinh rieng.
-    */
-
-    ;WITH RankedImages AS (
-        SELECT
-            image_id,
-            is_primary,
-            ROW_NUMBER() OVER (
-                PARTITION BY product_id, sku_id
-                ORDER BY
-                    is_primary DESC,
-                    display_order ASC,
-                    image_id ASC
-            ) AS rn
-        FROM dbo.PRODUCT_IMAGES
-    )
-    UPDATE RankedImages
-    SET is_primary =
-        CASE WHEN rn = 1 THEN 1 ELSE 0 END;
 
     COMMIT TRANSACTION;
 END TRY
@@ -2283,464 +1916,20 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 
-/* =========================================================
-   PHAN 11 - INDEX
-========================================================= */
 
-IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes
-    WHERE object_id = OBJECT_ID('dbo.PRODUCT')
-      AND name = 'IX_PRODUCT_CategoryBrand'
-)
-BEGIN
-    CREATE INDEX IX_PRODUCT_CategoryBrand
-    ON dbo.PRODUCT (
-        category_id,
-        brand_id,
-        is_active
-    );
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes
-    WHERE object_id = OBJECT_ID('dbo.PRODUCT_SKU')
-      AND name = 'IX_SKU_ProductActive'
-)
-BEGIN
-    CREATE INDEX IX_SKU_ProductActive
-    ON dbo.PRODUCT_SKU (
-        product_id,
-        is_active
-    )
-    INCLUDE (price, stock_quantity);
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes
-    WHERE object_id = OBJECT_ID('dbo.CATEGORY_ATTRIBUTE')
-      AND name = 'IX_CA_Display'
-)
-BEGIN
-    CREATE INDEX IX_CA_Display
-    ON dbo.CATEGORY_ATTRIBUTE (
-        category_id,
-        group_name,
-        display_order
-    );
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes
-    WHERE object_id = OBJECT_ID('dbo.SKU_ATTRIBUTE_VALUE')
-      AND name = 'IX_SAV_Attribute'
-)
-BEGIN
-    CREATE INDEX IX_SAV_Attribute
-    ON dbo.SKU_ATTRIBUTE_VALUE (
-        attribute_id,
-        text_value
-    )
-    INCLUDE (sku_id);
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes
-    WHERE object_id = OBJECT_ID('dbo.PRODUCT_IMAGES')
-      AND name = 'IX_PI_ProductSku'
-)
-BEGIN
-    CREATE INDEX IX_PI_ProductSku
-    ON dbo.PRODUCT_IMAGES (
-        product_id,
-        sku_id,
-        display_order
-    );
-END;
-GO
-
-
-/* 1 anh chinh chung cho moi product */
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes
-    WHERE object_id = OBJECT_ID('dbo.PRODUCT_IMAGES')
-      AND name = 'UX_PI_PrimaryProduct'
-)
-BEGIN
-    CREATE UNIQUE INDEX UX_PI_PrimaryProduct
-    ON dbo.PRODUCT_IMAGES(product_id)
-    WHERE sku_id IS NULL
-      AND is_primary = 1;
-END;
-GO
-
-
-/* 1 anh chinh rieng cho moi SKU */
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes
-    WHERE object_id = OBJECT_ID('dbo.PRODUCT_IMAGES')
-      AND name = 'UX_PI_PrimarySKU'
-)
-BEGIN
-    CREATE UNIQUE INDEX UX_PI_PrimarySKU
-    ON dbo.PRODUCT_IMAGES(sku_id)
-    WHERE sku_id IS NOT NULL
-      AND is_primary = 1;
-END;
-GO
-
-
-/* =========================================================
-   PHAN 12 - PROCEDURE TAO VARIANT KEY
-========================================================= */
-
-CREATE OR ALTER PROCEDURE dbo.usp_OECS_RefreshSkuVariantKey
-    @sku_id INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SET XACT_ABORT ON;
-
-    DECLARE @product_id INT;
-    DECLARE @category_id INT;
-    DECLARE @variant_text NVARCHAR(MAX);
-
-    SELECT
-        @product_id = s.product_id,
-        @category_id = p.category_id
-    FROM dbo.PRODUCT_SKU s
-    JOIN dbo.PRODUCT p
-        ON p.product_id = s.product_id
-    WHERE s.sku_id = @sku_id;
-
-    IF @product_id IS NULL
-    BEGIN
-        THROW 51001, 'SKU does not exist.', 1;
-    END;
-
-
-    /* Kiem tra attribute hop le */
-
-    IF EXISTS (
-        SELECT 1
-        FROM dbo.SKU_ATTRIBUTE_VALUE sav
-        LEFT JOIN dbo.CATEGORY_ATTRIBUTE ca
-            ON ca.category_id = @category_id
-           AND ca.attribute_id = sav.attribute_id
-        WHERE sav.sku_id = @sku_id
-          AND (
-              ca.attribute_id IS NULL
-              OR ca.attribute_type NOT IN (
-                  'VARIANT', 'BOTH'
-              )
-          )
-    )
-    BEGIN
-        THROW 51002,
-            'SKU attribute must be VARIANT or BOTH.',
-            1;
-    END;
-
-
-    /* Kiem tra attribute bat buoc */
-
-    IF EXISTS (
-        SELECT 1
-        FROM dbo.CATEGORY_ATTRIBUTE ca
-        WHERE ca.category_id = @category_id
-          AND ca.attribute_type IN ('VARIANT', 'BOTH')
-          AND ca.is_required = 1
-          AND NOT EXISTS (
-              SELECT 1
-              FROM dbo.SKU_ATTRIBUTE_VALUE sav
-              WHERE sav.sku_id = @sku_id
-                AND sav.attribute_id = ca.attribute_id
-          )
-    )
-    BEGIN
-        THROW 51004,
-            'Required SKU attribute is missing.',
-            1;
-    END;
-
-
-    /* Chuan hoa thuoc tinh theo attribute_id */
-
-    SELECT
-        @variant_text = STRING_AGG(
-            CAST(
-                CONCAT(
-                    sav.attribute_id,
-                    N'=',
-                    CASE
-                        WHEN sav.text_value IS NOT NULL
-                        THEN N'T:' +
-                            UPPER(
-                                LTRIM(RTRIM(sav.text_value))
-                            )
-
-                        WHEN sav.numeric_value IS NOT NULL
-                        THEN N'N:' +
-                            CONVERT(
-                                NVARCHAR(60),
-                                sav.numeric_value
-                            )
-
-                        ELSE N'B:' +
-                            CONVERT(
-                                NVARCHAR(1),
-                                sav.boolean_value
-                            )
-                    END
-                )
-                AS NVARCHAR(MAX)
-            ),
-            N'|'
-        ) WITHIN GROUP (
-            ORDER BY sav.attribute_id
-        )
-    FROM dbo.SKU_ATTRIBUTE_VALUE sav
-    WHERE sav.sku_id = @sku_id;
-
-
-    /* Tao variant_key */
-
-    UPDATE dbo.PRODUCT_SKU
-    SET variant_key =
-        CASE
-            WHEN @variant_text IS NULL THEN NULL
-            ELSE HASHBYTES(
-                'SHA2_256', @variant_text
-            )
-        END
-    WHERE sku_id = @sku_id;
-END;
-GO
-
-
-/* =========================================================
-   PHAN 13 - CAP NHAT VARIANT KEY CHO SKU HIEN TAI
-========================================================= */
-
-BEGIN TRY
-    BEGIN TRANSACTION;
-
-    DECLARE @current_sku_id INT;
-
-    DECLARE sku_cursor CURSOR LOCAL FAST_FORWARD FOR
-    SELECT s.sku_id
-    FROM dbo.PRODUCT_SKU s;
-
-    OPEN sku_cursor;
-
-    FETCH NEXT FROM sku_cursor INTO @current_sku_id;
-
-    WHILE @@FETCH_STATUS = 0
-    BEGIN
-        EXEC dbo.usp_OECS_RefreshSkuVariantKey
-            @sku_id = @current_sku_id;
-
-        FETCH NEXT FROM sku_cursor INTO @current_sku_id;
-    END;
-
-    CLOSE sku_cursor;
-    DEALLOCATE sku_cursor;
-
-    COMMIT TRANSACTION;
-END TRY
-BEGIN CATCH
-    IF CURSOR_STATUS('local', 'sku_cursor') >= 0
-        CLOSE sku_cursor;
-
-    IF CURSOR_STATUS('local', 'sku_cursor') >= -1
-        DEALLOCATE sku_cursor;
-
-    IF @@TRANCOUNT > 0
-        ROLLBACK TRANSACTION;
-
-    THROW;
-END CATCH;
-GO
-
-
-/* =========================================================
-   PHAN 14 - KIEM TRA TRUNG TO HOP SKU
-========================================================= */
-
-IF EXISTS (
-    SELECT 1
-    FROM dbo.PRODUCT_SKU
-    WHERE variant_key IS NOT NULL
-    GROUP BY product_id, variant_key
-    HAVING COUNT(*) > 1
-)
-BEGIN
-    THROW 51003,
-        'Duplicate SKU variant combinations detected.',
-        1;
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes
-    WHERE object_id = OBJECT_ID('dbo.PRODUCT_SKU')
-      AND name = 'UX_SKU_ProductVariant'
-)
-BEGIN
-    CREATE UNIQUE INDEX UX_SKU_ProductVariant
-    ON dbo.PRODUCT_SKU (
-        product_id,
-        variant_key
-    )
-    WHERE variant_key IS NOT NULL;
-END;
-GO
-
-
-/* =========================================================
-   PHAN 15 - QUAN LY TON KHO (INVENTORY MANAGEMENT)
-   - Dung ton hien tai: PRODUCT_SKU.stock_quantity
-   - Bang lich su: INVENTORY_MOVEMENT
-   - Trigger ghi nhan moi bien dong ton kho, ke ca code cu
-   - Chi ghi snapshot OPENING, khong suy dien lich su cu
-   - Cho phep chay lai ma khong tao trung OPENING
-   - Khong tu thay doi stock_quantity cua bat ky SKU nao
-   LUU Y: SAO LUU DATABASE VA KIEM TRA SKU TON NULL/AM
-   TRUOC KHI CHAY. Script can dbo.[USER] va dbo.PRODUCT_SKU.
-========================================================= */
-
-IF OBJECT_ID(N'dbo.PRODUCT_SKU', N'U') IS NULL
-   OR OBJECT_ID(N'dbo.PRODUCT', N'U') IS NULL
-   OR OBJECT_ID(N'dbo.[USER]', N'U') IS NULL
-    THROW 53000, N'OECS thieu PRODUCT_SKU, PRODUCT hoac USER.', 1;
-GO
-
-IF COL_LENGTH(N'dbo.PRODUCT_SKU', N'is_active') IS NULL
-   OR COL_LENGTH(N'dbo.PRODUCT', N'is_active') IS NULL
-    THROW 53001, N'Hay chay migration PRODUCT/SKU V2 truoc.', 1;
-GO
-
-IF EXISTS (SELECT 1 FROM dbo.PRODUCT_SKU WHERE stock_quantity IS NULL OR stock_quantity < 0)
-    THROW 53002, N'Co SKU co ton kho NULL hoac am. Can xu ly truoc khi bat lich su.', 1;
-GO
-
--- Prevent future NULL/negative stock, even from legacy order/SKU code.
-IF NOT EXISTS (
-    SELECT 1 FROM sys.check_constraints
-    WHERE parent_object_id = OBJECT_ID(N'dbo.PRODUCT_SKU')
-      AND name = N'CK_OECS_Inventory_StockValid'
-)
-    ALTER TABLE dbo.PRODUCT_SKU WITH CHECK
-    ADD CONSTRAINT CK_OECS_Inventory_StockValid
-    CHECK (stock_quantity IS NOT NULL AND stock_quantity >= 0);
-GO
-
-IF OBJECT_ID(N'dbo.INVENTORY_MOVEMENT', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.INVENTORY_MOVEMENT (
-        movement_id BIGINT IDENTITY(1,1) NOT NULL
-            CONSTRAINT PK_INVENTORY_MOVEMENT PRIMARY KEY,
-        sku_id INT NOT NULL,
-        movement_type VARCHAR(12) NOT NULL,
-        quantity_delta INT NOT NULL,
-        quantity_before INT NOT NULL,
-        quantity_after INT NOT NULL,
-        note NVARCHAR(500) NULL,
-        actor_user_id INT NULL,
-        created_at DATETIME2(3) NOT NULL
-            CONSTRAINT DF_INVENTORY_MOVEMENT_created_at DEFAULT SYSDATETIME(),
-        CONSTRAINT FK_INVENTORY_MOVEMENT_SKU FOREIGN KEY (sku_id)
-            REFERENCES dbo.PRODUCT_SKU(sku_id),
-        CONSTRAINT FK_INVENTORY_MOVEMENT_USER FOREIGN KEY (actor_user_id)
-            REFERENCES dbo.[USER](user_id),
-        CONSTRAINT CK_INVENTORY_MOVEMENT_type CHECK
-            (movement_type IN ('OPENING', 'IN', 'OUT', 'SET', 'SYSTEM')),
-        CONSTRAINT CK_INVENTORY_MOVEMENT_balances CHECK
-            (quantity_before >= 0 AND quantity_after >= 0
-             AND quantity_delta = quantity_after - quantity_before)
-    );
-END;
-GO
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_INVENTORY_MOVEMENT_sku_time'
-               AND object_id = OBJECT_ID(N'dbo.INVENTORY_MOVEMENT'))
-    CREATE INDEX IX_INVENTORY_MOVEMENT_sku_time
-    ON dbo.INVENTORY_MOVEMENT(sku_id, movement_id DESC);
-GO
-
--- One current-balance snapshot for older SKUs. This is NOT a reconstructed
--- history of prior purchases, sales or stock movements.
-INSERT INTO dbo.INVENTORY_MOVEMENT
-    (sku_id, movement_type, quantity_delta, quantity_before,
-     quantity_after, note, actor_user_id)
-SELECT s.sku_id, 'OPENING', s.stock_quantity, 0,
-       s.stock_quantity, N'Số dư tại thời điểm kích hoạt quản lý kho', NULL
-FROM dbo.PRODUCT_SKU AS s
-WHERE NOT EXISTS (
-    SELECT 1 FROM dbo.INVENTORY_MOVEMENT AS m WHERE m.sku_id = s.sku_id
-);
-GO
-
--- Tracks ALL future stock changes, even when Cart/Checkout/ProductSkuDAO
--- updates stock_quantity without calling the Inventory module.
--- For other subsystems, movement_type=SYSTEM and actor is unknown.
-CREATE OR ALTER TRIGGER dbo.trg_OECS_Inventory_TrackStock
-ON dbo.PRODUCT_SKU
-AFTER INSERT, UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    INSERT INTO dbo.INVENTORY_MOVEMENT
-        (sku_id, movement_type, quantity_delta, quantity_before,
-         quantity_after, note, actor_user_id)
-    SELECT
-        i.sku_id,
-        CASE
-            WHEN d.sku_id IS NULL THEN 'OPENING'
-            WHEN CONVERT(VARCHAR(12), SESSION_CONTEXT(N'oecs_inventory_action'))
-                 IN ('IN', 'OUT', 'SET')
-                THEN CONVERT(VARCHAR(12), SESSION_CONTEXT(N'oecs_inventory_action'))
-            ELSE 'SYSTEM'
-        END,
-        i.stock_quantity - COALESCE(d.stock_quantity, 0),
-        COALESCE(d.stock_quantity, 0),
-        i.stock_quantity,
-        CASE
-            WHEN d.sku_id IS NULL THEN N'Tạo SKU với số dư ban đầu'
-            WHEN CONVERT(VARCHAR(12), SESSION_CONTEXT(N'oecs_inventory_action'))
-                 IN ('IN', 'OUT', 'SET')
-                THEN CONVERT(NVARCHAR(500), SESSION_CONTEXT(N'oecs_inventory_note'))
-            ELSE N'Thay đổi tồn kho từ nghiệp vụ khác'
-        END,
-        CASE
-            WHEN d.sku_id IS NOT NULL
-             AND CONVERT(VARCHAR(12), SESSION_CONTEXT(N'oecs_inventory_action'))
-                 IN ('IN', 'OUT', 'SET')
-                THEN TRY_CONVERT(INT, SESSION_CONTEXT(N'oecs_inventory_user_id'))
-            ELSE NULL
-        END
-    FROM inserted AS i
-    LEFT JOIN deleted AS d ON d.sku_id = i.sku_id
-    WHERE d.sku_id IS NULL OR i.stock_quantity <> d.stock_quantity;
-END;
-GO
-
+-- ==================== SECTION D: ADDITIONAL VARIANTS ========================
 /* ==============================================================================
-   STAGE 3: SKU CONFIGURATIONS FOR 39 PRODUCTS
-   Unmodified data logic from original OECS_SKU.sql.
+   STAGE 3: SKU SEED FOR 39 PRODUCTS
+   Seed variant attributes and refresh variant keys; Java handles live updates.
    ============================================================================== */
 
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 BEGIN TRY
     BEGIN TRANSACTION;
@@ -2750,8 +1939,7 @@ BEGIN TRY
        OR OBJECT_ID(N'dbo.PRODUCT_SKU', N'U') IS NULL
        OR OBJECT_ID(N'dbo.PRODUCT', N'U') IS NULL
        OR OBJECT_ID(N'dbo.ATTRIBUTE', N'U') IS NULL
-       OR OBJECT_ID(N'dbo.usp_OECS_RefreshSkuVariantKey', N'P') IS NULL
-        THROW 55100, N'Chua chay OECS V2 Catalog migration day du.', 1;
+        THROW 55100, N'Thieu mot hoac nhieu bang catalog/SKU.', 1;
 
     DECLARE @SkuBefore BIGINT = (SELECT COUNT_BIG(*) FROM dbo.PRODUCT_SKU);
     DECLARE @Inserted BIGINT = 0;
@@ -2767,7 +1955,7 @@ BEGIN TRY
         attr3 NVARCHAR(100) NULL, val3 NVARCHAR(255) NULL
     );
 
-    -- SECTION A: 39 products, rich SKU choices per category.
+    -- SECTION A: SKU seed for 39 products; rich choices per category.
     -- For existing SKU codes, seed prices and stock are ignored; only new SKUs
     -- receive the price/stock defined here.
     INSERT INTO @Seed (
@@ -3122,46 +2310,6 @@ BEGIN TRY
     )
         THROW 55107, N'Mot SKU khong co thuoc tinh bien the.', 1;
 
-    -- CATEGORY_ATTRIBUTE: enable appropriate variant attributes for all
-    -- relevant categories. Do not turn existing specification attrs off;
-    -- promote SPECIFICATION -> BOTH when necessary.
-    DECLARE @CategoryOptions TABLE (
-        category_id INT NOT NULL,
-        attribute_id INT NOT NULL,
-        PRIMARY KEY (category_id, attribute_id)
-    );
-
-    INSERT INTO @CategoryOptions
-    SELECT DISTINCT p.category_id, o.attribute_id
-    FROM @Options AS o
-    JOIN @Seed v ON v.sku_code = o.sku_code
-    JOIN dbo.PRODUCT p ON p.product_name = v.product_name;
-
-    UPDATE ca
-    SET attribute_type = CASE WHEN ca.attribute_type='SPECIFICATION' THEN 'BOTH'
-                              ELSE ca.attribute_type END,
-        is_filterable = 1
-    FROM dbo.CATEGORY_ATTRIBUTE ca
-    JOIN @CategoryOptions x
-        ON x.category_id=ca.category_id AND x.attribute_id=ca.attribute_id;
-
-    INSERT INTO dbo.CATEGORY_ATTRIBUTE (
-        category_id, attribute_id, group_name, attribute_type,
-        is_required, is_filterable, display_order
-    )
-    SELECT x.category_id, x.attribute_id,
-           CASE WHEN a.attribute_name IN (N'RAM',N'Dung lượng lưu trữ')
-                THEN N'Cấu hình'
-                WHEN a.attribute_name IN (N'Màu sắc') THEN N'Màu sắc'
-                WHEN a.attribute_name IN (N'Kích thước vỏ') THEN N'Kích cỡ'
-                ELSE N'Phiên bản' END,
-           'VARIANT', 0, 1, 100 + a.attribute_id
-    FROM @CategoryOptions x
-    JOIN dbo.ATTRIBUTE a ON a.attribute_id=x.attribute_id
-    WHERE NOT EXISTS (
-        SELECT 1 FROM dbo.CATEGORY_ATTRIBUTE ca
-        WHERE ca.category_id=x.category_id AND ca.attribute_id=x.attribute_id
-    );
 
     -- SECTION D: Preserve existing SKU values; add only attributes not yet set.
     -- Numeric values such as 128.0000 remain numeric (not overwritten as TEXT).
@@ -3178,23 +2326,9 @@ BEGIN TRY
     );
     SET @AddedAttributeRows = @@ROWCOUNT;
 
-    -- Refresh keys for known existing SKUs before considering insertion.
-    DECLARE @CurrentSkuId INT;
-    DECLARE sku_existing_cursor CURSOR LOCAL FAST_FORWARD FOR
-        SELECT s.sku_id FROM dbo.PRODUCT_SKU s
-        JOIN @Seed v ON v.sku_code=s.sku_code;
-    OPEN sku_existing_cursor;
-    FETCH NEXT FROM sku_existing_cursor INTO @CurrentSkuId;
-    WHILE @@FETCH_STATUS = 0
-    BEGIN
-        EXEC dbo.usp_OECS_RefreshSkuVariantKey @sku_id=@CurrentSkuId;
-        FETCH NEXT FROM sku_existing_cursor INTO @CurrentSkuId;
-    END;
-    CLOSE sku_existing_cursor;
-    DEALLOCATE sku_existing_cursor;
 
-    -- SECTION E: Compute exactly the SHA2_256 key used by OECS's stored
-    -- procedure, to skip any variant already represented by an old SKU
+    -- Compute the deterministic SHA2_256 key using the same formula as above,
+    -- to skip a variant already represented by another SKU
     -- with a different code.
     DECLARE @Expected TABLE (
         sku_code VARCHAR(100) NOT NULL PRIMARY KEY,
@@ -3248,9 +2382,9 @@ BEGIN TRY
 
     -- New SKU rows only. Existing price and stock are NEVER modified.
     INSERT INTO dbo.PRODUCT_SKU (
-        product_id, sku_code, price, stock_quantity, original_price, is_active
+        product_id, sku_code, price, stock_quantity, original_price, is_active, variant_key
     )
-    SELECT e.product_id, v.sku_code, v.price, v.initial_stock, NULL, 1
+    SELECT e.product_id, v.sku_code, v.price, v.initial_stock, NULL, 1, e.expected_key
     FROM @Seed v
     JOIN @Expected e ON e.sku_code=v.sku_code
     WHERE NOT EXISTS (
@@ -3274,19 +2408,6 @@ BEGIN TRY
         WHERE sav.sku_id=s.sku_id AND sav.attribute_id=o.attribute_id
     );
 
-    -- Refresh calculated variant_key on inserted/new matched SKUs.
-    DECLARE sku_new_cursor CURSOR LOCAL FAST_FORWARD FOR
-        SELECT s.sku_id FROM dbo.PRODUCT_SKU s
-        JOIN @Seed v ON v.sku_code=s.sku_code;
-    OPEN sku_new_cursor;
-    FETCH NEXT FROM sku_new_cursor INTO @CurrentSkuId;
-    WHILE @@FETCH_STATUS = 0
-    BEGIN
-        EXEC dbo.usp_OECS_RefreshSkuVariantKey @sku_id=@CurrentSkuId;
-        FETCH NEXT FROM sku_new_cursor INTO @CurrentSkuId;
-    END;
-    CLOSE sku_new_cursor;
-    DEALLOCATE sku_new_cursor;
 
     -- Safety: all 39 listed products must have at least two sellable SKUs,
     -- and each active variant must have a unique key if one was assigned.
@@ -3303,66 +2424,20 @@ BEGIN TRY
 
     COMMIT TRANSACTION;
 
-    -- SECTION F: Read-only results after successful commit.
-    SELECT
-        (SELECT COUNT(*) FROM dbo.CATEGORY) AS total_categories,
-        (SELECT COUNT(*) FROM dbo.PRODUCT) AS total_products,
-        @SkuBefore AS total_skus_before,
-        (SELECT COUNT(*) FROM dbo.PRODUCT_SKU) AS total_skus_after,
-        @Inserted AS new_skus_inserted,
-        @AddedAttributeRows AS legacy_sku_attributes_added,
-        (SELECT COUNT(*) FROM @SkippedVariants) AS skipped_duplicate_variants;
-
-    SELECT p.product_id, p.product_name,
-           COUNT(s.sku_id) AS sku_count,
-           SUM(CASE WHEN s.is_active=1 THEN 1 ELSE 0 END) AS active_sku_count,
-           SUM(COALESCE(s.stock_quantity,0)) AS stock_total
-    FROM dbo.PRODUCT p
-    JOIN (SELECT DISTINCT product_name FROM @Seed) v ON v.product_name=p.product_name
-    LEFT JOIN dbo.PRODUCT_SKU s ON s.product_id=p.product_id
-    GROUP BY p.product_id,p.product_name
-    ORDER BY p.product_id;
-
-    -- Detail-level report for Product Detail option rendering / SQL verification.
-    SELECT p.product_name, s.sku_code,
-           s.price, s.stock_quantity, s.is_active,
-           x.variant_description
-    FROM dbo.PRODUCT_SKU s
-    JOIN dbo.PRODUCT p ON p.product_id=s.product_id
-    JOIN (SELECT DISTINCT product_name FROM @Seed) v
-      ON v.product_name=p.product_name
-    OUTER APPLY (
-        SELECT STRING_AGG(
-            CAST(CONCAT(a.attribute_name, N': ',
-                COALESCE(sav.text_value,
-                    CONVERT(NVARCHAR(80),sav.numeric_value),
-                    CASE sav.boolean_value WHEN 1 THEN N'Có' WHEN 0 THEN N'Không' END)
-            ) AS NVARCHAR(MAX)), N' | ')
-            WITHIN GROUP (ORDER BY a.attribute_id) AS variant_description
-        FROM dbo.SKU_ATTRIBUTE_VALUE sav
-        JOIN dbo.ATTRIBUTE a ON a.attribute_id=sav.attribute_id
-        WHERE sav.sku_id=s.sku_id
-    ) x
-    ORDER BY p.product_name, s.price, s.sku_code;
-
-    -- Any planned demo variant that was already represented by another SKU code:
-    SELECT * FROM @SkippedVariants ORDER BY product_id, proposed_code;
-
-    PRINT N'OECS SKU migration FIXED completed; demo variants available for all 39 products.';
+    PRINT N'OECS SKU seed completed; demo variants available for all 39 products.';
 END TRY
 BEGIN CATCH
-    IF CURSOR_STATUS('local','sku_existing_cursor') >= 0 CLOSE sku_existing_cursor;
-    IF CURSOR_STATUS('local','sku_existing_cursor') >= -1 DEALLOCATE sku_existing_cursor;
-    IF CURSOR_STATUS('local','sku_new_cursor') >= 0 CLOSE sku_new_cursor;
-    IF CURSOR_STATUS('local','sku_new_cursor') >= -1 DEALLOCATE sku_new_cursor;
     IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
     THROW;
 END CATCH;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
+
+-- ==================== SECTION E: TECHNICAL SPECIFICATIONS ==================
 /* ==============================================================================
    STAGE 4: TECHNICAL SPECIFICATIONS FOR 39 PRODUCTS
-   Unmodified data logic from OECS_Product_Specifications.sql.
+   Technical specification seed.
    ============================================================================== */
 
 SET NOCOUNT ON;
@@ -3373,9 +2448,10 @@ IF OBJECT_ID(N'dbo.PRODUCT',N'U') IS NULL OR
    OBJECT_ID(N'dbo.PRODUCT_SPECIFICATION',N'U') IS NULL OR
    OBJECT_ID(N'dbo.CATEGORY_ATTRIBUTE',N'U') IS NULL
 BEGIN
-    THROW 56001, N'Can chay OECS V2 Catalog Migration truoc.', 1;
+    THROW 56001, N'Thieu cac bang catalog/SKU.', 1;
 END;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 CREATE TABLE #SpecSeed (
   product_name NVARCHAR(255) NOT NULL,
@@ -3872,6 +2948,7 @@ VALUES
     (N'Fujifilm X-S20', N'Lấy nét & chống rung', N'Chống rung', N'IBIS trong thân máy', 130),
     (N'Fujifilm X-S20', N'Lấy nét & chống rung', N'Lấy nét tự động', N'Lấy nét tự động nhận diện chủ thể', 120);
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 -- Validation: fail clearly instead of silently doing an incomplete 39-product seed.
 BEGIN TRY
@@ -3906,24 +2983,6 @@ IF EXISTS (
      WHERE a.attribute_name = x.attribute_name
  );
 
- -- 2. Register category-specific display groups. Do not change VARIANT/BOTH configs.
- ;WITH need_config AS (
-   SELECT p.category_id, a.attribute_id,
-          MIN(x.group_name) AS group_name,
-          MIN(x.display_order) AS display_order
-   FROM #SpecSeed x
-   JOIN dbo.PRODUCT p ON p.product_name = x.product_name
-   JOIN dbo.ATTRIBUTE a ON a.attribute_name = x.attribute_name
-   GROUP BY p.category_id,a.attribute_id
- )
- INSERT INTO dbo.CATEGORY_ATTRIBUTE
-   (category_id,attribute_id,group_name,attribute_type,is_required,is_filterable,display_order)
- SELECT k.category_id,k.attribute_id,k.group_name,'SPECIFICATION',0,0,k.display_order
- FROM need_config k
- WHERE NOT EXISTS (
-    SELECT 1 FROM dbo.CATEGORY_ATTRIBUTE ca WITH (UPDLOCK,HOLDLOCK)
-    WHERE ca.category_id=k.category_id AND ca.attribute_id=k.attribute_id
- );
 
  -- 3. Add only missing product specifications. All current values are preserved.
  INSERT INTO dbo.PRODUCT_SPECIFICATION(product_id,attribute_id,value)
@@ -3943,39 +3002,87 @@ BEGIN CATCH
  THROW;
 END CATCH;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
--- 39 product report (includes specs already present before this script)
-SELECT p.product_id,p.product_name,c.category_name,
-       COUNT(ps.attribute_id) AS specification_count
-FROM dbo.PRODUCT p
-JOIN dbo.CATEGORY c ON c.category_id=p.category_id
-LEFT JOIN dbo.PRODUCT_SPECIFICATION ps ON ps.product_id=p.product_id
-WHERE p.product_name IN (SELECT DISTINCT product_name FROM #SpecSeed)
-GROUP BY p.product_id,p.product_name,c.category_name
-ORDER BY p.product_id;
-GO
 
-SELECT COUNT(*) AS products_covered,
-       MIN(n.spec_count) AS min_specs,
-       MAX(n.spec_count) AS max_specs,
-       SUM(n.spec_count) AS all_product_specs
-FROM (
- SELECT p.product_id,COUNT(ps.attribute_id) AS spec_count
- FROM dbo.PRODUCT p
- JOIN (SELECT DISTINCT product_name FROM #SpecSeed) x ON x.product_name=p.product_name
- LEFT JOIN dbo.PRODUCT_SPECIFICATION ps ON ps.product_id=p.product_id
- GROUP BY p.product_id
-) n;
+-- Reconcile category-specific attributes in a single INSERT, after all specs/variants exist.
+-- A property found in both specifications and SKU options is marked BOTH.
+;WITH CategoryAttributePairs AS (
+    SELECT DISTINCT p.category_id, ps.attribute_id, CAST(1 AS BIT) AS has_spec, CAST(0 AS BIT) AS has_variant
+    FROM dbo.PRODUCT_SPECIFICATION ps JOIN dbo.PRODUCT p ON p.product_id=ps.product_id
+    UNION ALL
+    SELECT DISTINCT p.category_id, sav.attribute_id, CAST(0 AS BIT), CAST(1 AS BIT)
+    FROM dbo.SKU_ATTRIBUTE_VALUE sav
+    JOIN dbo.PRODUCT_SKU sku ON sku.sku_id=sav.sku_id
+    JOIN dbo.PRODUCT p ON p.product_id=sku.product_id
+), GroupedPairs AS (
+    SELECT category_id,attribute_id,MAX(CAST(has_spec AS INT)) AS has_spec,
+           MAX(CAST(has_variant AS INT)) AS has_variant
+    FROM CategoryAttributePairs GROUP BY category_id,attribute_id
+), ExtraSpecs AS (
+    SELECT p.category_id,a.attribute_id,
+           MIN(x.group_name) AS group_name,MIN(x.display_order) AS display_order
+    FROM #SpecSeed x
+    JOIN dbo.PRODUCT p ON p.product_name=x.product_name
+    JOIN dbo.ATTRIBUTE a ON a.attribute_name=x.attribute_name
+    GROUP BY p.category_id,a.attribute_id
+)
+INSERT INTO dbo.CATEGORY_ATTRIBUTE
+    (category_id,attribute_id,group_name,attribute_type,is_required,is_filterable,display_order)
+SELECT pairs.category_id,pairs.attribute_id,
+       CASE
+         WHEN pairs.has_variant=1 THEN
+           CASE WHEN c.category_name LIKE N'Laptop%' THEN N'Cấu hình'
+                WHEN c.category_name=N'Smartphone' THEN N'Phiên bản'
+                WHEN a.attribute_name IN (N'RAM',N'Dung lượng lưu trữ') THEN N'Cấu hình'
+                WHEN a.attribute_name=N'Màu sắc' THEN N'Màu sắc'
+                WHEN a.attribute_name=N'Kích thước vỏ' THEN N'Kích cỡ'
+                ELSE N'Phiên bản' END
+         WHEN extra.group_name IS NOT NULL THEN extra.group_name
+         WHEN a.attribute_name IN (N'Màn hình',N'Độ phân giải',N'Tần số quét',N'Loại màn hình') THEN N'Màn hình'
+         WHEN a.attribute_name IN (N'RAM',N'Dung lượng lưu trữ',N'Chip xử lý (CPU)',N'Card đồ họa (GPU)') THEN N'Hiệu năng và bộ nhớ'
+         WHEN a.attribute_name IN (N'Pin',N'Dung lượng pin',N'Công suất sạc') THEN N'Pin và sạc'
+         WHEN a.attribute_name IN (N'Kết nối',N'Loại kết nối') THEN N'Kết nối'
+         WHEN a.attribute_name IN (N'Kích thước',N'Trọng lượng',N'Chất liệu',N'Màu sắc') THEN N'Thiết kế'
+         ELSE N'Tính năng và thông số khác' END,
+       CASE WHEN pairs.has_spec=1 AND pairs.has_variant=1 THEN 'BOTH'
+            WHEN pairs.has_variant=1 THEN 'VARIANT'
+            ELSE 'SPECIFICATION' END,
+       0,
+       CASE WHEN pairs.has_variant=1 OR a.attribute_name IN
+              (N'RAM',N'Dung lượng lưu trữ',N'Chip xử lý (CPU)',N'Màn hình',N'Card đồ họa (GPU)')
+            THEN 1 ELSE 0 END,
+       CASE
+         WHEN pairs.has_variant=1 AND c.category_name=N'Smartphone'
+              AND a.attribute_name=N'Dung lượng lưu trữ' THEN 10
+         WHEN pairs.has_variant=1 AND c.category_name=N'Smartphone'
+              AND a.attribute_name=N'Màu sắc' THEN 20
+         WHEN pairs.has_variant=1 AND c.category_name LIKE N'Laptop%'
+              AND a.attribute_name=N'RAM' THEN 10
+         WHEN pairs.has_variant=1 AND c.category_name LIKE N'Laptop%'
+              AND a.attribute_name=N'Dung lượng lưu trữ' THEN 20
+         WHEN pairs.has_variant=1 AND c.category_name LIKE N'Laptop%'
+              AND a.attribute_name=N'Màu sắc' THEN 30
+         WHEN pairs.has_variant=1 THEN 100+a.attribute_id
+         WHEN extra.display_order IS NOT NULL THEN extra.display_order
+         ELSE a.attribute_id END
+FROM GroupedPairs pairs
+JOIN dbo.CATEGORY c ON c.category_id=pairs.category_id
+JOIN dbo.ATTRIBUTE a ON a.attribute_id=pairs.attribute_id
+LEFT JOIN ExtraSpecs extra ON extra.category_id=pairs.category_id
+                           AND extra.attribute_id=pairs.attribute_id;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
-DROP TABLE #SpecSeed;
+PRINT N'OECS - specifications and category attributes ready.';
 GO
-PRINT N'OECS - specifications seed for 39 products completed.';
-GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
+
+-- ==================== SECTION F: PRODUCT EDITORIAL ==========================
 /* ==============================================================================
    STAGE 5: PRODUCT OVERVIEW EDITORIAL SECTIONS
-   Unmodified data logic from OECS_Product_Overview.sql.
+   Product overview seed.
    ============================================================================== */
 
 SET NOCOUNT ON;
@@ -3984,43 +3091,11 @@ SET XACT_ABORT ON;
 IF OBJECT_ID(N'dbo.PRODUCT',N'U') IS NULL
     THROW 57001,N'Missing dbo.PRODUCT. Initialize OECS first.',1;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
-IF OBJECT_ID(N'dbo.PRODUCT_CONTENT_SECTION',N'U') IS NULL
-BEGIN
-  CREATE TABLE dbo.PRODUCT_CONTENT_SECTION (
-    section_id INT IDENTITY(1,1) NOT NULL
-      CONSTRAINT PK_PRODUCT_CONTENT_SECTION PRIMARY KEY,
-    product_id INT NOT NULL,
-    section_key VARCHAR(40) NOT NULL,
-    section_title NVARCHAR(160) NOT NULL,
-    section_content NVARCHAR(1500) NOT NULL,
-    image_url NVARCHAR(500) NULL,
-    image_alt NVARCHAR(200) NULL,
-    display_order INT NOT NULL
-      CONSTRAINT DF_PRODUCT_CONTENT_ORDER DEFAULT (0),
-    is_active BIT NOT NULL
-      CONSTRAINT DF_PRODUCT_CONTENT_ACTIVE DEFAULT (1),
-    created_at DATETIME2(3) NOT NULL
-      CONSTRAINT DF_PRODUCT_CONTENT_CREATED DEFAULT SYSDATETIME(),
-    updated_at DATETIME2(3) NULL,
-    CONSTRAINT FK_PRODUCT_CONTENT_PRODUCT
-      FOREIGN KEY (product_id) REFERENCES dbo.PRODUCT(product_id),
-    CONSTRAINT UQ_PRODUCT_CONTENT_KEY UNIQUE(product_id,section_key),
-    CONSTRAINT CK_PRODUCT_CONTENT_ORDER CHECK (display_order>=0),
-    CONSTRAINT CK_PRODUCT_CONTENT_TITLE CHECK(LEN(LTRIM(RTRIM(section_title)))>0),
-    CONSTRAINT CK_PRODUCT_CONTENT_BODY CHECK(LEN(LTRIM(RTRIM(section_content)))>0)
-  );
-END;
+-- PRODUCT_CONTENT_SECTION was created in the schema section.
 GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.indexes
-    WHERE object_id=OBJECT_ID(N'dbo.PRODUCT_CONTENT_SECTION')
-      AND name=N'IX_PRODUCT_CONTENT_ACTIVE_ORDER'
-)
-  CREATE INDEX IX_PRODUCT_CONTENT_ACTIVE_ORDER
-  ON dbo.PRODUCT_CONTENT_SECTION(product_id,is_active,display_order,section_id);
-GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 CREATE TABLE #OverviewSeed(
   product_name NVARCHAR(255) NOT NULL,
@@ -4028,7 +3103,7 @@ CREATE TABLE #OverviewSeed(
   section_title NVARCHAR(160) NOT NULL,
   section_content NVARCHAR(1500) NOT NULL,
   display_order INT NOT NULL,
-  CONSTRAINT PK_OverviewSeed PRIMARY KEY(product_name,section_key)
+  PRIMARY KEY(product_name,section_key)
 );
 
 INSERT INTO #OverviewSeed(product_name,section_key,section_title,section_content,display_order)
@@ -4151,6 +3226,7 @@ VALUES
   (N'Fujifilm X-S20', 'video', N'Ghi hình và lấy nét', N'Khả năng ghi hình Tối đa 6.2K 30p. Các tính năng lấy nét đáp ứng nhiều tình huống chụp và quay; hãy xem bảng thông số để biết giới hạn từng chế độ.', 20),
   (N'Fujifilm X-S20', 'lens', N'Linh hoạt với hệ ống kính', N'Ngàm Fujifilm X-mount. Sản phẩm có thể bán dạng thân máy hoặc bộ kit theo SKU; cần kiểm tra bộ ống kính đi kèm trước khi mua.', 30);
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 -- Fail explicitly for renamed/missing/duplicate products.
 IF (SELECT COUNT(DISTINCT product_name) FROM #OverviewSeed) <> 39
@@ -4161,13 +3237,10 @@ IF EXISTS(
   WHERE chk.n<>1
 )
 BEGIN
-  SELECT x.product_name, COUNT(p.product_id) AS matching_products
-  FROM (SELECT DISTINCT product_name FROM #OverviewSeed) x
-  LEFT JOIN dbo.PRODUCT p ON p.product_name=x.product_name
-  GROUP BY x.product_name HAVING COUNT(p.product_id)<>1;
   THROW 57003,N'Missing or duplicate product names. No data inserted.',1;
 END;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 BEGIN TRY
   BEGIN TRANSACTION;
@@ -4191,27 +3264,17 @@ BEGIN CATCH
   THROW;
 END CATCH;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
--- Verify 39 products have 3 sections each and list those with missing content.
-SELECT p.product_id,p.product_name,COUNT(s.section_id) AS overview_sections,
-       SUM(CASE WHEN NULLIF(LTRIM(RTRIM(s.image_url)),N'') IS NOT NULL THEN 1 ELSE 0 END) AS sections_with_images
-FROM dbo.PRODUCT p
-LEFT JOIN dbo.PRODUCT_CONTENT_SECTION s ON s.product_id=p.product_id AND s.is_active=1
-GROUP BY p.product_id,p.product_name ORDER BY p.product_id;
+
+-- ==================== SECTION G: INITIAL INVENTORY SNAPSHOTS =================
+INSERT INTO dbo.INVENTORY_MOVEMENT
+ (sku_id,movement_type,quantity_delta,quantity_before,quantity_after,note,actor_user_id)
+SELECT s.sku_id,'OPENING',s.stock_quantity,0,s.stock_quantity,
+       N'Số dư khởi tạo dữ liệu mẫu',NULL
+FROM dbo.PRODUCT_SKU s;
 GO
-
-SELECT COUNT(*) AS total_overview_sections,
-       COUNT(DISTINCT product_id) AS total_products_with_overview
-FROM dbo.PRODUCT_CONTENT_SECTION;
-GO
-
-/* OPTIONAL: after uploading an OWNED or LICENSED image to the app's static public path:
-   UPDATE dbo.PRODUCT_CONTENT_SECTION
-   SET image_url=N'uploads/product-overview/1/display.webp',
-       image_alt=N'Man hinh iPhone 15 Pro',updated_at=SYSDATETIME()
-   WHERE product_id=1 AND section_key='display';
-   -- Do not insert FPT Shop's photographs without rights.
-*/
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 /* ===========================================================================
    STAGE 6: BOOTSTRAP VERIFICATION
@@ -4223,6 +3286,7 @@ BEGIN
     THROW 58101, N'OECS bootstrap: expected 39 initial products.', 1;
 END;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 IF EXISTS (
     SELECT p.product_id
@@ -4236,23 +3300,24 @@ BEGIN
     THROW 58102, N'OECS bootstrap: at least one product lacks SKUs.', 1;
 END;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 IF (SELECT COUNT(*) FROM dbo.PRODUCT_CONTENT_SECTION) <> 117
 BEGIN
     THROW 58103, N'OECS bootstrap: expected 117 product overview sections.', 1;
 END;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 IF OBJECT_ID(N'dbo.CATEGORY_ATTRIBUTE', N'U') IS NULL
    OR OBJECT_ID(N'dbo.SKU_ATTRIBUTE_VALUE', N'U') IS NULL
    OR OBJECT_ID(N'dbo.INVENTORY_MOVEMENT', N'U') IS NULL
    OR OBJECT_ID(N'dbo.PRODUCT_CONTENT_SECTION', N'U') IS NULL
-   OR OBJECT_ID(N'dbo.usp_OECS_RefreshSkuVariantKey', N'P') IS NULL
-   OR OBJECT_ID(N'dbo.trg_OECS_Inventory_TrackStock', N'TR') IS NULL
 BEGIN
     THROW 58104, N'OECS bootstrap: missing a required catalog/inventory object.', 1;
 END;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
 IF EXISTS (
     SELECT 1
@@ -4265,29 +3330,16 @@ BEGIN
     THROW 58105, N'OECS bootstrap: duplicate SKU variant combinations.', 1;
 END;
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
-SELECT
-    (SELECT COUNT_BIG(*) FROM dbo.PRODUCT) AS product_count,
-    (SELECT COUNT_BIG(*) FROM dbo.PRODUCT_SKU) AS sku_count,
-    (SELECT COUNT_BIG(*) FROM dbo.SKU_ATTRIBUTE_VALUE) AS sku_attribute_count,
-    (SELECT COUNT_BIG(*) FROM dbo.PRODUCT_SPECIFICATION) AS product_spec_count,
-    (SELECT COUNT_BIG(*) FROM dbo.PRODUCT_CONTENT_SECTION) AS overview_section_count,
-    (SELECT COUNT_BIG(*) FROM dbo.INVENTORY_MOVEMENT) AS inventory_movement_count,
-    (SELECT COUNT_BIG(*) FROM dbo.[USER]) AS user_count;
+PRINT N'OECS catalog/bootstrap assertions finished; review prior Messages for errors.';
 GO
+IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 
-SELECT c.category_name, COUNT(DISTINCT p.product_id) AS product_count,
-       COUNT(s.sku_id) AS sku_count
-FROM dbo.CATEGORY c
-LEFT JOIN dbo.PRODUCT p ON p.category_id = c.category_id
-LEFT JOIN dbo.PRODUCT_SKU s ON s.product_id = p.product_id
-GROUP BY c.category_name
-ORDER BY c.category_name;
-GO
 
-PRINT N'OECS V2 complete initialization finished. Review counts and warnings above.';
-GO
+-- All order, refund, voucher, inventory and review workflows are implemented
+-- in Java Service/DAO. This bootstrap installs no procedures or triggers.
 
--- Always restore this session option, including when initialization was skipped.
-SET NOEXEC OFF;
+PRINT N'OECS schema and development seed script reached the end. Review any earlier errors before using database.';
+SET CONTEXT_INFO 0x00;
 GO

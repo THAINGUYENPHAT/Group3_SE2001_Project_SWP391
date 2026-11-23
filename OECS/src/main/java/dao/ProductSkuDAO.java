@@ -5,7 +5,6 @@ import model.ProductSku;
 import model.SkuAttributeValue;
 
 import java.math.BigDecimal;
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -861,15 +860,7 @@ public class ProductSkuDAO extends DBContext {
             Connection conn,
             int skuId) throws SQLException {
 
-        String sql
-                = "{CALL dbo.usp_OECS_RefreshSkuVariantKey(?)}";
-
-        try (CallableStatement cs
-                = conn.prepareCall(sql)) {
-
-            cs.setInt(1, skuId);
-            cs.execute();
-        }
+        SkuVariantKeyHelper.refresh(conn, skuId);
     }
 
     private void rollbackQuietly(

@@ -149,7 +149,11 @@ public class UserDAO extends DBContext {
         }
     }
 
-    public List<User> getAllUsers(String keyword, String role, String status, String sort) {
+    public List<User> getAllUsers(
+            String keyword,
+            Integer roleId,
+            String status,
+            String sort) {
 
         List<User> userList = new ArrayList<>();
         List<Object> params = new ArrayList<>();
@@ -188,11 +192,11 @@ public class UserDAO extends DBContext {
             params.add(searchKeyword);
         }
 
-        if (role != null && !role.trim().isEmpty()) {
+        if (roleId != null) {
 
-            sql.append("AND r.role_name = ? ");
+            sql.append("AND u.role_id = ? ");
 
-            params.add(role.trim());
+            params.add(roleId);
         }
 
         if ("active".equalsIgnoreCase(status)) {
@@ -356,7 +360,6 @@ public class UserDAO extends DBContext {
     public boolean updateProfile(int userId, String email, String phone, String address, String fullName) {
         String updateProfileSql = "UPDATE [USER] SET email = ?, phone = ? WHERE user_id = ?";
 
-        String checkAddrSql = "SELECT address_id FROM ADDRESSBOOK WHERE user_id = ? AND is_default = 1";
         String updateAddrSql = "UPDATE ADDRESSBOOK SET address_line = ?, phone_number = ? WHERE user_id = ? AND is_default = 1";
         String insertAddrSql = "INSERT INTO ADDRESSBOOK (user_id, recipient_name, phone_number, address_line, is_default) VALUES (?, ?, ?, ?, 1)";
 
@@ -373,29 +376,39 @@ public class UserDAO extends DBContext {
             }
 
             if (address != null && !address.trim().isEmpty()) {
-                boolean hasDefaultAddr = false;
-                try (PreparedStatement psCheck = conn.prepareStatement(checkAddrSql)) {
-                    psCheck.setInt(1, userId);
-                    try (ResultSet rs = psCheck.executeQuery()) {
-                        if (rs.next()) {
-                            hasDefaultAddr = true;
-                        }
-                    }
+
+                // 1. Thu cap nhat dia chi mac dinh theo user_id.
+                int updatedRows;
+
+                try (PreparedStatement psUpdateAddr
+                        = conn.prepareStatement(updateAddrSql)) {
+
+                    psUpdateAddr.setString(1, address.trim());
+                    psUpdateAddr.setString(2, phone);
+                    psUpdateAddr.setInt(3, userId);
+
+                    updatedRows = psUpdateAddr.executeUpdate();
                 }
 
-                if (hasDefaultAddr) {
-                    try (PreparedStatement psUpdateAddr = conn.prepareStatement(updateAddrSql)) {
-                        psUpdateAddr.setString(1, address.trim());
-                        psUpdateAddr.setString(2, phone);
-                        psUpdateAddr.setInt(3, userId);
-                        psUpdateAddr.executeUpdate();
-                    }
-                } else {
-                    try (PreparedStatement psInsertAddr = conn.prepareStatement(insertAddrSql)) {
+                // 2. Neu chua co dia chi mac dinh,
+                //    them dia chi moi.
+                if (updatedRows == 0) {
+
+                    try (PreparedStatement psInsertAddr
+                            = conn.prepareStatement(insertAddrSql)) {
+
                         psInsertAddr.setInt(1, userId);
-                        psInsertAddr.setString(2, fullName != null ? fullName : "Khách hàng");
+
+                        psInsertAddr.setString(
+                                2,
+                                fullName != null
+                                        ? fullName
+                                        : "Khách hàng"
+                        );
+
                         psInsertAddr.setString(3, phone);
                         psInsertAddr.setString(4, address.trim());
+
                         psInsertAddr.executeUpdate();
                     }
                 }
@@ -430,50 +443,39 @@ public class UserDAO extends DBContext {
             String rawOldPassword,
             String rawNewPassword) {
 
-        String checkSql
-                = "SELECT user_id "
-                + "FROM [USER] "
+        String sql
+                = "UPDATE dbo.[USER] "
+                + "SET password_hash = ? "
                 + "WHERE user_id = ? "
                 + "AND password_hash = ?";
 
-        String updateSql
-                = "UPDATE [USER] "
-                + "SET password_hash = ? "
-                + "WHERE user_id = ?";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
-        try (Connection conn = getConnection()) {
+            // Mat khau moi
+            ps.setString(
+                    1,
+                    hashMd5(rawNewPassword)
+            );
 
-            try (PreparedStatement checkPs
-                    = conn.prepareStatement(checkSql)) {
+            // Xac dinh tai khoan bang ID
+            ps.setInt(2, userId);
 
-                checkPs.setInt(1, userId);
-                checkPs.setString(2,
-                        hashMd5(rawOldPassword));
+            // Kiem tra mat khau cu ngay trong UPDATE
+            ps.setString(
+                    3,
+                    hashMd5(rawOldPassword)
+            );
 
-                try (ResultSet rs
-                        = checkPs.executeQuery()) {
-
-                    if (!rs.next()) {
-                        return false;
-                    }
-                }
-            }
-
-            try (PreparedStatement updatePs
-                    = conn.prepareStatement(updateSql)) {
-
-                updatePs.setString(1,
-                        hashMd5(rawNewPassword));
-
-                updatePs.setInt(2, userId);
-
-                return updatePs.executeUpdate() > 0;
-            }
+            // 1 dong duoc cap nhat = thanh cong
+            return ps.executeUpdate() == 1;
 
         } catch (SQLException ex) {
 
-            LOGGER.log(Level.SEVERE,
-                    "Lỗi đổi mật khẩu!", ex);
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Loi doi mat khau nguoi dung!",
+                    ex
+            );
         }
 
         return false;

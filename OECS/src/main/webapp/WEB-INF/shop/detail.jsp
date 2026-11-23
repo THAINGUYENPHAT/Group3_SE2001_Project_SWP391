@@ -914,8 +914,39 @@
                 color: #475569;
                 line-height: 1.9;
                 font-size: 15px;
-                white-space: pre-line;
             }
+
+            .product-description-intro h2 {
+                font-size: 22px;
+                font-weight: 750;
+                color: #172033;
+                line-height: 1.5;
+                margin: 0 0 16px;
+            }
+
+            .product-description-intro p {
+                font-size: 15px;
+                line-height: 1.9;
+                color: #475569;
+                margin-bottom: 16px;
+            }
+
+            .product-description-intro ul {
+                padding-left: 24px;
+                margin: 16px 0;
+            }
+
+            .product-description-intro li {
+                margin-bottom: 10px;
+                line-height: 1.8;
+                color: #475569;
+            }
+
+            .product-description-intro strong {
+                color: #1e293b;
+                font-weight: 700;
+            }
+
 
             .product-description-item {
                 padding: 24px 0;
@@ -987,15 +1018,19 @@
                                              MÔ TẢ CHÍNH
                                              =========================== --%>
 
+
                                         <c:if test="${not empty product.description}">
 
                                             <div class="product-description-intro">
 
-                                                <c:out value="${product.description}"/>
+                                                <c:out
+                                                    value="${safeProductDescription}"
+                                                    escapeXml="false"/>
 
                                             </div>
 
                                         </c:if>
+
 
                                         <%-- ===========================
                                              NỘI DUNG CHI TIẾT

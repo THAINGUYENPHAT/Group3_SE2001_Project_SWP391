@@ -322,9 +322,6 @@ public class OrderDAO {
         order.setUserId(rs.getInt("user_id"));
         order.setAddressId(rs.getInt("address_id"));
 
-        order.setShippingPartnerId(
-                (Integer) rs.getObject("shipping_partner_id")
-        );
 
         order.setTotalAmount(rs.getBigDecimal("total_amount"));
         order.setShippingFee(rs.getBigDecimal("shipping_fee"));

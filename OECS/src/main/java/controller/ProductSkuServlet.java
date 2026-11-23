@@ -105,37 +105,37 @@ public class ProductSkuServlet extends HttpServlet {
         Map<Integer, List<ProductImage>> skuImagesBySkuId
                 = new HashMap<>();
 
-        SkuImageService imageService
-                = new SkuImageService();
-
         try {
 
-            for (ProductSku sku : skuList) {
+            if (!skuList.isEmpty()) {
 
-                List<ProductImage> images
-                        = imageService.getImagesBySkuId(
-                                productId,
-                                sku.getSkuId()
-                        );
+                // Mot query lay anh cua tat ca SKU theo Product ID.
+                skuImagesBySkuId
+                        = new SkuImageService()
+                                .getImagesByProductId(productId);
 
-                skuImagesBySkuId.put(
-                        sku.getSkuId(),
-                        images
-                );
+                // Giu danh sach rong cho SKU chua co anh.
+                for (ProductSku sku : skuList) {
+
+                    skuImagesBySkuId.putIfAbsent(
+                            sku.getSkuId(),
+                            new ArrayList<>()
+                    );
+                }
             }
 
         } catch (SQLException ex) {
 
             LOGGER.log(
                     Level.SEVERE,
-                    "Không tải được ảnh SKU của Product ID "
+                    "Khong tai duoc anh SKU cua Product ID "
                     + productId,
                     ex
             );
 
             request.getSession().setAttribute(
                     "errorMsg",
-                    "Không thể tải danh sách ảnh SKU."
+                    "Khong the tai danh sach anh SKU."
             );
 
             redirectToProductList(request, response);
@@ -493,13 +493,6 @@ public class ProductSkuServlet extends HttpServlet {
             throw new IllegalArgumentException("SKU ID không hợp lệ.");
         }
 
-        ProductSku existing = new ProductSkuDAO().getBySkuId(skuId);
-        if (existing == null
-                || existing.getProductId() != product.getProductId()) {
-            throw new IllegalArgumentException(
-                    "SKU không thuộc sản phẩm này."
-            );
-        }
 
         String deletedCode = new SkuHardDeleteDAO().deletePermanently(
                 product.getProductId(), skuId

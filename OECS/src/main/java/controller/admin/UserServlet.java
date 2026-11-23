@@ -1,4 +1,4 @@
-package controller;
+package controller.admin;
 
 import dao.UserDAO;
 import jakarta.servlet.ServletException;
@@ -73,36 +73,55 @@ public class UserServlet extends HttpServlet {
         if (view == null || "list".equals(view)) {
 
             String keyword = request.getParameter("keyword");
-
-            String role = request.getParameter("role");
-
+            String roleIdParam = request.getParameter("roleId");
             String status = request.getParameter("status");
-
             String sort = request.getParameter("sort");
 
-            keyword = keyword != null
-                    ? keyword.trim()
-                    : "";
+            keyword = keyword != null ? keyword.trim() : "";
+            status = status != null ? status.trim() : "";
+            sort = sort != null ? sort.trim() : "newest";
 
-            role = role != null
-                    ? role.trim()
-                    : "";
+// Chuyen roleId tu String sang Integer.
+            Integer roleId = null;
 
-            status = status != null
-                    ? status.trim()
-                    : "";
+            if (roleIdParam != null
+                    && !roleIdParam.trim().isEmpty()) {
 
-            sort = sort != null
-                    ? sort.trim()
-                    : "newest";
+                try {
 
-            List<User> userList
-                    = dao.getAllUsers(
-                            keyword,
-                            role,
-                            status,
-                            sort
+                    roleId = Integer.valueOf(roleIdParam.trim());
+
+                    if (roleId <= 0) {
+                        response.sendError(
+                                HttpServletResponse.SC_BAD_REQUEST,
+                                "Role ID khong hop le."
+                        );
+                        return;
+                    }
+
+                } catch (NumberFormatException ex) {
+
+                    response.sendError(
+                            HttpServletResponse.SC_BAD_REQUEST,
+                            "Role ID khong hop le."
                     );
+                    return;
+                }
+            }
+
+// Loc nguoi dung theo role_id.
+            List<User> userList = dao.getAllUsers(
+                    keyword,
+                    roleId,
+                    status,
+                    sort
+            );
+
+// Lay danh sach Role cho dropdown tren JSP.
+            request.setAttribute(
+                    "roleList",
+                    dao.getAllRoles()
+            );
 
             request.setAttribute(
                     "userList",
@@ -114,10 +133,7 @@ public class UserServlet extends HttpServlet {
                     keyword
             );
 
-            request.setAttribute(
-                    "role",
-                    role
-            );
+            request.setAttribute("roleId", roleId);
 
             request.setAttribute(
                     "status",

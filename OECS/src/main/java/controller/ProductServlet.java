@@ -1,6 +1,5 @@
 package controller;
 
-import dao.AttributeDAO;
 import dao.BrandDAO;
 import dao.CategoryAttributeDAO;
 import dao.CategoryDAO;
@@ -822,15 +821,6 @@ public class ProductServlet extends HttpServlet {
                 onlyActive
                         ? categoryDAO.getActiveCategories()
                         : categoryDAO.getList()
-        );
-
-        /*
-         * Giữ attributeList cho các
-         * thành phần JSP cũ nếu còn sử dụng.
-         */
-        request.setAttribute(
-                "attributeList",
-                new AttributeDAO().getActiveAttributes()
         );
     }
 

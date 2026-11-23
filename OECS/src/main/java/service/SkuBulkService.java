@@ -4,11 +4,10 @@ import db.DBContext;
 
 import model.ProductSku;
 import model.SkuAttributeValue;
-
+import dao.SkuVariantKeyHelper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -862,35 +861,11 @@ public class SkuBulkService extends DBContext {
         }
     }
 
-    // ========================================
-    // 10. REFRESH VARIANT KEY
-    // ========================================
     private void refreshSkuVariantKey(
             Connection conn,
-            int skuId)
-            throws SQLException {
+            int skuId) throws SQLException {
 
-        /*
-         * BẮT BUỘC dùng cùng Connection.
-         *
-         * Stored procedure:
-         * dbo.usp_OECS_RefreshSkuVariantKey
-         *
-         * Nếu procedure hoặc unique index
-         * phát hiện tổ hợp trùng,
-         * SQLException sẽ khiến cả batch
-         * bị rollback.
-         */
-        String sql
-                = "{call dbo.usp_OECS_RefreshSkuVariantKey(?)}";
-
-        try (CallableStatement cs
-                = conn.prepareCall(sql)) {
-
-            cs.setInt(1, skuId);
-
-            cs.execute();
-        }
+        SkuVariantKeyHelper.refresh(conn, skuId);
     }
 
     // ========================================

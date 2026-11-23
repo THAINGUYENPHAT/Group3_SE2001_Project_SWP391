@@ -2,7 +2,9 @@ package controller;
 
 import dao.ShopDAO;
 import dao.ProductReviewDAO;
-import db.DBContext;
+import dao.CategoryDAO;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 
 import model.Category;
 import model.ProductOverviewSection;
@@ -20,11 +22,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import java.text.Normalizer;
 
@@ -118,21 +115,18 @@ public class ShopServlet extends HttpServlet {
         List<Category> filterCategories;
 
         try {
+            CategoryDAO categoryDAO = new CategoryDAO();
+            filterCategories = categoryDAO.getActiveCategories();
 
-            filterCategories
-                    = new CategoryFilterReader()
-                            .getActiveCategories();
-
-        } catch (SQLException ex) {
-
+        } catch (RuntimeException ex) {
             LOGGER.log(
                     Level.SEVERE,
-                    "Không thể tải danh mục sản phẩm",
+                    "Khong the tai danh muc san pham",
                     ex
             );
 
             throw new ServletException(
-                    "Không thể tải danh mục sản phẩm.",
+                    "Khong the tai danh muc san pham.",
                     ex
             );
         }
@@ -297,20 +291,14 @@ public class ShopServlet extends HttpServlet {
         }
 
         Map<String, List<ProductSpec>> specGroups
-                = buildSpecGroups(
-                        product.getCategoryId(),
-                        specs
-                );
+                = buildSpecGroups(specs);
 
         List<ProductSpec> featuredSpecs
-                = buildFeaturedSpecs(
-                        product,
-                        specs
-                );
+                = buildFeaturedSpecs(specs);
+
         // =====================================
 // TỔNG QUAN SẢN PHẨM
 // =====================================
-
         List<ProductOverviewSection> overviewSections
                 = shopDAO.getProductOverviewSections(productId);
 
@@ -395,6 +383,21 @@ public class ShopServlet extends HttpServlet {
                 product
         );
 
+// Chỉ cho phép các thẻ HTML định dạng an toàn
+        String safeProductDescription = Jsoup.clean(
+                product.getDescription() == null
+                ? ""
+                : product.getDescription(),
+                Safelist.basic().addTags(
+                        "h2", "h3", "h4"
+                )
+        );
+
+        request.setAttribute(
+                "safeProductDescription",
+                safeProductDescription
+        );
+
         request.setAttribute(
                 "skus",
                 skus
@@ -477,44 +480,14 @@ public class ShopServlet extends HttpServlet {
         ).forward(request, response);
     }
 
-    // =========================================
-    // 4. CHIA NHÓM THÔNG SỐ KỸ THUẬT
-    // =========================================
     private Map<String, List<ProductSpec>> buildSpecGroups(
-            int categoryId,
             List<ProductSpec> specs) {
 
         Map<String, List<ProductSpec>> groups
                 = new LinkedHashMap<>();
 
         if (specs == null || specs.isEmpty()) {
-
             return groups;
-        }
-
-        Map<String, String> groupNames
-                = Collections.emptyMap();
-
-        try {
-
-            groupNames
-                    = new SpecGroupReader()
-                            .getGroupNames(categoryId);
-
-        } catch (SQLException ex) {
-
-            /*
-             * Không làm hỏng trang Detail
-             * nếu không tải được cấu hình nhóm.
-             *
-             * Sử dụng nhóm dự phòng theo tên
-             * thuộc tính.
-             */
-            LOGGER.log(
-                    Level.WARNING,
-                    "Không thể tải CATEGORY_ATTRIBUTE.group_name",
-                    ex
-            );
         }
 
         for (ProductSpec spec : specs) {
@@ -523,34 +496,30 @@ public class ShopServlet extends HttpServlet {
                 continue;
             }
 
-            String attributeName
-                    = spec.getAttributeName();
+            String attributeName = spec.getAttributeName();
+            String value = spec.getValue();
 
             if (attributeName == null
                     || attributeName.trim().isEmpty()) {
-
                 continue;
             }
-
-            String value = spec.getValue();
 
             if (value == null
                     || value.trim().isEmpty()) {
-
                 continue;
             }
 
-            String groupName
-                    = groupNames.get(
-                            normalizeText(attributeName)
-                    );
+            // Group da duoc lay trong ShopDAO bang ID.
+            String groupName = spec.getGroupName();
 
-            // Nếu chưa cấu hình nhóm trong SQL
+            // Du phong khi chua cau hinh group trong DB.
             if (groupName == null
                     || groupName.trim().isEmpty()) {
 
-                groupName
-                        = guessSpecGroup(attributeName);
+                groupName = guessSpecGroup(attributeName);
+
+            } else {
+                groupName = groupName.trim();
             }
 
             groups.computeIfAbsent(
@@ -700,228 +669,39 @@ public class ShopServlet extends HttpServlet {
         return "Thông số khác";
     }
 
-    // =========================================
-    // 6. CHỌN THÔNG SỐ NỔI BẬT
-    // =========================================
     private List<ProductSpec> buildFeaturedSpecs(
-            Product product,
             List<ProductSpec> specs) {
 
-        List<ProductSpec> featured
-                = new ArrayList<>();
+        List<ProductSpec> featured = new ArrayList<>();
 
-        if (product == null
-                || specs == null
-                || specs.isEmpty()) {
-
+        if (specs == null || specs.isEmpty()) {
             return featured;
         }
 
-        String categoryName = "";
-
-        if (product.getCategory() != null
-                && product.getCategory().getCategoryName() != null) {
-
-            categoryName
-                    = normalizeText(
-                            product.getCategory()
-                                    .getCategoryName()
-                    );
-        }
-
-        List<String> preferred;
-
-        // =====================================
-        // SMARTPHONE
-        // =====================================
-        if (categoryName.contains("smartphone")
-                || categoryName.contains("dien thoai")) {
-
-            preferred = Arrays.asList(
-                    "Chip xử lý (CPU)",
-                    "Kích thước màn hình",
-                    "Màn hình",
-                    "Tần số quét",
-                    "Camera sau",
-                    "Camera chính",
-                    "Dung lượng pin",
-                    "Công suất sạc",
-                    "Kết nối NFC"
-            );
-
-            // =====================================
-            // LAPTOP
-            // =====================================
-        } else if (categoryName.contains("laptop")) {
-
-            preferred = Arrays.asList(
-                    "Chip xử lý (CPU)",
-                    "Card đồ họa (GPU)",
-                    "Kích thước màn hình",
-                    "Màn hình",
-                    "Tần số quét",
-                    "Trọng lượng",
-                    "Kết nối không dây",
-                    "Cổng kết nối"
-            );
-
-            // =====================================
-            // TAI NGHE
-            // =====================================
-        } else if (categoryName.contains("tai nghe")) {
-
-            preferred = Arrays.asList(
-                    "Chống ồn chủ động",
-                    "Chống ồn",
-                    "Bluetooth",
-                    "Kiểu tai nghe",
-                    "Thời lượng pin",
-                    "Thời gian sử dụng",
-                    "Công nghệ âm thanh",
-                    "Chuẩn kháng nước"
-            );
-
-            // =====================================
-            // ĐỒNG HỒ THÔNG MINH
-            // =====================================
-        } else if (categoryName.contains("dong ho")) {
-
-            preferred = Arrays.asList(
-                    "Kích thước màn hình",
-                    "Công nghệ màn hình",
-                    "Màn hình",
-                    "GPS",
-                    "Cảm biến sức khỏe",
-                    "Thời lượng pin",
-                    "Chống nước",
-                    "Bluetooth"
-            );
-
-            // =====================================
-            // MÁY ẢNH
-            // =====================================
-        } else if (categoryName.contains("may anh")
-                || categoryName.contains("camera")) {
-
-            preferred = Arrays.asList(
-                    "Độ phân giải hữu dụng",
-                    "Cảm biến máy ảnh",
-                    "Kích thước cảm biến",
-                    "Độ phân giải video",
-                    "Chống rung",
-                    "Lấy nét tự động",
-                    "Màn hình",
-                    "Trọng lượng"
-            );
-
-            // =====================================
-            // SẠC, CÁP
-            // =====================================
-        } else if (categoryName.contains("sac")
-                || categoryName.contains("cap")) {
-
-            preferred = Arrays.asList(
-                    "Công suất tối đa",
-                    "Công suất sạc",
-                    "Cổng kết nối",
-                    "Chuẩn sạc",
-                    "Chiều dài",
-                    "Khả năng tương thích"
-            );
-
-            // =====================================
-            // CHUỘT, BÀN PHÍM
-            // =====================================
-        } else if (categoryName.contains("chuot")
-                || categoryName.contains("ban phim")) {
-
-            preferred = Arrays.asList(
-                    "Kiểu kết nối",
-                    "Công nghệ kết nối",
-                    "DPI",
-                    "Loại switch",
-                    "Số phím",
-                    "Đèn nền",
-                    "Trọng lượng",
-                    "Tương thích"
-            );
-
-            // =====================================
-            // CÁC DANH MỤC KHÁC
-            // =====================================
-        } else {
-
-            preferred = Arrays.asList(
-                    "Màn hình",
-                    "Độ phân giải",
-                    "Công suất",
-                    "Kết nối",
-                    "Chất liệu",
-                    "Kích thước",
-                    "Trọng lượng",
-                    "Tính năng"
-            );
-        }
-
-        // =====================================
-        // ƯU TIÊN THÔNG SỐ THEO DANH MỤC
-        // =====================================
-        for (String preferredName : preferred) {
-
-            String expected
-                    = normalizeText(preferredName);
-
-            for (ProductSpec spec : specs) {
-
-                if (spec == null
-                        || spec.getAttributeName() == null
-                        || spec.getValue() == null
-                        || spec.getValue().trim().isEmpty()) {
-
-                    continue;
-                }
-
-                if (featured.contains(spec)) {
-                    continue;
-                }
-
-                String actual
-                        = normalizeText(
-                                spec.getAttributeName()
-                        );
-
-                if (actual.equals(expected)) {
-
-                    featured.add(spec);
-                    break;
-                }
-            }
-
-            if (featured.size() >= MAX_FEATURED_SPECS) {
-                break;
-            }
-        }
-
-        // =====================================
-        // BỔ SUNG NẾU CHƯA ĐỦ 6 THÔNG SỐ
-        // =====================================
+        // Danh sach da duoc DAO sap xep theo display_order.
         for (ProductSpec spec : specs) {
 
-            if (featured.size() >= MAX_FEATURED_SPECS) {
-                break;
-            }
-
-            if (spec == null
-                    || spec.getAttributeName() == null
-                    || spec.getValue() == null
-                    || spec.getValue().trim().isEmpty()) {
-
+            if (spec == null) {
                 continue;
             }
 
-            if (!featured.contains(spec)) {
+            // Su dung ID de xac dinh thuoc tinh.
+            if (spec.getAttributeId() <= 0) {
+                continue;
+            }
 
-                featured.add(spec);
+            // Bo qua thong so chua co gia tri.
+            String value = spec.getValue();
+
+            if (value == null || value.trim().isEmpty()) {
+                continue;
+            }
+
+            featured.add(spec);
+
+            // Chi hien thi toi da 6 thong so noi bat.
+            if (featured.size() >= MAX_FEATURED_SPECS) {
+                break;
             }
         }
 
@@ -1053,115 +833,4 @@ public class ShopServlet extends HttpServlet {
         }
     }
 
-    // =========================================
-    // 12. LẤY DANH MỤC ACTIVE
-    // =========================================
-    private static class CategoryFilterReader
-            extends DBContext {
-
-        public List<Category> getActiveCategories()
-                throws SQLException {
-
-            List<Category> categories
-                    = new ArrayList<>();
-
-            String sql
-                    = "SELECT category_id, category_name "
-                    + "FROM dbo.CATEGORY "
-                    + "WHERE is_active = 1 "
-                    + "ORDER BY category_name ASC, "
-                    + "category_id ASC";
-
-            try (Connection conn = getConnection(); PreparedStatement ps
-                    = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
-
-                while (rs.next()) {
-
-                    Category category
-                            = new Category(
-                                    rs.getInt("category_id"),
-                                    rs.getString("category_name"),
-                                    null
-                            );
-
-                    categories.add(category);
-                }
-            }
-
-            return categories;
-        }
-    }
-
-    // =========================================
-    // 13. ĐỌC GROUP_NAME TỪ DATABASE
-    // =========================================
-    private static class SpecGroupReader
-            extends DBContext {
-
-        public Map<String, String> getGroupNames(
-                int categoryId)
-                throws SQLException {
-
-            Map<String, String> names
-                    = new LinkedHashMap<>();
-
-            /*
-             * CATEGORY_ATTRIBUTE:
-             *
-             * category_id
-             * attribute_id
-             * group_name
-             * attribute_type
-             * is_filterable
-             * display_order
-             */
-            String sql
-                    = "SELECT "
-                    + "a.attribute_name, "
-                    + "ca.group_name "
-                    + "FROM dbo.CATEGORY_ATTRIBUTE ca "
-                    + "INNER JOIN dbo.ATTRIBUTE a "
-                    + "ON a.attribute_id = ca.attribute_id "
-                    + "WHERE ca.category_id = ? "
-                    + "ORDER BY ca.display_order ASC, "
-                    + "a.attribute_name ASC";
-
-            try (Connection conn = getConnection(); PreparedStatement ps
-                    = conn.prepareStatement(sql)) {
-
-                ps.setInt(1, categoryId);
-
-                try (ResultSet rs = ps.executeQuery()) {
-
-                    while (rs.next()) {
-
-                        String attributeName
-                                = rs.getString("attribute_name");
-
-                        String groupName
-                                = rs.getString("group_name");
-
-                        if (attributeName == null
-                                || attributeName.trim().isEmpty()) {
-
-                            continue;
-                        }
-
-                        if (groupName == null
-                                || groupName.trim().isEmpty()) {
-
-                            continue;
-                        }
-
-                        names.put(
-                                normalizeText(attributeName),
-                                groupName.trim()
-                        );
-                    }
-                }
-            }
-
-            return names;
-        }
-    }
 }

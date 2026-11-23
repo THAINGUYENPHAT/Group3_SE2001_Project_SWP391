@@ -127,9 +127,15 @@ public class ProductDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
+
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi lấy danh sách Product!",
+                    "Loi truy van danh sach san pham!",
+                    ex
+            );
+
+            throw new IllegalStateException(
+                    "Khong the tai danh sach san pham tu database.",
                     ex
             );
         }
@@ -157,9 +163,15 @@ public class ProductDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
+
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi lấy sản phẩm đang hoạt động!",
+                    "Loi truy van danh sach san pham dang ban!",
+                    ex
+            );
+
+            throw new IllegalStateException(
+                    "Khong the tai san pham dang ban tu database.",
                     ex
             );
         }

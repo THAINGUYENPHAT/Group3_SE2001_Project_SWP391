@@ -1,4 +1,3 @@
-
 package controller;
 
 import dao.CategoryDAO;
@@ -46,6 +45,24 @@ public class CategoryServlet extends HttpServlet {
             keyword = keyword == null ? "" : keyword.trim();
 
             List<Category> allCategories = dao.getList();
+
+// Tra cuu danh muc bang ID, khong can query DB lan nua.
+            Map<Integer, Category> categoriesById = new HashMap<>();
+            Map<Integer, String> categoryNames = new HashMap<>();
+
+            for (Category category : allCategories) {
+
+                int categoryId = category.getCategoryId();
+
+                categoriesById.put(categoryId, category);
+
+                // Ten chi dung de hien thi tren JSP.
+                categoryNames.put(
+                        categoryId,
+                        category.getCategoryName()
+                );
+            }
+
             Map<Integer, Integer> categoryDepths = new HashMap<>();
 
             List<Category> treeList = buildCategoryTree(
@@ -77,14 +94,7 @@ public class CategoryServlet extends HttpServlet {
 
                             matchedIds.add(parentId);
 
-                            Category parent = null;
-
-                            for (Category item : allCategories) {
-                                if (item.getCategoryId() == parentId) {
-                                    parent = item;
-                                    break;
-                                }
-                            }
+                            Category parent = categoriesById.get(parentId);
 
                             if (parent == null) {
                                 break;
@@ -111,9 +121,6 @@ public class CategoryServlet extends HttpServlet {
 
             Map<Integer, Integer> childCounts
                     = dao.getChildCounts(categoryList);
-
-            Map<Integer, String> categoryNames
-                    = dao.getCategoryNames();
 
             request.setAttribute("categoryList", categoryList);
             request.setAttribute("categoryDepths", categoryDepths);

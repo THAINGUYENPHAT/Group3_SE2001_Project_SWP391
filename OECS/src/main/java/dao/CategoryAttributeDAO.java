@@ -75,9 +75,15 @@ public class CategoryAttributeDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
+
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi lấy thuộc tính theo danh mục!",
+                    "Loi lay thuoc tinh theo danh muc!",
+                    ex
+            );
+
+            throw new IllegalStateException(
+                    "Khong the tai cau hinh thuoc tinh danh muc.",
                     ex
             );
         }
@@ -112,9 +118,15 @@ public class CategoryAttributeDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
+
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi lấy thuộc tính thông số kỹ thuật!",
+                    "Loi lay thuoc tinh thong so ky thuat!",
+                    ex
+            );
+
+            throw new IllegalStateException(
+                    "Khong the tai thuoc tinh thong so ky thuat.",
                     ex
             );
         }
@@ -149,9 +161,15 @@ public class CategoryAttributeDAO extends DBContext {
             }
 
         } catch (SQLException ex) {
+
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi lấy thuộc tính biến thể SKU!",
+                    "Loi lay thuoc tinh bien the SKU!",
+                    ex
+            );
+
+            throw new IllegalStateException(
+                    "Khong the tai thuoc tinh bien the SKU.",
                     ex
             );
         }
