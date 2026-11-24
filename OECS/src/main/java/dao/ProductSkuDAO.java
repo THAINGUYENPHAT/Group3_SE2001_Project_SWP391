@@ -242,7 +242,7 @@ public class ProductSkuDAO extends DBContext {
                         conn, newSkuId, sku.getStockQuantity());
                 conn.commit();
                 sku.setSkuId(newSkuId);
-                return 1;  // Giá»¯ Ä‘Ãºng contract cÅ© cá»§a ProductSkuServlet.
+                return 1; 
             } catch (SQLException | RuntimeException ex) {
                 rollbackQuietly(conn, ex);
                 LOGGER.log(Level.SEVERE, "Lá»—i thÃªm SKU!", ex);
@@ -755,7 +755,6 @@ public class ProductSkuDAO extends DBContext {
                 ps.setInt(1, skuId);
                 ps.setInt(2, value.getAttributeId());
 
-                // TEXT
                 if (value.getTextValue() != null) {
 
                     ps.setNString(
@@ -771,7 +770,6 @@ public class ProductSkuDAO extends DBContext {
                     );
                 }
 
-                // NUMBER
                 if (value.getNumericValue() != null) {
 
                     ps.setBigDecimal(
@@ -787,7 +785,6 @@ public class ProductSkuDAO extends DBContext {
                     );
                 }
 
-                // BOOLEAN
                 if (value.getBooleanValue() != null) {
 
                     ps.setBoolean(

@@ -13,7 +13,6 @@ public final class ProductDescriptionFormatter {
 
     private static final Safelist SAFE_HTML
             = Safelist.relaxed()
-                    // Bổ sung một số thẻ trình soạn thảo
                     .addTags(
                             "s",
                             "del",
@@ -23,23 +22,19 @@ public final class ProductDescriptionFormatter {
                             "figure",
                             "figcaption"
                     )
-                    // Liên kết
                     .addAttributes(
                             "a",
                             "title"
                     )
-                    // Ảnh trong nội dung HTML
                     .addAttributes(
                             "img",
                             "title",
                             "loading"
                     )
-                    // Bảng
                     .addAttributes(
                             "th",
                             "scope"
                     )
-                    // Chỉ cho phép URL an toàn
                     .addProtocols(
                             "a",
                             "href",
@@ -53,7 +48,6 @@ public final class ProductDescriptionFormatter {
                             "http",
                             "https"
                     )
-                    // Giữ đường dẫn tương đối hợp lệ
                     .preserveRelativeLinks(true);
 
     private static final Pattern HTML_TAG

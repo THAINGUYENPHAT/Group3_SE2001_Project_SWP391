@@ -21,9 +21,6 @@ public class NotificationDAO extends DBContext {
     private static final Logger LOGGER =
             Logger.getLogger(NotificationDAO.class.getName());
 
-    // =====================================================
-    // 1. TAO THONG BAO TRANG THAI DON HANG
-    // =====================================================
 
     public boolean createOrderStatusNotification(
             int orderId,
@@ -48,10 +45,6 @@ public class NotificationDAO extends DBContext {
             return false;
         }
     }
-
-    // =====================================================
-    // 2. TAO THONG BAO DON HANG TRONG TRANSACTION
-    // =====================================================
 
     public static boolean createOrderStatusNotification(
             Connection conn,
@@ -174,9 +167,6 @@ public class NotificationDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // 3. THONG BAO KET QUA YEU CAU TRA HANG
-    // =====================================================
 
     public void createReturnExchangeNotification(
             Connection conn,
@@ -184,10 +174,6 @@ public class NotificationDAO extends DBContext {
             int orderId,
             String requestType,
             String status) throws SQLException {
-
-        // Giu ten method va tham so requestType
-        // de tuong thich voi ReturnExchangeDAO.
-        // He thong chi ho tro RETURN.
 
         if (conn == null || conn.isClosed()) {
             throw new SQLException(
@@ -254,9 +240,6 @@ public class NotificationDAO extends DBContext {
         }
     }
 
-    // =====================================================
-    // 4. DEM SO THONG BAO CHUA DOC
-    // =====================================================
 
     public int countUnread(int userId) {
 
@@ -291,9 +274,6 @@ public class NotificationDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // 5. LAY 20 THONG BAO MOI NHAT
-    // =====================================================
 
     public List<Notification> findLatest(int userId) {
 
@@ -372,9 +352,6 @@ public class NotificationDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // 6. DANH DAU THONG BAO DA DOC
-    // =====================================================
 
     public boolean markAsRead(
             int notificationId,

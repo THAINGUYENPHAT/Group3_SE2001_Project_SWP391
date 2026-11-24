@@ -1,4 +1,3 @@
-
 package service;
 
 import dao.ReturnExchangeDAO;
@@ -26,10 +25,6 @@ public class ReturnExchangeService {
         this.returnExchangeDAO = returnExchangeDAO;
     }
 
-    // =====================================================
-    // 1. KIỂM TRA ĐIỀU KIỆN TRẢ HÀNG
-    // =====================================================
-
     public boolean canRequest(
             int orderId,
             int userId) throws SQLException {
@@ -40,10 +35,6 @@ public class ReturnExchangeService {
 
         return returnExchangeDAO.canRequest(orderId, userId);
     }
-
-    // =====================================================
-    // 2. LẤY DANH SÁCH SẢN PHẨM CÓ THỂ TRẢ
-    // =====================================================
 
     public List<Map<String, Object>> getOrderItems(
             int orderId,
@@ -61,10 +52,6 @@ public class ReturnExchangeService {
         );
     }
 
-    // =====================================================
-    // 3. CUSTOMER GỬI YÊU CẦU TRẢ HÀNG
-    // =====================================================
-
     public int createRequest(
             int orderId,
             int userId,
@@ -73,7 +60,6 @@ public class ReturnExchangeService {
             List<Map<String, Integer>> items)
             throws SQLException {
 
-        // Chỉ hỗ trợ trả hàng.
         if (!"RETURN".equals(requestType)) {
             throw new IllegalArgumentException(
                     "Hệ thống chỉ hỗ trợ yêu cầu trả hàng.");
@@ -139,19 +125,11 @@ public class ReturnExchangeService {
         );
     }
 
-    // =====================================================
-    // 4. STAFF XEM DANH SÁCH YÊU CẦU TRẢ HÀNG
-    // =====================================================
-
     public List<Map<String, Object>> getAllRequests()
             throws SQLException {
 
         return returnExchangeDAO.getAllRequests();
     }
-
-    // =====================================================
-    // 5. STAFF XEM CHI TIẾT YÊU CẦU TRẢ HÀNG
-    // =====================================================
 
     public List<Map<String, Object>> getRequestItems(
             int requestId) throws SQLException {
@@ -163,10 +141,6 @@ public class ReturnExchangeService {
 
         return returnExchangeDAO.getRequestItems(requestId);
     }
-
-    // =====================================================
-    // 6. STAFF DUYỆT / TỪ CHỐI YÊU CẦU TRẢ HÀNG
-    // =====================================================
 
     public boolean reviewRequest(
             int requestId,
@@ -188,8 +162,8 @@ public class ReturnExchangeService {
                     + "không hợp lệ.");
         }
 
-        String normalizedNote =
-                staffNote == null ? "" : staffNote.trim();
+        String normalizedNote
+                = staffNote == null ? "" : staffNote.trim();
 
         if (normalizedNote.length() > 1000) {
             throw new IllegalArgumentException(

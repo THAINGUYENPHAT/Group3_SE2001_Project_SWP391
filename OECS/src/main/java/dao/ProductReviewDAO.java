@@ -1,4 +1,3 @@
-
 package dao;
 
 import db.DBContext;
@@ -36,8 +35,7 @@ public class ProductReviewDAO {
         String sql = "SELECT sku_id FROM ORDER_ITEM "
                 + "WHERE order_item_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderItemId);
 
@@ -55,8 +53,8 @@ public class ProductReviewDAO {
     }
 
     public boolean canReview(int userId, int orderItemId, int skuId) {
-        String sql =
-                "SELECT 1 "
+        String sql
+                = "SELECT 1 "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "JOIN dbo.[ORDER] o ON oi.order_id = o.order_id "
                 + "WHERE oi.order_item_id = ? "
@@ -69,8 +67,7 @@ public class ProductReviewDAO {
                 + "WHERE pr.order_item_id = oi.order_item_id "
                 + ")";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderItemId);
             ps.setInt(2, skuId);
@@ -95,8 +92,7 @@ public class ProductReviewDAO {
         String sql = "SELECT review_id FROM PRODUCT_REVIEWS "
                 + "WHERE order_item_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderItemId);
 
@@ -111,8 +107,6 @@ public class ProductReviewDAO {
         return false;
     }
 
-    // Kiểm tra điều kiện, chống trùng và giới hạn 10 review trong 10 phút.
-    // Tất cả được xử lý cùng một transaction.
     public int insertReview(ProductReview review) {
 
         if (review == null
@@ -122,16 +116,16 @@ public class ProductReviewDAO {
                 || review.getRating() < 1
                 || review.getRating() > 5
                 || (review.getComment() != null
-                    && review.getComment().length() > 2000)) {
+                && review.getComment().length() > 2000)) {
             return NOT_ELIGIBLE;
         }
 
-        String lockUserSql =
-                "SELECT user_id FROM dbo.[USER] WITH (UPDLOCK, HOLDLOCK) "
+        String lockUserSql
+                = "SELECT user_id FROM dbo.[USER] WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE user_id = ?";
 
-        String eligibleSql =
-                "SELECT 1 FROM dbo.ORDER_ITEM oi "
+        String eligibleSql
+                = "SELECT 1 FROM dbo.ORDER_ITEM oi "
                 + "JOIN dbo.[ORDER] o ON o.order_id = oi.order_id "
                 + "WHERE oi.order_item_id = ? "
                 + "AND oi.sku_id = ? "
@@ -139,17 +133,17 @@ public class ProductReviewDAO {
                 + "AND UPPER(LTRIM(RTRIM(o.order_status))) "
                 + "IN ('COMPLETED', 'DELIVERED')";
 
-        String existingSql =
-                "SELECT 1 FROM dbo.PRODUCT_REVIEWS "
+        String existingSql
+                = "SELECT 1 FROM dbo.PRODUCT_REVIEWS "
                 + "WHERE order_item_id = ?";
 
-        String countSql =
-                "SELECT COUNT(*) FROM dbo.PRODUCT_REVIEWS "
+        String countSql
+                = "SELECT COUNT(*) FROM dbo.PRODUCT_REVIEWS "
                 + "WHERE user_id = ? "
                 + "AND created_at >= DATEADD(MINUTE, -10, GETDATE())";
 
-        String insertSql =
-                "INSERT INTO dbo.PRODUCT_REVIEWS "
+        String insertSql
+                = "INSERT INTO dbo.PRODUCT_REVIEWS "
                 + "(user_id, order_item_id, sku_id, rating, comment, created_at) "
                 + "VALUES (?, ?, ?, ?, ?, GETDATE())";
 
@@ -157,9 +151,8 @@ public class ProductReviewDAO {
             conn.setAutoCommit(false);
 
             try {
-                // Khóa user đến khi commit.
-                try (PreparedStatement ps =
-                        conn.prepareStatement(lockUserSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(lockUserSql)) {
 
                     ps.setInt(1, review.getUserId());
 
@@ -171,9 +164,8 @@ public class ProductReviewDAO {
                     }
                 }
 
-                // Đơn hàng phải thuộc khách và đã hoàn tất.
-                try (PreparedStatement ps =
-                        conn.prepareStatement(eligibleSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(eligibleSql)) {
 
                     ps.setInt(1, review.getOrderItemId());
                     ps.setInt(2, review.getSkuId());
@@ -187,9 +179,8 @@ public class ProductReviewDAO {
                     }
                 }
 
-                // Review ẩn vẫn được tính là đã đánh giá.
-                try (PreparedStatement ps =
-                        conn.prepareStatement(existingSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(existingSql)) {
 
                     ps.setInt(1, review.getOrderItemId());
 
@@ -201,9 +192,8 @@ public class ProductReviewDAO {
                     }
                 }
 
-                // Đếm lại số review gần đây ngay trước INSERT.
-                try (PreparedStatement ps =
-                        conn.prepareStatement(countSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(countSql)) {
 
                     ps.setInt(1, review.getUserId());
 
@@ -217,8 +207,8 @@ public class ProductReviewDAO {
                     }
                 }
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(
+                try (PreparedStatement ps
+                        = conn.prepareStatement(
                                 insertSql,
                                 Statement.RETURN_GENERATED_KEYS)) {
 
@@ -267,12 +257,11 @@ public class ProductReviewDAO {
     }
 
     public boolean insertReviewImage(int reviewId, String imageUrl) {
-        String sql =
-                "INSERT INTO REVIEW_IMAGES (review_id, image_url) "
+        String sql
+                = "INSERT INTO REVIEW_IMAGES (review_id, image_url) "
                 + "VALUES (?, ?)";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, reviewId);
             ps.setString(2, imageUrl);
@@ -289,14 +278,13 @@ public class ProductReviewDAO {
     public ProductReview getReviewByIdAndUserId(
             int reviewId, int userId) {
 
-        String sql =
-                "SELECT review_id, user_id, order_item_id, sku_id, "
+        String sql
+                = "SELECT review_id, user_id, order_item_id, sku_id, "
                 + "rating, comment, created_at "
                 + "FROM PRODUCT_REVIEWS "
                 + "WHERE review_id = ? AND user_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, reviewId);
             ps.setInt(2, userId);
@@ -319,13 +307,12 @@ public class ProductReviewDAO {
     public List<String> getReviewImages(int reviewId) {
         List<String> images = new ArrayList<>();
 
-        String sql =
-                "SELECT image_url FROM REVIEW_IMAGES "
+        String sql
+                = "SELECT image_url FROM REVIEW_IMAGES "
                 + "WHERE review_id = ? "
                 + "ORDER BY image_id ASC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, reviewId);
 
@@ -343,13 +330,12 @@ public class ProductReviewDAO {
     }
 
     public boolean updateReview(ProductReview review) {
-        String sql =
-                "UPDATE PRODUCT_REVIEWS "
+        String sql
+                = "UPDATE PRODUCT_REVIEWS "
                 + "SET rating = ?, comment = ? "
                 + "WHERE review_id = ? AND user_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, review.getRating());
             ps.setString(2, review.getComment());
@@ -365,7 +351,6 @@ public class ProductReviewDAO {
         return false;
     }
 
-    // Cập nhật rating, bình luận và ảnh trong cùng transaction.
     public boolean updateReviewWithImages(
             ProductReview review,
             List<String> removeImages,
@@ -375,7 +360,7 @@ public class ProductReviewDAO {
                 || review.getRating() < 1
                 || review.getRating() > 5
                 || (review.getComment() != null
-                    && review.getComment().length() > 2000)) {
+                && review.getComment().length() > 2000)) {
             throw new IllegalArgumentException(
                     "Dữ liệu đánh giá không hợp lệ.");
         }
@@ -386,36 +371,35 @@ public class ProductReviewDAO {
         List<String> toAdd = newImages == null
                 ? new ArrayList<>() : newImages;
 
-        String lockSql =
-                "SELECT review_id "
+        String lockSql
+                = "SELECT review_id "
                 + "FROM dbo.PRODUCT_REVIEWS WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE review_id = ? AND user_id = ?";
 
-        String imageSql =
-                "SELECT image_url "
+        String imageSql
+                = "SELECT image_url "
                 + "FROM dbo.REVIEW_IMAGES WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE review_id = ?";
 
-        String updateSql =
-                "UPDATE dbo.PRODUCT_REVIEWS "
+        String updateSql
+                = "UPDATE dbo.PRODUCT_REVIEWS "
                 + "SET rating = ?, comment = ? "
                 + "WHERE review_id = ? AND user_id = ?";
 
-        String removeSql =
-                "DELETE FROM dbo.REVIEW_IMAGES "
+        String removeSql
+                = "DELETE FROM dbo.REVIEW_IMAGES "
                 + "WHERE review_id = ? AND image_url = ?";
 
-        String addSql =
-                "INSERT INTO dbo.REVIEW_IMAGES "
+        String addSql
+                = "INSERT INTO dbo.REVIEW_IMAGES "
                 + "(review_id, image_url) VALUES (?, ?)";
 
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
 
             try {
-                // Khóa review để tránh hai request sửa ảnh cùng lúc.
-                try (PreparedStatement ps =
-                        conn.prepareStatement(lockSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(lockSql)) {
 
                     ps.setInt(1, review.getReviewId());
                     ps.setInt(2, review.getUserId());
@@ -430,8 +414,8 @@ public class ProductReviewDAO {
 
                 Set<String> currentImages = new HashSet<>();
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(imageSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(imageSql)) {
 
                     ps.setInt(1, review.getReviewId());
 
@@ -451,8 +435,8 @@ public class ProductReviewDAO {
                             "Ảnh cần xóa không hợp lệ.");
                 }
 
-                int finalCount =
-                        currentImages.size()
+                int finalCount
+                        = currentImages.size()
                         - removalSet.size()
                         + toAdd.size();
 
@@ -461,8 +445,8 @@ public class ProductReviewDAO {
                             "Mỗi đánh giá chỉ có tối đa 3 ảnh.");
                 }
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(updateSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(updateSql)) {
 
                     ps.setInt(1, review.getRating());
                     ps.setString(2, review.getComment());
@@ -475,8 +459,8 @@ public class ProductReviewDAO {
                     }
                 }
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(removeSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(removeSql)) {
 
                     for (String url : removalSet) {
                         ps.setInt(1, review.getReviewId());
@@ -489,8 +473,8 @@ public class ProductReviewDAO {
                     }
                 }
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(addSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(addSql)) {
 
                     for (String url : toAdd) {
                         ps.setInt(1, review.getReviewId());
@@ -519,25 +503,24 @@ public class ProductReviewDAO {
     }
 
     public boolean deleteReview(int reviewId, int userId) {
-        String lockSql =
-                "SELECT review_id "
+        String lockSql
+                = "SELECT review_id "
                 + "FROM dbo.PRODUCT_REVIEWS WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE review_id = ? AND user_id = ?";
 
-        String deleteImagesSql =
-                "DELETE FROM dbo.REVIEW_IMAGES WHERE review_id = ?";
+        String deleteImagesSql
+                = "DELETE FROM dbo.REVIEW_IMAGES WHERE review_id = ?";
 
-        String deleteReviewSql =
-                "DELETE FROM dbo.PRODUCT_REVIEWS "
+        String deleteReviewSql
+                = "DELETE FROM dbo.PRODUCT_REVIEWS "
                 + "WHERE review_id = ? AND user_id = ?";
 
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
 
             try {
-                // Xác nhận quyền sở hữu trước khi xóa ảnh.
-                try (PreparedStatement ps =
-                        conn.prepareStatement(lockSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(lockSql)) {
 
                     ps.setInt(1, reviewId);
                     ps.setInt(2, userId);
@@ -550,8 +533,8 @@ public class ProductReviewDAO {
                     }
                 }
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(deleteImagesSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(deleteImagesSql)) {
 
                     ps.setInt(1, reviewId);
                     ps.executeUpdate();
@@ -559,8 +542,8 @@ public class ProductReviewDAO {
 
                 int deleted;
 
-                try (PreparedStatement ps =
-                        conn.prepareStatement(deleteReviewSql)) {
+                try (PreparedStatement ps
+                        = conn.prepareStatement(deleteReviewSql)) {
 
                     ps.setInt(1, reviewId);
                     ps.setInt(2, userId);
@@ -595,15 +578,14 @@ public class ProductReviewDAO {
     public List<ProductReview> getReviewsBySkuId(int skuId) {
         List<ProductReview> reviews = new ArrayList<>();
 
-        String sql =
-                "SELECT review_id, user_id, order_item_id, sku_id, "
+        String sql
+                = "SELECT review_id, user_id, order_item_id, sku_id, "
                 + "rating, comment, created_at "
                 + "FROM PRODUCT_REVIEWS "
                 + "WHERE sku_id = ? AND is_hidden = 0 "
                 + "ORDER BY created_at DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, skuId);
 
@@ -626,8 +608,8 @@ public class ProductReviewDAO {
     public List<ProductReview> getReviewsByProductId(int productId) {
         List<ProductReview> reviews = new ArrayList<>();
 
-        String sql =
-                "SELECT pr.review_id, pr.user_id, "
+        String sql
+                = "SELECT pr.review_id, pr.user_id, "
                 + "pr.order_item_id, pr.sku_id, "
                 + "pr.rating, pr.comment, pr.created_at "
                 + "FROM dbo.PRODUCT_REVIEWS pr "
@@ -636,8 +618,7 @@ public class ProductReviewDAO {
                 + "AND pr.is_hidden = 0 "
                 + "ORDER BY pr.created_at DESC, pr.review_id DESC";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, productId);
 
@@ -661,13 +642,12 @@ public class ProductReviewDAO {
     }
 
     public double getAverageRating(int skuId) {
-        String sql =
-                "SELECT AVG(CAST(rating AS FLOAT)) AS average_rating "
+        String sql
+                = "SELECT AVG(CAST(rating AS FLOAT)) AS average_rating "
                 + "FROM PRODUCT_REVIEWS "
                 + "WHERE sku_id = ? AND is_hidden = 0";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, skuId);
 
@@ -685,13 +665,12 @@ public class ProductReviewDAO {
     }
 
     public int countReviewsBySkuId(int skuId) {
-        String sql =
-                "SELECT COUNT(*) AS total "
+        String sql
+                = "SELECT COUNT(*) AS total "
                 + "FROM PRODUCT_REVIEWS "
                 + "WHERE sku_id = ? AND is_hidden = 0";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, skuId);
 
@@ -709,8 +688,8 @@ public class ProductReviewDAO {
     }
 
     public int getPurchaseCountByProductId(int productId) {
-        String sql =
-                "SELECT COUNT(DISTINCT oi.order_item_id) AS purchase_count "
+        String sql
+                = "SELECT COUNT(DISTINCT oi.order_item_id) AS purchase_count "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "JOIN dbo.PRODUCT_SKU ps ON oi.sku_id = ps.sku_id "
                 + "JOIN dbo.[ORDER] o ON oi.order_id = o.order_id "
@@ -718,8 +697,7 @@ public class ProductReviewDAO {
                 + "AND UPPER(LTRIM(RTRIM(o.order_status))) "
                 + "IN ('COMPLETED', 'DELIVERED')";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, productId);
 
@@ -755,8 +733,8 @@ public class ProductReviewDAO {
     public ProductReview getReviewByOrderItemIdAndUserId(
             int orderItemId, int userId) {
 
-        String sql =
-                "SELECT pr.review_id, pr.user_id, "
+        String sql
+                = "SELECT pr.review_id, pr.user_id, "
                 + "pr.order_item_id, pr.sku_id, "
                 + "pr.rating, pr.comment, pr.created_at "
                 + "FROM dbo.PRODUCT_REVIEWS pr "
@@ -768,8 +746,7 @@ public class ProductReviewDAO {
 
         ProductReview review = null;
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderItemId);
             ps.setInt(2, userId);
@@ -795,14 +772,13 @@ public class ProductReviewDAO {
     }
 
     public int countRecentReviews(int userId) {
-        String sql =
-                "SELECT COUNT(*) AS total "
+        String sql
+                = "SELECT COUNT(*) AS total "
                 + "FROM dbo.PRODUCT_REVIEWS "
                 + "WHERE user_id = ? "
                 + "AND created_at >= DATEADD(MINUTE, -10, GETDATE())";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
 

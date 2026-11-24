@@ -9,14 +9,6 @@ import java.sql.SQLException;
 
 public class SkuHardDeleteDAO extends DBContext {
 
-    /**
-     * Xóa vĩnh viễn SKU chưa có giao dịch.
-     *
-     * Trả về mã SKU đã xóa để ghi Audit Log.
-     *
-     * Không xóa SKU đã có đơn hàng, đánh giá, giỏ hàng hoặc lịch sử kho thực
-     * tế.
-     */
     public String deletePermanently(
             int productId,
             int skuId) throws SQLException {
@@ -31,9 +23,6 @@ public class SkuHardDeleteDAO extends DBContext {
 
             try {
 
-                // =====================================
-                // 1. KHÓA SKU TRONG TRANSACTION
-                // =====================================
                 String skuCode = null;
 
                 String sqlSku
@@ -63,9 +52,6 @@ public class SkuHardDeleteDAO extends DBContext {
                     );
                 }
 
-                // =====================================
-                // 2. KIỂM TRA ĐƠN HÀNG
-                // =====================================
                 if (exists(
                         conn,
                         "SELECT 1 FROM dbo.ORDER_ITEM "
@@ -78,9 +64,6 @@ public class SkuHardDeleteDAO extends DBContext {
                     );
                 }
 
-                // =====================================
-                // 3. KIỂM TRA ĐÁNH GIÁ
-                // =====================================
                 if (exists(
                         conn,
                         "SELECT 1 FROM dbo.PRODUCT_REVIEWS "
@@ -92,9 +75,6 @@ public class SkuHardDeleteDAO extends DBContext {
                     );
                 }
 
-                // =====================================
-                // 4. KIỂM TRA GIỎ HÀNG
-                // =====================================
                 if (exists(
                         conn,
                         "SELECT 1 FROM dbo.CART_ITEMS "
@@ -107,16 +87,6 @@ public class SkuHardDeleteDAO extends DBContext {
                     );
                 }
 
-                // =====================================
-                // 5. KIỂM TRA LỊCH SỬ KHO
-                // =====================================
-
-                /*
-                 * OPENING là số dư lúc tạo SKU.
-                 *
-                 * IN, OUT, SET, SYSTEM là lịch sử
-                 * phát sinh nên không được xóa.
-                 */
                 if (exists(
                         conn,
                         "SELECT 1 "
@@ -132,9 +102,6 @@ public class SkuHardDeleteDAO extends DBContext {
                     );
                 }
 
-                // =====================================
-                // 6. XÓA ẢNH GẮN VỚI SKU
-                // =====================================
                 executeDelete(
                         conn,
                         "DELETE FROM dbo.PRODUCT_IMAGES "
@@ -144,9 +111,6 @@ public class SkuHardDeleteDAO extends DBContext {
                         skuId
                 );
 
-                // =====================================
-                // 7. XÓA THUỘC TÍNH BIẾN THỂ
-                // =====================================
                 executeDeleteBySku(
                         conn,
                         "DELETE FROM dbo.SKU_ATTRIBUTE_VALUE "
@@ -154,9 +118,6 @@ public class SkuHardDeleteDAO extends DBContext {
                         skuId
                 );
 
-                // =====================================
-                // 8. XÓA OPENING STOCK
-                // =====================================
                 executeDeleteBySku(
                         conn,
                         "DELETE FROM dbo.INVENTORY_MOVEMENT "
@@ -165,9 +126,6 @@ public class SkuHardDeleteDAO extends DBContext {
                         skuId
                 );
 
-                // =====================================
-                // 9. XÓA SKU CHÍNH
-                // =====================================
                 int deleted = executeDelete(
                         conn,
                         "DELETE FROM dbo.PRODUCT_SKU "
@@ -183,9 +141,6 @@ public class SkuHardDeleteDAO extends DBContext {
                     );
                 }
 
-                // =====================================
-                // 10. HOÀN TẤT
-                // =====================================
                 conn.commit();
 
                 return skuCode;
@@ -194,7 +149,6 @@ public class SkuHardDeleteDAO extends DBContext {
 
                 conn.rollback();
 
-                // SQL Server lỗi FK
                 if (ex.getErrorCode() == 547) {
 
                     throw new IllegalArgumentException(
@@ -214,9 +168,6 @@ public class SkuHardDeleteDAO extends DBContext {
         }
     }
 
-    // =========================================
-    // KIỂM TRA CÓ DỮ LIỆU THAM CHIẾU
-    // =========================================
     private boolean exists(
             Connection conn,
             String sql,
@@ -233,9 +184,6 @@ public class SkuHardDeleteDAO extends DBContext {
         }
     }
 
-    // =========================================
-    // XÓA VỚI PRODUCT ID + SKU ID
-    // =========================================
     private int executeDelete(
             Connection conn,
             String sql,
@@ -252,9 +200,6 @@ public class SkuHardDeleteDAO extends DBContext {
         }
     }
 
-    // =========================================
-    // XÓA THEO SKU ID
-    // =========================================
     private int executeDeleteBySku(
             Connection conn,
             String sql,

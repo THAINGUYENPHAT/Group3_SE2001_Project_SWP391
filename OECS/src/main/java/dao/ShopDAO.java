@@ -34,9 +34,6 @@ public class ShopDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(ShopDAO.class.getName());
 
-    // ========================================
-    // 1. DANH SÁCH SẢN PHẨM
-    // ========================================
     public List<Product> getCatalogProducts() {
 
         return getFilteredCatalog(
@@ -48,9 +45,6 @@ public class ShopDAO extends DBContext {
         );
     }
 
-    // ========================================
-    // 2. CHI TIẾT SẢN PHẨM
-    // ========================================
     public Product getProductDetail(int productId) {
 
         String sql
@@ -103,9 +97,6 @@ public class ShopDAO extends DBContext {
         return null;
     }
 
-    // ========================================
-    // 3. LẤY TẤT CẢ SKU ĐỂ HIỂN THỊ TRẠNG THÁI NGỪNG KINH DOANH
-    // ========================================
     public List<ProductSku> getProductSkus(
             int productId) {
 
@@ -187,9 +178,6 @@ public class ShopDAO extends DBContext {
         return skus;
     }
 
-    // ========================================
-    // 4. LẤY BIẾN THỂ CỦA SKU
-    // ========================================
     private void loadSkuAttributeValues(
             Connection conn,
             int productId,
@@ -261,9 +249,6 @@ public class ShopDAO extends DBContext {
         }
     }
 
-    // ========================================
-    // 5. THÔNG SỐ KỸ THUẬT
-    // ========================================
     public List<ProductSpec> getProductSpecs(
             int productId) {
 
@@ -308,20 +293,11 @@ public class ShopDAO extends DBContext {
         return specs;
     }
 
-    // ========================================
-    // 6. GALLERY CHUNG CỦA SẢN PHẨM
-    // ========================================
     public List<ProductImage> getProductImages(
             int productId) {
 
         List<ProductImage> images = new ArrayList<>();
 
-        /*
-         * Chỉ lấy ảnh chung của Product.
-         *
-         * Ảnh riêng của SKU được truy vấn
-         * trong getSkuImagesByProduct().
-         */
         String sql
                 = "SELECT "
                 + "image_id, "
@@ -379,21 +355,12 @@ public class ShopDAO extends DBContext {
         return images;
     }
 
-    // ========================================
-    // 7. GALLERY RIÊNG CỦA SKU
-    // ========================================
     public Map<Integer, List<ProductImage>>
             getSkuImagesByProduct(int productId) {
 
         Map<Integer, List<ProductImage>> result
                 = new LinkedHashMap<>();
 
-        /*
-         * Truy vấn một lần cho tất cả SKU.
-         *
-         * Key   = sku_id
-         * Value = danh sách ảnh của SKU
-         */
         String sql
                 = "SELECT "
                 + "pi.image_id, "
@@ -463,9 +430,6 @@ public class ShopDAO extends DBContext {
         return result;
     }
 
-    // ========================================
-    // 8. CHUẨN HÓA TỪ KHÓA TÌM KIẾM
-    // ========================================
     private String removeAccents(String text) {
 
         if (text == null) {
@@ -518,9 +482,6 @@ public class ShopDAO extends DBContext {
                 .trim();
     }
 
-    // ========================================
-    // 9. TỪ ĐỒNG NGHĨA DANH MỤC
-    // ========================================
     private String getCategorySynonyms(
             String categoryName) {
 
@@ -575,9 +536,6 @@ public class ShopDAO extends DBContext {
         }
     }
 
-    // ========================================
-    // 10. CHẤM ĐIỂM KẾT QUẢ TÌM KIẾM
-    // ========================================
     private int calculateMatchScore(
             Product product,
             String normalizedQuery) {
@@ -689,9 +647,6 @@ public class ShopDAO extends DBContext {
         return score;
     }
 
-    // ========================================
-    // 11. SEARCH GỢI Ý
-    // ========================================
     public List<Product> searchProducts(
             String keyword) {
 
@@ -719,9 +674,6 @@ public class ShopDAO extends DBContext {
         );
     }
 
-    // ========================================
-    // 12. LỌC CATALOG
-    // ========================================
     public List<Product> getFilteredCatalog(
             String keyword,
             String[] categoryIds,
@@ -776,9 +728,6 @@ public class ShopDAO extends DBContext {
 
         List<Integer> parameters = new ArrayList<>();
 
-        // ====================================
-        // 12.1. LỌC DANH MỤC
-        // ====================================
         List<Integer> validCategoryIds
                 = new ArrayList<>();
 
@@ -802,7 +751,6 @@ public class ShopDAO extends DBContext {
                 } catch (NumberFormatException
                         | NullPointerException ex) {
 
-                    // Bỏ qua ID không hợp lệ.
                 }
             }
         }
@@ -822,10 +770,6 @@ public class ShopDAO extends DBContext {
                 placeholders.append("?");
             }
 
-            /*
-             * Lọc danh mục được chọn
-             * và danh mục con trực tiếp.
-             */
             sql.append(
                     "AND (c.category_id IN ("
             ).append(
@@ -842,9 +786,6 @@ public class ShopDAO extends DBContext {
             parameters.addAll(validCategoryIds);
         }
 
-        // ====================================
-        // 12.2. LỌC THEO GIÁ
-        // ====================================
         if ("under5".equals(priceRange)) {
 
             sql.append(
@@ -866,9 +807,6 @@ public class ShopDAO extends DBContext {
             );
         }
 
-        // ====================================
-        // 12.3. LỌC THEO ĐÁNH GIÁ
-        // ====================================
         if (minRating != null
                 && !minRating.trim().isEmpty()) {
 
@@ -895,9 +833,6 @@ public class ShopDAO extends DBContext {
             }
         }
 
-        // ====================================
-        // 12.4. SẮP XẾP
-        // ====================================
         if ("priceAsc".equals(sort)) {
 
             sql.append(
@@ -934,9 +869,6 @@ public class ShopDAO extends DBContext {
             );
         }
 
-        // ====================================
-        // 12.5. TRUY VẤN DATABASE
-        // ====================================
         try (Connection conn = getConnection(); PreparedStatement ps
                 = conn.prepareStatement(
                         sql.toString()
@@ -982,9 +914,6 @@ public class ShopDAO extends DBContext {
             );
         }
 
-        // ====================================
-        // 12.6. SEARCH THEO TỪ KHÓA
-        // ====================================
         if (keyword != null
                 && !keyword.trim().isEmpty()) {
 
@@ -1031,21 +960,6 @@ public class ShopDAO extends DBContext {
         return products;
     }
 
-    // ========================================
-    // 13. SẢN PHẨM TƯƠNG TỰ - OECS V2
-    // ========================================
-    /**
-     * Lấy tối đa 8 sản phẩm tương tự.
-     *
-     * Quy tắc:
-     *
-     * 1. Cùng danh mục với sản phẩm đang xem. 2. Không lấy chính sản phẩm đó.
-     * 3. PRODUCT phải đang hoạt động. 4. Phải có ít nhất một SKU đang hoạt
-     * động. 5. Ưu tiên sản phẩm còn hàng. 6. Giá lấy từ SKU còn hàng nếu có. 7.
-     * Nếu tất cả SKU hết hàng thì dùng giá thấp nhất của SKU đang hoạt động.
-     *
-     * Kết quả trả về có thể dùng trực tiếp với related-products.jsp.
-     */
     public List<Product> getRelatedProducts(
             int productId,
             int categoryId) {
@@ -1139,9 +1053,6 @@ public class ShopDAO extends DBContext {
         return relatedProducts;
     }
 
-    // ========================================
-    // 14. MAPPING PRODUCT
-    // ========================================
     private Product mapProduct(ResultSet rs)
             throws SQLException {
 

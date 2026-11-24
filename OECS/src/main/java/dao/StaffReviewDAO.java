@@ -1,4 +1,3 @@
-
 package dao;
 
 import db.DBContext;
@@ -34,8 +33,7 @@ public class StaffReviewDAO extends DBContext {
         Map<Integer, Map<String, Object>> byId = new LinkedHashMap<>();
 
         try (Connection conn = getConnection()) {
-            try (PreparedStatement ps = conn.prepareStatement(sql);
-                 ResultSet rs = ps.executeQuery()) {
+            try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
                 while (rs.next()) {
                     Map<String, Object> review = new HashMap<>();
@@ -58,23 +56,21 @@ public class StaffReviewDAO extends DBContext {
                 }
             }
 
-            // Tải ảnh cùng lượt truy vấn để Staff kiểm duyệt.
-            String imageSql =
-                    "SELECT review_id, image_url "
+            String imageSql
+                    = "SELECT review_id, image_url "
                     + "FROM dbo.REVIEW_IMAGES "
                     + "ORDER BY review_id, image_id";
 
-            try (PreparedStatement ps = conn.prepareStatement(imageSql);
-                 ResultSet rs = ps.executeQuery()) {
+            try (PreparedStatement ps = conn.prepareStatement(imageSql); ResultSet rs = ps.executeQuery()) {
 
                 while (rs.next()) {
-                    Map<String, Object> review =
-                            byId.get(rs.getInt("review_id"));
+                    Map<String, Object> review
+                            = byId.get(rs.getInt("review_id"));
 
                     if (review != null) {
                         @SuppressWarnings("unchecked")
-                        List<String> images =
-                                (List<String>) review.get("images");
+                        List<String> images
+                                = (List<String>) review.get("images");
 
                         images.add(rs.getString("image_url"));
                     }
@@ -92,8 +88,7 @@ public class StaffReviewDAO extends DBContext {
                 + "SET is_hidden = ? "
                 + "WHERE review_id = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setBoolean(1, hidden);
             ps.setInt(2, reviewId);
