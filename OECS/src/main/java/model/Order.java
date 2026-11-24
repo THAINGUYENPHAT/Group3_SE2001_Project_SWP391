@@ -21,6 +21,25 @@ public class Order {
     private Timestamp createdAt;
     private Timestamp paymentExpiresAt;
 
+    private String cancelRequestStatus;
+    private String cancelRequestVersion;
+    private String cancelRequestReason;
+    private String cancelReviewNote;
+    public String getCancelRequestStatus() { return cancelRequestStatus; }
+    public void setCancelRequestStatus(String value) { cancelRequestStatus=value; }
+    public String getCancelRequestReason() { return cancelRequestReason; }
+    public void setCancelRequestReason(String value) { cancelRequestReason=value; }
+    public String getCancelReviewNote() { return cancelReviewNote; }
+    public void setCancelReviewNote(String value) { cancelReviewNote=value; }
+
+    public String getCancelRequestVersion() {
+        return cancelRequestVersion;
+    }
+
+    public void setCancelRequestVersion(String cancelRequestVersion) {
+        this.cancelRequestVersion = cancelRequestVersion;
+    }
+
     public Order() {
     }
 
