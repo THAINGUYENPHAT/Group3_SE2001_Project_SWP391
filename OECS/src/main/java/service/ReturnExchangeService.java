@@ -2,6 +2,7 @@
 package service;
 
 import dao.ReturnExchangeDAO;
+
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -14,105 +15,158 @@ public class ReturnExchangeService {
         this.returnExchangeDAO = new ReturnExchangeDAO();
     }
 
-    public ReturnExchangeService(ReturnExchangeDAO returnExchangeDAO) {
+    public ReturnExchangeService(
+            ReturnExchangeDAO returnExchangeDAO) {
+
+        if (returnExchangeDAO == null) {
+            throw new IllegalArgumentException(
+                    "ReturnExchangeDAO không được null.");
+        }
+
         this.returnExchangeDAO = returnExchangeDAO;
     }
 
-    public boolean canRequest(int orderId, int userId) throws SQLException {
+    // =====================================================
+    // 1. KIỂM TRA ĐIỀU KIỆN TRẢ HÀNG
+    // =====================================================
+
+    public boolean canRequest(
+            int orderId,
+            int userId) throws SQLException {
+
+        if (orderId <= 0 || userId <= 0) {
+            return false;
+        }
+
         return returnExchangeDAO.canRequest(orderId, userId);
     }
 
+    // =====================================================
+    // 2. LẤY DANH SÁCH SẢN PHẨM CÓ THỂ TRẢ
+    // =====================================================
+
     public List<Map<String, Object>> getOrderItems(
-            int orderId, int userId) throws SQLException {
+            int orderId,
+            int userId) throws SQLException {
 
         if (!canRequest(orderId, userId)) {
             throw new IllegalArgumentException(
-                    "Đơn hàng không đủ điều kiện đổi/trả hoặc đã quá hạn 7 ngày.");
+                    "Đơn hàng không đủ điều kiện trả hàng "
+                    + "hoặc đã quá hạn 7 ngày.");
         }
 
-        return returnExchangeDAO.getOrderItems(orderId, userId);
+        return returnExchangeDAO.getOrderItems(
+                orderId,
+                userId
+        );
     }
 
-    public List<Map<String, Object>> getExchangeSkus(
-            int orderId, int orderItemId, int userId) throws SQLException {
-
-        if (!canRequest(orderId, userId)) {
-            throw new IllegalArgumentException(
-                    "Đơn hàng không đủ điều kiện đổi/trả hoặc đã quá hạn 7 ngày.");
-        }
-
-        List<Map<String, Object>> orderItems =
-                returnExchangeDAO.getOrderItems(orderId, userId);
-
-        boolean itemBelongsToOrder = false;
-
-        for (Map<String, Object> item : orderItems) {
-            int currentOrderItemId = (Integer) item.get("orderItemId");
-
-            if (currentOrderItemId == orderItemId) {
-                itemBelongsToOrder = true;
-                break;
-            }
-        }
-
-        if (!itemBelongsToOrder) {
-            throw new IllegalArgumentException(
-                    "Sản phẩm không thuộc đơn hàng này.");
-        }
-
-        return returnExchangeDAO.getExchangeSkus(orderItemId, userId);
-    }
+    // =====================================================
+    // 3. CUSTOMER GỬI YÊU CẦU TRẢ HÀNG
+    // =====================================================
 
     public int createRequest(
             int orderId,
             int userId,
             String requestType,
             String reason,
-            List<Map<String, Integer>> items) throws SQLException {
+            List<Map<String, Integer>> items)
+            throws SQLException {
+
+        // Chỉ hỗ trợ trả hàng.
+        if (!"RETURN".equals(requestType)) {
+            throw new IllegalArgumentException(
+                    "Hệ thống chỉ hỗ trợ yêu cầu trả hàng.");
+        }
 
         if (!canRequest(orderId, userId)) {
             throw new IllegalArgumentException(
-                    "Đơn hàng không đủ điều kiện đổi/trả hoặc đã quá hạn 7 ngày.");
-        }
-
-        if (requestType == null
-                || (!requestType.equals("RETURN")
-                && !requestType.equals("EXCHANGE"))) {
-            throw new IllegalArgumentException(
-                    "Loại yêu cầu không hợp lệ.");
+                    "Đơn hàng không đủ điều kiện trả hàng "
+                    + "hoặc đã quá hạn 7 ngày.");
         }
 
         if (reason == null || reason.trim().isEmpty()) {
             throw new IllegalArgumentException(
-                    "Vui lòng nhập lý do đổi/trả hàng.");
+                    "Vui lòng nhập lý do trả hàng.");
+        }
+
+        String normalizedReason = reason.trim();
+
+        if (normalizedReason.length() > 1000) {
+            throw new IllegalArgumentException(
+                    "Lý do trả hàng không được vượt quá "
+                    + "1000 ký tự.");
         }
 
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Vui lòng chọn ít nhất một sản phẩm.");
+                    "Vui lòng chọn ít nhất một sản phẩm "
+                    + "muốn trả.");
+        }
+
+        for (Map<String, Integer> item : items) {
+
+            if (item == null
+                    || item.get("orderItemId") == null
+                    || item.get("quantity") == null) {
+
+                throw new IllegalArgumentException(
+                        "Thông tin sản phẩm trả hàng "
+                        + "không hợp lệ.");
+            }
+
+            int orderItemId = item.get("orderItemId");
+            int quantity = item.get("quantity");
+
+            if (orderItemId <= 0) {
+                throw new IllegalArgumentException(
+                        "Mã sản phẩm trong đơn hàng "
+                        + "không hợp lệ.");
+            }
+
+            if (quantity <= 0) {
+                throw new IllegalArgumentException(
+                        "Số lượng trả hàng phải lớn hơn 0.");
+            }
         }
 
         return returnExchangeDAO.createRequest(
                 orderId,
                 userId,
-                requestType,
-                reason.trim(),
+                "RETURN",
+                normalizedReason,
                 items
         );
     }
-    
-    
-    public List<Map<String, Object>> getAllRequests() throws SQLException {
+
+    // =====================================================
+    // 4. STAFF XEM DANH SÁCH YÊU CẦU TRẢ HÀNG
+    // =====================================================
+
+    public List<Map<String, Object>> getAllRequests()
+            throws SQLException {
+
         return returnExchangeDAO.getAllRequests();
     }
 
-    public List<Map<String, Object>> getRequestItems(int requestId) throws SQLException {
+    // =====================================================
+    // 5. STAFF XEM CHI TIẾT YÊU CẦU TRẢ HÀNG
+    // =====================================================
+
+    public List<Map<String, Object>> getRequestItems(
+            int requestId) throws SQLException {
+
         if (requestId <= 0) {
-            throw new IllegalArgumentException("Mã yêu cầu không hợp lệ.");
+            throw new IllegalArgumentException(
+                    "Mã yêu cầu trả hàng không hợp lệ.");
         }
 
         return returnExchangeDAO.getRequestItems(requestId);
     }
+
+    // =====================================================
+    // 6. STAFF DUYỆT / TỪ CHỐI YÊU CẦU TRẢ HÀNG
+    // =====================================================
 
     public boolean reviewRequest(
             int requestId,
@@ -121,16 +175,41 @@ public class ReturnExchangeService {
             String staffNote) throws SQLException {
 
         if (requestId <= 0 || staffId <= 0) {
-            throw new IllegalArgumentException("Mã yêu cầu hoặc mã nhân viên không hợp lệ.");
+            throw new IllegalArgumentException(
+                    "Mã yêu cầu hoặc mã nhân viên "
+                    + "không hợp lệ.");
         }
 
         if (!"APPROVED".equals(newStatus)
                 && !"REJECTED".equals(newStatus)) {
-            throw new IllegalArgumentException("Trạng thái xử lý không hợp lệ.");
+
+            throw new IllegalArgumentException(
+                    "Trạng thái xử lý trả hàng "
+                    + "không hợp lệ.");
+        }
+
+        String normalizedNote =
+                staffNote == null ? "" : staffNote.trim();
+
+        if (normalizedNote.length() > 1000) {
+            throw new IllegalArgumentException(
+                    "Ghi chú không được vượt quá "
+                    + "1000 ký tự.");
+        }
+
+        if ("REJECTED".equals(newStatus)
+                && normalizedNote.isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Vui lòng nhập lý do từ chối "
+                    + "yêu cầu trả hàng.");
         }
 
         return returnExchangeDAO.reviewRequest(
-                requestId, staffId, newStatus, staffNote);
+                requestId,
+                staffId,
+                newStatus,
+                normalizedNote
+        );
     }
-
 }

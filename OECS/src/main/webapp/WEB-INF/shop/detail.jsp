@@ -948,48 +948,12 @@
             }
 
 
-            .product-description-item {
-                padding: 24px 0;
-                border-top: 1px solid #edf0f4;
-            }
-
-            .product-description-item:first-child {
-                border-top: none;
-            }
-
-            .product-description-item h4 {
-                font-size: 20px;
-                font-weight: 750;
-                color: #172033;
-                margin-bottom: 14px;
-            }
-
-            .product-description-item p {
-                color: #475569;
-                font-size: 15px;
-                line-height: 1.9;
-                white-space: pre-line;
-                margin-bottom: 0;
-            }
-
-            .product-description-image {
-                display: block;
-                width: 100%;
-                max-height: 420px;
-                object-fit: contain;
-                border-radius: 14px;
-                margin-top: 20px;
-                background: #f8fafc;
-            }
 
             @media (max-width: 575.98px) {
                 .product-description-box {
                     padding: 18px;
                 }
 
-                .product-description-item h4 {
-                    font-size: 18px;
-                }
             }
         </style>
 
@@ -1005,151 +969,63 @@
 
                     <c:choose>
 
-                        <c:when test="${not empty product.description
-                                        or not empty overviewSections}">
 
-                                <div id="descContainer"
-                                     class="description-container">
-
-                                    <div id="descContent"
-                                         class="product-description-content collapsed">
-
-                                        <%-- ===========================
-                                             MÔ TẢ CHÍNH
-                                             =========================== --%>
+                        <c:when test="${not empty product.description}">
 
 
-                                        <c:if test="${not empty product.description}">
+                            <div id="descContainer"
+                                 class="description-container">
 
-                                            <div class="product-description-intro">
-
-                                                <c:out
-                                                    value="${safeProductDescription}"
-                                                    escapeXml="false"/>
-
-                                            </div>
-
-                                        </c:if>
-
-
-                                        <%-- ===========================
-                                             NỘI DUNG CHI TIẾT
-                                             =========================== --%>
-
-                                        <c:forEach items="${overviewSections}"
-                                                   var="section">
-
-                                            <div class="product-description-item">
-
-                                                <h4>
-                                                    <c:out value="${section.sectionTitle}"/>
-                                                </h4>
-
-                                                <p>
-                                                    <c:out value="${section.sectionContent}"/>
-                                                </p>
-
-                                                <%-- =====================
-                                                     ẢNH MINH HỌA
-                                                     ===================== --%>
-
-                                                <c:if test="${not empty section.imageUrl}">
-
-                                                    <%-- Reset URL cho mỗi section --%>
-
-                                                    <c:set var="descImageUrl"
-                                                           value=""/>
-
-                                                    <c:choose>
-
-                                                        <%-- Ảnh từ HTTPS/HTTP --%>
-
-                                                        <c:when test="${fn:startsWith(section.imageUrl, 'https://')
-                                                                        or fn:startsWith(section.imageUrl, 'http://')}">
-
-                                                                <c:set var="descImageUrl"
-                                                                       value="${section.imageUrl}"/>
-
-                                                        </c:when>
-
-                                                        <%-- Ảnh từ thư mục trong ứng dụng --%>
-
-                                                        <c:when test="${not fn:startsWith(section.imageUrl, '//')
-                                                                        and not fn:contains(section.imageUrl, '://')}">
-
-                                                                <c:set var="descImagePath"
-                                                                       value="${section.imageUrl}"/>
-
-                                                                <%-- Thêm dấu / ở đầu nếu thiếu --%>
-
-                                                                <c:if test="${not fn:startsWith(descImagePath, '/')}">
-
-                                                                    <c:set var="descImagePath"
-                                                                           value="/${descImagePath}"/>
-
-                                                                </c:if>
-
-                                                                <%-- Tạo URL có context path --%>
-
-                                                                <c:url var="descImageUrl"
-                                                                       value="${descImagePath}"/>
-
-                                                        </c:when>
-
-                                                    </c:choose>
-
-                                                    <%-- Chỉ render khi URL hợp lệ --%>
-
-                                                    <c:if test="${not empty descImageUrl}">
-
-                                                        <img class="product-description-image"
-                                                             src="${fn:escapeXml(descImageUrl)}"
-                                                             alt="${fn:escapeXml(
-                                                                    empty section.imageAlt
-                                                                    ? section.sectionTitle
-                                                                    : section.imageAlt
-                                                                    )}"
-                                                             loading="lazy"
-                                                             onerror="this.style.display='none';">
-
-                                                    </c:if>
-
-                                                </c:if>
-
-                                            </div>
-
-                                        </c:forEach>
-
-                                    </div>
+                                <div id="descContent"
+                                     class="product-description-content collapsed">
 
                                     <%-- ===========================
-                                         GRADIENT THU GỌN
+                                         MÔ TẢ CHÍNH
                                          =========================== --%>
 
-                                    <div id="descOverlay"
-                                         class="description-overlay">
-                                    </div>
+
+                                    <c:if test="${not empty product.description}">
+
+                                        <div class="product-description-intro">
+
+                                            <c:out
+                                                value="${safeProductDescription}"
+                                                escapeXml="false"/>
+
+                                        </div>
+
+                                    </c:if>
 
                                 </div>
 
                                 <%-- ===========================
-                                     NÚT XEM THÊM / THU GỌN
+                                     GRADIENT THU GỌN
                                      =========================== --%>
 
-                                <div class="text-center mt-4">
-
-                                    <button type="button"
-                                            class="btn btn-outline-primary rounded-pill px-4"
-                                            id="btnToggleDesc"
-                                            style="display:none;">
-
-                                        Xem thêm mô tả
-
-                                        <i class="bi bi-chevron-down ms-1"></i>
-
-                                    </button>
-
+                                <div id="descOverlay"
+                                     class="description-overlay">
                                 </div>
+
+                            </div>
+
+                            <%-- ===========================
+                                 NÚT XEM THÊM / THU GỌN
+                                 =========================== --%>
+
+                            <div class="text-center mt-4">
+
+                                <button type="button"
+                                        class="btn btn-outline-primary rounded-pill px-4"
+                                        id="btnToggleDesc"
+                                        style="display:none;">
+
+                                    Xem thêm mô tả
+
+                                    <i class="bi bi-chevron-down ms-1"></i>
+
+                                </button>
+
+                            </div>
 
                         </c:when>
 

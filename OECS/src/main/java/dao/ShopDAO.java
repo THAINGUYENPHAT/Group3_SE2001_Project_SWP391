@@ -3,7 +3,6 @@ package dao;
 import db.DBContext;
 
 import model.Brand;
-import model.ProductOverviewSection;
 import model.Category;
 import model.Product;
 import model.ProductImage;
@@ -1196,56 +1195,4 @@ public class ShopDAO extends DBContext {
 
         return product;
     }
-
-
-    public List<ProductOverviewSection> getProductOverviewSections(
-            int productId) {
-
-        List<ProductOverviewSection> sections = new ArrayList<>();
-
-        String sql
-                = "SELECT section_id, product_id, section_key, "
-                + "section_title, section_content, image_url, "
-                + "image_alt, display_order "
-                + "FROM dbo.PRODUCT_CONTENT_SECTION "
-                + "WHERE product_id = ? AND is_active = 1 "
-                + "ORDER BY display_order ASC, section_id ASC";
-
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, productId);
-
-            try (ResultSet rs = ps.executeQuery()) {
-
-                while (rs.next()) {
-
-                    ProductOverviewSection section
-                            = new ProductOverviewSection(
-                                    rs.getInt("section_id"),
-                                    rs.getInt("product_id"),
-                                    rs.getString("section_key"),
-                                    rs.getString("section_title"),
-                                    rs.getString("section_content"),
-                                    rs.getString("image_url"),
-                                    rs.getString("image_alt"),
-                                    rs.getInt("display_order")
-                            );
-
-                    sections.add(section);
-                }
-            }
-
-        } catch (SQLException ex) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Không thể tải nội dung Tổng quan sản phẩm "
-                    + productId,
-                    ex
-            );
-        }
-
-        return sections;
-    }
-
 }

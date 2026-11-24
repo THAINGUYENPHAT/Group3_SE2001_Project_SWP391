@@ -7,7 +7,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 
 import model.Category;
-import model.ProductOverviewSection;
 import model.Product;
 import model.ProductSku;
 import model.ProductSpec;
@@ -296,16 +295,6 @@ public class ShopServlet extends HttpServlet {
         List<ProductSpec> featuredSpecs
                 = buildFeaturedSpecs(specs);
 
-        // =====================================
-// TỔNG QUAN SẢN PHẨM
-// =====================================
-        List<ProductOverviewSection> overviewSections
-                = shopDAO.getProductOverviewSections(productId);
-
-        request.setAttribute(
-                "overviewSections",
-                overviewSections
-        );
 
         // =====================================
         // 3.7. ĐÁNH GIÁ

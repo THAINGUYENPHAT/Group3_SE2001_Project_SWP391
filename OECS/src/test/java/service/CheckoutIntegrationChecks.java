@@ -75,7 +75,7 @@ public final class CheckoutIntegrationChecks {
                     selectedCheckoutChecks();
                     servletGuards();
                     cancellationPolicyChecks();
-                    refundWorkflowChecks();
+                    paymentReviewChecks();
                     shippingFeeChecks();
                     staffCancellationChecks();
                     stockConfirmationChecks();
@@ -95,23 +95,61 @@ public final class CheckoutIntegrationChecks {
         }
     }
 
-    private void createSchema(Path file) throws Exception {
-        byte[] bytes = Files.readAllBytes(file);
-        String schema = new String(bytes, bytes.length > 1 && bytes[0] == (byte) 0xff
-                && bytes[1] == (byte) 0xfe ? StandardCharsets.UTF_16LE : StandardCharsets.UTF_8);
-        String[] tables = {"ROLES", "USER", "ADDRESSBOOK", "CATEGORY", "BRAND", "PRODUCT", "PRODUCT_SKU",
-            "CART", "CART_ITEMS", "VOUCHER", "ORDER", "ORDER_ITEM", "ORDER_STATUS_HISTORY",
-            "VOUCHER_USAGES", "ORDER_CUSTOMER_POLICY", "PAYMENT_TRANSACTION",
-            "PAYMENT_REFUND", "NOTIFICATION", "AUDIT_LOG"};
+    private void createSchema(Path schemaFile) throws Exception {
+
+        byte[] bytes = Files.readAllBytes(schemaFile);
+
+        String schema = new String(
+                bytes,
+                bytes.length > 1
+                && bytes[0] == (byte) 0xff
+                && bytes[1] == (byte) 0xfe
+                        ? StandardCharsets.UTF_16LE
+                        : StandardCharsets.UTF_8
+        );
+
+        String[] tables = {
+            "ROLES",
+            "USER",
+            "ADDRESSBOOK",
+            "CATEGORY",
+            "BRAND",
+            "PRODUCT",
+            "PRODUCT_SKU",
+            "CART",
+            "CART_ITEMS",
+            "VOUCHER",
+            "ORDER",
+            "ORDER_ITEM",
+            "ORDER_STATUS_HISTORY",
+            "VOUCHER_USAGES",
+            "ORDER_CUSTOMER_POLICY",
+            "PAYMENT_TRANSACTION",
+            "NOTIFICATION",
+            "AUDIT_LOG"
+        };
+
         for (String table : tables) {
-            Matcher match = Pattern.compile("^CREATE TABLE \\[?" + table + "\\]? \\([\\s\\S]*?^\\);", Pattern.MULTILINE).matcher(schema);
+
+            Matcher match = Pattern.compile(
+                    "^CREATE TABLE \\[?" + table
+                    + "\\]? \\([\\s\\S]*?^\\);",
+                    Pattern.MULTILINE
+            ).matcher(schema);
+
             if (!match.find()) {
-                throw new IllegalStateException("Cannot find schema for " + table);
+                throw new IllegalStateException(
+                        "Cannot find schema for " + table);
             }
+
             execute(match.group());
         }
-        execute("CREATE UNIQUE INDEX UX_Payment_Refund_Transaction ON dbo.PAYMENT_REFUND(transaction_id)");
-        execute("CREATE UNIQUE INDEX UX_Order_CheckoutToken ON dbo.[ORDER](checkout_token) WHERE checkout_token IS NOT NULL");
+
+        execute(
+                "CREATE UNIQUE INDEX UX_Order_CheckoutToken "
+                + "ON dbo.[ORDER](checkout_token) "
+                + "WHERE checkout_token IS NOT NULL"
+        );
     }
 
     private void seed() throws SQLException {
@@ -492,66 +530,138 @@ public final class CheckoutIntegrationChecks {
                 + "WHERE user_id=" + policyUser);
     }
 
-    private void refundWorkflowChecks() throws Exception {
+    private void paymentReviewChecks() throws Exception {
+
         int id = policyOrder(1);
-        execute("UPDATE dbo.[ORDER] SET payment_method='VNPAY',order_status='PENDING_PAYMENT',payment_expires_at=DATEADD(MINUTE,15,SYSUTCDATETIME()) WHERE order_id=" + id);
-        execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code) "
-                + "SELECT order_id,'VNPAY',total_amount,'REFUND-A' FROM dbo.[ORDER] WHERE order_id=" + id);
-        execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code) "
-                + "SELECT order_id,'VNPAY',total_amount,'REFUND-B' FROM dbo.[ORDER] WHERE order_id=" + id);
-        BigDecimal amount = BigDecimal.valueOf(scalar("SELECT total_amount FROM dbo.[ORDER] WHERE order_id=" + id));
-        dao.PaymentDAO payments = new dao.PaymentDAO(connections);
-        check("04".equals(payments.settle("VNPAY", "REFUND-A", amount.add(BigDecimal.ONE), "PROVIDER-A", "00", true)),
-                "incorrect callback amount rejected");
-        check("00".equals(payments.settle("VNPAY", "REFUND-A", amount, "PROVIDER-A", "00", true)),
-                "first payment confirms order");
-        parallel(() -> payments.settle("VNPAY", "REFUND-B", amount, "PROVIDER-B", "00", true),
-                () -> payments.settle("VNPAY", "REFUND-B", amount, "PROVIDER-B", "00", true));
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND") == 1, "duplicate successful payment creates one refund despite repeated callbacks");
-        long refundId = scalar("SELECT refund_id FROM dbo.PAYMENT_REFUND");
-        dao.PaymentRefundDAO refunds = new dao.PaymentRefundDAO(connections);
-        check(refunds.findForCustomer(id, policyUser).size() == 1, "customer sees own refund");
-        check(refunds.findForCustomer(id, 1).isEmpty(), "other customer cannot see refund");
-        expectInvalid(() -> {
-            refunds.updateStatus(refundId, "PENDING", "SUCCESS", "receipt", 1);
-            return null;
-        },
-                "cannot skip reconciliation");
-        refunds.updateStatus(refundId, "PENDING", "PROCESSING", null, 1);
-        expectInvalid(() -> {
-            refunds.updateStatus(refundId, "PENDING", "PROCESSING", null, 1);
-            return null;
-        },
-                "stale staff update rejected");
-        expectInvalid(() -> {
-            refunds.updateStatus(refundId, "PROCESSING", "SUCCESS", " ", 1);
-            return null;
-        },
-                "completion needs refund reference");
-        refunds.updateStatus(refundId, "PROCESSING", "FAILED", null, 1);
-        refunds.updateStatus(refundId, "FAILED", "PROCESSING", null, 1);
-        refunds.updateStatus(refundId, "PROCESSING", "SUCCESS", "REFUND-RECEIPT-1", 1);
-        check("Đã hoàn tiền".equals(refunds.findForCustomer(id, policyUser).get(0).get("statusLabel")),
-                "completed refund visible to customer");
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND WHERE processed_by=1 AND completed_at IS NOT NULL AND provider_refund_id='REFUND-RECEIPT-1'") == 1,
-                "completion records staff, date and reference");
-        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id + " AND payment_status='PAID'") == 1,
-                "surplus refund preserves original paid order");
-        expectSql(() -> {
-            execute("INSERT INTO dbo.PAYMENT_REFUND(transaction_id,refund_amount) SELECT transaction_id,refund_amount FROM dbo.PAYMENT_REFUND");
-            return null;
-        },
-                "database prevents duplicate refund requests");
-        controller.PaymentRefundServlet servlet = new controller.PaymentRefundServlet();
-        checkServlet(servlet, "doGet", null, "/staff/payment-refunds", null, 403, "anonymous refund access denied");
-        model.User customer = new model.User();
-        customer.setRoleName("Customer");
-        customer.setUserId(policyUser);
-        checkServlet(servlet, "doPost", customer, "/staff/payment-refunds", null, 403, "customer cannot update refunds");
-        model.User staff = new model.User();
-        staff.setRoleName("Staff");
-        staff.setUserId(1);
-        checkServlet(servlet, "doPost", staff, "/staff/payment-refunds", null, 403, "refund mutation requires CSRF token");
+
+        execute(
+                "UPDATE dbo.[ORDER] "
+                + "SET payment_method='VNPAY', "
+                + "order_status='PENDING_PAYMENT', "
+                + "payment_expires_at="
+                + "DATEADD(MINUTE,15,SYSUTCDATETIME()) "
+                + "WHERE order_id=" + id
+        );
+
+        execute(
+                "INSERT INTO dbo.PAYMENT_TRANSACTION "
+                + "(order_id,payment_method,amount,transaction_code) "
+                + "SELECT order_id,'VNPAY',total_amount,'REVIEW-A' "
+                + "FROM dbo.[ORDER] WHERE order_id=" + id
+        );
+
+        execute(
+                "INSERT INTO dbo.PAYMENT_TRANSACTION "
+                + "(order_id,payment_method,amount,transaction_code) "
+                + "SELECT order_id,'VNPAY',total_amount,'REVIEW-B' "
+                + "FROM dbo.[ORDER] WHERE order_id=" + id
+        );
+
+        BigDecimal amount = BigDecimal.valueOf(
+                scalar(
+                        "SELECT total_amount "
+                        + "FROM dbo.[ORDER] "
+                        + "WHERE order_id=" + id
+                )
+        );
+
+        dao.PaymentDAO payments
+                = new dao.PaymentDAO(connections);
+
+        // 1. Giao dich sai so tien phai bi tu choi.
+        check(
+                "04".equals(
+                        payments.settle(
+                                "VNPAY",
+                                "REVIEW-A",
+                                amount.add(BigDecimal.ONE),
+                                "PROVIDER-A",
+                                "00",
+                                true
+                        )
+                ),
+                "incorrect callback amount rejected"
+        );
+
+        // 2. Giao dich dau tien thanh cong.
+        check(
+                "00".equals(
+                        payments.settle(
+                                "VNPAY",
+                                "REVIEW-A",
+                                amount,
+                                "PROVIDER-A",
+                                "00",
+                                true
+                        )
+                ),
+                "first payment confirms order"
+        );
+
+        // 3. Kiem tra callback trung lap.
+        Object[] results = parallel(
+                () -> payments.settle(
+                        "VNPAY",
+                        "REVIEW-B",
+                        amount,
+                        "PROVIDER-B",
+                        "00",
+                        true
+                ),
+                () -> payments.settle(
+                        "VNPAY",
+                        "REVIEW-B",
+                        amount,
+                        "PROVIDER-B",
+                        "00",
+                        true
+                )
+        );
+
+        boolean validCallbacks
+                = ("00".equals(results[0])
+                || "02".equals(results[0]))
+                && ("00".equals(results[1])
+                || "02".equals(results[1]));
+
+        check(
+                validCallbacks,
+                "callbacks are idempotent"
+        );
+
+        // 4. Khong xoa giao dich tien da nhan.
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.PAYMENT_TRANSACTION "
+                        + "WHERE order_id=" + id
+                        + " AND status='SUCCESS'"
+                ) == 2,
+                "successful transactions are retained"
+        );
+
+        // 5. Ghi nhat ky de Staff doi soat thu cong.
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.AUDIT_LOG "
+                        + "WHERE entity_type='ORDER' "
+                        + "AND entity_id=" + id
+                        + " AND action='PAYMENT_REVIEW'"
+                ) == 1,
+                "surplus payment flagged for manual review"
+        );
+
+        // 6. Don hang van ghi nhan da thanh toan.
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.[ORDER] "
+                        + "WHERE order_id=" + id
+                        + " AND payment_status='PAID'"
+                ) == 1,
+                "original payment status preserved"
+        );
     }
 
     private void migrationChecks(Path schemaFile) throws Exception {
@@ -850,67 +960,252 @@ public final class CheckoutIntegrationChecks {
     }
 
     private void customerCancellationChecks() throws Exception {
+
+        // =====================================================
+        // 1. CUSTOMER CANCEL: COD / VNPAY / MOMO
+        // =====================================================
         for (String method : new String[]{"COD", "VNPAY", "MOMO"}) {
-            for (String state : new String[]{"PENDING_PAYMENT", "PENDING_CONFIRMATION", "CONFIRMED", "PACKING"}) {
-                boolean paid = !"COD".equals(method) && !"PENDING_PAYMENT".equals(state);
+
+            for (String state : new String[]{
+                "PENDING_PAYMENT",
+                "PENDING_CONFIRMATION",
+                "CONFIRMED",
+                "PACKING"
+            }) {
+
+                boolean paid = !"COD".equals(method)
+                        && !"PENDING_PAYMENT".equals(state);
+
                 int id = cancellationOrder(state, method, paid);
-                long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-                expectInvalid(() -> checkout.cancelOrderByCustomer(2, id), "customer ownership checked for " + state);
-                check(checkout.cancelOrderByCustomer(1, id), "customer cancels " + method + " " + state);
-                long restored = "CONFIRMED".equals(state) || "PACKING".equals(state) ? 2 : 0;
-                check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + restored,
-                        "customer restores only deducted stock for " + method + " " + state);
-                check(!checkout.cancelOrderByCustomer(1, id), "repeat cancellation is unchanged");
-                check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + restored,
-                        "repeat cancellation does not restore again");
-                check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] "
-                        + "WHERE order_id=" + id
-                        + " AND cancellation_source='CUSTOMER' "
-                        + "AND cancelled_at IS NOT NULL") == 1,
-                        "customer policy records cancellation once");
-                check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id=" + id) == 1,
-                        "one cancellation notification");
-                check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
-                        + "ON t.transaction_id=r.transaction_id WHERE t.order_id=" + id) == (paid ? 1 : 0),
-                        "refund queued only for successful payment");
+
+                long stock = scalar(
+                        "SELECT stock_quantity "
+                        + "FROM dbo.PRODUCT_SKU "
+                        + "WHERE sku_id=1"
+                );
+
+                // Customer khac khong duoc huy don.
+                expectInvalid(
+                        () -> checkout.cancelOrderByCustomer(2, id),
+                        "customer ownership checked for " + state
+                );
+
+                // Customer huy don cua chinh minh.
+                check(
+                        checkout.cancelOrderByCustomer(1, id),
+                        "customer cancels " + method + " " + state
+                );
+
+                long restored
+                        = "CONFIRMED".equals(state)
+                        || "PACKING".equals(state)
+                        ? 2 : 0;
+
+                check(
+                        scalar(
+                                "SELECT stock_quantity "
+                                + "FROM dbo.PRODUCT_SKU "
+                                + "WHERE sku_id=1"
+                        ) == stock + restored,
+                        "customer restores only deducted stock for "
+                        + method + " " + state
+                );
+
+                // Khong huy / hoan kho lan thu hai.
+                check(
+                        !checkout.cancelOrderByCustomer(1, id),
+                        "repeat cancellation is unchanged"
+                );
+
+                check(
+                        scalar(
+                                "SELECT stock_quantity "
+                                + "FROM dbo.PRODUCT_SKU "
+                                + "WHERE sku_id=1"
+                        ) == stock + restored,
+                        "repeat cancellation does not restore again"
+                );
+
+                // Ghi nhan huy don boi Customer.
+                check(
+                        scalar(
+                                "SELECT COUNT(*) "
+                                + "FROM dbo.[ORDER] "
+                                + "WHERE order_id=" + id
+                                + " AND cancellation_source='CUSTOMER' "
+                                + "AND cancelled_at IS NOT NULL"
+                        ) == 1,
+                        "customer policy records cancellation once"
+                );
+
+                // Chi tao mot thong bao.
+                check(
+                        scalar(
+                                "SELECT COUNT(*) "
+                                + "FROM dbo.NOTIFICATION "
+                                + "WHERE order_id=" + id
+                        ) == 1,
+                        "one cancellation notification"
+                );
+
+                // Neu da thu tien, ghi nhat ky doi soat.
+                // Khong tao PAYMENT_REFUND.
+                check(
+                        scalar(
+                                "SELECT COUNT(*) "
+                                + "FROM dbo.AUDIT_LOG "
+                                + "WHERE action='PAYMENT_REVIEW' "
+                                + "AND entity_type='ORDER' "
+                                + "AND entity_id=" + id
+                        ) == (paid ? 1 : 0),
+                        "paid cancellation flagged for manual reconciliation"
+                );
+
                 if (paid) {
-                    check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + id
-                            + " AND payment_status='REFUND_PENDING'") == 1, "paid cancellation awaits refund");
+
+                    // Tien thuc te da thu van phai duoc ghi nhan.
+                    check(
+                            scalar(
+                                    "SELECT COUNT(*) "
+                                    + "FROM dbo.[ORDER] "
+                                    + "WHERE order_id=" + id
+                                    + " AND payment_status='PAID'"
+                            ) == 1,
+                            "paid cancellation preserves captured-payment status"
+                    );
                 }
             }
         }
-        for (String state : new String[]{"SHIPPING", "DELIVERED", "COMPLETED", "UNKNOWN"}) {
+
+        // =====================================================
+        // 2. KHONG DUOC HUY DON DA VAN CHUYEN / HOAN TAT
+        // =====================================================
+        for (String state : new String[]{
+            "SHIPPING",
+            "DELIVERED",
+            "COMPLETED",
+            "UNKNOWN"
+        }) {
+
             int id = cancellationOrder("PACKING", "COD", false);
-            // UNKNOWN is checked by the shared policy without storing an invalid DB status.
-            check(!OrderCancellationService.canCancel(state), "policy rejects " + state);
+
+            check(
+                    !OrderCancellationService.canCancel(state),
+                    "policy rejects " + state
+            );
+
+            // Khong luu UNKNOWN vao DB.
             if ("UNKNOWN".equals(state)) {
                 continue;
             }
-            execute("UPDATE dbo.[ORDER] SET order_status='" + state + "' WHERE order_id=" + id);
-            long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-            expectInvalid(() -> checkout.cancelOrderByCustomer(1, id), "customer cannot cancel " + state);
-            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock,
-                    "rejected cancellation preserves stock");
+
+            execute(
+                    "UPDATE dbo.[ORDER] "
+                    + "SET order_status='" + state + "' "
+                    + "WHERE order_id=" + id
+            );
+
+            long stock = scalar(
+                    "SELECT stock_quantity "
+                    + "FROM dbo.PRODUCT_SKU "
+                    + "WHERE sku_id=1"
+            );
+
+            expectInvalid(
+                    () -> checkout.cancelOrderByCustomer(1, id),
+                    "customer cannot cancel " + state
+            );
+
+            check(
+                    scalar(
+                            "SELECT stock_quantity "
+                            + "FROM dbo.PRODUCT_SKU "
+                            + "WHERE sku_id=1"
+                    ) == stock,
+                    "rejected cancellation preserves stock"
+            );
         }
-        int pending = cancellationOrder("PENDING_PAYMENT", "MOMO", false);
-        execute("INSERT INTO dbo.PAYMENT_TRANSACTION(order_id,payment_method,amount,transaction_code,status) "
-                + "VALUES (" + pending + ",'MOMO',200000,'CUSTOMER-PENDING-" + pending + "','PENDING')");
+
+        // =====================================================
+        // 3. DONG GIAO DICH THANH TOAN CHO
+        // =====================================================
+        int pending
+                = cancellationOrder("PENDING_PAYMENT", "MOMO", false);
+
+        execute(
+                "INSERT INTO dbo.PAYMENT_TRANSACTION "
+                + "(order_id,payment_method,amount,"
+                + "transaction_code,status) "
+                + "VALUES ("
+                + pending
+                + ",'MOMO',200000,'CUSTOMER-PENDING-"
+                + pending
+                + "','PENDING')"
+        );
+
         checkout.cancelOrderByCustomer(1, pending);
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_TRANSACTION WHERE order_id=" + pending
-                + " AND status='CANCELLED'") == 1, "pending payment closed on customer cancellation");
 
-        int duplicate = cancellationOrder("PACKING", "VNPAY", true);
-        long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-        parallel(() -> checkout.cancelOrderByCustomer(1, duplicate), () -> checkout.cancelOrderByCustomer(1, duplicate));
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + 2,
-                "concurrent customer cancellation restores once");
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
-                + "ON t.transaction_id=r.transaction_id WHERE t.order_id=" + duplicate) == 1,
-                "concurrent customer cancellation queues one refund");
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.PAYMENT_TRANSACTION "
+                        + "WHERE order_id=" + pending
+                        + " AND status='CANCELLED'"
+                ) == 1,
+                "pending payment closed on customer cancellation"
+        );
 
-        int rollback = cancellationOrder("PACKING", "VNPAY", true);
-        stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-        execute("CREATE TRIGGER dbo.fail_customer_policy "
+        // =====================================================
+        // 4. HUY DON DONG THOI: KHONG GHI LOG TRUNG
+        // =====================================================
+        int duplicate
+                = cancellationOrder("PACKING", "VNPAY", true);
+
+        long stock = scalar(
+                "SELECT stock_quantity "
+                + "FROM dbo.PRODUCT_SKU "
+                + "WHERE sku_id=1"
+        );
+
+        parallel(
+                () -> checkout.cancelOrderByCustomer(1, duplicate),
+                () -> checkout.cancelOrderByCustomer(1, duplicate)
+        );
+
+        check(
+                scalar(
+                        "SELECT stock_quantity "
+                        + "FROM dbo.PRODUCT_SKU "
+                        + "WHERE sku_id=1"
+                ) == stock + 2,
+                "concurrent customer cancellation restores once"
+        );
+
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.AUDIT_LOG "
+                        + "WHERE action='PAYMENT_REVIEW' "
+                        + "AND entity_type='ORDER' "
+                        + "AND entity_id=" + duplicate
+                ) == 1,
+                "concurrent customer cancellation logs once"
+        );
+
+        // =====================================================
+        // 5. ROLLBACK KHI LOI CAP NHAT DON
+        // =====================================================
+        int rollback
+                = cancellationOrder("PACKING", "VNPAY", true);
+
+        stock = scalar(
+                "SELECT stock_quantity "
+                + "FROM dbo.PRODUCT_SKU "
+                + "WHERE sku_id=1"
+        );
+
+        execute(
+                "CREATE TRIGGER dbo.fail_customer_policy "
                 + "ON dbo.[ORDER] AFTER UPDATE "
                 + "AS "
                 + "BEGIN "
@@ -918,90 +1213,439 @@ public final class CheckoutIntegrationChecks {
                 + "SELECT 1 FROM inserted "
                 + "WHERE cancellation_source='CUSTOMER'"
                 + ") "
-                + "THROW 51001, 'rollback customer cancellation', 1; "
-                + "END");
-        expectSql(() -> checkout.cancelOrderByCustomer(1, rollback), "policy failure rolls back cancellation");
-        execute("DROP TRIGGER dbo.fail_customer_policy");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock,
-                "customer rollback preserves stock");
-        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + rollback
-                + " AND order_status='PACKING' AND payment_status='PAID' AND stock_restored_at IS NULL") == 1,
-                "customer rollback preserves order and payment");
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t "
-                + "ON t.transaction_id=r.transaction_id WHERE t.order_id=" + rollback) == 0,
-                "customer rollback removes refund");
-        check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id=" + rollback) == 0,
-                "customer rollback removes notification");
+                + "THROW 51001, "
+                + "'rollback customer cancellation', 1; "
+                + "END"
+        );
 
-        int race = cancellationOrder("PACKING", "COD", false);
-        stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-        parallel(() -> {
-            try {
-                return checkout.cancelOrderByCustomer(1, race);
-            } catch (IllegalArgumentException shipped) {
-                return false;
-            }
-        },
-                () -> cancellationStaffDAO().transitionStatus(race, "SHIPPING"));
-        boolean cancelled = "CANCELLED".equals(cancellationStaffDAO().getCurrentStatus(race));
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + (cancelled ? 2 : 0),
-                "customer cancellation racing shipment keeps stock consistent");
+        try {
+
+            expectSql(
+                    () -> checkout.cancelOrderByCustomer(1, rollback),
+                    "policy failure rolls back cancellation"
+            );
+
+        } finally {
+
+            execute("DROP TRIGGER dbo.fail_customer_policy");
+        }
+
+        check(
+                scalar(
+                        "SELECT stock_quantity "
+                        + "FROM dbo.PRODUCT_SKU "
+                        + "WHERE sku_id=1"
+                ) == stock,
+                "customer rollback preserves stock"
+        );
+
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.[ORDER] "
+                        + "WHERE order_id=" + rollback
+                        + " AND order_status='PACKING' "
+                        + "AND payment_status='PAID' "
+                        + "AND stock_restored_at IS NULL"
+                ) == 1,
+                "customer rollback preserves order and payment"
+        );
+
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.AUDIT_LOG "
+                        + "WHERE action='PAYMENT_REVIEW' "
+                        + "AND entity_type='ORDER' "
+                        + "AND entity_id=" + rollback
+                ) == 0,
+                "customer rollback removes payment-review log"
+        );
+
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.NOTIFICATION "
+                        + "WHERE order_id=" + rollback
+                ) == 0,
+                "customer rollback removes notification"
+        );
+
+        // =====================================================
+        // 6. HUY DON DONG THOI VOI SHIPPING
+        // =====================================================
+        int race
+                = cancellationOrder("PACKING", "COD", false);
+
+        stock = scalar(
+                "SELECT stock_quantity "
+                + "FROM dbo.PRODUCT_SKU "
+                + "WHERE sku_id=1"
+        );
+
+        parallel(
+                () -> {
+
+                    try {
+                        return checkout.cancelOrderByCustomer(1, race);
+                    } catch (IllegalArgumentException shipped) {
+                        return false;
+                    }
+                },
+                () -> cancellationStaffDAO()
+                        .transitionStatus(race, "SHIPPING")
+        );
+
+        boolean cancelled
+                = "CANCELLED".equals(
+                        cancellationStaffDAO().getCurrentStatus(race)
+                );
+
+        check(
+                scalar(
+                        "SELECT stock_quantity "
+                        + "FROM dbo.PRODUCT_SKU "
+                        + "WHERE sku_id=1"
+                ) == stock + (cancelled ? 2 : 0),
+                "customer cancellation racing shipment keeps stock consistent"
+        );
     }
 
     private void staffCancellationChecks() throws Exception {
+
+        // =====================================================
+        // 1. KIEM TRA CAC BUOC XU LY DON HANG
+        // =====================================================
         adminOrderProgressChecks();
-        OrderCancellationService cancel = new OrderCancellationService(connections);
-        for (String state : new String[]{"PENDING_PAYMENT", "PENDING_CONFIRMATION", "CONFIRMED", "PACKING"}) {
+
+        OrderCancellationService cancel
+                = new OrderCancellationService(connections);
+
+        // =====================================================
+        // 2. STAFF HUY DON COD THEO TUNG TRANG THAI
+        // =====================================================
+        for (String state : new String[]{
+            "PENDING_PAYMENT",
+            "PENDING_CONFIRMATION",
+            "CONFIRMED",
+            "PACKING"
+        }) {
+
             int id = cancellationOrder(state, "COD", false);
-            long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-            check("CANCELLED".equals(cancel.staffCancel(2, id)), "Staff cancels " + state + " without reason or request table");
-            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + (("CONFIRMED".equals(state) || "PACKING".equals(state)) ? 2 : 0), "restore only confirmed SKU for " + state);
-            check("UNCHANGED".equals(cancel.staffCancel(2, id)), "repeated " + state + " cancellation is idempotent");
-            check(scalar("SELECT COUNT(*) FROM dbo.ORDER_STATUS_HISTORY WHERE order_id=" + id + " AND status='CANCELLED'") == 1, "one committed cancellation history for " + state);
-            check(scalar("SELECT COUNT(*) FROM dbo.NOTIFICATION WHERE order_id=" + id) == 1, "shared DAO sends cancellation once for " + state);
+
+            long stock = scalar(
+                    "SELECT stock_quantity "
+                    + "FROM dbo.PRODUCT_SKU "
+                    + "WHERE sku_id=1"
+            );
+
+            check(
+                    "CANCELLED".equals(cancel.staffCancel(2, id)),
+                    "Staff cancels " + state
+                    + " without reason or request table"
+            );
+
+            long restored
+                    = "CONFIRMED".equals(state)
+                    || "PACKING".equals(state)
+                    ? 2 : 0;
+
+            check(
+                    scalar(
+                            "SELECT stock_quantity "
+                            + "FROM dbo.PRODUCT_SKU "
+                            + "WHERE sku_id=1"
+                    ) == stock + restored,
+                    "restore only confirmed SKU for " + state
+            );
+
+            check(
+                    "UNCHANGED".equals(cancel.staffCancel(2, id)),
+                    "repeated " + state
+                    + " cancellation is idempotent"
+            );
+
+            check(
+                    scalar(
+                            "SELECT COUNT(*) "
+                            + "FROM dbo.ORDER_STATUS_HISTORY "
+                            + "WHERE order_id=" + id
+                            + " AND status='CANCELLED'"
+                    ) == 1,
+                    "one committed cancellation history for " + state
+            );
+
+            check(
+                    scalar(
+                            "SELECT COUNT(*) "
+                            + "FROM dbo.NOTIFICATION "
+                            + "WHERE order_id=" + id
+                    ) == 1,
+                    "shared DAO sends cancellation once for " + state
+            );
         }
-        for (String state : new String[]{"SHIPPING", "COMPLETED", "DELIVERED"}) {
+
+        // =====================================================
+        // 3. KHONG CHO HUY DON DA SHIPPING / COMPLETED
+        // =====================================================
+        for (String state : new String[]{
+            "SHIPPING",
+            "COMPLETED",
+            "DELIVERED"
+        }) {
+
             int id = cancellationOrder(state, "COD", false);
-            long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-            expectInvalid(() -> cancel.staffCancel(2, id), "cannot cancel " + state);
-            check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock, "blocked " + state + " preserves stock");
+
+            long stock = scalar(
+                    "SELECT stock_quantity "
+                    + "FROM dbo.PRODUCT_SKU "
+                    + "WHERE sku_id=1"
+            );
+
+            expectInvalid(
+                    () -> cancel.staffCancel(2, id),
+                    "cannot cancel " + state
+            );
+
+            check(
+                    scalar(
+                            "SELECT stock_quantity "
+                            + "FROM dbo.PRODUCT_SKU "
+                            + "WHERE sku_id=1"
+                    ) == stock,
+                    "blocked " + state + " preserves stock"
+            );
         }
-        int paid = cancellationOrder("CONFIRMED", "VNPAY", true);
-        check("CANCELLED".equals(cancel.staffCancel(2, paid)), "paid order cancellation accepted");
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id=" + paid + " AND r.refund_status='PENDING' AND r.refund_amount=200000") == 1, "exact refund queued, not marked completed");
-        long refundId = scalar("SELECT r.refund_id FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id=" + paid);
-        dao.PaymentRefundDAO refunds = new dao.PaymentRefundDAO(connections);
-        refunds.updateStatus(refundId, "PENDING", "PROCESSING", null, 2);
-        refunds.updateStatus(refundId, "PROCESSING", "SUCCESS", "STAFF-REFUND-" + paid, 2);
-        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + paid + " AND payment_status='REFUNDED'") == 1, "confirmed refund updates cancelled order");
-        int duplicate = cancellationOrder("PACKING", "COD", false);
-        long stock = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-        parallel(() -> cancel.staffCancel(2, duplicate), () -> cancel.staffCancel(2, duplicate));
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == stock + 2, "concurrent staff cancellation restores once");
-        int rollback = cancellationOrder("PACKING", "VNPAY", true);
-        long before = scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1");
-        execute("CREATE TRIGGER dbo.fail_cancel_notice ON dbo.ORDER_STATUS_HISTORY AFTER INSERT AS THROW 51001, 'rollback staff cancellation', 1");
-        expectSql(() -> cancel.staffCancel(2, rollback), "failed order history rolls back paid cancellation");
-        execute("DROP TRIGGER dbo.fail_cancel_notice");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == before, "rollback preserves stock");
-        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + rollback + " AND order_status='PACKING' AND stock_restored_at IS NULL") == 1, "rollback preserves order");
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id=" + rollback) == 0, "rollback removes refund queue entry");
-        execute("CREATE TRIGGER dbo.fail_notification ON dbo.NOTIFICATION AFTER INSERT AS THROW 51001, 'notification rollback', 1");
-        expectSql(() -> cancel.staffCancel(2, rollback), "notification failure rolls back paid cancellation");
-        execute("DROP TRIGGER dbo.fail_notification");
-        check(scalar("SELECT stock_quantity FROM dbo.PRODUCT_SKU WHERE sku_id=1") == before, "notification failure preserves stock");
-        check(scalar("SELECT COUNT(*) FROM dbo.PAYMENT_REFUND r JOIN dbo.PAYMENT_TRANSACTION t ON t.transaction_id=r.transaction_id WHERE t.order_id=" + rollback) == 0, "notification failure rolls back refund");
-        int race = cancellationOrder("PACKING", "COD", false);
-        parallel(() -> {
-            try {
-                return cancel.staffCancel(2, race);
-            } catch (IllegalArgumentException e) {
-                return "SHIPPED";
-            }
-        },
-                () -> cancellationStaffDAO().transitionStatus(race, "SHIPPING"));
-        check(scalar("SELECT COUNT(*) FROM dbo.[ORDER] WHERE order_id=" + race + " AND ((order_status='CANCELLED' AND stock_restored_at IS NOT NULL) OR (order_status='SHIPPING' AND stock_restored_at IS NULL))") == 1, "shipment versus cancellation preserves consistent state");
-        check(scalar("SELECT COUNT(*) FROM sys.tables WHERE name='ORDER_CANCELLATION_REQUEST'") == 0, "all Staff checks pass without new request table");
+
+        // =====================================================
+        // 4. STAFF HUY DON VNPAY DA THANH TOAN
+        // =====================================================
+        int paid
+                = cancellationOrder("CONFIRMED", "VNPAY", true);
+
+        check(
+                "CANCELLED".equals(cancel.staffCancel(2, paid)),
+                "paid order cancellation accepted"
+        );
+
+        // Khong tao Refund.
+        // Phai ghi nhat ky de Staff doi soat tien.
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.AUDIT_LOG "
+                        + "WHERE action='PAYMENT_REVIEW' "
+                        + "AND entity_type='ORDER' "
+                        + "AND entity_id=" + paid
+                ) == 1,
+                "paid staff cancellation requires manual reconciliation"
+        );
+
+        // Tien da thu van duoc ghi nhan la PAID.
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.[ORDER] "
+                        + "WHERE order_id=" + paid
+                        + " AND order_status='CANCELLED' "
+                        + "AND payment_status='PAID'"
+                ) == 1,
+                "paid cancellation preserves captured-payment status"
+        );
+
+        // =====================================================
+        // 5. STAFF HUY DON DONG THOI
+        // =====================================================
+        int duplicate
+                = cancellationOrder("PACKING", "COD", false);
+
+        long stock = scalar(
+                "SELECT stock_quantity "
+                + "FROM dbo.PRODUCT_SKU "
+                + "WHERE sku_id=1"
+        );
+
+        parallel(
+                () -> cancel.staffCancel(2, duplicate),
+                () -> cancel.staffCancel(2, duplicate)
+        );
+
+        check(
+                scalar(
+                        "SELECT stock_quantity "
+                        + "FROM dbo.PRODUCT_SKU "
+                        + "WHERE sku_id=1"
+                ) == stock + 2,
+                "concurrent staff cancellation restores once"
+        );
+
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.ORDER_STATUS_HISTORY "
+                        + "WHERE order_id=" + duplicate
+                        + " AND status='CANCELLED'"
+                ) == 1,
+                "concurrent staff cancellation writes one history"
+        );
+
+        // =====================================================
+        // 6. ROLLBACK KHI GHI LICH SU THAT BAI
+        // =====================================================
+        int rollback
+                = cancellationOrder("PACKING", "VNPAY", true);
+
+        long before = scalar(
+                "SELECT stock_quantity "
+                + "FROM dbo.PRODUCT_SKU "
+                + "WHERE sku_id=1"
+        );
+
+        execute(
+                "CREATE TRIGGER dbo.fail_cancel_notice "
+                + "ON dbo.ORDER_STATUS_HISTORY "
+                + "AFTER INSERT "
+                + "AS THROW 51001, "
+                + "'rollback staff cancellation', 1"
+        );
+
+        try {
+
+            expectSql(
+                    () -> cancel.staffCancel(2, rollback),
+                    "failed order history rolls back paid cancellation"
+            );
+
+        } finally {
+
+            execute("DROP TRIGGER dbo.fail_cancel_notice");
+        }
+
+        check(
+                scalar(
+                        "SELECT stock_quantity "
+                        + "FROM dbo.PRODUCT_SKU "
+                        + "WHERE sku_id=1"
+                ) == before,
+                "rollback preserves stock"
+        );
+
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.[ORDER] "
+                        + "WHERE order_id=" + rollback
+                        + " AND order_status='PACKING' "
+                        + "AND payment_status='PAID' "
+                        + "AND stock_restored_at IS NULL"
+                ) == 1,
+                "rollback preserves order"
+        );
+
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.AUDIT_LOG "
+                        + "WHERE action='PAYMENT_REVIEW' "
+                        + "AND entity_type='ORDER' "
+                        + "AND entity_id=" + rollback
+                ) == 0,
+                "rollback removes payment-review log"
+        );
+
+        // =====================================================
+        // 7. ROLLBACK KHI TAO NOTIFICATION THAT BAI
+        // =====================================================
+        execute(
+                "CREATE TRIGGER dbo.fail_notification "
+                + "ON dbo.NOTIFICATION "
+                + "AFTER INSERT "
+                + "AS THROW 51001, "
+                + "'notification rollback', 1"
+        );
+
+        try {
+
+            expectSql(
+                    () -> cancel.staffCancel(2, rollback),
+                    "notification failure rolls back paid cancellation"
+            );
+
+        } finally {
+
+            execute("DROP TRIGGER dbo.fail_notification");
+        }
+
+        check(
+                scalar(
+                        "SELECT stock_quantity "
+                        + "FROM dbo.PRODUCT_SKU "
+                        + "WHERE sku_id=1"
+                ) == before,
+                "notification failure preserves stock"
+        );
+
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.AUDIT_LOG "
+                        + "WHERE action='PAYMENT_REVIEW' "
+                        + "AND entity_type='ORDER' "
+                        + "AND entity_id=" + rollback
+                ) == 0,
+                "notification failure rolls back payment-review log"
+        );
+
+        // =====================================================
+        // 8. STAFF CANCEL DONG THOI VOI SHIPPING
+        // =====================================================
+        int race
+                = cancellationOrder("PACKING", "COD", false);
+
+        parallel(
+                () -> {
+
+                    try {
+                        return cancel.staffCancel(2, race);
+                    } catch (IllegalArgumentException ex) {
+                        return "SHIPPED";
+                    }
+                },
+                () -> cancellationStaffDAO()
+                        .transitionStatus(race, "SHIPPING")
+        );
+
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM dbo.[ORDER] "
+                        + "WHERE order_id=" + race
+                        + " AND ("
+                        + " (order_status='CANCELLED' "
+                        + "AND stock_restored_at IS NOT NULL) "
+                        + "OR "
+                        + " (order_status='SHIPPING' "
+                        + "AND stock_restored_at IS NULL)"
+                        + " )"
+                ) == 1,
+                "shipment versus cancellation preserves consistent state"
+        );
+
+        // =====================================================
+        // 9. KHONG CO BANG YEU CAU HUY DON RIENG
+        // =====================================================
+        check(
+                scalar(
+                        "SELECT COUNT(*) "
+                        + "FROM sys.tables "
+                        + "WHERE name='ORDER_CANCELLATION_REQUEST'"
+                ) == 0,
+                "all Staff checks pass without new request table"
+        );
+
+        // =====================================================
+        // 10. KIEM TRA NOTIFICATION
+        // =====================================================
         notificationIntegrationChecks();
     }
 

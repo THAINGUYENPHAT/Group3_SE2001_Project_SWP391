@@ -4,7 +4,9 @@ import dao.BrandDAO;
 import dao.CategoryAttributeDAO;
 import dao.CategoryDAO;
 import dao.ProductDAO;
-
+import service.ProductCatalogService;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import model.CategoryAttribute;
 import model.Product;
 import model.ProductImage;
@@ -640,8 +642,24 @@ public class ProductServlet extends HttpServlet {
             );
         }
 
-        String description
-                = request.getParameter("description");
+        String description = request.getParameter("description");
+
+        if (description == null) {
+            description = "";
+        }
+
+        if (description.length() > 20000) {
+            throw new IllegalArgumentException(
+                    "Mô tả sản phẩm quá dài. "
+                    + "Vui lòng rút ngắn nội dung."
+            );
+        }
+
+// Chi giu cac the HTML dinh dang an toan
+        description = Jsoup.clean(
+                description,
+                Safelist.basic().addTags("h2", "h3", "h4")
+        );
 
         Product product = new Product(
                 categoryId,

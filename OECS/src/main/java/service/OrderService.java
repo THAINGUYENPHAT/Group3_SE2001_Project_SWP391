@@ -280,7 +280,7 @@ public class OrderService {
 
                 StringBuilder itemsSql = new StringBuilder(
                         "SELECT ci.cart_item_id, ci.sku_id, "
-                        + "ci.quantity, s.price, s.stock_quantity, s.reserved_quantity "
+                        + "ci.quantity, s.price, s.stock_quantity "
                         + "FROM dbo.CART_ITEMS ci "
                         + "WITH (UPDLOCK, HOLDLOCK) "
                         + "JOIN dbo.PRODUCT_SKU s "
@@ -323,8 +323,11 @@ public class OrderService {
                             int skuId = rs.getInt("sku_id");
                             int quantity = rs.getInt("quantity");
                             BigDecimal price = rs.getBigDecimal("price");
-                            if (quantity > rs.getInt("stock_quantity") - rs.getInt("reserved_quantity")) {
-                                throw new IllegalArgumentException("Sản phẩm SKU " + skuId + " không đủ tồn kho.");
+                            if (quantity > rs.getInt("stock_quantity")) {
+                                throw new IllegalArgumentException(
+                                        "Sản phẩm SKU " + skuId
+                                        + " không đủ tồn kho."
+                                );
                             }
 
                             if (quantity <= 0
@@ -582,10 +585,10 @@ public class OrderService {
 
         sql
                 = "SELECT COUNT_BIG(*) AS total_used, "
-                + "COALESCE(SUM(CASE WHEN user_id = ? "
+                + "COALESCE(SUM(CASE WHEN vu.user_id = ? "
                 + "THEN CAST(1 AS bigint) ELSE 0 END), 0) AS user_used "
                 + "FROM dbo.VOUCHER_USAGES vu "
-                + "JOIN dbo.[ORDER] o ON o.order_id=vu.order_id "
+                + "JOIN dbo.[ORDER] o ON o.order_id = vu.order_id "
                 + "WHERE vu.voucher_id = ? "
                 + "AND o.order_status NOT IN ('CANCELLED','EXPIRED')";
 

@@ -93,16 +93,14 @@
         color: #334155;
     }
 
-    .return-form-page .form-control,
-    .return-form-page .form-select {
+    .return-form-page .form-control {
         border-color: #d5dfeb;
         border-radius: 8px;
         padding: 10px 12px;
         font-size: 14px;
     }
 
-    .return-form-page .form-control:focus,
-    .return-form-page .form-select:focus {
+    .return-form-page .form-control:focus {
         border-color: #1677ff;
         box-shadow: 0 0 0 .2rem rgba(22, 119, 255, .12);
     }
@@ -112,15 +110,6 @@
         resize: vertical;
     }
 
-    .return-form-page .exchange-field {
-        display: none;
-        margin-top: 16px;
-        padding: 16px;
-        border-radius: 9px;
-        background: #f7f9fc;
-        border: 1px solid #e5eaf1;
-    }
-
     .return-form-page .actions {
         display: flex;
         flex-wrap: wrap;
@@ -128,14 +117,15 @@
     }
 
 
-    .return-form-page .error-message {
+    .return-form-page .error-message,
+    .return-form-page .validation-toast {
         display: flex;
         align-items: center;
         gap: 12px;
         position: fixed;
         top: 90px;
         right: 28px;
-        z-index: 9999;
+        z-index: 10000;
         width: max-content;
         max-width: min(450px, calc(100vw - 32px));
         padding: 16px 20px;
@@ -170,67 +160,6 @@
         pointer-events: none;
     }
 
-    @keyframes notification-in {
-        from {
-            opacity: 0;
-            transform: translateX(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-
-    @keyframes notification-out {
-        to {
-            opacity: 0;
-            transform: translateX(20px);
-        }
-    }
-
-
-    .return-form-page .validation-toast {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        position: fixed;
-        top: 90px;
-        right: 28px;
-        z-index: 10000;
-        width: max-content;
-        max-width: min(450px, calc(100vw - 32px));
-        padding: 16px 20px;
-        border-radius: 12px;
-        font-size: 14px;
-        font-weight: 600;
-        line-height: 1.5;
-        color: #b91c1c;
-        background: #fef2f2;
-        border: 1px solid #fca5a5;
-        border-left: 5px solid #ef4444;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, .15);
-        animation: notification-in .3s ease-out;
-    }
-
-    .return-form-page .validation-toast .notification-icon {
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        font-size: 18px;
-        font-weight: 700;
-        color: #dc2626;
-        background: #fee2e2;
-    }
-
-    .return-form-page .validation-toast.notification-hide {
-        animation: notification-out .25s ease-in forwards;
-        pointer-events: none;
-    }
-
 
     .return-form-page .success-message {
         display: flex;
@@ -256,18 +185,10 @@
     }
 
     .return-form-page .success-message .notification-icon {
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
         color: #15803d;
         background: #dcfce7;
-        font-size: 18px;
-        font-weight: 700;
     }
+
 
     .return-form-page .success-panel {
         padding: 45px 24px;
@@ -291,15 +212,28 @@
         font-size: 32px;
     }
 
-    @media (max-width: 600px) {
-        .return-form-page .error-message,
-        .return-form-page .validation-toast {
-            top: 82px;
-            right: 12px;
-            max-width: calc(100vw - 24px);
-            padding: 12px 14px;
+    @keyframes notification-in {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
         }
 
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes notification-out {
+        to {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .return-form-page .error-message,
+        .return-form-page .validation-toast,
         .return-form-page .success-message {
             top: 82px;
             right: 12px;
@@ -319,39 +253,53 @@
     }
 </style>
 
-<div class="return-form-page">
+<div class="return-form-page container py-4">
+
 
     <c:if test="${not empty successMessage}">
-        <div class="success-message notification" role="status">
+        <div class="success-message notification"
+             role="status">
             <span class="notification-icon">✓</span>
+
             <span>
                 <c:out value="${successMessage}"/>
             </span>
         </div>
     </c:if>
 
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+
+    <div class="d-flex flex-column flex-md-row
+                justify-content-between
+                align-items-start
+                align-items-md-center gap-3 mb-4">
+
         <div>
             <h3 class="fw-bold text-dark mb-1">
-                <i class="bi bi-arrow-counterclockwise text-primary me-2"></i>
+                <i class="bi bi-arrow-counterclockwise
+                   text-primary me-2"></i>
                 Yêu cầu trả hàng
             </h3>
+
             <p class="page-description mb-0">
-                Chọn sản phẩm trong đơn hàng và gửi yêu cầu để nhân viên xem xét.
+                Chọn sản phẩm trong đơn hàng và gửi yêu cầu
+                để nhân viên cửa hàng xem xét.
             </p>
         </div>
-
-        
     </div>
 
     <c:choose>
+
+
         <c:when test="${not empty successMessage}">
+
             <div class="success-panel">
+
                 <div class="success-icon">
                     <i class="bi bi-check-lg"></i>
                 </div>
 
-                <h4 class="fw-bold mb-2" style="color: #10213b;">
+                <h4 class="fw-bold mb-2"
+                    style="color: #10213b;">
                     Gửi yêu cầu thành công!
                 </h4>
 
@@ -360,335 +308,506 @@
                 </p>
 
                 <p class="text-muted small mb-4">
-                    Yêu cầu của bạn đã được ghi nhận.
-                    Nhân viên sẽ kiểm tra và xử lý trong thời gian tới.
+                    Yêu cầu trả hàng của bạn đã được ghi nhận.
+                    Nhân viên sẽ kiểm tra và liên hệ với bạn
+                    để hướng dẫn các bước tiếp theo.
                 </p>
 
                 <a href="${pageContext.request.contextPath}/my-orders"
                    class="btn btn-primary rounded-3 px-4 py-2">
+
                     <i class="bi bi-arrow-left me-2"></i>
                     Quay về đơn hàng
                 </a>
+
             </div>
+
         </c:when>
 
+
         <c:otherwise>
+
+
             <div class="notice-box mb-4">
+
                 <div class="fw-bold mb-1">
+
                     <i class="bi bi-info-circle-fill me-2"></i>
                     Lưu ý trước khi gửi yêu cầu
+
                 </div>
-                Chỉ đơn hàng đã giao thành công mới được yêu cầu đổi/trả.
-                Thời hạn yêu cầu là 7 ngày kể từ ngày nhận hàng.
-                Vui lòng chọn đúng sản phẩm và số lượng cần trả.
+
+                Chỉ đơn hàng đã giao thành công và hoàn tất
+                mới đủ điều kiện yêu cầu trả hàng.
+
+                <div class="mt-1">
+                    Thời hạn trả hàng là 7 ngày kể từ
+                    ngày nhận hàng.
+                </div>
+
+                <div class="mt-1">
+                    Vui lòng chọn đúng sản phẩm, số lượng
+                    và nhập lý do trả hàng.
+                </div>
+
+                <div class="mt-1">
+                    Sau khi yêu cầu được chấp nhận,
+                    nhân viên sẽ liên hệ để hướng dẫn
+                    việc gửi trả hàng và xử lý các vấn đề
+                    thanh toán bên ngoài hệ thống.
+                </div>
+
             </div>
 
+
             <c:if test="${not empty errorMessage}">
-                <div class="error-message notification" role="alert">
+
+                <div class="error-message notification"
+                     role="alert">
+
                     <span class="notification-icon">!</span>
+
                     <span>
                         <c:out value="${errorMessage}"/>
                     </span>
+
                 </div>
+
             </c:if>
+
 
             <form method="post"
                   action="${pageContext.request.contextPath}/return-exchange"
                   id="returnExchangeForm">
 
-                <input type="hidden" name="orderId" value="${orderId}">
+                <input type="hidden"
+                       name="orderId"
+                       value="${orderId}">
+
 
                 <div class="form-card">
+
                     <h5 class="section-title">
-                        <i class="bi bi-receipt text-primary me-2"></i>
+
+                        <i class="bi bi-receipt
+                           text-primary me-2"></i>
+
                         Thông tin yêu cầu
+
                     </h5>
 
-                    <div class="mb-3">
-                        <label for="requestType" class="form-label">Loại yêu cầu</label>
-                        <select id="requestType" name="requestType"
-                                class="form-select" required>
-                            <option value="RETURN">Trả hàng</option>
-                        </select>
+                    <div class="alert alert-light border
+                                rounded-3 mb-0 small">
+
+                        <i class="bi bi-shield-check
+                           text-success me-2"></i>
+
+                        Yêu cầu trả hàng sẽ được nhân viên
+                        kiểm tra trước khi chấp nhận.
+
                     </div>
 
-                    <div class="alert alert-light border rounded-3 mb-0 small">
-                        <i class="bi bi-shield-check text-success me-2"></i>
-                        Yêu cầu sẽ được nhân viên kiểm tra trước khi xử lý.
-                    </div>
                 </div>
 
+
                 <div class="form-card">
-                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+
+                    <div class="d-flex flex-column
+                                flex-sm-row
+                                justify-content-between
+                                align-items-sm-center
+                                gap-2 mb-3">
+
                         <h5 class="section-title mb-0">
-                            <i class="bi bi-box-seam text-primary me-2"></i>
-                            Chọn sản phẩm
+
+                            <i class="bi bi-box-seam
+                               text-primary me-2"></i>
+
+                            Chọn sản phẩm trả hàng
+
                         </h5>
-                        <span class="text-muted small">Đánh dấu sản phẩm muốn trả</span>
+
+                        <span class="text-muted small">
+                            Đánh dấu sản phẩm muốn trả
+                        </span>
+
                     </div>
 
                     <c:choose>
+
                         <c:when test="${not empty orderItems}">
-                            <c:forEach var="item" items="${orderItems}">
+
+                            <c:forEach var="item"
+                                       items="${orderItems}">
+
                                 <div class="product-item">
+
                                     <div class="product-heading">
+
                                         <input type="checkbox"
                                                name="orderItemId"
                                                value="${item.orderItemId}"
-                                               class="form-check-input product-checkbox item-checkbox"
-                                               aria-label="Chọn sản phẩm">
+                                               class="form-check-input
+                                                      product-checkbox
+                                                      item-checkbox"
+                                               aria-label="Chọn sản phẩm trả hàng">
 
                                         <div class="flex-grow-1">
+
                                             <div class="product-name">
+
                                                 <c:out value="${item.productName}"/>
+
                                             </div>
+
 
                                             <div class="product-meta">
+
                                                 <span class="meta-item">
+
                                                     <i class="bi bi-upc me-1"></i>
-                                                    SKU: <c:out value="${item.skuCode}"/>
+
+                                                    SKU:
+                                                    <c:out value="${item.skuCode}"/>
+
                                                 </span>
 
                                                 <span class="meta-item">
+
                                                     <i class="bi bi-box me-1"></i>
-                                                    Đã mua: <c:out value="${item.quantity}"/>
+
+                                                    Đã mua:
+                                                    <c:out value="${item.quantity}"/>
+
                                                 </span>
 
                                                 <span class="meta-item">
-                                                    <i class="bi bi-currency-dollar me-1"></i>
-                                                    Đơn giá: <c:out value="${item.price}"/>
+
+                                                    <i class="bi bi-cash-coin me-1"></i>
+
+                                                    Đơn giá:
+                                                    <fmt:formatNumber
+                                                        value="${item.price}"
+                                                        pattern="#,##0"/> đ
+
                                                 </span>
+
                                             </div>
+
 
                                             <div class="row g-3 mt-2">
-                                                <div class="col-12 col-sm-6 col-md-4">
-                                                    <label for="quantity_${item.orderItemId}"
-                                                           class="form-label">
-                                                        Số lượng muốn đổi/trả
+
+                                                <div class="col-12
+                                                            col-sm-6
+                                                            col-md-4">
+
+                                                    <label
+                                                        for="quantity_${item.orderItemId}"
+                                                        class="form-label">
+
+                                                        Số lượng muốn trả
+
                                                     </label>
 
-                                                    <input type="number"
-                                                           id="quantity_${item.orderItemId}"
-                                                           name="quantity_${item.orderItemId}"
-                                                           class="form-control"
-                                                           min="1"
-                                                           max="${item.quantity}"
-                                                           value="1"
-                                                           required>
+                                                    <input
+                                                        type="number"
+                                                        id="quantity_${item.orderItemId}"
+                                                        name="quantity_${item.orderItemId}"
+                                                        class="form-control"
+                                                        min="1"
+                                                        max="${item.quantity}"
+                                                        value="1"
+                                                        step="1"
+                                                        required>
+
                                                 </div>
+
                                             </div>
 
-                                            <div class="exchange-field"
-                                                 data-order-item-id="${item.orderItemId}">
-
-                                                <label for="exchangeSkuId_${item.orderItemId}"
-                                                       class="form-label">
-                                                    Phiên bản muốn đổi
-                                                </label>
-
-                                                <select id="exchangeSkuId_${item.orderItemId}"
-                                                        name="exchangeSkuId_${item.orderItemId}"
-                                                        class="form-select">
-
-                                                    <option value="">-- Chọn phiên bản --</option>
-
-                                                    <c:forEach var="sku"
-                                                               items="${exchangeSkus[item.orderItemId]}">
-                                                        <option value="${sku.skuId}">
-                                                            <c:out value="${sku.skuCode}"/>
-                                                            - Giá: <c:out value="${sku.price}"/>
-                                                            - Còn: <c:out value="${sku.stockQuantity}"/>
-                                                        </option>
-                                                    </c:forEach>
-                                                </select>
-
-                                                <c:if test="${empty exchangeSkus[item.orderItemId]}">
-                                                    <div class="text-muted small mt-2">
-                                                        Hiện không có phiên bản khác còn hàng để đổi.
-                                                    </div>
-                                                </c:if>
-                                            </div>
                                         </div>
+
                                     </div>
+
                                 </div>
+
                             </c:forEach>
+
                         </c:when>
 
                         <c:otherwise>
+
                             <div class="text-center py-5">
-                                <i class="bi bi-inbox display-4 text-secondary d-block mb-3"></i>
-                                <h6 class="fw-bold">Không có sản phẩm</h6>
+
+                                <i class="bi bi-inbox
+                                   display-4
+                                   text-secondary
+                                   d-block mb-3"></i>
+
+                                <h6 class="fw-bold">
+                                    Không có sản phẩm
+                                </h6>
+
                                 <p class="text-muted small mb-0">
-                                    Đơn hàng hiện không có sản phẩm để tạo yêu cầu.
+                                    Đơn hàng không có sản phẩm
+                                    để tạo yêu cầu trả hàng.
                                 </p>
+
                             </div>
+
                         </c:otherwise>
+
                     </c:choose>
+
                 </div>
 
                 <div class="form-card">
+
                     <h5 class="section-title">
-                        <i class="bi bi-chat-left-text text-primary me-2"></i>
-                        Lý do đổi / trả hàng
+
+                        <i class="bi bi-chat-left-text
+                           text-primary me-2"></i>
+
+                        Lý do trả hàng
+
                     </h5>
 
                     <div class="mb-3">
-                        <label for="reason" class="form-label">Lý do</label>
 
-                        <textarea id="reason"
-                                  name="reason"
-                                  class="form-control"
-                                  maxlength="1000"
-                                  required
-                                  placeholder="Mô tả lý do bạn muốn trả hàng..."></textarea>
+                        <label for="reason"
+                               class="form-label">
+
+                            Lý do
+
+                        </label>
+
+                        <textarea
+                            id="reason"
+                            name="reason"
+                            class="form-control"
+                            maxlength="1000"
+                            required
+                            placeholder="Mô tả lý do bạn muốn trả hàng..."></textarea>
 
                         <div class="form-text">
                             Tối đa 1000 ký tự.
                         </div>
+
                     </div>
 
                     <div class="actions mt-4">
-                        <button type="submit" class="btn btn-primary rounded-3 px-4 py-2">
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary rounded-3
+                                   px-4 py-2"
+                            id="submitReturnButton"
+                            <c:if test="${empty orderItems}">disabled</c:if>>
+
                             <i class="bi bi-send me-1"></i>
-                            Gửi yêu cầu
+
+                            Gửi yêu cầu trả hàng
+
                         </button>
 
-                        <a class="btn btn-outline-secondary rounded-3 px-4 py-2"
+                        <a class="btn btn-outline-secondary
+                                  rounded-3 px-4 py-2"
                            href="${pageContext.request.contextPath}/my-orders">
+
                             <i class="bi bi-arrow-left me-1"></i>
+
                             Quay lại đơn hàng
+
                         </a>
+
                     </div>
+
                 </div>
+
             </form>
+
         </c:otherwise>
+
     </c:choose>
+
 </div>
 
 <script>
+    (function () {
 
-    document.querySelectorAll(".notification").forEach(function (message) {
-        setTimeout(function () {
-            message.classList.add("notification-hide");
+
+        document.querySelectorAll(
+            ".return-form-page .notification"
+        ).forEach(function (message) {
 
             setTimeout(function () {
-                message.remove();
-            }, 300);
-        }, 3500);
-    });
 
+                message.classList.add(
+                    "notification-hide"
+                );
 
-    function showValidationToast(message) {
-        document.querySelectorAll(".validation-toast").forEach(function (toast) {
-            toast.remove();
+                setTimeout(function () {
+                    message.remove();
+                }, 300);
+
+            }, 3500);
+
         });
 
-        const toast = document.createElement("div");
-        toast.className = "validation-toast";
-        toast.setAttribute("role", "alert");
 
-        const icon = document.createElement("span");
-        icon.className = "notification-icon";
-        icon.textContent = "!";
+        function showValidationToast(message) {
 
-        const text = document.createElement("span");
-        text.textContent = message;
-
-        toast.appendChild(icon);
-        toast.appendChild(text);
-
-        document.querySelector(".return-form-page").appendChild(toast);
-
-        setTimeout(function () {
-            toast.classList.add("notification-hide");
-
-            setTimeout(function () {
+            document.querySelectorAll(
+                ".return-form-page .validation-toast"
+            ).forEach(function (toast) {
                 toast.remove();
-            }, 300);
-        }, 3500);
-    }
+            });
 
-
-    const requestType = document.getElementById("requestType");
-    const form = document.getElementById("returnExchangeForm");
-
-    function updateExchangeFields() {
-        const isExchange = requestType.value === "EXCHANGE";
-
-        document.querySelectorAll(".exchange-field").forEach(function (field) {
-            field.style.display = isExchange ? "block" : "none";
-
-            const select = field.querySelector("select");
-
-            const checkbox = document.querySelector(
-                '.item-checkbox[value="' + field.dataset.orderItemId + '"]'
+            const container = document.querySelector(
+                ".return-form-page"
             );
 
-            select.required = isExchange && checkbox.checked;
-            select.disabled = !isExchange;
-        });
-    }
-
-    document.querySelectorAll(".item-checkbox").forEach(function (checkbox) {
-        checkbox.addEventListener("change", function () {
-            const field = document.querySelector(
-                '.exchange-field[data-order-item-id="' + checkbox.value + '"]'
-            );
-
-            if (!field) {
+            if (!container) {
                 return;
             }
 
-            const select = field.querySelector("select");
+            const toast = document.createElement("div");
 
-            select.required =
-                requestType.value === "EXCHANGE" && checkbox.checked;
-        });
-    });
+            toast.className = "validation-toast";
+            toast.setAttribute("role", "alert");
 
-    requestType.addEventListener("change", updateExchangeFields);
+            const icon = document.createElement("span");
+            icon.className = "notification-icon";
+            icon.textContent = "!";
+
+            const text = document.createElement("span");
+            text.textContent = message;
+
+            toast.appendChild(icon);
+            toast.appendChild(text);
+
+            container.appendChild(toast);
+
+            setTimeout(function () {
+
+                toast.classList.add(
+                    "notification-hide"
+                );
+
+                setTimeout(function () {
+                    toast.remove();
+                }, 300);
+
+            }, 3500);
+        }
 
 
-    form.addEventListener("submit", function (event) {
-        const selectedItems = document.querySelectorAll(
-            ".item-checkbox:checked"
+        const form = document.getElementById(
+            "returnExchangeForm"
         );
 
-        if (selectedItems.length === 0) {
-            event.preventDefault();
-            showValidationToast("Vui lòng chọn ít nhất một sản phẩm.");
+        if (!form) {
             return;
         }
 
-        if (requestType.value === "EXCHANGE") {
-            for (const checkbox of selectedItems) {
-                const field = document.querySelector(
-                    '.exchange-field[data-order-item-id="' + checkbox.value + '"]'
+        form.addEventListener(
+            "submit",
+            function (event) {
+
+                const selectedItems = form.querySelectorAll(
+                    ".item-checkbox:checked"
                 );
 
-                if (!field) {
+                if (selectedItems.length === 0) {
+
                     event.preventDefault();
+
                     showValidationToast(
-                        "Không tìm thấy thông tin phiên bản sản phẩm."
+                        "Vui lòng chọn ít nhất một sản phẩm muốn trả."
                     );
+
                     return;
                 }
 
-                const select = field.querySelector("select");
+                for (const checkbox of selectedItems) {
 
-                if (!select.value) {
+                    const orderItemId = checkbox.value;
+
+                    const quantityInput =
+                        document.getElementById(
+                            "quantity_" + orderItemId
+                        );
+
+                    if (!quantityInput) {
+
+                        event.preventDefault();
+
+                        showValidationToast(
+                            "Không tìm thấy số lượng của sản phẩm được chọn."
+                        );
+
+                        return;
+                    }
+
+                    const quantity =
+                        Number(quantityInput.value);
+
+                    const maxQuantity =
+                        Number(quantityInput.max);
+
+                    if (!Number.isInteger(quantity)
+                            || quantity < 1
+                            || quantity > maxQuantity) {
+
+                        event.preventDefault();
+
+                        showValidationToast(
+                            "Số lượng muốn trả phải từ 1 đến "
+                            + maxQuantity + "."
+                        );
+
+                        quantityInput.focus();
+
+                        return;
+                    }
+                }
+
+                const reasonInput =
+                    document.getElementById("reason");
+
+                const reason = reasonInput
+                        ? reasonInput.value.trim()
+                        : "";
+
+                if (reason.length === 0) {
+
                     event.preventDefault();
+
                     showValidationToast(
-                        "Vui lòng chọn phiên bản muốn đổi cho từng sản phẩm."
+                        "Vui lòng nhập lý do trả hàng."
                     );
-                    select.focus();
+
+                    if (reasonInput) {
+                        reasonInput.focus();
+                    }
+
                     return;
                 }
+
+                if (reason.length > 1000) {
+
+                    event.preventDefault();
+
+                    showValidationToast(
+                        "Lý do trả hàng không được vượt quá 1000 ký tự."
+                    );
+
+                    return;
+                }
+
             }
-        }
-    });
+        );
 
-    updateExchangeFields();
+    })();
 </script>
 
 <%@include file="/WEB-INF/include/footer.jsp" %>

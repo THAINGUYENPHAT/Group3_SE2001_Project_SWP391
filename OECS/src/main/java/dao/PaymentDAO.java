@@ -609,20 +609,24 @@ public class PaymentDAO {
                 } else {
                     update(
                             connection,
-                            "INSERT INTO dbo.PAYMENT_REFUND "
-                            + "(transaction_id, refund_amount, refund_type, reason) "
-                            + "VALUES (?, ?, 'CANCELLATION', ?)",
-                            transactionId,
-                            amount,
-                            "Thanh toán về trễ, đổi COD hoặc "
-                            + "thanh toán trùng; cần đối soát "
-                            + "và hoàn tiền."
+                            "INSERT INTO dbo.AUDIT_LOG "
+                            + "(action, entity_type, entity_id, description) "
+                            + "VALUES ('PAYMENT_REVIEW', 'ORDER', ?, "
+                            + "N'Giao dịch online thành công nhưng đơn không còn "
+                            + "ở trạng thái chờ thanh toán. Cần đối soát thủ công.')",
+                            orderId
                     );
 
-                    if ("CANCELLED".equals(order.status)) {
-                        update(connection,
-                                "UPDATE dbo.[ORDER] SET payment_status='PAID' WHERE order_id=?",
-                                orderId);
+                    if ("CANCELLED".equals(order.status)
+                            || "EXPIRED".equals(order.status)) {
+
+                        update(
+                                connection,
+                                "UPDATE dbo.[ORDER] "
+                                + "SET payment_status = 'PAID' "
+                                + "WHERE order_id = ?",
+                                orderId
+                        );
                     }
                 }
 

@@ -68,7 +68,6 @@ public class AuthFilter implements Filter {
             "/staff/banner",
             "/staff/return-exchange",
             "/staff/reviews",
-            "/staff/payment-refunds",
             "/inventory"
     );
 

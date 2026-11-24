@@ -2,7 +2,6 @@ package controller;
 
 import dao.OrderDAO;
 import dao.ReturnExchangeDAO;
-import dao.PaymentRefundDAO;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -46,8 +45,6 @@ public class CustomerOrderServlet extends HttpServlet {
     private final ReturnExchangeDAO returnExchangeDAO
             = new ReturnExchangeDAO();
 
-    private final PaymentRefundDAO paymentRefundDAO
-            = new PaymentRefundDAO();
 
     @Override
     protected void doGet(
@@ -212,13 +209,6 @@ public class CustomerOrderServlet extends HttpServlet {
             request.setAttribute("canCancelOrder",
                     OrderCancellationService.canCancel(order.getOrderStatus()));
 
-            request.setAttribute(
-                    "refunds",
-                    paymentRefundDAO.findForCustomer(
-                            id,
-                            user.getUserId()
-                    )
-            );
 
             String orderStatus = order.getOrderStatus();
 

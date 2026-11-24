@@ -1,17 +1,21 @@
+
 package dao;
 
-import db.DBContext;
 import db.CheckoutConnectionFactory;
+import db.DBContext;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ReturnExchangeDAO {
 
@@ -21,7 +25,8 @@ public class ReturnExchangeDAO {
         this(() -> new DBContext().getConnection());
     }
 
-    public ReturnExchangeDAO(CheckoutConnectionFactory connections) {
+    public ReturnExchangeDAO(
+            CheckoutConnectionFactory connections) {
         this.connections = connections;
     }
 
@@ -29,39 +34,49 @@ public class ReturnExchangeDAO {
         Connection conn = connections.open();
 
         if (conn == null) {
-            throw new SQLException("Không kết nối được database.");
+            throw new SQLException(
+                    "Không kết nối được database.");
         }
 
         return conn;
     }
 
-    public boolean canRequest(int orderId, int userId)
-            throws SQLException {
+    // =====================================================
+    // 1. KIỂM TRA ĐIỀU KIỆN TRẢ HÀNG
+    // =====================================================
 
-        String sql
-                = "SELECT 1 FROM dbo.[ORDER] o "
-                + "WHERE o.order_id = ? AND o.user_id = ? "
-                + "AND UPPER(LTRIM(RTRIM(o.order_status))) "
-                + "IN ('COMPLETED', 'DELIVERED') "
+    public boolean canRequest(
+            int orderId,
+            int userId) throws SQLException {
+
+        String sql =
+                "SELECT 1 "
+                + "FROM dbo.[ORDER] o "
+                + "WHERE o.order_id = ? "
+                + "AND o.user_id = ? "
+                + "AND o.order_status = 'COMPLETED' "
                 + "AND o.delivered_at IS NOT NULL "
-                + "AND o.delivered_at >= DATEADD(DAY, -7, SYSDATETIME()) "
+                + "AND o.delivered_at >= "
+                + "DATEADD(DAY, -7, SYSDATETIME()) "
                 + "AND o.delivered_at <= SYSDATETIME() "
                 + "AND NOT EXISTS ( "
                 + "    SELECT 1 FROM dbo.RETURN_REQUEST r "
                 + "    WHERE r.order_id = o.order_id "
                 + "    AND r.user_id = o.user_id "
-                + "    AND UPPER(LTRIM(RTRIM(r.request_status))) "
+                + "    AND r.request_status "
                 + "    IN ('PENDING', 'APPROVED') "
                 + ") "
                 + "AND ( "
-                + "    SELECT COUNT(*) FROM dbo.RETURN_REQUEST r "
+                + "    SELECT COUNT(*) "
+                + "    FROM dbo.RETURN_REQUEST r "
                 + "    WHERE r.order_id = o.order_id "
                 + "    AND r.user_id = o.user_id "
-                + "    AND UPPER(LTRIM(RTRIM(r.request_status))) "
-                + "    = 'REJECTED' "
+                + "    AND r.request_status = 'REJECTED' "
                 + ") < 2";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps =
+                        conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderId);
             ps.setInt(2, userId);
@@ -72,36 +87,79 @@ public class ReturnExchangeDAO {
         }
     }
 
+    // =====================================================
+    // 2. LẤY SẢN PHẨM TRONG ĐƠN HÀNG
+    // =====================================================
+
     public List<Map<String, Object>> getOrderItems(
-            int orderId, int userId) throws SQLException {
+            int orderId,
+            int userId) throws SQLException {
 
-        List<Map<String, Object>> items = new ArrayList<>();
+        List<Map<String, Object>> items =
+                new ArrayList<>();
 
-        String sql
-                = "SELECT oi.order_item_id, oi.sku_id, oi.quantity, "
-                + "oi.price, s.sku_code, s.product_id, p.product_name "
+        String sql =
+                "SELECT "
+                + "oi.order_item_id, "
+                + "oi.sku_id, "
+                + "oi.quantity, "
+                + "oi.price, "
+                + "s.sku_code, "
+                + "s.product_id, "
+                + "p.product_name "
                 + "FROM dbo.ORDER_ITEM oi "
-                + "JOIN dbo.[ORDER] o ON o.order_id = oi.order_id "
-                + "JOIN dbo.PRODUCT_SKU s ON s.sku_id = oi.sku_id "
-                + "JOIN dbo.PRODUCT p ON p.product_id = s.product_id "
-                + "WHERE o.order_id = ? AND o.user_id = ? "
+                + "JOIN dbo.[ORDER] o "
+                + "ON o.order_id = oi.order_id "
+                + "JOIN dbo.PRODUCT_SKU s "
+                + "ON s.sku_id = oi.sku_id "
+                + "JOIN dbo.PRODUCT p "
+                + "ON p.product_id = s.product_id "
+                + "WHERE o.order_id = ? "
+                + "AND o.user_id = ? "
                 + "ORDER BY oi.order_item_id";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps =
+                        conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderId);
             ps.setInt(2, userId);
 
             try (ResultSet rs = ps.executeQuery()) {
+
                 while (rs.next()) {
-                    Map<String, Object> item = new LinkedHashMap<>();
-                    item.put("orderItemId", rs.getInt("order_item_id"));
-                    item.put("skuId", rs.getInt("sku_id"));
-                    item.put("quantity", rs.getInt("quantity"));
-                    item.put("price", rs.getBigDecimal("price"));
-                    item.put("skuCode", rs.getString("sku_code"));
-                    item.put("productId", rs.getInt("product_id"));
-                    item.put("productName", rs.getString("product_name"));
+
+                    Map<String, Object> item =
+                            new LinkedHashMap<>();
+
+                    item.put(
+                            "orderItemId",
+                            rs.getInt("order_item_id"));
+
+                    item.put(
+                            "skuId",
+                            rs.getInt("sku_id"));
+
+                    item.put(
+                            "quantity",
+                            rs.getInt("quantity"));
+
+                    item.put(
+                            "price",
+                            rs.getBigDecimal("price"));
+
+                    item.put(
+                            "skuCode",
+                            rs.getString("sku_code"));
+
+                    item.put(
+                            "productId",
+                            rs.getInt("product_id"));
+
+                    item.put(
+                            "productName",
+                            rs.getString("product_name"));
+
                     items.add(item);
                 }
             }
@@ -110,281 +168,281 @@ public class ReturnExchangeDAO {
         return items;
     }
 
-    public List<Map<String, Object>> getExchangeSkus(
-            int orderItemId, int userId) throws SQLException {
-
-        List<Map<String, Object>> skus = new ArrayList<>();
-
-        String sql
-                = "SELECT target.sku_id, target.sku_code, "
-                + "target.price, target.stock_quantity "
-                + "FROM dbo.ORDER_ITEM oi "
-                + "JOIN dbo.[ORDER] o ON o.order_id = oi.order_id "
-                + "JOIN dbo.PRODUCT_SKU original "
-                + "ON original.sku_id = oi.sku_id "
-                + "JOIN dbo.PRODUCT_SKU target "
-                + "ON target.product_id = original.product_id "
-                + "JOIN dbo.PRODUCT p "
-                + "ON p.product_id = target.product_id "
-                + "WHERE oi.order_item_id = ? AND o.user_id = ? "
-                + "AND target.sku_id <> original.sku_id "
-                + "AND target.stock_quantity > 0 "
-                + "ORDER BY target.sku_code";
-
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, orderItemId);
-            ps.setInt(2, userId);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Map<String, Object> sku = new LinkedHashMap<>();
-                    sku.put("skuId", rs.getInt("sku_id"));
-                    sku.put("skuCode", rs.getString("sku_code"));
-                    sku.put("price", rs.getBigDecimal("price"));
-                    sku.put("stockQuantity", rs.getInt("stock_quantity"));
-                    skus.add(sku);
-                }
-            }
-        }
-
-        return skus;
-    }
+    // =====================================================
+    // 3. CUSTOMER TẠO YÊU CẦU TRẢ HÀNG
+    // =====================================================
 
     public int createRequest(
             int orderId,
             int userId,
             String requestType,
             String reason,
-            List<Map<String, Integer>> items) throws SQLException {
+            List<Map<String, Integer>> items)
+            throws SQLException {
 
-        if (!"RETURN".equals(requestType)
-                && !"EXCHANGE".equals(requestType)) {
-            throw new IllegalArgumentException("Loại yêu cầu không hợp lệ.");
+        // Giữ tham số requestType để tương thích Service.
+        // Hệ thống chỉ chấp nhận RETURN.
+
+        if (!"RETURN".equals(requestType)) {
+            throw new IllegalArgumentException(
+                    "Hệ thống chỉ hỗ trợ trả hàng.");
         }
 
         if (reason == null || reason.trim().isEmpty()) {
-            throw new IllegalArgumentException("Vui lòng nhập lý do.");
+            throw new IllegalArgumentException(
+                    "Vui lòng nhập lý do trả hàng.");
+        }
+
+        if (reason.trim().length() > 1000) {
+            throw new IllegalArgumentException(
+                    "Lý do trả hàng không được vượt quá "
+                    + "1000 ký tự.");
         }
 
         if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException("Vui lòng chọn sản phẩm.");
+            throw new IllegalArgumentException(
+                    "Vui lòng chọn ít nhất một sản phẩm.");
         }
 
-        String orderSql
-                = "SELECT order_id FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
-                + "WHERE order_id = ? AND user_id = ? "
-                + "AND UPPER(LTRIM(RTRIM(order_status))) "
-                + "IN ('COMPLETED', 'DELIVERED') "
+        String orderSql =
+                "SELECT order_id "
+                + "FROM dbo.[ORDER] WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE order_id = ? "
+                + "AND user_id = ? "
+                + "AND order_status = 'COMPLETED' "
                 + "AND delivered_at IS NOT NULL "
-                + "AND delivered_at >= DATEADD(DAY, -7, SYSDATETIME()) "
+                + "AND delivered_at >= "
+                + "DATEADD(DAY, -7, SYSDATETIME()) "
                 + "AND delivered_at <= SYSDATETIME()";
 
-        String itemSql
-                = "SELECT oi.quantity, oi.sku_id, original.product_id "
-                + "FROM dbo.ORDER_ITEM oi "
-                + "JOIN dbo.PRODUCT_SKU original "
-                + "ON original.sku_id = oi.sku_id "
-                + "WHERE oi.order_item_id = ? AND oi.order_id = ?";
+        String requestLimitSql =
+                "SELECT "
+                + "COUNT(CASE "
+                + "WHEN request_status = 'REJECTED' "
+                + "THEN 1 END) AS rejected_count, "
+                + "COUNT(CASE "
+                + "WHEN request_status IN ('PENDING','APPROVED') "
+                + "THEN 1 END) AS blocked_count "
+                + "FROM dbo.RETURN_REQUEST "
+                + "WHERE order_id = ? "
+                + "AND user_id = ?";
 
-        String exchangeSql
-                = "SELECT product_id, stock_quantity FROM dbo.PRODUCT_SKU "
-                + "WHERE sku_id = ?";
+        String itemSql =
+                "SELECT quantity "
+                + "FROM dbo.ORDER_ITEM "
+                + "WHERE order_item_id = ? "
+                + "AND order_id = ?";
 
-        String insertRequestSql
-                = "INSERT INTO dbo.RETURN_REQUEST "
-                + "(order_id, user_id, request_type, reason, request_status) "
-                + "VALUES (?, ?, ?, ?, 'PENDING')";
+        String usedSql =
+                "SELECT COALESCE(SUM(ri.quantity), 0) "
+                + "FROM dbo.RETURN_REQUEST_ITEM ri "
+                + "JOIN dbo.RETURN_REQUEST r "
+                + "ON r.request_id = ri.request_id "
+                + "WHERE ri.order_item_id = ? "
+                + "AND r.request_status "
+                + "IN ('PENDING', 'APPROVED')";
 
-        String insertItemSql
-                = "INSERT INTO dbo.RETURN_REQUEST_ITEM "
-                + "(request_id, order_item_id, quantity, exchange_sku_id) "
-                + "VALUES (?, ?, ?, ?)";
+        String insertRequestSql =
+                "INSERT INTO dbo.RETURN_REQUEST "
+                + "(order_id, user_id, reason, request_status) "
+                + "VALUES (?, ?, ?, 'PENDING')";
 
-        String historySql
-                = "INSERT INTO dbo.RETURN_REQUEST_HISTORY "
+        String insertItemSql =
+                "INSERT INTO dbo.RETURN_REQUEST_ITEM "
+                + "(request_id, order_item_id, quantity) "
+                + "VALUES (?, ?, ?)";
+
+        String historySql =
+                "INSERT INTO dbo.RETURN_REQUEST_HISTORY "
                 + "(request_id, status, updated_by, note) "
                 + "VALUES (?, 'PENDING', ?, ?)";
 
         try (Connection conn = getConnection()) {
+
             conn.setAutoCommit(false);
 
             try {
-                try (PreparedStatement ps = conn.prepareStatement(orderSql)) {
+
+                // Kiểm tra đơn hàng và khóa đơn hàng.
+                try (PreparedStatement ps =
+                        conn.prepareStatement(orderSql)) {
+
                     ps.setInt(1, orderId);
                     ps.setInt(2, userId);
 
                     try (ResultSet rs = ps.executeQuery()) {
+
                         if (!rs.next()) {
                             throw new SQLException(
-                                    "Đơn hàng không hợp lệ hoặc đã quá hạn 7 ngày.");
+                                    "Đơn hàng không hợp lệ "
+                                    + "hoặc đã quá hạn 7 ngày.");
                         }
                     }
                 }
 
-                String requestLimitSql
-                        = "SELECT "
-                        + "COUNT(CASE WHEN UPPER(LTRIM(RTRIM(request_status))) "
-                        + "    = 'REJECTED' THEN 1 END) AS rejected_count, "
-                        + "COUNT(CASE WHEN UPPER(LTRIM(RTRIM(request_status))) "
-                        + "    IN ('PENDING', 'APPROVED') THEN 1 END) AS blocked_count "
-                        + "FROM dbo.RETURN_REQUEST WITH (UPDLOCK, HOLDLOCK) "
-                        + "WHERE order_id = ? AND user_id = ?";
+                // Kiểm tra yêu cầu Return trước đó.
+                try (PreparedStatement ps =
+                        conn.prepareStatement(requestLimitSql)) {
 
-                try (PreparedStatement ps = conn.prepareStatement(requestLimitSql)) {
                     ps.setInt(1, orderId);
                     ps.setInt(2, userId);
 
                     try (ResultSet rs = ps.executeQuery()) {
+
                         if (rs.next()) {
-                            int rejectedCount = rs.getInt("rejected_count");
-                            int blockedCount = rs.getInt("blocked_count");
+
+                            int rejectedCount =
+                                    rs.getInt("rejected_count");
+
+                            int blockedCount =
+                                    rs.getInt("blocked_count");
 
                             if (rejectedCount >= 2) {
                                 throw new SQLException(
-                                        "Đơn hàng đã bị từ chối trả/đổi 2 lần. "
-                                        + "Bạn không thể gửi yêu cầu mới.");
+                                        "Đơn hàng đã bị từ chối "
+                                        + "trả hàng 2 lần.");
                             }
 
                             if (blockedCount > 0) {
                                 throw new SQLException(
-                                        "Đơn hàng đã có yêu cầu đang chờ duyệt "
+                                        "Đơn hàng đã có yêu cầu "
+                                        + "trả hàng đang chờ xử lý "
                                         + "hoặc đã được duyệt.");
                             }
                         }
                     }
                 }
 
+                // Tạo yêu cầu trả hàng.
                 int requestId;
 
-                try (PreparedStatement ps = conn.prepareStatement(
-                        insertRequestSql, Statement.RETURN_GENERATED_KEYS)) {
+                try (PreparedStatement ps =
+                        conn.prepareStatement(
+                                insertRequestSql,
+                                Statement.RETURN_GENERATED_KEYS)) {
 
                     ps.setInt(1, orderId);
                     ps.setInt(2, userId);
-                    ps.setString(3, requestType);
-                    ps.setString(4, reason.trim());
+                    ps.setString(3, reason.trim());
+
                     ps.executeUpdate();
 
                     try (ResultSet rs = ps.getGeneratedKeys()) {
+
                         if (!rs.next()) {
                             throw new SQLException(
-                                    "Không tạo được mã yêu cầu.");
+                                    "Không tạo được yêu cầu trả hàng.");
                         }
 
                         requestId = rs.getInt(1);
                     }
                 }
 
+                // Tránh gửi trùng một orderItemId
+                // trong cùng một yêu cầu.
+                Set<Integer> selectedItemIds =
+                        new HashSet<>();
+
+                // Lưu danh sách sản phẩm muốn trả.
                 for (Map<String, Integer> item : items) {
+
                     if (item == null
                             || item.get("orderItemId") == null
                             || item.get("quantity") == null) {
+
                         throw new IllegalArgumentException(
                                 "Thông tin sản phẩm không hợp lệ.");
                     }
 
-                    int orderItemId = item.get("orderItemId");
-                    int quantity = item.get("quantity");
-                    Integer exchangeSkuId = item.get("exchangeSkuId");
+                    int orderItemId =
+                            item.get("orderItemId");
+
+                    int quantity =
+                            item.get("quantity");
 
                     if (quantity <= 0) {
                         throw new IllegalArgumentException(
-                                "Số lượng phải lớn hơn 0.");
+                                "Số lượng trả phải lớn hơn 0.");
                     }
 
-                    int originalQuantity;
-                    int originalProductId;
+                    if (!selectedItemIds.add(orderItemId)) {
+                        throw new IllegalArgumentException(
+                                "Sản phẩm bị chọn trùng "
+                                + "trong yêu cầu trả hàng.");
+                    }
 
-                    try (PreparedStatement ps = conn.prepareStatement(itemSql)) {
+                    int orderedQuantity;
+
+                    // Kiểm tra sản phẩm thuộc đơn hàng.
+                    try (PreparedStatement ps =
+                            conn.prepareStatement(itemSql)) {
+
                         ps.setInt(1, orderItemId);
                         ps.setInt(2, orderId);
 
                         try (ResultSet rs = ps.executeQuery()) {
+
                             if (!rs.next()) {
                                 throw new SQLException(
                                         "Sản phẩm không thuộc đơn hàng.");
                             }
 
-                            originalQuantity = rs.getInt("quantity");
-                            originalProductId = rs.getInt("product_id");
+                            orderedQuantity =
+                                    rs.getInt("quantity");
                         }
                     }
 
-                    if (quantity > originalQuantity) {
+                    if (quantity > orderedQuantity) {
                         throw new IllegalArgumentException(
-                                "Số lượng yêu cầu vượt quá số lượng đã mua.");
+                                "Số lượng trả vượt quá "
+                                + "số lượng đã mua.");
                     }
 
-                    String usedSql
-                            = "SELECT COALESCE(SUM(ri.quantity), 0) "
-                            + "FROM dbo.RETURN_REQUEST_ITEM ri "
-                            + "JOIN dbo.RETURN_REQUEST r "
-                            + "ON r.request_id = ri.request_id "
-                            + "WHERE ri.order_item_id = ? "
-                            + "AND r.request_status IN ('PENDING', 'APPROVED')";
+                    // Không cho trả vượt số lượng còn hợp lệ.
+                    try (PreparedStatement ps =
+                            conn.prepareStatement(usedSql)) {
 
-                    try (PreparedStatement ps = conn.prepareStatement(usedSql)) {
                         ps.setInt(1, orderItemId);
 
                         try (ResultSet rs = ps.executeQuery()) {
-                            if (rs.next()
-                                    && rs.getInt(1) + quantity > originalQuantity) {
-                                throw new SQLException(
-                                        "Số lượng đã được yêu cầu trả/đổi trước đó.");
+
+                            if (rs.next()) {
+
+                                int usedQuantity = rs.getInt(1);
+
+                                if (usedQuantity + quantity
+                                        > orderedQuantity) {
+
+                                    throw new SQLException(
+                                            "Số lượng đã được yêu cầu "
+                                            + "trả trước đó vượt giới hạn.");
+                                }
                             }
                         }
                     }
 
-                    if ("EXCHANGE".equals(requestType)) {
-                        if (exchangeSkuId == null) {
-                            throw new IllegalArgumentException(
-                                    "Vui lòng chọn SKU muốn đổi.");
-                        }
+                    // Lưu chi tiết yêu cầu Return.
+                    try (PreparedStatement ps =
+                            conn.prepareStatement(insertItemSql)) {
 
-                        try (PreparedStatement ps
-                                = conn.prepareStatement(exchangeSql)) {
-                            ps.setInt(1, exchangeSkuId);
-
-                            try (ResultSet rs = ps.executeQuery()) {
-                                if (!rs.next()
-                                        || rs.getInt("product_id") != originalProductId
-                                        || exchangeSkuId
-                                        == getOriginalSkuId(conn, orderItemId)) {
-                                    throw new SQLException(
-                                            "SKU đổi phải là phiên bản khác của cùng sản phẩm.");
-                                }
-
-                                if (rs.getInt("stock_quantity") <= 0) {
-                                    throw new SQLException(
-                                            "SKU đổi hiện không còn hàng.");
-                                }
-                            }
-                        }
-                    } else if (exchangeSkuId != null) {
-                        throw new IllegalArgumentException(
-                                "Yêu cầu trả hàng không cần chọn SKU đổi.");
-                    }
-
-                    try (PreparedStatement ps = conn.prepareStatement(insertItemSql)) {
                         ps.setInt(1, requestId);
                         ps.setInt(2, orderItemId);
                         ps.setInt(3, quantity);
-
-                        if (exchangeSkuId == null) {
-                            ps.setNull(4, java.sql.Types.INTEGER);
-                        } else {
-                            ps.setInt(4, exchangeSkuId);
-                        }
 
                         ps.executeUpdate();
                     }
                 }
 
-                try (PreparedStatement ps = conn.prepareStatement(historySql)) {
+                // Ghi lịch sử tạo yêu cầu.
+                try (PreparedStatement ps =
+                        conn.prepareStatement(historySql)) {
+
                     ps.setInt(1, requestId);
                     ps.setInt(2, userId);
-                    ps.setString(3, "Khách hàng gửi yêu cầu.");
+                    ps.setString(
+                            3,
+                            "Khách hàng gửi yêu cầu trả hàng.");
+
                     ps.executeUpdate();
                 }
 
@@ -392,61 +450,115 @@ public class ReturnExchangeDAO {
                 return requestId;
 
             } catch (SQLException | RuntimeException ex) {
-                conn.rollback();
-                throw ex;
-            } finally {
-                conn.setAutoCommit(true);
-            }
-        }
-    }
 
-    private int getOriginalSkuId(
-            Connection conn, int orderItemId) throws SQLException {
-
-        String sql
-                = "SELECT sku_id FROM dbo.ORDER_ITEM WHERE order_item_id = ?";
-
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, orderItemId);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    throw new SQLException("Không tìm thấy sản phẩm trong đơn.");
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    ex.addSuppressed(rollbackEx);
                 }
 
-                return rs.getInt("sku_id");
+                throw ex;
             }
         }
     }
 
-    public List<Map<String, Object>> getAllRequests() throws SQLException {
-        List<Map<String, Object>> requests = new ArrayList<>();
+    // =====================================================
+    // 4. STAFF XEM DANH SÁCH YÊU CẦU RETURN
+    // =====================================================
 
-        String sql
-                = "SELECT r.request_id, r.order_id, r.user_id, "
-                + "u.username, u.phone, r.request_type, r.reason, "
-                + "r.request_status, r.created_at, "
-                + "r.reviewed_at, r.staff_note "
+    public List<Map<String, Object>> getAllRequests()
+            throws SQLException {
+
+        List<Map<String, Object>> requests =
+                new ArrayList<>();
+
+        String sql =
+                "SELECT "
+                + "r.request_id, "
+                + "r.order_id, "
+                + "r.user_id, "
+                + "u.username, "
+                + "COALESCE(NULLIF(o.recipient_phone, ''), "
+                + "u.phone) AS phone, "
+                + "o.recipient_name, "
+                + "o.shipping_address, "
+                + "r.reason, "
+                + "r.request_status, "
+                + "r.created_at, "
+                + "r.reviewed_at, "
+                + "r.staff_note "
                 + "FROM dbo.RETURN_REQUEST r "
-                + "JOIN dbo.[USER] u ON u.user_id = r.user_id "
-                + "ORDER BY CASE WHEN r.request_status = 'PENDING' "
-                + "THEN 0 ELSE 1 END, r.created_at DESC";
+                + "JOIN dbo.[USER] u "
+                + "ON u.user_id = r.user_id "
+                + "JOIN dbo.[ORDER] o "
+                + "ON o.order_id = r.order_id "
+                + "ORDER BY "
+                + "CASE WHEN r.request_status = 'PENDING' "
+                + "THEN 0 ELSE 1 END, "
+                + "r.created_at DESC";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps =
+                        conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                Map<String, Object> item = new LinkedHashMap<>();
-                item.put("requestId", rs.getInt("request_id"));
-                item.put("orderId", rs.getInt("order_id"));
-                item.put("userId", rs.getInt("user_id"));
-                item.put("username", rs.getString("username"));
-                item.put("phone", rs.getString("phone"));
-                item.put("requestType", rs.getString("request_type"));
-                item.put("reason", rs.getString("reason"));
-                item.put("requestStatus", rs.getString("request_status"));
-                item.put("createdAt", rs.getTimestamp("created_at"));
-                item.put("reviewedAt", rs.getTimestamp("reviewed_at"));
-                item.put("staffNote", rs.getString("staff_note"));
+
+                Map<String, Object> item =
+                        new LinkedHashMap<>();
+
+                item.put(
+                        "requestId",
+                        rs.getInt("request_id"));
+
+                item.put(
+                        "orderId",
+                        rs.getInt("order_id"));
+
+                item.put(
+                        "userId",
+                        rs.getInt("user_id"));
+
+                item.put(
+                        "username",
+                        rs.getString("username"));
+
+                item.put(
+                        "phone",
+                        rs.getString("phone"));
+
+                item.put(
+                        "recipientName",
+                        rs.getString("recipient_name"));
+
+                item.put(
+                        "shippingAddress",
+                        rs.getString("shipping_address"));
+
+                // Tương thích các JSP cũ.
+                // Không cần cột request_type trong DB.
+                item.put("requestType", "RETURN");
+
+                item.put(
+                        "reason",
+                        rs.getString("reason"));
+
+                item.put(
+                        "requestStatus",
+                        rs.getString("request_status"));
+
+                item.put(
+                        "createdAt",
+                        rs.getTimestamp("created_at"));
+
+                item.put(
+                        "reviewedAt",
+                        rs.getTimestamp("reviewed_at"));
+
+                item.put(
+                        "staffNote",
+                        rs.getString("staff_note"));
+
                 requests.add(item);
             }
         }
@@ -454,60 +566,70 @@ public class ReturnExchangeDAO {
         return requests;
     }
 
+    // =====================================================
+    // 5. STAFF XEM CHI TIẾT SẢN PHẨM TRẢ
+    // =====================================================
+
     public List<Map<String, Object>> getRequestItems(
             int requestId) throws SQLException {
 
-        List<Map<String, Object>> items = new ArrayList<>();
+        List<Map<String, Object>> items =
+                new ArrayList<>();
 
-        String sql
-                = "SELECT ri.request_item_id, ri.order_item_id, "
-                + "ri.quantity, ri.exchange_sku_id, "
+        String sql =
+                "SELECT "
+                + "ri.request_item_id, "
+                + "ri.order_item_id, "
+                + "ri.quantity, "
                 + "oi.price, "
-                + "p.product_name, original.sku_code AS original_sku_code, "
-                + "target.sku_code AS exchange_sku_code "
+                + "p.product_name, "
+                + "s.sku_code AS original_sku_code "
                 + "FROM dbo.RETURN_REQUEST_ITEM ri "
                 + "JOIN dbo.ORDER_ITEM oi "
                 + "ON oi.order_item_id = ri.order_item_id "
-                + "JOIN dbo.PRODUCT_SKU original "
-                + "ON original.sku_id = oi.sku_id "
+                + "JOIN dbo.PRODUCT_SKU s "
+                + "ON s.sku_id = oi.sku_id "
                 + "JOIN dbo.PRODUCT p "
-                + "ON p.product_id = original.product_id "
-                + "LEFT JOIN dbo.PRODUCT_SKU target "
-                + "ON target.sku_id = ri.exchange_sku_id "
+                + "ON p.product_id = s.product_id "
                 + "WHERE ri.request_id = ? "
                 + "ORDER BY ri.request_item_id";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps =
+                        conn.prepareStatement(sql)) {
 
             ps.setInt(1, requestId);
 
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    Map<String, Object> item = new LinkedHashMap<>();
 
-                    item.put("requestItemId",
+                while (rs.next()) {
+
+                    Map<String, Object> item =
+                            new LinkedHashMap<>();
+
+                    item.put(
+                            "requestItemId",
                             rs.getInt("request_item_id"));
 
-                    item.put("orderItemId",
+                    item.put(
+                            "orderItemId",
                             rs.getInt("order_item_id"));
 
-                    item.put("quantity",
+                    item.put(
+                            "quantity",
                             rs.getInt("quantity"));
 
-                    item.put("price",
+                    item.put(
+                            "price",
                             rs.getBigDecimal("price"));
 
-                    item.put("exchangeSkuId",
-                            rs.getObject("exchange_sku_id"));
-
-                    item.put("productName",
+                    item.put(
+                            "productName",
                             rs.getString("product_name"));
 
-                    item.put("originalSkuCode",
+                    item.put(
+                            "originalSkuCode",
                             rs.getString("original_sku_code"));
-
-                    item.put("exchangeSkuCode",
-                            rs.getString("exchange_sku_code"));
 
                     items.add(item);
                 }
@@ -517,290 +639,208 @@ public class ReturnExchangeDAO {
         return items;
     }
 
+    // =====================================================
+    // 6. STAFF DUYỆT / TỪ CHỐI YÊU CẦU RETURN
+    // =====================================================
+
     public boolean reviewRequest(
             int requestId,
             int staffId,
             String newStatus,
             String staffNote) throws SQLException {
 
+        if (requestId <= 0 || staffId <= 0) {
+            throw new IllegalArgumentException(
+                    "Mã yêu cầu hoặc nhân viên không hợp lệ.");
+        }
+
         if (!"APPROVED".equals(newStatus)
                 && !"REJECTED".equals(newStatus)) {
             throw new IllegalArgumentException(
-                    "Trạng thái duyệt không hợp lệ.");
+                    "Trạng thái xử lý không hợp lệ.");
         }
 
-        String lockRequestSql
-                = "SELECT request_type, request_status, user_id, order_id "
-                + "FROM dbo.RETURN_REQUEST WITH (UPDLOCK, HOLDLOCK) "
-                + "WHERE request_id = ?";
+        if ("REJECTED".equals(newStatus)
+                && (staffNote == null
+                || staffNote.trim().isEmpty())) {
 
-        String getItemsSql
-                = "SELECT ri.quantity, ri.exchange_sku_id, "
-                + "oi.sku_id AS original_sku_id, "
-                + "original.product_id AS original_product_id "
-                + "FROM dbo.RETURN_REQUEST_ITEM ri "
-                + "JOIN dbo.ORDER_ITEM oi "
-                + "ON oi.order_item_id = ri.order_item_id "
-                + "JOIN dbo.PRODUCT_SKU original "
-                + "ON original.sku_id = oi.sku_id "
-                + "WHERE ri.request_id = ? "
-                + "ORDER BY ri.request_item_id";
+            throw new IllegalArgumentException(
+                    "Vui lòng nhập lý do từ chối.");
+        }
 
-        String getTargetSql
-                = "SELECT product_id "
-                + "FROM dbo.PRODUCT_SKU WITH (UPDLOCK, HOLDLOCK) "
-                + "WHERE sku_id = ?";
-
-        String addStockSql
-                = "UPDATE dbo.PRODUCT_SKU "
-                + "SET stock_quantity = stock_quantity + ? "
-                + "WHERE sku_id = ?";
-
-        String subtractStockSql
-                = "UPDATE dbo.PRODUCT_SKU "
-                + "SET stock_quantity = stock_quantity - ? "
-                + "WHERE sku_id = ? AND stock_quantity - reserved_quantity >= ?";
-
-        String updateRequestSql
-                = "UPDATE dbo.RETURN_REQUEST "
-                + "SET request_status = ?, reviewed_by = ?, "
-                + "reviewed_at = SYSDATETIME(), staff_note = ? "
-                + "WHERE request_id = ? AND request_status = 'PENDING'";
-
-        String historySql
-                = "INSERT INTO dbo.RETURN_REQUEST_HISTORY "
-                + "(request_id, status, updated_by, note) "
-                + "VALUES (?, ?, ?, ?)";
+        String normalizedNote =
+                staffNote == null ? null : staffNote.trim();
 
         try (Connection conn = getConnection()) {
+
             conn.setAutoCommit(false);
 
             try {
-                String requestType;
-                String currentStatus;
                 int customerId;
                 int orderId;
 
-                try (PreparedStatement ps
-                        = conn.prepareStatement(lockRequestSql)) {
+                String lockSql =
+                        "SELECT user_id, order_id, request_status "
+                        + "FROM dbo.RETURN_REQUEST "
+                        + "WITH (UPDLOCK, HOLDLOCK) "
+                        + "WHERE request_id = ?";
+
+                try (PreparedStatement ps =
+                        conn.prepareStatement(lockSql)) {
+
                     ps.setInt(1, requestId);
 
                     try (ResultSet rs = ps.executeQuery()) {
+
                         if (!rs.next()) {
                             conn.rollback();
                             return false;
                         }
 
-                        requestType = rs.getString("request_type");
-                        currentStatus = rs.getString("request_status");
+                        String currentStatus =
+                                rs.getString("request_status");
+
+                        if (!"PENDING".equals(currentStatus)) {
+                            conn.rollback();
+                            return false;
+                        }
+
                         customerId = rs.getInt("user_id");
                         orderId = rs.getInt("order_id");
                     }
                 }
 
-                if (!"PENDING".equals(currentStatus)) {
-                    conn.rollback();
-                    return false;
-                }
+                // Duyệt hoặc từ chối yêu cầu.
+                String updateSql =
+                        "UPDATE dbo.RETURN_REQUEST SET "
+                        + "request_status = ?, "
+                        + "reviewed_by = ?, "
+                        + "reviewed_at = SYSDATETIME(), "
+                        + "staff_note = ? "
+                        + "WHERE request_id = ? "
+                        + "AND request_status = 'PENDING'";
 
-                if ("APPROVED".equals(newStatus)) {
-                    if (!"RETURN".equals(requestType)
-                            && !"EXCHANGE".equals(requestType)) {
-                        throw new SQLException(
-                                "Loại yêu cầu không hợp lệ.");
-                    }
+                try (PreparedStatement ps =
+                        conn.prepareStatement(updateSql)) {
 
-                    List<Map<String, Object>> items
-                            = new ArrayList<>();
-
-                    try (PreparedStatement ps
-                            = conn.prepareStatement(getItemsSql)) {
-                        ps.setInt(1, requestId);
-
-                        try (ResultSet rs = ps.executeQuery()) {
-                            while (rs.next()) {
-                                Map<String, Object> item
-                                        = new LinkedHashMap<>();
-
-                                item.put("quantity",
-                                        rs.getInt("quantity"));
-                                item.put("exchangeSkuId",
-                                        (Integer) rs.getObject(
-                                                "exchange_sku_id"));
-                                item.put("originalSkuId",
-                                        rs.getInt("original_sku_id"));
-                                item.put("originalProductId",
-                                        rs.getInt("original_product_id"));
-
-                                items.add(item);
-                            }
-                        }
-                    }
-
-                    if (items.isEmpty()) {
-                        throw new SQLException(
-                                "Yêu cầu không có sản phẩm.");
-                    }
-
-                    for (Map<String, Object> item : items) {
-                        int quantity = (Integer) item.get("quantity");
-                        int originalSkuId
-                                = (Integer) item.get("originalSkuId");
-                        int originalProductId
-                                = (Integer) item.get("originalProductId");
-
-                        if (quantity <= 0) {
-                            throw new SQLException(
-                                    "Số lượng sản phẩm không hợp lệ.");
-                        }
-
-                        if ("RETURN".equals(requestType)) {
-                            try (PreparedStatement ps
-                                    = conn.prepareStatement(addStockSql)) {
-                                ps.setInt(1, quantity);
-                                ps.setInt(2, originalSkuId);
-
-                                if (ps.executeUpdate() != 1) {
-                                    throw new SQLException(
-                                            "Không cập nhật được tồn kho hàng trả.");
-                                }
-                            }
-                            InventoryMovementHelper.recordAfterDelta(conn, originalSkuId, quantity,
-                                    "IN", "Nhận hàng trả theo yêu cầu #" + requestId, staffId);
-                        } else {
-                            Integer exchangeSkuId
-                                    = (Integer) item.get("exchangeSkuId");
-
-                            if (exchangeSkuId == null
-                                    || exchangeSkuId == originalSkuId) {
-                                throw new SQLException(
-                                        "SKU đổi không hợp lệ.");
-                            }
-
-                            try (PreparedStatement ps
-                                    = conn.prepareStatement(getTargetSql)) {
-                                ps.setInt(1, exchangeSkuId);
-
-                                try (ResultSet rs = ps.executeQuery()) {
-                                    if (!rs.next()
-                                            || rs.getInt("product_id")
-                                            != originalProductId) {
-                                        throw new SQLException(
-                                                "SKU đổi phải thuộc cùng sản phẩm.");
-                                    }
-                                }
-                            }
-
-                            try (PreparedStatement ps
-                                    = conn.prepareStatement(subtractStockSql)) {
-                                ps.setInt(1, quantity);
-                                ps.setInt(2, exchangeSkuId);
-                                ps.setInt(3, quantity);
-
-                                if (ps.executeUpdate() != 1) {
-                                    throw new SQLException(
-                                            "SKU đổi không đủ tồn kho.");
-                                }
-                            }
-                            InventoryMovementHelper.recordAfterDelta(conn, exchangeSkuId, -quantity,
-                                    "OUT", "Xuất SKU đổi theo yêu cầu #" + requestId, staffId);
-
-                            try (PreparedStatement ps
-                                    = conn.prepareStatement(addStockSql)) {
-                                ps.setInt(1, quantity);
-                                ps.setInt(2, originalSkuId);
-
-                                if (ps.executeUpdate() != 1) {
-                                    throw new SQLException(
-                                            "Không cập nhật được tồn kho SKU cũ.");
-                                }
-                            }
-                            InventoryMovementHelper.recordAfterDelta(conn, originalSkuId, quantity,
-                                    "IN", "Nhận SKU đổi theo yêu cầu #" + requestId, staffId);
-                        }
-                    }
-                }
-
-                try (PreparedStatement ps
-                        = conn.prepareStatement(updateRequestSql)) {
                     ps.setString(1, newStatus);
                     ps.setInt(2, staffId);
-                    ps.setString(3, staffNote == null
-                            ? null : staffNote.trim());
+                    ps.setString(3, normalizedNote);
                     ps.setInt(4, requestId);
 
                     if (ps.executeUpdate() != 1) {
-                        throw new SQLException(
-                                "Không cập nhật được trạng thái yêu cầu.");
+                        conn.rollback();
+                        return false;
                     }
                 }
 
-                try (PreparedStatement ps
-                        = conn.prepareStatement(historySql)) {
+                // Lưu lịch sử xét duyệt.
+                String historySql =
+                        "INSERT INTO dbo.RETURN_REQUEST_HISTORY "
+                        + "(request_id, status, updated_by, note) "
+                        + "VALUES (?, ?, ?, ?)";
+
+                try (PreparedStatement ps =
+                        conn.prepareStatement(historySql)) {
+
                     ps.setInt(1, requestId);
                     ps.setString(2, newStatus);
                     ps.setInt(3, staffId);
-                    ps.setString(4, staffNote == null
-                            ? "" : staffNote.trim());
+                    ps.setString(4, normalizedNote);
+
                     ps.executeUpdate();
                 }
 
-                // An approved online RETURN produces a PENDING refund to be
-                // manually processed; this does not transfer money.
-                // COD refunds remain manual with no online refund record.
-                if ("APPROVED".equals(newStatus) && "RETURN".equals(requestType)) {
-                    ReturnRefundHelper.createPendingOnlineRefund(conn, orderId, requestId);
-                }
+                // Thông báo cho khách hàng.
+                new NotificationDAO()
+                        .createReturnExchangeNotification(
+                                conn,
+                                customerId,
+                                orderId,
+                                "RETURN",
+                                newStatus
+                        );
 
-                NotificationDAO notificationDAO = new NotificationDAO();
-
-                notificationDAO.createReturnExchangeNotification(
-                        conn,
-                        customerId,
-                        orderId,
-                        requestType,
-                        newStatus
-                );
+                // Không tự cộng tồn kho tại đây.
+                // Không tự thực hiện hoặc ghi nhận hoàn tiền.
 
                 conn.commit();
                 return true;
 
             } catch (SQLException | RuntimeException ex) {
-                conn.rollback();
+
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    ex.addSuppressed(rollbackEx);
+                }
+
                 throw ex;
-            } finally {
-                conn.setAutoCommit(true);
             }
         }
     }
 
-    public Map<String, Object> getLatestRequestByOrder(
-            int orderId, int userId) throws SQLException {
+    // =====================================================
+    // 7. LẤY YÊU CẦU RETURN MỚI NHẤT CỦA ĐƠN HÀNG
+    // =====================================================
 
-        String sql
-                = "SELECT TOP 1 request_id, request_type, "
-                + "request_status, reason, created_at, "
-                + "reviewed_at, staff_note "
+    public Map<String, Object> getLatestRequestByOrder(
+            int orderId,
+            int userId) throws SQLException {
+
+        String sql =
+                "SELECT TOP 1 "
+                + "request_id, "
+                + "request_status, "
+                + "reason, "
+                + "created_at, "
+                + "reviewed_at, "
+                + "staff_note "
                 + "FROM dbo.RETURN_REQUEST "
-                + "WHERE order_id = ? AND user_id = ? "
+                + "WHERE order_id = ? "
+                + "AND user_id = ? "
                 + "ORDER BY created_at DESC, request_id DESC";
 
-        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement ps =
+                        conn.prepareStatement(sql)) {
 
             ps.setInt(1, orderId);
             ps.setInt(2, userId);
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    Map<String, Object> request = new LinkedHashMap<>();
 
-                    request.put("requestId", rs.getInt("request_id"));
-                    request.put("requestType", rs.getString("request_type"));
-                    request.put("requestStatus", rs.getString("request_status"));
-                    request.put("reason", rs.getString("reason"));
-                    request.put("createdAt", rs.getTimestamp("created_at"));
-                    request.put("reviewedAt", rs.getTimestamp("reviewed_at"));
-                    request.put("staffNote", rs.getString("staff_note"));
+                if (rs.next()) {
+
+                    Map<String, Object> request =
+                            new LinkedHashMap<>();
+
+                    request.put(
+                            "requestId",
+                            rs.getInt("request_id"));
+
+                    // Tương thích JSP chi tiết đơn hàng cũ.
+                    request.put("requestType", "RETURN");
+
+                    request.put(
+                            "requestStatus",
+                            rs.getString("request_status"));
+
+                    request.put(
+                            "reason",
+                            rs.getString("reason"));
+
+                    request.put(
+                            "createdAt",
+                            rs.getTimestamp("created_at"));
+
+                    request.put(
+                            "reviewedAt",
+                            rs.getTimestamp("reviewed_at"));
+
+                    request.put(
+                            "staffNote",
+                            rs.getString("staff_note"));
 
                     return request;
                 }
