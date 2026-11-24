@@ -1,6 +1,7 @@
 package controller;
 
 import dao.OrderDAO;
+import dao.OrderWorkflowDAO.OrderNotFoundException;
 import dao.ReturnExchangeDAO;
 
 import jakarta.servlet.ServletException;
@@ -24,7 +25,7 @@ import java.util.logging.Logger;
 import model.Order;
 import model.User;
 import service.OrderService;
-import service.OrderCancellationService;
+import service.OrderWorkflowService;
 
 @WebServlet(
         name = "CustomerOrderServlet",
@@ -39,12 +40,14 @@ public class CustomerOrderServlet extends HttpServlet {
     private static final Logger LOGGER
             = Logger.getLogger(CustomerOrderServlet.class.getName());
 
+    private static final int PAGE_SIZE = 10;
+
     private final OrderDAO orders = new OrderDAO();
     private final OrderService service = new OrderService();
+    private final OrderWorkflowService orderWorkflow = new OrderWorkflowService();
 
     private final ReturnExchangeDAO returnExchangeDAO
             = new ReturnExchangeDAO();
-
 
     @Override
     protected void doGet(
@@ -83,194 +86,92 @@ public class CustomerOrderServlet extends HttpServlet {
         );
 
         try {
-
             if ("/my-orders".equals(request.getServletPath())) {
-
-                Map<String, String> tabs
-                        = OrderService.purchaseTabs();
-
-                String tab = request.getParameter("status");
-
-                tab = tab == null
-                        ? "ALL"
-                        : tab.toUpperCase(Locale.ROOT);
-
-                if (!tabs.containsKey(tab)) {
-                    tab = "ALL";
-                }
-
-                String query = request.getParameter("q");
-
-                query = query == null ? "" : query.trim();
-
-                if (query.length() > 100) {
-                    query = query.substring(0, 100);
-                }
-
-                Map<String, Long> counts
-                        = OrderService.purchaseTabCounts(
-                                orders.countPurchasesByStatus(
-                                        user.getUserId(),
-                                        query
-                                )
-                        );
-
-                long total = counts.getOrDefault(tab, 0L);
-
-                long pageCount = Math.max(
-                        1L,
-                        (total + 9) / 10
-                );
-
-                long page = Math.min(
-                        pageCount,
-                        Math.max(
-                                1L,
-                                positiveId(request.getParameter("page"))
-                        )
-                );
-
-                List<Order> list = orders.findPurchasePage(
-                        user.getUserId(),
-                        query,
-                        OrderService.statusesForTab(tab),
-                        (page - 1) * 10,
-                        10
-                );
-
-                for (Order order : list) {
-                    order.setOrderStatus(
-                            OrderService.normalizeStatus(
-                                    order.getOrderStatus()
-                            )
-                    );
-                }
-
-                List<Integer> ids = new ArrayList<>();
-
-                for (Order order : list) {
-                    ids.add(order.getOrderId());
-                }
-
-                request.setAttribute(
-                        "orderItems",
-                        orders.findItemsForOrders(
-                                user.getUserId(),
-                                ids
-                        )
-                );
-
-                request.setAttribute("tabs", tabs);
-                request.setAttribute("tabCounts", counts);
-                request.setAttribute("activeTab", tab);
-                request.setAttribute("query", query);
-                request.setAttribute("currentPage", page);
-                request.setAttribute("pageCount", pageCount);
-                request.setAttribute("resultCount", total);
-                request.setAttribute("orders", list);
-
-                request.getRequestDispatcher(
-                        "/WEB-INF/customer-orders/list.jsp"
-                ).forward(request, response);
-
-                return;
+                showOrderList(request, response, user.getUserId());
+            } else {
+                showOrderDetail(request, response, user.getUserId());
             }
-
-            int id = positiveId(request.getParameter("id"));
-
-            if (id < 1) {
-                response.sendError(
-                        400,
-                        "Mã đơn hàng không hợp lệ."
-                );
-                return;
-            }
-
-            Order order = orders.findByIdAndUser(
-                    id,
-                    user.getUserId()
-            );
-
-            if (order == null) {
-                response.sendError(
-                        404,
-                        "Không tìm thấy đơn hàng."
-                );
-                return;
-            }
-
-            order.setOrderStatus(
-                    OrderService.normalizeStatus(
-                            order.getOrderStatus()
-                    )
-            );
-
-            request.setAttribute("order", order);
-            request.setAttribute("canCancelOrder",
-                    OrderCancellationService.canCancel(order.getOrderStatus()));
-
-
-            String orderStatus = order.getOrderStatus();
-
-            boolean canRequestReturnExchange
-                    = returnExchangeDAO.canRequest(id, user.getUserId());
-
-            request.setAttribute(
-                    "canRequestReturnExchange",
-                    canRequestReturnExchange
-            );
-
-            request.setAttribute(
-                    "latestReturnExchangeRequest",
-                    returnExchangeDAO.getLatestRequestByOrder(
-                            id,
-                            user.getUserId()
-                    )
-            );
-
-            request.setAttribute(
-                    "items",
-                    orders.findItems(
-                            id,
-                            user.getUserId()
-                    )
-            );
-
-            List<Map<String, Object>> history
-                    = service.findHistory(
-                            id,
-                            user.getUserId()
-                    );
-
-            request.setAttribute(
-                    "trackingSteps",
-                    OrderService.trackingSteps(
-                            order,
-                            history
-                    )
-            );
-
-            Collections.reverse(history);
-
-            request.setAttribute("history", history);
-
-            request.getRequestDispatcher(
-                    "/WEB-INF/customer-orders/detail.jsp"
-            ).forward(request, response);
-
         } catch (SQLException ex) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Cannot load customer orders",
-                    ex
-            );
-
-            response.sendError(
-                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Chưa tải được đơn hàng. Vui lòng thử lại."
-            );
+            LOGGER.log(Level.SEVERE, "Cannot load customer orders", ex);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Chưa tải được đơn hàng. Vui lòng thử lại.");
         }
+    }
+
+    private void showOrderList(HttpServletRequest request, HttpServletResponse response, int userId)
+            throws SQLException, ServletException, IOException {
+        Map<String, String> tabs = OrderService.purchaseTabs();
+        String tab = request.getParameter("status");
+        tab = tab == null ? "ALL" : tab.toUpperCase(Locale.ROOT);
+        if (!tabs.containsKey(tab)) {
+            tab = "ALL";
+        }
+
+        String query = request.getParameter("q");
+        query = query == null ? "" : query.trim();
+        if (query.length() > 100) {
+            query = query.substring(0, 100);
+        }
+
+        Map<String, Long> counts = OrderService.purchaseTabCounts(orders.countPurchasesByStatus(userId, query));
+        long total = counts.getOrDefault(tab, 0L);
+        long pageCount = Math.max(1L, (total + PAGE_SIZE - 1) / PAGE_SIZE);
+        long page = Math.min(pageCount, Math.max(1L, positiveId(request.getParameter("page"))));
+        List<Order> list = orders.findPurchasePage(userId, query, OrderService.statusesForTab(tab),
+                (page - 1) * PAGE_SIZE, PAGE_SIZE);
+
+        List<Integer> ids = new ArrayList<>();
+        for (Order order : list) {
+            order.setOrderStatus(OrderService.normalizeStatus(order.getOrderStatus()));
+            ids.add(order.getOrderId());
+        }
+
+        request.setAttribute("orderItems", orders.findItemsForOrders(userId, ids));
+        request.setAttribute("tabs", tabs);
+        request.setAttribute("tabCounts", counts);
+        request.setAttribute("activeTab", tab);
+        request.setAttribute("query", query);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("pageCount", pageCount);
+        request.setAttribute("resultCount", total);
+        request.setAttribute("orders", list);
+        request.getRequestDispatcher("/WEB-INF/customer-orders/list.jsp").forward(request, response);
+    }
+
+    private void showOrderDetail(HttpServletRequest request, HttpServletResponse response, int userId)
+            throws SQLException, ServletException, IOException {
+        int id = positiveId(request.getParameter("id"));
+        if (id < 1) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Mã đơn hàng không hợp lệ.");
+            return;
+        }
+
+        Order order = orders.findByIdAndUser(id, userId);
+        if (order == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Không tìm thấy đơn hàng.");
+            return;
+        }
+
+        order.setOrderStatus(OrderService.normalizeStatus(order.getOrderStatus()));
+        request.setAttribute("order", order);
+
+        boolean paidOnline = OrderWorkflowService.isPaidOnline(
+                order.getPaymentMethod(), order.getPaymentStatus(), order.getTotalAmount());
+        boolean cancellableStatus = OrderWorkflowService.canCancel(order.getOrderStatus());
+        boolean waitingForReview = "PENDING".equals(order.getCancelRequestStatus());
+        request.setAttribute("canCancelOrder", cancellableStatus && !waitingForReview && !paidOnline);
+        request.setAttribute("contactStoreToCancel", cancellableStatus && !waitingForReview && paidOnline);
+
+        request.setAttribute("canRequestReturnExchange", returnExchangeDAO.canRequest(id, userId));
+        request.setAttribute("latestReturnExchangeRequest", returnExchangeDAO.getLatestRequestByOrder(id, userId));
+        request.setAttribute("items", orders.findItems(id, userId));
+
+        List<Map<String, Object>> history = service.findHistory(id, userId);
+        request.setAttribute("trackingSteps", OrderService.trackingSteps(order, history));
+        Collections.reverse(history);
+        request.setAttribute("history", history);
+
+        request.getRequestDispatcher("/WEB-INF/customer-orders/detail.jsp").forward(request, response);
     }
 
     @Override
@@ -324,31 +225,19 @@ public class CustomerOrderServlet extends HttpServlet {
 
         try {
 
-            if (orders.findByIdAndUser(
-                    id,
-                    user.getUserId()
-            ) == null) {
+            // Form hủy trực tiếp không gửi reason. Service kiểm tra
+            // lý do dựa trên trạng thái mới nhất của đơn trong transaction.
+            String reason = request.getParameter("reason");
+            String result = orderWorkflow.customerCancel(
+                    user.getUserId(), id, reason);
+            session.setAttribute("customerOrderMessage",
+                    "REQUESTED".equals(result) ? "Đã gửi yêu cầu hủy, vui lòng chờ nhân viên duyệt."
+                    : "UNCHANGED".equals(result) ? "Đơn hàng đã được hủy trước đó."
+                    : "Đã hủy đơn hàng thành công.");
 
-                response.sendError(
-                        404,
-                        "Không tìm thấy đơn hàng."
-                );
-                return;
-            }
-
-            boolean changed
-                    = service.cancelOrderByCustomer(
-                            user.getUserId(),
-                            id
-                    );
-
-            session.setAttribute(
-                    "customerOrderMessage",
-                    changed
-                            ? "Đã hủy đơn hàng thành công."
-                            : "Đơn hàng đã được hủy trước đó."
-            );
-
+        } catch (OrderNotFoundException ex) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, ex.getMessage());
+            return;
         } catch (IllegalArgumentException ex) {
 
             session.setAttribute(

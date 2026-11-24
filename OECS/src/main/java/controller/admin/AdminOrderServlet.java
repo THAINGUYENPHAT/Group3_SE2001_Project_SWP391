@@ -2,11 +2,10 @@ package controller.admin;
 
 import dao.AdminOrderDAO;
 import model.Order;
-import model.OrderItem;
-import dao.NotificationDAO;
 import model.User;
 import service.AuditLogService;
-import service.OrderCancellationService;
+import service.OrderWorkflowService;
+import service.OrderService;
 import service.OrderStatusPolicy;
 import java.util.UUID;
 
@@ -15,30 +14,27 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @WebServlet(name = "AdminOrderServlet", urlPatterns = "/admin/orders/*")
 public class AdminOrderServlet extends HttpServlet {
+
+    private final OrderWorkflowService orderWorkflow = new OrderWorkflowService();
     private static final Logger LOGGER = Logger.getLogger(AdminOrderServlet.class.getName());
 
-    private AdminOrderDAO orderDAO;
-    private NotificationDAO notificationDAO;
-
     private final AuditLogService auditLogService = new AuditLogService();
-
-    @Override
-    public void init() {
-        orderDAO = new AdminOrderDAO();
-        notificationDAO = new NotificationDAO();
-    }
 
     @Override
     protected void doGet(HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
+        AdminOrderDAO orderDAO = new AdminOrderDAO();
+        request.setAttribute("statusLabels", OrderService.statusLabels());
         String path = request.getPathInfo();
         if (request.getSession().getAttribute("staffOrderToken") == null) {
             request.getSession().setAttribute("staffOrderToken", UUID.randomUUID().toString());
@@ -51,30 +47,32 @@ public class AdminOrderServlet extends HttpServlet {
                 );
 
                 Order order = orderDAO.getById(orderId);
-                List<OrderItem> items = orderDAO.getItemsByOrderId(orderId);
-                String status = orderDAO.getCurrentStatus(orderId);
-
-                if (status == null && order != null) {
-                    status = order.getOrderStatus();
-                }
+                if (order == null) { response.sendError(404, "Không tìm thấy đơn hàng."); return; }
+                String status = OrderService.normalizeStatus(order.getOrderStatus());
+                boolean pendingCancel = "PENDING".equals(order.getCancelRequestStatus());
+                request.setAttribute("pendingCancel", pendingCancel);
+                request.setAttribute("canAdvanceOrder",
+                        !pendingCancel && OrderStatusPolicy.nextStatus(status) != null);
+                request.setAttribute("canStaffCancel",
+                        !pendingCancel && OrderWorkflowService.canCancel(status));
+                request.setAttribute("needsManualRefund",
+                        "CANCELLED".equals(status) && OrderWorkflowService.isPaidOnline(
+                                order.getPaymentMethod(), order.getPaymentStatus(), order.getTotalAmount()));
 
                 request.setAttribute("order", order);
-                request.setAttribute("items", items);
+                request.setAttribute("history", orderDAO.getHistory(orderId));
+                request.setAttribute("items", orderDAO.getItemsByOrderId(orderId));
                 request.setAttribute("status", status);
 
                 request.getRequestDispatcher("/WEB-INF/admin/order-detail.jsp").forward(request, response);
             } catch (NumberFormatException e) {
                 LOGGER.log(Level.WARNING, "Order ID không hợp lệ khi xem chi tiết!", e);
 
-                response.sendRedirect(
-                        request.getContextPath() + "/admin/orders"
-                );
+                response.sendError(400,"Mã đơn hàng không hợp lệ.");
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Lỗi khi tải thông tin chi tiết đơn hàng!", e);
 
-                response.sendRedirect(
-                        request.getContextPath() + "/admin/orders"
-                );
+                throw new ServletException("Không tải được chi tiết đơn hàng.",e);
             }
         } else {
             try {
@@ -86,9 +84,7 @@ public class AdminOrderServlet extends HttpServlet {
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Lỗi khi lấy danh sách đơn hàng!", e);
 
-                response.sendRedirect(
-                        request.getContextPath() + "/admin/dashboard"
-                );
+                throw new ServletException("Không tải được danh sách đơn hàng.",e);
             }
         }
     }
@@ -109,66 +105,47 @@ public class AdminOrderServlet extends HttpServlet {
         }
 
         String action = request.getParameter("action");
-        Object expected = request.getSession().getAttribute("staffOrderToken");
+        HttpSession session = request.getSession();
+        Object expected = session.getAttribute("staffOrderToken");
         if (!(expected instanceof String) || !expected.equals(request.getParameter("csrfToken"))) {
             response.sendError(403, "Yêu cầu không hợp lệ. Vui lòng tải lại trang.");
             return;
         }
-        if ("cancel".equals(action)) {
-            cancelOrder(request, orderId);
-            response.sendRedirect(request.getContextPath() + "/admin/orders/detail?id=" + orderId);
-            return;
-        }
 
+        User staff = (User) session.getAttribute("loggedInUser");
+        boolean cancellation = "cancel".equals(action) || "approveCancel".equals(action)
+                || "rejectCancel".equals(action);
         try {
-            String current = OrderStatusPolicy.normalize(orderDAO.getCurrentStatus(orderId));
-            String nextStatus = OrderStatusPolicy.requestedStatus(current, action);
-
-            if (nextStatus == null) {
-                request.getSession().setAttribute(
-                        "errorMessage",
-                        "Không thể cập nhật! Vui lòng thực hiện đúng trình tự: "
-                        + "Confirmed → Packing → Shipping → Completed."
-                );
-            } else if (orderDAO.transitionStatus(orderId, nextStatus)) {
-                request.getSession().setAttribute("successMessage", statusSuccessMessage(nextStatus));
-
-                User loggedInUser = (User) request.getSession()
-                                .getAttribute("loggedInUser");
-
-                auditLogService.log(
-                        loggedInUser,
-                        "UPDATE_ORDER_STATUS",
-                        "ORDER",
-                        (long) orderId,
-                        "Changed order #" + orderId
-                        + " status from "
-                        + current
-                        + " to "
-                        + nextStatus,
-                        request
-                );
-
-                notifyOrderStatus(orderId, nextStatus);
+            String message;
+            if (cancellation) {
+                message = cancelOrder(request, staff, orderId, action);
             } else {
-                request.getSession().setAttribute("errorMessage", "Không thể chuyển trạng thái. Vui lòng tải lại đơn hàng!");
+                String nextStatus = orderWorkflow.advanceOrder(
+                        staff.getUserId(), orderId, action, request.getParameter("expectedStatus"));
+                message = statusSuccessMessage(nextStatus);
+                auditStaffAction(staff, orderId, "UPDATE_ORDER_STATUS", "Changed order status to " + nextStatus, request);
             }
+            session.setAttribute("successMessage", message);
         } catch (IllegalArgumentException e) {
-            request.getSession().setAttribute("errorMessage", e.getMessage());
+            session.setAttribute("errorMessage", e.getMessage());
         } catch (Exception e) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi cập nhật trạng thái đơn hàng #" + orderId,
-                    e
-            );
-
-            request.getSession().setAttribute("errorMessage", "Thao tác thất bại! Vui lòng kiểm tra lại.");
+            LOGGER.log(Level.SEVERE, "Lỗi xử lý đơn hàng #" + orderId, e);
+            session.setAttribute("errorMessage", cancellation
+                    ? "Chưa xử lý được yêu cầu. Vui lòng tải lại đơn và thử lại."
+                    : "Thao tác thất bại! Vui lòng kiểm tra lại.");
         }
 
-        response.sendRedirect(
-                request.getContextPath()
-                + "/admin/orders/detail?id=" + orderId
-        );
+        response.sendRedirect(request.getContextPath() + "/admin/orders/detail?id=" + orderId);
+    }
+
+    private void auditStaffAction(User staff, int orderId, String action, String details, HttpServletRequest request) {
+        try {
+            if (!auditLogService.log(staff, action, "ORDER", (long) orderId, details, request)) {
+                LOGGER.log(Level.WARNING, "Không ghi được audit log cho đơn hàng #{0}", orderId);
+            }
+        } catch (RuntimeException e) {
+            LOGGER.log(Level.WARNING, "Lỗi ghi audit log cho đơn hàng #" + orderId, e);
+        }
     }
 
     private String statusSuccessMessage(String status) {
@@ -186,39 +163,22 @@ public class AdminOrderServlet extends HttpServlet {
         }
     }
 
-    private void cancelOrder(HttpServletRequest request, int orderId) {
-        try {
-            User staff = (User) request.getSession().getAttribute("loggedInUser");
-            OrderCancellationService cancellation = new OrderCancellationService();
-            String result = cancellation.staffCancel(staff.getUserId(), orderId);
-            auditLogService.log(staff, "CANCEL_ORDER", "ORDER", (long) orderId, "Staff cancellation: " + result, request);
-            request.getSession().setAttribute("successMessage", "UNCHANGED".equals(result)
-                    ? "Đơn hàng đã được hủy trước đó."
-                    : "Đã hủy đơn hàng thành công");
-        } catch (IllegalArgumentException e) {
-            request.getSession().setAttribute("errorMessage", e.getMessage());
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Cannot process cancellation", e);
-            request.getSession().setAttribute("errorMessage", "Chưa xử lý được yêu cầu. Vui lòng tải lại đơn và thử lại.");
-        }
-    }
+    private String cancelOrder(HttpServletRequest request, User staff, int orderId, String action)
+            throws SQLException {
+        String reason = request.getParameter("reason");
+        String result = "cancel".equals(action)
+                ? orderWorkflow.staffCancel(staff.getUserId(), orderId, reason)
+                : orderWorkflow.review(staff.getUserId(), orderId, "approveCancel".equals(action),
+                        reason, request.getParameter("cancelRequestVersion"));
+        auditStaffAction(staff, orderId, "CANCEL_ORDER", "Staff cancellation: " + result, request);
 
-    private void notifyOrderStatus(int orderId, String nextStatus) {
-        try {
-            boolean notified = notificationDAO
-                    .createOrderStatusNotification(orderId, nextStatus);
-
-            if (!notified) {
-                LOGGER.warning(
-                        "Không tạo được thông báo cho đơn hàng #" + orderId
-                );
-            }
-        } catch (Exception notificationError) {
-            LOGGER.log(
-                    Level.WARNING,
-                    "Lỗi tạo thông báo cho đơn hàng #" + orderId,
-                    notificationError
-            );
+        switch (result) {
+            case "REJECTED":
+                return "Đã từ chối yêu cầu hủy.";
+            case "UNCHANGED":
+                return "Đơn hàng đã được hủy trước đó.";
+            default:
+                return "Đã hủy đơn hàng thành công.";
         }
     }
 }

@@ -124,7 +124,8 @@
 
     .main-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        align-items: start;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 18px;
     }
 
@@ -160,7 +161,7 @@
 
     .info-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
     }
 
@@ -185,6 +186,31 @@
         font-size: 14px;
         font-weight: 600;
         color: #10213b;
+    }
+
+    .order-price-summary {
+        padding: 14px 16px;
+        border-top: 1px solid #e5eaf1;
+    }
+
+    .order-price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        padding: 6px 0;
+        font-size: 13px;
+        color: #52647d;
+    }
+
+    .order-price-row strong {
+        color: #10213b;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .order-price-row .discount-value {
+        color: #16803d;
     }
 
     .total-box {
@@ -307,17 +333,17 @@
         margin-top: 5px;
     }
 
-    .products-card {
-        min-height: 220px;
+    .order-detail-section {
+        border-top: 1px solid #e5eaf1;
     }
 
     .products-body {
-        padding: 0;
-        overflow-y: auto;
+        overflow: auto;
         max-height: 320px;
     }
 
     .products-table {
+        min-width: 460px;
         width: 100%;
         border-collapse: collapse;
         font-size: 13px;
@@ -328,7 +354,7 @@
         background: #f7f9fc;
         color: #71819a;
         text-align: left;
-        padding: 0 18px;
+        padding: 0 12px;
         font-size: 11px;
         text-transform: uppercase;
         position: sticky;
@@ -339,7 +365,7 @@
 
     .products-table td {
         height: 42px;
-        padding: 8px 18px;
+        padding: 8px 12px;
         border-bottom: 1px solid #edf1f5;
         color: #26384f;
     }
@@ -347,6 +373,38 @@
     .products-table tbody tr:last-child td {
         border-bottom: none;
     }
+
+    .products-table .price {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .products-table small,
+    .order-history-meta {
+        display: block;
+        color: #60738e;
+        font-size: 12px;
+    }
+
+    .order-history {
+        list-style: none;
+        margin: 0;
+        padding: 0 20px;
+    }
+
+    .order-history li {
+        padding: 12px 0;
+        overflow-wrap: anywhere;
+    }
+
+    .order-history li + li {
+        border-top: 1px solid #edf1f5;
+    }
+
+    .order-history p {
+        margin: 6px 0 0;
+    }
+
 
     .empty {
         text-align: center;
@@ -551,9 +609,35 @@
         padding: 20px;
         background: rgba(15, 23, 42, 0.55);
         backdrop-filter: blur(3px);
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        margin: 0;
+        border: 0;
+        box-sizing: border-box;
     }
 
-    .modal-overlay.show {
+    .modal-overlay::backdrop {
+        background: transparent;
+    }
+
+    .modal-box label {
+        display: block;
+        text-align: left;
+    }
+
+    .modal-box textarea {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 6px 0 16px;
+        padding: 8px;
+        font: inherit;
+        resize: vertical;
+    }
+
+    .modal-overlay[open] {
         display: flex;
     }
 
@@ -569,22 +653,6 @@
 
         text-align: center;
         animation: modal-in 0.2s ease-out;
-    }
-
-    .modal-icon {
-        width: 58px;
-        height: 58px;
-        margin: 0 auto 18px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 50%;
-        background: #fff1f2;
-        color: #e53935;
-        font-size: 27px;
-        font-weight: 700;
     }
 
     .modal-box h2 {
@@ -794,23 +862,70 @@
                             </span>
                         </div>
 
-                        <div class="info-item">
-                            <span class="label">Phí giao hàng</span>
-                            <span class="value">
-                                <fmt:formatNumber value="${order.shippingFee}" type="number"
-                                                  groupingUsed="true" /> ₫
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="total-box">
-                        <span class="total-label">Tổng tiền đơn hàng</span>
-                        <span class="total-value">
-                            <fmt:formatNumber value="${order.totalAmount}" type="number"
-                                              groupingUsed="true" /> ₫
-                        </span>
                     </div>
                 </div>
+                <section class="order-detail-section" aria-labelledby="orderProductsTitle">
+                    <div class="card-header"><h2 id="orderProductsTitle">Sản phẩm trong đơn hàng</h2></div>
+                    <div class="products-body">
+                        <table class="products-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Sản phẩm</th>
+                                    <th scope="col">Mã SKU</th>
+                                    <th scope="col">SL</th>
+                                    <th scope="col" class="price">Đơn giá</th>
+                                    <th scope="col" class="price">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <c:forEach var="item" items="${items}">
+                                    <tr>
+                                        <td>
+                                            <strong><c:out value="${item.productName}" /></strong>
+                                            <small>Dòng đơn #${item.orderItemId}</small>
+                                        </td>
+                                        <td>
+                                            <c:out value="${item.skuCode}" />
+                                            <small>SKU #${item.skuId}</small>
+                                        </td>
+                                        <td>${item.quantity}</td>
+                                        <td class="price"><fmt:formatNumber value="${item.price}" type="number" /> ₫</td>
+                                        <td class="price"><fmt:formatNumber value="${item.price * item.quantity}" type="number" /> ₫</td>
+                                    </tr>
+                                </c:forEach>
+                                <c:if test="${empty items}">
+                                    <tr><td colspan="5" class="empty">Không có sản phẩm trong đơn hàng.</td></tr>
+                                </c:if>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <%-- Tổng tiền hàng lấy từ giá và số lượng đã lưu trong ORDER_ITEM. --%>
+                    <c:set var="subtotal" value="${0}" />
+                    <c:forEach var="item" items="${items}">
+                        <c:set var="subtotal" value="${subtotal + item.price * item.quantity}" />
+                    </c:forEach>
+
+                    <div class="order-price-summary">
+                        <div class="order-price-row">
+                            <span>Tiền sản phẩm</span>
+                            <strong><fmt:formatNumber value="${subtotal}" type="number" maxFractionDigits="2" /> ₫</strong>
+                        </div>
+                        <div class="order-price-row">
+                            <span>Phí giao hàng</span>
+                            <strong><fmt:formatNumber value="${order.shippingFee}" type="number" maxFractionDigits="2" /> ₫</strong>
+                        </div>
+                        <div class="order-price-row">
+                            <span>Giảm giá</span>
+                            <strong class="discount-value"><c:if test="${order.discountAmount gt 0}">−</c:if><fmt:formatNumber value="${order.discountAmount}" type="number" maxFractionDigits="2" /> ₫</strong>
+                        </div>
+                        <%-- Tổng thanh toán là giá trị đã lưu của đơn, không tính lại để cập nhật DB. --%>
+                        <div class="total-box">
+                            <span class="total-label">Tổng tiền đơn hàng</span>
+                            <span class="total-value"><fmt:formatNumber value="${order.totalAmount}" type="number" maxFractionDigits="2" /> ₫</span>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <div class="card">
@@ -822,166 +937,127 @@
                     <div class="current-status">
                         <span class="status-label">Trạng thái hiện tại</span>
                         <span class="status-badge">
-                            <c:choose>
-                                <c:when test="${not empty status}">
-                                    ${status}
-                                </c:when>
-                                <c:otherwise>
-                                    Chưa có trạng thái
-                                </c:otherwise>
-                            </c:choose>
+                            <c:out value="${statusLabels[status]}" default="${status}" />
                         </span>
                     </div>
 
-                    <div class="action-box">
-                        <p>
-                            <c:choose>
-                                <c:when test="${status eq 'PENDING_PAYMENT'}">Đơn đang chờ khách thanh toán.</c:when>
-                                <c:when test="${status eq 'PENDING_CONFIRMATION' or status eq 'PENDING'}">Bước tiếp theo: Xác nhận tiếp nhận đơn hàng.</c:when>
-                                <c:when test="${status eq 'CONFIRMED'}">Bước tiếp theo: Bắt đầu đóng gói.</c:when>
-                                <c:when test="${status eq 'PACKING'}">Bước tiếp theo: Bàn giao vận chuyển.</c:when>
-                                <c:when test="${status eq 'SHIPPING'}">Chỉ xác nhận khi đơn hàng đã được giao thành công.</c:when>
-                                <c:when test="${status eq 'COMPLETED'}">Đơn hàng đã hoàn thành. Không còn bước xử lý tiếp theo.</c:when>
-                                <c:when test="${status eq 'CANCELLED'}">Đơn hàng đã hủy.</c:when>
-                                <c:otherwise>Trạng thái chưa xác định. Vui lòng kiểm tra lại dữ liệu đơn hàng.</c:otherwise>
-                            </c:choose>
-                        </p>
-                        <div class="order-action-row">
-                            <c:if test="${status eq 'PENDING_CONFIRMATION' or status eq 'PENDING' or status eq 'CONFIRMED' or status eq 'PACKING' or status eq 'SHIPPING'}">
-                                <form method="post" action="${pageContext.request.contextPath}/admin/orders">
-                                    <input type="hidden" name="csrfToken" value="${sessionScope.staffOrderToken}">
-                                    <input type="hidden" name="orderId" value="${order.orderId}">
-                                    <input type="hidden" name="action" value="${status eq 'PENDING_CONFIRMATION' or status eq 'PENDING' ? 'confirm' : 'nextStep'}">
-                                    <button type="submit" class="btn btn-primary">
-                                        <c:choose>
-                                            <c:when test="${status eq 'PENDING_CONFIRMATION' or status eq 'PENDING'}"><i class="bi bi-check-circle" aria-hidden="true"></i> Xác nhận đơn hàng</c:when>
-                                            <c:when test="${status eq 'CONFIRMED'}"><i class="bi bi-box-seam" aria-hidden="true"></i> Chuyển sang đóng gói</c:when>
-                                            <c:when test="${status eq 'PACKING'}"><i class="bi bi-truck" aria-hidden="true"></i> Chuyển sang giao hàng</c:when>
-                                            <c:otherwise><i class="bi bi-check2-circle" aria-hidden="true"></i> Xác nhận giao thành công</c:otherwise>
-                                        </c:choose>
-                                    </button>
-                                </form>
+                    <c:if test="${canAdvanceOrder or canStaffCancel or pendingCancel or needsManualRefund}">
+                        <div class="action-box">
+                            <c:if test="${needsManualRefund}">
+                                <p>Đơn đã thanh toán online. Vui lòng liên hệ khách để xử lý hoàn tiền thủ công.</p>
                             </c:if>
-                            <c:if test="${status eq 'PENDING_PAYMENT' or status eq 'PENDING_CONFIRMATION' or status eq 'PENDING' or status eq 'CONFIRMED' or status eq 'PACKING'}">
-
-                                <form method="post" action="${pageContext.request.contextPath}/admin/orders"
-                                      onsubmit="return showCancelModal(event);">
-                                    <input type="hidden" name="csrfToken" value="${sessionScope.staffOrderToken}">
-                                    <input type="hidden" name="orderId" value="${order.orderId}">
-                                    <input type="hidden" name="action" value="cancel">
-                                    <button type="submit" class="btn btn-danger">
-                                        <i class="bi bi-x-circle me-1"></i> Hủy đơn hàng
-                                    </button>
-                                </form>
-
-
+                            <c:if test="${canAdvanceOrder and status eq 'SHIPPING' and order.paymentMethod eq 'COD' and order.totalAmount gt 0}">
+                                <p>Xác nhận sau khi đã giao hàng và thu đủ tiền COD.</p>
                             </c:if>
+                            <c:if test="${pendingCancel}">
+                                <p>Lý do khách yêu cầu hủy: <c:out value="${order.cancelRequestReason}" /></p>
+                            </c:if>
+                            <div class="order-action-row">
+                                <c:if test="${pendingCancel}">
+                                    <button type="button" class="btn btn-danger"
+                                            onclick="openCancelDialog('approveCancel', 'Duyệt hủy đơn', 'Nội dung duyệt')">
+                                        Duyệt hủy đơn
+                                    </button>
+                                    <button type="button" class="btn btn-secondary"
+                                            onclick="openCancelDialog('rejectCancel', 'Từ chối yêu cầu', 'Lý do từ chối')">
+                                        Từ chối yêu cầu
+                                    </button>
+                                </c:if>
+                                <c:if test="${canAdvanceOrder}">
+                                    <form method="post" action="${pageContext.request.contextPath}/admin/orders">
+                                        <input type="hidden" name="csrfToken" value="${sessionScope.staffOrderToken}">
+                                        <input type="hidden" name="orderId" value="${order.orderId}">
+                                        <input type="hidden" name="action" value="${status eq 'PENDING_CONFIRMATION' ? 'confirm' : 'nextStep'}">
+                                        <input type="hidden" name="expectedStatus" value="<c:out value='${status}' />">
+                                        <button type="submit" class="btn btn-primary">
+                                            <c:choose>
+                                                <c:when test="${status eq 'PENDING_CONFIRMATION'}"><i class="bi bi-check-circle" aria-hidden="true"></i> Xác nhận đơn hàng</c:when>
+                                                <c:when test="${status eq 'CONFIRMED'}"><i class="bi bi-box-seam" aria-hidden="true"></i> Chuyển sang đóng gói</c:when>
+                                                <c:when test="${status eq 'PACKING'}"><i class="bi bi-truck" aria-hidden="true"></i> Chuyển sang giao hàng</c:when>
+                                                <c:otherwise><i class="bi bi-check2-circle" aria-hidden="true"></i> Xác nhận giao thành công</c:otherwise>
+                                            </c:choose>
+                                        </button>
+                                    </form>
+                                </c:if>
+                                <c:if test="${canStaffCancel}">
+                                    <button type="button" class="btn btn-danger"
+                                            onclick="openCancelDialog('cancel', 'Xác nhận hủy đơn hàng', 'Lý do hủy đơn')">
+                                        <i class="bi bi-x-circle me-1" aria-hidden="true"></i> Hủy đơn hàng
+                                    </button>
+                                </c:if>
+                            </div>
                         </div>
-                    </div>
+                    </c:if>
+                </div>
+                <section class="order-detail-section" aria-labelledby="orderHistoryTitle">
+                    <div class="card-header"><h2 id="orderHistoryTitle">Lịch sử xử lý đơn</h2></div>
+                    <c:choose>
+                        <c:when test="${not empty history}">
+                            <ul class="order-history">
+                                <c:forEach var="entry" items="${history}">
+                                    <li>
+                                        <c:set var="approvedCancellation"
+                                               value="${entry.status eq 'CANCELLED' and entry.actor eq 'STAFF' and order.cancelRequestStatus eq 'APPROVED'}" />
+                                        <strong>
+                                            <c:choose>
+                                                <c:when test="${approvedCancellation}">Đã duyệt hủy đơn</c:when>
+                                                <c:when test="${entry.status eq entry.oldStatus and entry.actor eq 'CUSTOMER'}">Đã gửi yêu cầu hủy</c:when>
+                                                <c:when test="${entry.status eq entry.oldStatus and entry.actor eq 'STAFF'}">Đã từ chối yêu cầu hủy</c:when>
+                                                <c:otherwise><c:out value="${statusLabels[entry.status]}" default="${entry.status}" /></c:otherwise>
+                                            </c:choose>
+                                        </strong>
+                                        <span class="order-history-meta">
+                                            <fmt:formatDate value="${entry.updatedAt}" pattern="dd/MM/yyyy HH:mm:ss" />
+                                            <c:if test="${not empty entry.actor}">
+                                                · <c:choose>
+                                                    <c:when test="${entry.actor eq 'STAFF'}">Nhân viên</c:when>
+                                                    <c:when test="${entry.actor eq 'CUSTOMER'}">Khách hàng</c:when>
+                                                    <c:when test="${entry.actor eq 'SYSTEM'}">Hệ thống</c:when>
+                                                    <c:otherwise><c:out value="${entry.actor}" /></c:otherwise>
+                                                </c:choose><c:if test="${not empty entry.changedBy}"> #<c:out value="${entry.changedBy}" /></c:if>
+                                            </c:if>
+                                        </span>
+                                        <c:set var="historyNote" value="${approvedCancellation ? order.cancelReviewNote : entry.reason}" />
+                                        <c:if test="${not empty historyNote}">
+                                            <p><c:out value="${historyNote}" /></p>
+                                        </c:if>
+                                    </li>
+                                </c:forEach>
+                            </ul>
+                        </c:when>
+                        <c:otherwise><p class="empty">Chưa có lịch sử xử lý.</p></c:otherwise>
+                    </c:choose>
+                </section>
+            </div>
+        </div>
+    </main>
 
 
 
-
-
-                    <div class="card products-card">
-                        <div class="card-header">
-                            <h2>Sản phẩm trong đơn hàng</h2>
-                        </div>
-
-                        <div class="products-body">
-                            <table class="products-table">
-                                <thead>
-                                    <tr>
-                                        <th>Order Item</th>
-                                        <th>Tên sản phẩm</th>
-                                        <th>Mã SKU</th>
-                                        <th>SKU ID</th>
-                                        <th>SL đặt</th>                                    
-                                        <th>Đơn giá</th>
-                                        <th>Thành tiền</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    <c:choose>
-                                        <c:when test="${not empty items}">
-                                            <c:forEach var="item" items="${items}">
-                                                <tr>
-                                                    <td>#${item.orderItemId}</td>
-
-                                                    <td>
-                                                        <strong>
-                                                            <c:out value="${item.productName}" />
-                                                        </strong>
-                                                    </td>
-
-                                                    <td>
-                                                        <c:out value="${item.skuCode}" />
-                                                    </td>
-
-                                                    <td>${item.skuId}</td>
-
-                                                    <td>${item.quantity}</td>
-
-
-                                                    <td class="price">
-                                                        <fmt:formatNumber value="${item.price}" type="number"
-                                                                          groupingUsed="true" /> ₫
-                                                    </td>
-
-                                                    <td class="price">
-                                                        <fmt:formatNumber value="${item.price * item.quantity}"
-                                                                          type="number" groupingUsed="true" /> ₫
-                                                    </td>
-                                                </tr>
-                                            </c:forEach>
-                                        </c:when>
-
-                                        <c:otherwise>
-                                            <tr>
-                                                <td colspan="7" class="empty">
-                                                    Không có sản phẩm trong đơn hàng.
-                                                </td>
-                                            </tr>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    </main>
-
-
-                    <div id="cancelModal" class="modal-overlay" role="dialog" aria-modal="true"
-                         aria-labelledby="cancelModalTitle">
-
-                        <div class="modal-box">
-                            <div class="modal-icon">!</div>
+                    <dialog id="cancelModal" class="modal-overlay" aria-labelledby="cancelModalTitle">
+                        <form class="modal-box" method="post"
+                              action="${pageContext.request.contextPath}/admin/orders">
+                            <input type="hidden" name="csrfToken" value="${sessionScope.staffOrderToken}">
+                            <input type="hidden" name="orderId" value="${order.orderId}">
+                            <input type="hidden" name="action" id="cancelAction">
+                            <input type="hidden" name="cancelRequestVersion" value="<c:out value='${order.cancelRequestVersion}' />">
 
                             <h2 id="cancelModalTitle">Xác nhận hủy đơn hàng</h2>
+                            <p>Đơn hàng <strong>#${order.orderId}</strong></p>
 
-                            <p>
-                                Bạn có chắc chắn muốn hủy đơn hàng
-                                <strong>#${order.orderId}</strong> không?
-                                <br>
-                                Vui lòng kiểm tra trước khi tiếp tục.
-                            </p>
+                            <label id="cancelReasonLabel" for="staffCancelReason">Lý do hủy đơn</label>
+                            <textarea id="staffCancelReason" name="reason" rows="3"
+                                      maxlength="500" required autofocus></textarea>
 
                             <div class="modal-actions">
                                 <button type="button" class="modal-btn modal-btn-secondary"
-                                        onclick="closeCancelModal()">
-                                    Không, quay lại
-                                </button>
-
-                                <button type="button" class="modal-btn modal-btn-danger" onclick="confirmCancelOrder()">
-                                    Xác nhận hủy
+                                        onclick="document.getElementById('cancelModal').close()">Quay lại</button>
+                                <button type="submit" id="confirmCancelButton" class="modal-btn modal-btn-danger">
+                                    Xác nhận
                                 </button>
                             </div>
-                        </div>
-                    </div>
-
-
+                        </form>
+                    </dialog>
 
                     <script>
                         document.querySelectorAll(".notification").forEach(function (message) {
@@ -995,53 +1071,29 @@
                         });
 
 
-                        let cancelForm = null;
+                        const cancelDialog = document.getElementById("cancelModal");
+                        const cancelReason = document.getElementById("staffCancelReason");
 
-                        function showCancelModal(event) {
-                            event.preventDefault();
-
-                            cancelForm = event.currentTarget;
-
-                            document.getElementById("cancelModal").classList.add("show");
-
-                            return false;
-                        }
-
-                        function closeCancelModal() {
-                            document.getElementById("cancelModal").classList.remove("show");
-
-                            const button = document.querySelector(".modal-btn-danger");
-                            button.disabled = false;
-                            button.textContent = "Xác nhận hủy";
-
-                            cancelForm = null;
-                        }
-
-                        function confirmCancelOrder() {
-                            if (cancelForm) {
-                                const form = cancelForm;
-                                cancelForm = null;
-
-                                const button = document.querySelector(".modal-btn-danger");
-                                button.disabled = true;
-                                button.textContent = "Đang xử lý...";
-
-                                form.submit();
+                        function openCancelDialog(action, title, label) {
+                            const actionInput = document.getElementById("cancelAction");
+                            if (actionInput.value !== action) {
+                                cancelReason.value = "";
                             }
+                            actionInput.value = action;
+                            document.getElementById("cancelModalTitle").textContent = title;
+                            document.getElementById("cancelReasonLabel").textContent = label;
+                            cancelDialog.showModal();
                         }
 
-                        document.getElementById("cancelModal").addEventListener("click", function (event) {
-                            if (event.target === this) {
-                                closeCancelModal();
+                        cancelDialog.addEventListener("click", function (event) {
+                            if (event.target === cancelDialog) {
+                                cancelDialog.close();
                             }
                         });
 
-                        document.addEventListener("keydown", function (event) {
-                            if (event.key === "Escape") {
-                                closeCancelModal();
-                            }
+                        cancelDialog.querySelector("form").addEventListener("submit", function () {
+                            document.getElementById("confirmCancelButton").disabled = true;
                         });
-
                     </script>
 
 

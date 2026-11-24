@@ -2,7 +2,7 @@ package service;
 
 import java.util.Locale;
 
-/** Forward progress only; cancellations belong to OrderCancellationService. */
+/** Forward progress only; cancellations belong to OrderWorkflowService. */
 public final class OrderStatusPolicy {
     private OrderStatusPolicy() {
     }
