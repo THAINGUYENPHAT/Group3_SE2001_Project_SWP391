@@ -2,7 +2,6 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-
 <%@ include file="/WEB-INF/include/header.jsp" %>
 
 <link rel="stylesheet"
@@ -135,6 +134,32 @@
         }
     }
 
+    /* =========================
+       CANCEL CONFIRMATION MODAL
+       ========================= */
+
+    .purchase-timeline .purchase-timeline-note {
+        grid-column: 1 / -1;
+        margin: 4px 0 0;
+        overflow-wrap: anywhere;
+    }
+
+    #cancel-order.purchase-cancel-button {
+        color: #fff;
+        background: #de2020;
+        border-color: #de2020;
+        border-radius: 10px;
+        font-weight: 700;
+    }
+
+    #cancel-order.purchase-cancel-button:hover,
+    #cancel-order.purchase-cancel-button:focus-visible {
+        color: #fff;
+        background: #bc1919;
+        border-color: #bc1919;
+    }
+
+
     .cancel-modal {
         display: none;
         position: fixed;
@@ -144,9 +169,35 @@
         justify-content: center;
         align-items: center;
         padding: 16px;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        margin: 0;
+        border: 0;
+        box-sizing: border-box;
     }
 
-    .cancel-modal.show {
+    .cancel-modal::backdrop {
+        background: transparent;
+    }
+
+    .cancel-modal-content label {
+        display: block;
+        text-align: left;
+    }
+
+    .cancel-modal-content textarea {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 6px 0 16px;
+        padding: 8px;
+        font: inherit;
+        resize: vertical;
+    }
+
+    .cancel-modal[open] {
         display: flex;
     }
 
@@ -158,19 +209,6 @@
         padding: 26px;
         box-shadow: 0 12px 40px rgba(0, 0, 0, .2);
         animation: cancelModalIn .2s ease;
-    }
-
-    .cancel-modal-icon {
-        width: 52px;
-        height: 52px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 16px;
-        border-radius: 50%;
-        background: #fef2f2;
-        color: #dc2626;
-        font-size: 25px;
     }
 
     .cancel-modal-content h3 {
@@ -255,14 +293,12 @@
 
 <div class="purchases-root">
 
-
     <div class="customer-toast-container"
          aria-live="polite"
          aria-atomic="true">
 
         <c:if test="${not empty sessionScope.customerOrderMessage}">
             <div class="customer-toast" role="status">
-
                 <i class="bi bi-check-circle-fill customer-toast-icon"
                    aria-hidden="true"></i>
 
@@ -270,7 +306,6 @@
                     <strong class="customer-toast-title">
                         Thao tác thành công!
                     </strong>
-
                     <div class="customer-toast-message">
                         <c:out value="${sessionScope.customerOrderMessage}"/>
                     </div>
@@ -285,13 +320,11 @@
 
                 <div class="customer-toast-progress"></div>
             </div>
-
             <c:remove var="customerOrderMessage" scope="session"/>
         </c:if>
 
         <c:if test="${not empty sessionScope.customerOrderError}">
             <div class="customer-toast error" role="alert">
-
                 <i class="bi bi-exclamation-circle-fill customer-toast-icon"
                    aria-hidden="true"></i>
 
@@ -299,7 +332,6 @@
                     <strong class="customer-toast-title">
                         Thao tác chưa thành công!
                     </strong>
-
                     <div class="customer-toast-message">
                         <c:out value="${sessionScope.customerOrderError}"/>
                     </div>
@@ -314,31 +346,22 @@
 
                 <div class="customer-toast-progress"></div>
             </div>
-
             <c:remove var="customerOrderError" scope="session"/>
         </c:if>
 
     </div>
 
-
     <a class="purchase-back"
        href="${pageContext.request.contextPath}/my-orders">
-
         <i class="bi bi-arrow-left" aria-hidden="true"></i>
         Trở lại Đơn mua
     </a>
 
-
     <div class="purchase-heading">
-
         <div>
-            <span class="purchase-eyebrow">
-                THEO DÕI ĐƠN HÀNG
-            </span>
+            <span class="purchase-eyebrow">THEO DÕI ĐƠN HÀNG</span>
 
-            <h1>
-                Đơn hàng #<c:out value="${order.orderId}"/>
-            </h1>
+            <h1>Đơn hàng #${order.orderId}</h1>
 
             <c:if test="${not empty orderingRestriction}">
                 <div class="alert alert-warning" role="alert">
@@ -348,60 +371,44 @@
 
             <p>
                 Đặt ngày
-
-                <fmt:formatDate
-                    value="${order.createdAt}"
-                    pattern="dd/MM/yyyy · HH:mm"/>
+                <fmt:formatDate value="${order.createdAt}"
+                                pattern="dd/MM/yyyy · HH:mm" />
 
                 <span aria-hidden="true">—</span>
 
-                <c:out
-                    value="${statusLabels[order.orderStatus]}"
-                    default="Đang cập nhật trạng thái"/>
+                <c:out value="${statusLabels[order.orderStatus]}"
+                       default="Đang cập nhật trạng thái" />
             </p>
         </div>
 
         <a class="purchase-button-secondary"
            href="${pageContext.request.contextPath}/my-orders/detail?id=${order.orderId}">
-
-            <i class="bi bi-arrow-clockwise"
-               aria-hidden="true"></i>
-
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
             Cập nhật
         </a>
-
     </div>
 
-
     <c:choose>
-
         <c:when test="${order.orderStatus == 'CANCELLED'}">
-
             <div class="purchase-cancelled-banner">
-
                 <i class="bi bi-x-circle" aria-hidden="true"></i>
 
                 <div>
                     <strong>Đơn hàng đã hủy</strong>
-
                     <p>
                         Đơn này đã dừng xử lý.
                         Bạn có thể xem lại thông tin mua hàng bên dưới.
                     </p>
                 </div>
             </div>
-
         </c:when>
 
         <c:when test="${not empty trackingSteps}">
-
             <section class="purchase-panel"
                      aria-label="Tiến trình đơn hàng">
 
                 <ol class="purchase-progress">
-
                     <c:forEach var="step" items="${trackingSteps}">
-
                         <li class="${step.done ? 'is-done' : ''} ${step.current ? 'is-current' : ''}"
                             ${step.current ? 'aria-current="step"' : ''}>
 
@@ -411,20 +418,17 @@
                             </span>
 
                             <strong>
-                                <c:out value="${step.label}"/>
+                                <c:out value="${step.label}" />
                             </strong>
 
                             <c:if test="${not empty step.at}">
                                 <time>
-                                    <fmt:formatDate
-                                        value="${step.at}"
-                                        pattern="dd/MM/yyyy HH:mm"/>
+                                    <fmt:formatDate value="${step.at}"
+                                                    pattern="dd/MM/yyyy HH:mm" />
                                 </time>
                             </c:if>
                         </li>
-
                     </c:forEach>
-
                 </ol>
 
                 <p class="purchase-tracking-note">
@@ -432,184 +436,137 @@
                     Thời gian chỉ hiển thị khi có mốc được ghi nhận.
                 </p>
             </section>
-
         </c:when>
-
     </c:choose>
 
-
     <c:if test="${not empty latestReturnExchangeRequest}">
-
         <c:choose>
-
-
             <c:when test="${latestReturnExchangeRequest.requestStatus == 'PENDING'}">
-
                 <div class="purchase-panel"
-                     style="margin-bottom:20px;
-                            border-left:4px solid #d97706;
-                            background:#fffbeb;">
+                     style="margin-bottom: 20px;
+                     border-left: 4px solid #d97706;
+                     background: #fffbeb;">
 
-                    <div style="display:flex;
-                                align-items:flex-start;
-                                gap:12px;">
+                    <div style="display: flex;
+                         align-items: flex-start;
+                         gap: 12px;">
 
                         <i class="bi bi-clock-history"
-                           style="font-size:24px;color:#d97706;"></i>
+                           style="font-size: 24px; color: #d97706;"></i>
 
                         <div>
-                            <strong style="color:#92400e;">
-                                Yêu cầu trả hàng đang được xử lý
+                            <strong style="color: #92400e;">
+                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đang được xử lý
                             </strong>
 
-                            <p style="color:#92400e;margin:6px 0 0;">
-                                Bạn đã gửi yêu cầu trả hàng thành công.
+                            <p style="color: #92400e; margin: 6px 0 0;">
+                                Bạn đã gửi yêu cầu thành công.
                                 Cửa hàng đang xem xét yêu cầu của bạn.
+                                Vui lòng chờ kết quả xử lý.
                             </p>
 
-                            <small style="display:block;
-                                          color:#a16207;
-                                          margin-top:8px;">
-
+                            <small style="display: block;
+                                   color: #a16207;
+                                   margin-top: 8px;">
                                 Mã yêu cầu:
                                 #<c:out value="${latestReturnExchangeRequest.requestId}"/>
-
                                 · Gửi lúc:
-
                                 <fmt:formatDate
                                     value="${latestReturnExchangeRequest.createdAt}"
                                     pattern="dd/MM/yyyy HH:mm"/>
-
                             </small>
                         </div>
                     </div>
                 </div>
-
             </c:when>
 
-
             <c:when test="${latestReturnExchangeRequest.requestStatus == 'APPROVED'}">
-
                 <div class="purchase-panel"
-                     style="margin-bottom:20px;
-                            border-left:4px solid #16a34a;
-                            background:#f0fdf4;">
+                     style="margin-bottom: 20px;
+                     border-left: 4px solid #16a34a;
+                     background: #f0fdf4;">
 
-                    <div style="display:flex;
-                                align-items:flex-start;
-                                gap:12px;">
-
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
                         <i class="bi bi-check-circle-fill"
-                           style="font-size:24px;color:#16a34a;"></i>
+                           style="font-size: 24px; color: #16a34a;"></i>
 
                         <div>
-                            <strong style="color:#166534;">
-                                Yêu cầu trả hàng đã được chấp nhận
+                            <strong style="color: #166534;">
+                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đã được chấp nhận
                             </strong>
 
-                            <p style="color:#166534;margin:6px 0 0;">
-                                Cửa hàng đã chấp nhận yêu cầu trả hàng.
-                                Nhân viên sẽ liên hệ với bạn để hướng dẫn
-                                cách gửi trả sản phẩm và các bước tiếp theo.
-                            </p>
-
-                            <p style="color:#166534;margin:6px 0 0;">
-                                <strong>Lưu ý:</strong>
-                                Chấp nhận yêu cầu không có nghĩa là cửa hàng
-                                đã nhận hàng hoặc hoàn trả tiền.
+                            <p style="color: #166534; margin: 6px 0 0;">
+                                Cửa hàng đã chấp nhận yêu cầu của bạn.
+                                Vui lòng theo dõi thông báo để cập nhật thông tin tiếp theo.
                             </p>
 
                             <c:if test="${not empty latestReturnExchangeRequest.staffNote}">
-
-                                <p style="color:#166534;margin:8px 0 0;">
+                                <p style="color: #166534; margin: 8px 0 0;">
                                     <strong>Ghi chú từ cửa hàng:</strong>
                                     <c:out value="${latestReturnExchangeRequest.staffNote}"/>
                                 </p>
-
                             </c:if>
-
                         </div>
                     </div>
                 </div>
-
             </c:when>
 
-
             <c:when test="${latestReturnExchangeRequest.requestStatus == 'REJECTED'}">
-
                 <div class="purchase-panel"
-                     style="margin-bottom:20px;
-                            border-left:4px solid #dc2626;
-                            background:#fef2f2;">
+                     style="margin-bottom: 20px;
+                     border-left: 4px solid #dc2626;
+                     background: #fef2f2;">
 
-                    <div style="display:flex;
-                                align-items:flex-start;
-                                gap:12px;">
-
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
                         <i class="bi bi-x-circle-fill"
-                           style="font-size:24px;color:#dc2626;"></i>
+                           style="font-size: 24px; color: #dc2626;"></i>
 
                         <div>
-                            <strong style="color:#991b1b;">
-                                Yêu cầu trả hàng đã bị từ chối
+                            <strong style="color: #991b1b;">
+                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đã bị từ chối
                             </strong>
 
-                            <p style="color:#991b1b;margin:6px 0 0;">
-                                Cửa hàng chưa thể chấp nhận
-                                yêu cầu trả hàng này.
+                            <p style="color: #991b1b; margin: 6px 0 0;">
+                                Rất tiếc, cửa hàng chưa thể chấp nhận yêu cầu này.
                             </p>
 
                             <c:if test="${not empty latestReturnExchangeRequest.staffNote}">
-
-                                <p style="color:#991b1b;margin:8px 0 0;">
+                                <p style="color: #991b1b; margin: 8px 0 0;">
                                     <strong>Lý do từ chối:</strong>
                                     <c:out value="${latestReturnExchangeRequest.staffNote}"/>
                                 </p>
-
                             </c:if>
-
                         </div>
                     </div>
                 </div>
-
             </c:when>
-
         </c:choose>
-
     </c:if>
-
 
     <div class="purchase-detail-grid">
 
         <div>
 
-
             <section class="purchase-panel purchase-address">
-
                 <h2>
-                    <i class="bi bi-geo-alt me-2"
-                       aria-hidden="true"></i>
+                    <i class="bi bi-geo-alt me-2" aria-hidden="true"></i>
                     Địa chỉ nhận hàng
                 </h2>
 
                 <strong>
-                    <c:out value="${order.recipientName}"/>
+                    <c:out value="${order.recipientName}" />
                 </strong>
 
                 <p>
-                    <c:out value="${order.recipientPhone}"/>
+                    <c:out value="${order.recipientPhone}" />
                     <br>
-                    <c:out value="${order.shippingAddress}"/>
+                    <c:out value="${order.shippingAddress}" />
                 </p>
-
             </section>
 
-
             <section class="purchase-panel">
-
                 <h2>
-                    <i class="bi bi-clock-history me-2"
-                       aria-hidden="true"></i>
+                    <i class="bi bi-clock-history me-2" aria-hidden="true"></i>
                     Lịch sử trạng thái
                 </h2>
 
@@ -620,25 +577,29 @@
                 </c:if>
 
                 <ol class="purchase-timeline">
-
                     <c:forEach var="entry" items="${history}">
                         <li>
                             <time>
-                                <fmt:formatDate
-                                    value="${entry.updatedAt}"
-                                    pattern="dd/MM/yyyy HH:mm:ss"/>
+                                <fmt:formatDate value="${entry.updatedAt}"
+                                                pattern="dd/MM/yyyy HH:mm:ss" />
                             </time>
 
+                            <c:set var="approvedCancellation"
+                                   value="${entry.status eq 'CANCELLED' and entry.actorType eq 'STAFF' and order.cancelRequestStatus eq 'APPROVED'}" />
                             <strong>
-                                <c:out value="${entry.label}"/>
+                                <c:choose>
+                                    <c:when test="${approvedCancellation}">Nhân viên đã duyệt hủy đơn</c:when>
+                                    <c:otherwise><c:out value="${entry.label}" /></c:otherwise>
+                                </c:choose>
                             </strong>
+                            <c:set var="historyNote" value="${approvedCancellation ? order.cancelReviewNote : entry.reason}" />
+                            <c:if test="${not empty historyNote}">
+                                <p class="purchase-timeline-note"><c:out value="${historyNote}" /></p>
+                            </c:if>
                         </li>
                     </c:forEach>
-
                 </ol>
-
             </section>
-
 
             <section class="purchase-card"
                      aria-label="Sản phẩm đã mua">
@@ -649,63 +610,39 @@
                 </div>
 
                 <div class="purchase-products">
-
                     <c:forEach var="item" items="${items}">
-
                         <div class="purchase-product">
-
                             <span class="purchase-product-icon">
-
                                 <c:choose>
-
                                     <c:when test="${not empty item.imageUrl}">
-
-                                        <c:url var="productImage"
-                                               value="/${item.imageUrl}"/>
-
-                                        <img
-                                            src="<c:out value='${productImage}'/>"
-                                            alt=""
-                                            style="width:100%;
-                                                   height:100%;
-                                                   object-fit:contain;
-                                                   border-radius:inherit;"/>
-
+                                        <c:url var="productImage" value="/${item.imageUrl}" />
+                                        <img src="<c:out value='${productImage}'/>" alt=""
+                                             style="width:100%; height:100%; object-fit:contain; border-radius:inherit;" />
                                     </c:when>
 
                                     <c:otherwise>
-                                        <i class="bi bi-box-seam"
-                                           aria-hidden="true"></i>
+                                        <i class="bi bi-box-seam" aria-hidden="true"></i>
                                     </c:otherwise>
-
                                 </c:choose>
-
                             </span>
 
                             <div class="purchase-product-info">
-
                                 <h2>
-                                    <c:out
-                                        value="${item.productName}"
-                                        default="Sản phẩm đã đặt"/>
+                                    <c:out value="${item.productName}"
+                                           default="Sản phẩm đã đặt" />
                                 </h2>
 
                                 <p>
                                     Mã sản phẩm:
-
-                                    <c:out
-                                        value="${item.skuCode}"
-                                        default="${item.skuId}"/>
+                                    <c:out value="${item.skuCode}"
+                                           default="${item.skuId}" />
                                 </p>
 
                                 <span>
                                     x${item.quantity} ·
-
-                                    <fmt:formatNumber
-                                        value="${item.price}"
-                                        maxFractionDigits="0"/>đ / sản phẩm
+                                    <fmt:formatNumber value="${item.price}"
+                                                      maxFractionDigits="0" />đ / sản phẩm
                                 </span>
-
 
                                 <c:if test="${order.orderStatus eq 'COMPLETED'
                                               or order.orderStatus eq 'Completed'
@@ -713,44 +650,26 @@
                                               or order.orderStatus eq 'Delivered'}">
 
                                     <c:if test="${not empty item.orderItemId}">
-
                                         <c:url var="reviewUrl" value="/review">
-                                            <c:param
-                                                name="view"
-                                                value="create"/>
-                                            <c:param
-                                                name="orderItemId"
-                                                value="${item.orderItemId}"/>
+                                            <c:param name="view" value="create" />
+                                            <c:param name="orderItemId" value="${item.orderItemId}" />
                                         </c:url>
 
                                         <div class="purchase-review-action">
-
-                                            <a href="${reviewUrl}"
-                                               class="purchase-review-btn">
-
+                                            <a href="${reviewUrl}" class="purchase-review-btn">
                                                 <i class="bi bi-star-fill"></i>
                                                 Đánh giá
-
                                             </a>
-
                                         </div>
-
                                     </c:if>
-
                                 </c:if>
-
                             </div>
 
                             <div class="purchase-product-price">
-
-                                <fmt:formatNumber
-                                    value="${item.price * item.quantity}"
-                                    maxFractionDigits="0"/>đ
-
+                                <fmt:formatNumber value="${item.price * item.quantity}"
+                                                  maxFractionDigits="0" />đ
                             </div>
-
                         </div>
-
                     </c:forEach>
 
                     <c:if test="${empty items}">
@@ -758,16 +677,11 @@
                             Chưa có thông tin sản phẩm cho đơn này.
                         </p>
                     </c:if>
-
                 </div>
             </section>
 
-
             <c:if test="${canRequestReturnExchange}">
-
-                <div class="purchase-panel"
-                     style="margin-top:20px;">
-
+                <div class="purchase-panel" style="margin-top: 20px;">
                     <h2>
                         <i class="bi bi-box-arrow-in-left me-2"
                            aria-hidden="true"></i>
@@ -775,133 +689,96 @@
                     </h2>
 
                     <p class="purchase-muted">
-                        Nếu sản phẩm có vấn đề, bạn có thể gửi
-                        yêu cầu trả hàng trong vòng 7 ngày
-                        kể từ khi nhận hàng để cửa hàng xem xét.
+                        Nếu sản phẩm có vấn đề, bạn có thể gửi yêu cầu
+                        trả hàng để cửa hàng xem xét.
                     </p>
 
-                    <c:url var="returnExchangeUrl"
-                           value="/return-exchange">
-
-                        <c:param
-                            name="orderId"
-                            value="${order.orderId}"/>
-
+                    <c:url var="returnExchangeUrl" value="/return-exchange">
+                        <c:param name="orderId" value="${order.orderId}" />
                     </c:url>
 
                     <a href="${returnExchangeUrl}"
                        class="purchase-button-secondary"
-                       style="display:flex;
-                              align-items:center;
-                              justify-content:center;
-                              gap:8px;
-                              width:100%;
-                              box-sizing:border-box;
-                              margin-top:12px;">
-
+                       style="display: flex;
+                       align-items: center;
+                       justify-content: center;
+                       gap: 8px;
+                       width: 100%;
+                       box-sizing: border-box;
+                       margin-top: 12px;">
                         <i class="bi bi-arrow-return-left"
                            aria-hidden="true"></i>
-
                         Yêu cầu trả hàng
-
                     </a>
-
                 </div>
-
             </c:if>
 
         </div>
 
-
         <aside class="purchase-panel"
                aria-labelledby="purchase-payment-title">
 
-            <h2 id="purchase-payment-title">
-                Thông tin thanh toán
-            </h2>
+            <h2 id="purchase-payment-title">Thông tin thanh toán</h2>
 
             <div class="purchase-summary-row">
                 <span>Tiền hàng</span>
-
                 <span>
-                    <fmt:formatNumber
-                        value="${order.totalAmount + order.discountAmount - order.shippingFee}"
-                        maxFractionDigits="0"/>đ
+                    <fmt:formatNumber value="${order.totalAmount + order.discountAmount - order.shippingFee}"
+                                      maxFractionDigits="0" />đ
                 </span>
             </div>
 
             <div class="purchase-summary-row">
                 <span>Phí vận chuyển</span>
-
                 <span>
-                    <fmt:formatNumber
-                        value="${order.shippingFee}"
-                        maxFractionDigits="0"/>đ
+                    <fmt:formatNumber value="${order.shippingFee}"
+                                      maxFractionDigits="0" />đ
                 </span>
             </div>
 
             <div class="purchase-summary-row">
                 <span>Giảm giá</span>
-
                 <span class="text-success">
-                    −<fmt:formatNumber
-                        value="${order.discountAmount}"
-                        maxFractionDigits="0"/>đ
+                    −<fmt:formatNumber value="${order.discountAmount}"
+                                      maxFractionDigits="0" />đ
                 </span>
             </div>
 
             <div class="purchase-summary-row is-total">
                 <span>Thành tiền</span>
-
                 <strong>
-                    <fmt:formatNumber
-                        value="${order.totalAmount}"
-                        maxFractionDigits="0"/>đ
+                    <fmt:formatNumber value="${order.totalAmount}"
+                                      maxFractionDigits="0" />đ
                 </strong>
             </div>
 
             <div class="purchase-payment">
-
                 <p>
                     <strong>
                         <c:choose>
-
                             <c:when test="${order.paymentMethod == 'COD'}">
                                 Thanh toán khi nhận hàng (COD)
                             </c:when>
 
                             <c:otherwise>
-                                <c:out value="${order.paymentMethod}"/>
+                                <c:out value="${order.paymentMethod}" />
                             </c:otherwise>
-
                         </c:choose>
                     </strong>
                 </p>
 
                 <p>
                     <c:choose>
-
-                        <c:when test="${order.paymentStatus == 'PAID'
-                                        && order.totalAmount == 0}">
-
+                        <c:when test="${order.paymentStatus == 'PAID' && order.totalAmount == 0}">
                             Không còn số tiền cần thanh toán.
-
                         </c:when>
 
                         <c:when test="${order.paymentStatus == 'PAID'}">
-
                             Đã thanh toán
+                        </c:when>
 
-                            <c:if test="${order.orderStatus == 'CANCELLED'}">
-
-                                <span class="d-block text-muted small mt-2">
-                                    Đơn đã hủy nhưng hệ thống vẫn ghi nhận
-                                    khoản thanh toán. Vui lòng liên hệ
-                                    cửa hàng để được hỗ trợ đối soát.
-                                </span>
-
-                            </c:if>
-
+                        <c:when test="${order.paymentStatus == 'REFUNDED'}">
+                            Đã hoàn tiền
                         </c:when>
 
                         <c:when test="${order.paymentStatus == 'UNPAID'}">
@@ -909,162 +786,96 @@
                         </c:when>
 
                         <c:otherwise>
-                            <c:out value="${order.paymentStatus}"/>
+                            <c:out value="${order.paymentStatus}" />
                         </c:otherwise>
-
                     </c:choose>
                 </p>
             </div>
 
-
             <c:if test="${order.orderStatus == 'PENDING_PAYMENT'}">
-
                 <a href="${pageContext.request.contextPath}/payment?id=${order.orderId}"
-                   style="display:flex;
-                          align-items:center;
-                          justify-content:center;
-                          gap:8px;
-                          width:100%;
-                          box-sizing:border-box;
-                          padding:12px 16px;
-                          margin-top:16px;
-                          background:#c2410c;
-                          color:#fff;
-                          border:1px solid #c2410c;
-                          border-radius:10px;
-                          font-size:15px;
-                          font-weight:700;
-                          text-decoration:none;
-                          box-shadow:0 4px 10px rgba(194,65,12,.2);">
-
-                    <i class="bi bi-credit-card"
-                       aria-hidden="true"></i>
-
+                   style="display: flex;
+                   align-items: center;
+                   justify-content: center;
+                   gap: 8px;
+                   width: 100%;
+                   box-sizing: border-box;
+                   padding: 12px 16px;
+                   margin-top: 16px;
+                   background: #c2410c;
+                   color: #ffffff;
+                   border: 1px solid #c2410c;
+                   border-radius: 10px;
+                   font-size: 15px;
+                   font-weight: 700;
+                   text-decoration: none;
+                   box-shadow: 0 4px 10px rgba(194, 65, 12, 0.2);">
+                    <i class="bi bi-credit-card" aria-hidden="true"></i>
                     Tiếp tục thanh toán
-
-                    <i class="bi bi-arrow-right"
-                       aria-hidden="true"></i>
-
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i>
                 </a>
 
-                <p class="purchase-cancel-note">
-
-                    Bạn có thể thanh toán, đổi sang COD
-                    hoặc hủy đơn trong thời gian chờ thanh toán.
-
-                </p>
-
             </c:if>
 
-
+            <c:if test="${order.cancelRequestStatus eq 'PENDING'}">
+                <p class="purchase-cancel-note" role="status">Yêu cầu hủy đang chờ nhân viên duyệt.</p>
+            </c:if>
             <c:if test="${canCancelOrder}">
-
-                <form
-                    class="purchase-cancel-form"
-                    action="${pageContext.request.contextPath}/my-orders/cancel"
-                    method="post"
-                    onsubmit="return showCancelModal(event);">
-
-                    <input type="hidden"
-                           name="id"
-                           value="${order.orderId}">
-
-                    <input type="hidden"
-                           name="csrfToken"
-                           value="<c:out value='${sessionScope.customerOrderToken}'/>">
-
-                    <button type="submit"
-                            class="purchase-button-secondary">
-
-                        Hủy đơn hàng
-
-                    </button>
-
-                </form>
-
-                <p class="purchase-cancel-note">
-
-                    Có thể hủy đơn hàng trước khi vận chuyển.
-                    Lượt sử dụng voucher của đơn đã đặt vẫn được giữ.
-
-                </p>
+                <button type="button" id="cancel-order" class="purchase-button-secondary purchase-cancel-button"
+                        onclick="document.getElementById('cancelModal').showModal()">
+                    Hủy đơn hàng
+                </button>
 
             </c:if>
 
-            <c:if test="${!canCancelOrder
-                          && order.orderStatus != 'CANCELLED'}">
-
-                <p class="purchase-cancel-note">
-                    Chỉ được hủy đơn hàng trước khi vận chuyển.
-                </p>
-
+            <c:if test="${contactStoreToCancel}">
+                <p class="purchase-cancel-note">Đơn đã thanh toán online. Vui lòng liên hệ cửa hàng nếu cần hủy.</p>
             </c:if>
 
         </aside>
-
     </div>
 </div>
 
+<c:if test="${canCancelOrder}">
+    <c:set var="needsCancelReview" value="${order.orderStatus eq 'CONFIRMED' or order.orderStatus eq 'PACKING'}" />
+    <dialog id="cancelModal" class="cancel-modal" aria-labelledby="cancelModalTitle">
+        <form class="cancel-modal-content" method="post"
+              action="${pageContext.request.contextPath}/my-orders/cancel">
+            <input type="hidden" name="id" value="${order.orderId}">
+            <input type="hidden" name="csrfToken"
+                   value="<c:out value='${sessionScope.customerOrderToken}' />">
 
-<div id="cancelModal"
-     class="cancel-modal"
-     role="dialog"
-     aria-modal="true"
-     aria-labelledby="cancelModalTitle">
+            <h3 id="cancelModalTitle">${needsCancelReview ? 'Gửi yêu cầu hủy' : 'Hủy đơn hàng'}</h3>
+            <p>${needsCancelReview ? 'Nhân viên sẽ xem xét yêu cầu trước khi hủy đơn.' : 'Đơn hàng sẽ được hủy sau khi bạn xác nhận.'}</p>
+            <c:if test="${order.discountAmount gt 0}">
+                <p>Lượt sử dụng voucher của đơn đã đặt vẫn được giữ.</p>
+            </c:if>
 
-    <div class="cancel-modal-content">
+            <c:if test="${needsCancelReview}">
+                <label for="cancelReason">Lý do hủy đơn hàng</label>
+                <textarea id="cancelReason" name="reason" rows="3" maxlength="500" required autofocus></textarea>
+            </c:if>
 
-        <div class="cancel-modal-icon">
-
-            <i class="bi bi-exclamation-triangle-fill"
-               aria-hidden="true"></i>
-
-        </div>
-
-        <h3 id="cancelModalTitle">
-            Xác nhận hủy đơn hàng
-        </h3>
-
-        <p>
-            Bạn có chắc chắn muốn hủy đơn hàng này không?
-            Sau khi xác nhận, đơn hàng sẽ được hủy.
-        </p>
-
-        <div class="cancel-modal-actions">
-
-            <button
-                type="button"
-                class="cancel-modal-btn cancel-modal-btn-secondary"
-                onclick="closeCancelModal()">
-
-                Không, giữ đơn hàng
-
-            </button>
-
-            <button
-                type="button"
-                id="confirmCancelButton"
-                class="cancel-modal-btn cancel-modal-btn-danger"
-                onclick="confirmCancelOrder()">
-
-                Xác nhận hủy
-
-            </button>
-
-        </div>
-
-    </div>
-</div>
+            <div class="cancel-modal-actions">
+                <button type="button" class="cancel-modal-btn cancel-modal-btn-secondary"
+                        onclick="document.getElementById('cancelModal').close()">Quay lại</button>
+                <button type="submit" class="cancel-modal-btn cancel-modal-btn-danger">
+                    ${needsCancelReview ? 'Gửi yêu cầu hủy' : 'Xác nhận hủy'}
+                </button>
+            </div>
+        </form>
+    </dialog>
+</c:if>
 
 <script>
+    /* =========================
+       CUSTOMER TOAST
+       ========================= */
 
     function closeCustomerToast(button) {
-
-        const toast =
-                button.closest(".customer-toast");
+        const toast = button.closest(".customer-toast");
 
         if (toast) {
-
             toast.classList.add("hide");
 
             setTimeout(function () {
@@ -1073,141 +884,40 @@
         }
     }
 
-    document.addEventListener(
-        "DOMContentLoaded",
-        function () {
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".customer-toast").forEach(function (toast) {
+            setTimeout(function () {
+                if (toast.isConnected) {
+                    toast.classList.add("hide");
 
-            document.querySelectorAll(
-                ".customer-toast"
-            ).forEach(function (toast) {
-
-                setTimeout(function () {
-
-                    if (toast.isConnected) {
-
-                        toast.classList.add("hide");
-
-                        setTimeout(function () {
-                            toast.remove();
-                        }, 250);
-                    }
-
-                }, 4000);
-            });
-        }
-    );
-
-
-    let cancelForm = null;
-
-    function showCancelModal(event) {
-
-        event.preventDefault();
-
-        cancelForm = event.currentTarget;
-
-        const modal =
-                document.getElementById("cancelModal");
-
-        const confirmButton =
-                document.getElementById("confirmCancelButton");
-
-        if (!modal || !confirmButton) {
-            return false;
-        }
-
-        confirmButton.disabled = false;
-        confirmButton.textContent = "Xác nhận hủy";
-
-        modal.classList.add("show");
-
-        return false;
-    }
-
-    function closeCancelModal() {
-
-        const modal =
-                document.getElementById("cancelModal");
-
-        if (modal) {
-            modal.classList.remove("show");
-        }
-
-        cancelForm = null;
-    }
-
-    function confirmCancelOrder() {
-
-        if (!cancelForm) {
-            return;
-        }
-
-        const form = cancelForm;
-
-        const confirmButton =
-                document.getElementById(
-                    "confirmCancelButton"
-                );
-
-        if (confirmButton) {
-            confirmButton.disabled = true;
-            confirmButton.textContent = "Đang xử lý...";
-        }
-
-        const submitButton =
-                form.querySelector('button[type="submit"]');
-
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.textContent = "Đang xử lý...";
-        }
-
-        const modal =
-                document.getElementById("cancelModal");
-
-        if (modal) {
-            modal.classList.remove("show");
-        }
-
-        HTMLFormElement.prototype.submit.call(form);
-
-        cancelForm = null;
-    }
-
-
-    const cancelModal =
-            document.getElementById("cancelModal");
-
-    if (cancelModal) {
-
-        cancelModal.addEventListener(
-            "click",
-            function (event) {
-
-                if (event.target === cancelModal) {
-                    closeCancelModal();
+                    setTimeout(function () {
+                        toast.remove();
+                    }, 250);
                 }
+            }, 4000);
+        });
+    });
+
+    /* =========================
+       CANCEL ORDER MODAL
+       ========================= */
+
+    const cancelDialog = document.getElementById("cancelModal");
+    if (cancelDialog) {
+        cancelDialog.addEventListener("click", function (event) {
+            if (event.target === cancelDialog) {
+                cancelDialog.close();
             }
-        );
-    }
+        });
 
-    document.addEventListener(
-        "keydown",
-        function (event) {
+        cancelDialog.querySelector("form").addEventListener("submit", function () {
+            this.querySelector('button[type="submit"]').disabled = true;
+        });
 
-            if (event.key === "Escape") {
-
-                const modal =
-                        document.getElementById("cancelModal");
-
-                if (modal
-                        && modal.classList.contains("show")) {
-
-                    closeCancelModal();
-                }
-            }
+        if (window.location.hash === "#cancel-order") {
+            cancelDialog.showModal();
         }
-    );
+    }
 </script>
 
 <%@ include file="/WEB-INF/include/footer.jsp" %>

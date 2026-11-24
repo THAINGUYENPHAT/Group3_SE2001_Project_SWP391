@@ -142,8 +142,7 @@ public class OrderDAO {
     public int insert(
             Connection conn,
             Order order,
-            String checkoutToken
-    ) throws SQLException {
+            String checkoutToken) throws SQLException {
 
         String sql = "INSERT INTO dbo.[ORDER] "
                 + "(user_id, address_id, total_amount, shipping_fee, "
@@ -324,9 +323,11 @@ public class OrderDAO {
         Order order = new Order();
 
         order.setOrderId(rs.getInt("order_id"));
+        order.setCancelRequestStatus(rs.getString("cancel_request_status"));
+        order.setCancelRequestReason(rs.getString("cancel_request_reason"));
+        order.setCancelReviewNote(rs.getString("cancel_review_note"));
         order.setUserId(rs.getInt("user_id"));
         order.setAddressId(rs.getInt("address_id"));
-
 
         order.setTotalAmount(rs.getBigDecimal("total_amount"));
         order.setShippingFee(rs.getBigDecimal("shipping_fee"));
@@ -381,7 +382,7 @@ public class OrderDAO {
     }
 
     public List<Map<String, Object>> findHistory(int orderId, int userId) throws SQLException {
-        String sql = "SELECT h.status, h.updated_at FROM dbo.ORDER_STATUS_HISTORY h "
+        String sql = "SELECT h.status, h.old_status, h.reason, h.actor_type, h.updated_at FROM dbo.ORDER_STATUS_HISTORY h "
                 + "JOIN dbo.[ORDER] o ON o.order_id = h.order_id "
                 + "WHERE o.order_id = ? AND o.user_id = ? ORDER BY h.updated_at, h.status_id";
         List<Map<String, Object>> history = new ArrayList<>();
@@ -392,6 +393,9 @@ public class OrderDAO {
                 while (rs.next()) {
                     Map<String, Object> entry = new LinkedHashMap<>();
                     entry.put("status", rs.getString("status"));
+                    entry.put("oldStatus", rs.getString("old_status"));
+                    entry.put("reason", rs.getString("reason"));
+                    entry.put("actorType", rs.getString("actor_type"));
                     entry.put("updatedAt", rs.getTimestamp("updated_at"));
                     history.add(entry);
                 }
