@@ -4,6 +4,31 @@
 
 <%@include file="/WEB-INF/include/header.jsp"%>
 
+<!-- Quill Editor CSS -->
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
+
+<style>
+    #descriptionEditor {
+        background: #fff;
+        border-radius: 8px;
+    }
+
+    #descriptionEditor .ql-editor {
+        min-height: 240px;
+        font-size: 15px;
+        line-height: 1.7;
+    }
+
+    .ql-toolbar.ql-snow {
+        border-radius: 8px 8px 0 0;
+    }
+
+    .ql-container.ql-snow {
+        border-radius: 0 0 8px 8px;
+    }
+</style>
+
 <div class="row justify-content-center">
     <div class="col-12 col-lg-9 col-xl-8">
 
@@ -527,24 +552,30 @@
 
                     </div>
 
-                    <!-- =========================== -->
-                    <!-- 9. MÔ TẢ                   -->
-                    <!-- =========================== -->
 
                     <div class="mb-4">
-
-                        <label for="description"
-                               class="form-label fw-semibold">
+                        <label class="form-label fw-semibold">
                             Mô Tả Sản Phẩm
                         </label>
 
-                        <textarea name="description"
-                                  id="description"
-                                  class="form-control"
-                                  rows="5"
-                                  placeholder="Nhập mô tả sản phẩm..."><c:out value="${product.description}"/></textarea>
+                        <!-- Khung soan thao truc quan -->
+                        <div id="descriptionEditor"
+                             style="display:none"></div>
 
+                        <!-- Mo ta san pham da luu trong database -->
+                        <textarea
+                            id="description"
+                            name="description"
+                            class="form-control mt-2"
+                            rows="6"
+                            ><c:out value="${product.description}"/></textarea>
+
+                        <div class="form-text mt-2">
+                            Chỉnh sửa trực tiếp nội dung.
+                            Hệ thống sẽ tự tạo mã HTML khi lưu.
+                        </div>
                     </div>
+
 
                     <!-- =========================== -->
                     <!-- 10. NÚT LƯU                -->
@@ -710,5 +741,101 @@
         });
     });
 </script>
+
+<!-- Quill Editor JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const editorElement =
+        document.getElementById("descriptionEditor");
+
+    const description =
+        document.getElementById("description");
+
+    if (!editorElement || !description) {
+        return;
+    }
+
+    // Neu thu vien khong tai duoc, giu textarea cu
+    if (typeof Quill === "undefined") {
+        console.error("Khong tai duoc Quill Editor.");
+        return;
+    }
+
+    editorElement.style.display = "block";
+
+    try {
+        const quill = new Quill("#descriptionEditor", {
+            theme: "snow",
+            placeholder: "Nhập mô tả sản phẩm...",
+            modules: {
+                toolbar: [
+                    [{ header: [2, 3, false] }],
+                    ["bold", "italic", "underline"],
+                    [
+                        { list: "ordered" },
+                        { list: "bullet" }
+                    ],
+                    ["link"],
+                    ["clean"]
+                ]
+            },
+            formats: [
+                "header",
+                "bold",
+                "italic",
+                "underline",
+                "list",
+                "link"
+            ]
+        });
+
+        // Tai noi dung cu vao editor
+        if (description.value.trim()) {
+            const delta = quill.clipboard.convert({
+                html: description.value
+            });
+
+            quill.setContents(delta, "silent");
+        }
+
+        // An textarea chi khi editor da khoi tao
+        description.classList.add("d-none");
+
+        function syncDescription() {
+            const text = quill.getText().trim();
+
+            description.value = text
+                ? quill.getSemanticHTML()
+                : "";
+        }
+
+        // Dong bo khi nhan vien nhap noi dung
+        quill.on("text-change", syncDescription);
+
+        // Dong bo ngay truoc khi gui form
+        const form = description.closest("form");
+
+        if (form) {
+            form.addEventListener(
+                "submit",
+                syncDescription,
+                true
+            );
+        }
+
+        syncDescription();
+
+    } catch (error) {
+        console.error("Loi khoi tao Quill:", error);
+
+        editorElement.style.display = "none";
+        description.classList.remove("d-none");
+    }
+});
+</script>
+
 
 <%@include file="/WEB-INF/include/footer.jsp"%>

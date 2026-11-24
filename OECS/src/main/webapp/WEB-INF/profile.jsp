@@ -71,14 +71,14 @@
         <div class="col-lg-3 col-md-4">
             <div class="profile-sidebar p-4 text-center">
                 <div class="profile-avatar-circle mb-3">
-                    <c:out value="${sessionScope.loggedInUser.username.substring(0, 1).toUpperCase()}"/>
+                    <c:out value="${requestScope.profileUser.username.substring(0, 1).toUpperCase()}"/>
                 </div>
                 
                 <h5 class="fw-bold mb-1 text-dark">
-                    <c:out value="${sessionScope.loggedInUser.username}"/>
+                    <c:out value="${requestScope.profileUser.username}"/>
                 </h5>
                 <p class="text-muted small mb-2">
-                    <i class="bi bi-envelope me-1"></i><c:out value="${sessionScope.loggedInUser.email}"/>
+                    <i class="bi bi-envelope me-1"></i><c:out value="${requestScope.profileUser.email}"/>
                 </p>
 
                 <span class="badge ${sessionScope.loggedInUser.adminOrStaff ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-success-subtle text-success border border-success-subtle'} rounded-pill px-3 py-2 mb-4">
@@ -132,7 +132,7 @@
                                     <label class="form-label fw-bold text-secondary">Tên đăng nhập</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="bi bi-person text-muted"></i></span>
-                                        <input type="text" class="form-control form-control-with-icon bg-light" value="<c:out value='${sessionScope.loggedInUser.username}'/>" disabled readonly>
+                                        <input type="text" class="form-control form-control-with-icon bg-light" value="<c:out value='${requestScope.profileUser.username}'/>" disabled readonly>
                                     </div>
                                 </div>
 
@@ -140,7 +140,7 @@
                                     <label for="email" class="form-label fw-bold text-secondary">Email <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="bi bi-envelope text-muted"></i></span>
-                                        <input type="email" class="form-control form-control-with-icon" id="email" name="email" value="<c:out value='${sessionScope.loggedInUser.email}'/>" required>
+                                        <input type="email" class="form-control form-control-with-icon" id="email" name="email" value="<c:out value='${requestScope.profileUser.email}'/>" required>
                                     </div>
                                 </div>
 
@@ -148,7 +148,7 @@
                                     <label for="phone" class="form-label fw-bold text-secondary">Số điện thoại</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="bi bi-telephone text-muted"></i></span>
-                                        <input type="tel" class="form-control form-control-with-icon" id="phone" name="phone" value="<c:out value='${sessionScope.loggedInUser.phone}'/>" pattern="(0[3|5|7|8|9])+([0-9]{8})\b" title="Số điện thoại Việt Nam gồm 10 chữ số">
+                                        <input type="tel" class="form-control form-control-with-icon" id="phone" name="phone" value="<c:out value='${requestScope.profileUser.phone}'/>" pattern="(0[3|5|7|8|9])+([0-9]{8})\b" title="Số điện thoại Việt Nam gồm 10 chữ số">
                                     </div>
                                 </div>
 
@@ -156,7 +156,7 @@
                                     <label for="address" class="form-label fw-bold text-secondary">Địa chỉ giao hàng mặc định</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="bi bi-geo-alt text-muted"></i></span>
-                                        <textarea id="address" name="address" class="form-control form-control-with-icon" rows="3" placeholder="Nhập địa chỉ cụ thể (Số nhà, đường, xã/phường, quận/huyện, tỉnh/TP)...">${sessionScope.loggedInUser.address}</textarea>
+                                        <textarea id="address" name="address" class="form-control form-control-with-icon" rows="3" placeholder="Nhập địa chỉ cụ thể (Số nhà, đường, xã/phường, quận/huyện, tỉnh/TP)..."><c:out value="${requestScope.profileUser.address}"/></textarea>
                                     </div>
                                 </div>
                             </div>

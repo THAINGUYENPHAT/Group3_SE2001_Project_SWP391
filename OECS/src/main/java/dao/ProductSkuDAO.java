@@ -146,7 +146,7 @@ public class ProductSkuDAO extends DBContext {
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi lấy SKU theo Product ID!",
+                    "Lá»—i láº¥y SKU theo Product ID!",
                     ex
             );
         }
@@ -177,7 +177,7 @@ public class ProductSkuDAO extends DBContext {
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi lấy SKU theo ID!",
+                    "Lá»—i láº¥y SKU theo ID!",
                     ex
             );
         }
@@ -206,7 +206,7 @@ public class ProductSkuDAO extends DBContext {
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi lấy SKU đang hoạt động!",
+                    "Lá»—i láº¥y SKU Ä‘ang hoáº¡t Ä‘á»™ng!",
                     ex
             );
         }
@@ -215,57 +215,78 @@ public class ProductSkuDAO extends DBContext {
     }
 
     public int insert(ProductSku sku) {
-
-        String sql
-                = "INSERT INTO PRODUCT_SKU "
-                + "(product_id, sku_code, price, "
-                + "stock_quantity, original_price, is_active) "
+        String sql = "INSERT INTO PRODUCT_SKU "
+                + "(product_id, sku_code, price, stock_quantity, original_price, is_active) "
                 + "VALUES (?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = this.getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            bindSkuInsert(ps, sku);
-
-            return ps.executeUpdate();
-
+        try (Connection conn = this.getConnection()) {
+            boolean oldAutoCommit = conn.getAutoCommit();
+            try {
+                conn.setAutoCommit(false);
+                int newSkuId = 0;
+                try (PreparedStatement ps = conn.prepareStatement(
+                        sql, Statement.RETURN_GENERATED_KEYS)) {
+                    bindSkuInsert(ps, sku);
+                    if (ps.executeUpdate() != 1) {
+                        throw new SQLException("KhÃ´ng thá»ƒ thÃªm SKU.");
+                    }
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        if (rs.next()) {
+                            newSkuId = rs.getInt(1);
+                        }
+                    }
+                }
+                if (newSkuId <= 0) {
+                    throw new SQLException("KhÃ´ng thá»ƒ láº¥y ID cá»§a SKU má»›i.");
+                }
+                SkuAdminInventoryAudit.recordOpening(
+                        conn, newSkuId, sku.getStockQuantity());
+                conn.commit();
+                sku.setSkuId(newSkuId);
+                return 1;  // Giá»¯ Ä‘Ãºng contract cÅ© cá»§a ProductSkuServlet.
+            } catch (SQLException | RuntimeException ex) {
+                rollbackQuietly(conn, ex);
+                LOGGER.log(Level.SEVERE, "Lá»—i thÃªm SKU!", ex);
+                return 0;
+            } finally {
+                restoreAutoCommit(conn, oldAutoCommit);
+            }
         } catch (SQLException ex) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi thêm Product SKU!",
-                    ex
-            );
-
+            LOGGER.log(Level.SEVERE, "Lá»—i káº¿t ná»‘i khi thÃªm SKU!", ex);
             return 0;
         }
     }
 
     public int update(ProductSku sku) {
-
-        String sql
-                = "UPDATE PRODUCT_SKU SET "
-                + "sku_code = ?, "
-                + "price = ?, "
-                + "stock_quantity = ?, "
-                + "original_price = ?, "
-                + "is_active = ? "
-                + "WHERE sku_id = ? "
-                + "AND product_id = ?";
-
-        try (Connection conn = this.getConnection(); PreparedStatement ps
-                = conn.prepareStatement(sql)) {
-
-            bindSkuUpdate(ps, sku);
-
-            return ps.executeUpdate();
-
+        String sql = "UPDATE PRODUCT_SKU SET sku_code = ?, price = ?, "
+                + "stock_quantity = ?, original_price = ?, is_active = ? "
+                + "WHERE sku_id = ? AND product_id = ?";
+        try (Connection conn = this.getConnection()) {
+            boolean oldAutoCommit = conn.getAutoCommit();
+            try {
+                conn.setAutoCommit(false);
+                int previousStock = SkuAdminInventoryAudit.lockCurrentStock(
+                        conn, sku.getProductId(), sku.getSkuId());
+                int affected;
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    bindSkuUpdate(ps, sku);
+                    affected = ps.executeUpdate();
+                }
+                if (affected != 1) {
+                    throw new SQLException("KhÃ´ng cáº­p nháº­t Ä‘Æ°á»£c SKU.");
+                }
+                SkuAdminInventoryAudit.recordAdminCorrection(
+                        conn, sku.getSkuId(), previousStock, sku.getStockQuantity());
+                conn.commit();
+                return 1;
+            } catch (SQLException | RuntimeException ex) {
+                rollbackQuietly(conn, ex);
+                LOGGER.log(Level.SEVERE, "Lá»—i cáº­p nháº­t SKU!", ex);
+                return 0;
+            } finally {
+                restoreAutoCommit(conn, oldAutoCommit);
+            }
         } catch (SQLException ex) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi cập nhật Product SKU!",
-                    ex
-            );
-
+            LOGGER.log(Level.SEVERE, "Lá»—i káº¿t ná»‘i khi cáº­p nháº­t SKU!", ex);
             return 0;
         }
     }
@@ -293,7 +314,7 @@ public class ProductSkuDAO extends DBContext {
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi cập nhật trạng thái SKU!",
+                    "Lá»—i cáº­p nháº­t tráº¡ng thÃ¡i SKU!",
                     ex
             );
         }
@@ -319,7 +340,7 @@ public class ProductSkuDAO extends DBContext {
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi kiểm tra trùng SKU code!",
+                    "Lá»—i kiá»ƒm tra trÃ¹ng SKU code!",
                     ex
             );
         }
@@ -349,7 +370,7 @@ public class ProductSkuDAO extends DBContext {
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi kiểm tra SKU code khi Update!",
+                    "Lá»—i kiá»ƒm tra SKU code khi Update!",
                     ex
             );
         }
@@ -394,7 +415,7 @@ public class ProductSkuDAO extends DBContext {
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi lấy thuộc tính SKU!",
+                    "Lá»—i láº¥y thuá»™c tÃ­nh SKU!",
                     ex
             );
         }
@@ -436,7 +457,7 @@ public class ProductSkuDAO extends DBContext {
 
                             if (ps.executeUpdate() != 1) {
                                 throw new SQLException(
-                                        "Không thể tạo SKU mới."
+                                        "KhÃ´ng thá»ƒ táº¡o SKU má»›i."
                                 );
                             }
 
@@ -450,7 +471,7 @@ public class ProductSkuDAO extends DBContext {
 
                         if (newSkuId <= 0) {
                             throw new SQLException(
-                                    "Không lấy được ID của SKU mới."
+                                    "KhÃ´ng láº¥y Ä‘Æ°á»£c ID cá»§a SKU má»›i."
                             );
                         }
 
@@ -461,6 +482,8 @@ public class ProductSkuDAO extends DBContext {
                         );
 
                         refreshVariantKey(conn, newSkuId);
+                        SkuAdminInventoryAudit.recordOpening(
+                                conn, newSkuId, sku.getStockQuantity());
 
                         conn.commit();
 
@@ -475,7 +498,7 @@ public class ProductSkuDAO extends DBContext {
 
                 LOGGER.log(
                         Level.SEVERE,
-                        "Lỗi thêm SKU kèm biến thể!",
+                        "Lá»—i thÃªm SKU kÃ¨m biáº¿n thá»ƒ!",
                         ex
                 );
 
@@ -488,7 +511,7 @@ public class ProductSkuDAO extends DBContext {
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi kết nối khi thêm SKU!",
+                    "Lá»—i káº¿t ná»‘i khi thÃªm SKU!",
                     ex
             );
         }
@@ -524,6 +547,8 @@ public class ProductSkuDAO extends DBContext {
             try {
                 conn.setAutoCommit(false);
 
+                int previousStock = SkuAdminInventoryAudit.lockCurrentStock(
+                        conn, sku.getProductId(), sku.getSkuId());
                 int affectedRows;
 
                 try (PreparedStatement ps
@@ -549,6 +574,8 @@ public class ProductSkuDAO extends DBContext {
                         conn,
                         sku.getSkuId()
                 );
+                SkuAdminInventoryAudit.recordAdminCorrection(
+                        conn, sku.getSkuId(), previousStock, sku.getStockQuantity());
 
                 conn.commit();
 
@@ -561,7 +588,7 @@ public class ProductSkuDAO extends DBContext {
 
                 LOGGER.log(
                         Level.SEVERE,
-                        "Lỗi cập nhật SKU kèm biến thể!",
+                        "Lá»—i cáº­p nháº­t SKU kÃ¨m biáº¿n thá»ƒ!",
                         ex
                 );
 
@@ -574,7 +601,7 @@ public class ProductSkuDAO extends DBContext {
         } catch (SQLException ex) {
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi kết nối khi cập nhật SKU!",
+                    "Lá»—i káº¿t ná»‘i khi cáº­p nháº­t SKU!",
                     ex
             );
         }
@@ -588,7 +615,7 @@ public class ProductSkuDAO extends DBContext {
 
         if (sku == null) {
             throw new IllegalArgumentException(
-                    "SKU không được null."
+                    "SKU khÃ´ng Ä‘Æ°á»£c null."
             );
         }
 
@@ -610,7 +637,7 @@ public class ProductSkuDAO extends DBContext {
 
         if (sku == null) {
             throw new IllegalArgumentException(
-                    "SKU không được null."
+                    "SKU khÃ´ng Ä‘Æ°á»£c null."
             );
         }
 
@@ -652,27 +679,27 @@ public class ProductSkuDAO extends DBContext {
 
         if (sku.getProductId() <= 0) {
             throw new IllegalArgumentException(
-                    "Product ID không hợp lệ."
+                    "Product ID khÃ´ng há»£p lá»‡."
             );
         }
 
         if (sku.getSkuCode() == null
                 || sku.getSkuCode().trim().isEmpty()) {
             throw new IllegalArgumentException(
-                    "SKU code không được trống."
+                    "SKU code khÃ´ng Ä‘Æ°á»£c trá»‘ng."
             );
         }
 
         if (sku.getSkuCode().trim().length() > 100) {
             throw new IllegalArgumentException(
-                    "SKU code vượt quá 100 ký tự."
+                    "SKU code vÆ°á»£t quÃ¡ 100 kÃ½ tá»±."
             );
         }
 
         if (!Double.isFinite(sku.getPrice())
                 || sku.getPrice() < 0) {
             throw new IllegalArgumentException(
-                    "Giá bán không hợp lệ."
+                    "GiÃ¡ bÃ¡n khÃ´ng há»£p lá»‡."
             );
         }
 
@@ -680,13 +707,13 @@ public class ProductSkuDAO extends DBContext {
                 && (!Double.isFinite(sku.getOriginalPrice())
                 || sku.getOriginalPrice() < 0)) {
             throw new IllegalArgumentException(
-                    "Giá niêm yết không hợp lệ."
+                    "GiÃ¡ niÃªm yáº¿t khÃ´ng há»£p lá»‡."
             );
         }
 
         if (sku.getStockQuantity() < 0) {
             throw new IllegalArgumentException(
-                    "Số lượng tồn kho không được âm."
+                    "Sá»‘ lÆ°á»£ng tá»“n kho khÃ´ng Ä‘Æ°á»£c Ã¢m."
             );
         }
     }
@@ -788,7 +815,7 @@ public class ProductSkuDAO extends DBContext {
 
         if (values == null) {
             throw new IllegalArgumentException(
-                    "Danh sách thuộc tính không được null."
+                    "Danh sÃ¡ch thuá»™c tÃ­nh khÃ´ng Ä‘Æ°á»£c null."
             );
         }
 
@@ -798,13 +825,13 @@ public class ProductSkuDAO extends DBContext {
 
             if (value == null) {
                 throw new IllegalArgumentException(
-                        "Thuộc tính SKU không được null."
+                        "Thuá»™c tÃ­nh SKU khÃ´ng Ä‘Æ°á»£c null."
                 );
             }
 
             if (value.getAttributeId() <= 0) {
                 throw new IllegalArgumentException(
-                        "Attribute ID không hợp lệ."
+                        "Attribute ID khÃ´ng há»£p lá»‡."
                 );
             }
 
@@ -812,7 +839,7 @@ public class ProductSkuDAO extends DBContext {
                     value.getAttributeId())) {
 
                 throw new IllegalArgumentException(
-                        "Một thuộc tính bị lặp trong SKU."
+                        "Má»™t thuá»™c tÃ­nh bá»‹ láº·p trong SKU."
                 );
             }
 
@@ -824,14 +851,14 @@ public class ProductSkuDAO extends DBContext {
                         .trim().isEmpty()) {
 
                     throw new IllegalArgumentException(
-                            "Giá trị TEXT không được trống."
+                            "GiÃ¡ trá»‹ TEXT khÃ´ng Ä‘Æ°á»£c trá»‘ng."
                     );
                 }
 
                 if (value.getTextValue().length() > 255) {
 
                     throw new IllegalArgumentException(
-                            "Giá trị TEXT vượt quá 255 ký tự."
+                            "GiÃ¡ trá»‹ TEXT vÆ°á»£t quÃ¡ 255 kÃ½ tá»±."
                     );
                 }
 
@@ -849,8 +876,8 @@ public class ProductSkuDAO extends DBContext {
             if (count != 1) {
 
                 throw new IllegalArgumentException(
-                        "Mỗi thuộc tính SKU phải có "
-                        + "đúng một kiểu giá trị."
+                        "Má»—i thuá»™c tÃ­nh SKU pháº£i cÃ³ "
+                        + "Ä‘Ãºng má»™t kiá»ƒu giÃ¡ trá»‹."
                 );
             }
         }
@@ -859,7 +886,6 @@ public class ProductSkuDAO extends DBContext {
     private void refreshVariantKey(
             Connection conn,
             int skuId) throws SQLException {
-
         SkuVariantKeyHelper.refresh(conn, skuId);
     }
 
@@ -878,7 +904,7 @@ public class ProductSkuDAO extends DBContext {
 
             LOGGER.log(
                     Level.SEVERE,
-                    "Lỗi rollback transaction SKU!",
+                    "Lá»—i rollback transaction SKU!",
                     rollbackEx
             );
         }
@@ -895,7 +921,7 @@ public class ProductSkuDAO extends DBContext {
 
             LOGGER.log(
                     Level.WARNING,
-                    "Không khôi phục được autoCommit!",
+                    "KhÃ´ng khÃ´i phá»¥c Ä‘Æ°á»£c autoCommit!",
                     ex
             );
         }

@@ -194,73 +194,73 @@
                         </tr>
                     </thead>
                     <tbody>
-                    <c:choose>
-                        <c:when test="${not empty items}">
-                            <c:forEach items="${items}" var="item">
-                                <tr>
-                                    <td class="ps-3">
-                                        <div class="inventory-product"><c:out value="${item.productName}"/></div>
-                                        <div class="inventory-sku"><c:out value="${item.skuCode}"/></div>
-                                        <a class="small" href="${pageContext.request.contextPath}/product-sku?productId=${item.productId}">
-                                            Xem quản lý SKU
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <strong class="fs-5"><fmt:formatNumber value="${item.stockQuantity}" pattern="#,##0"/></strong>
-                                    </td>
-                                    <td>
-                                <c:choose>
-                                    <c:when test="${not item.editable}">
-                                        <span class="badge bg-secondary">Ngừng kinh doanh</span>
-                                    </c:when>
-                                    <c:when test="${item.stockQuantity eq 0}">
-                                        <span class="badge bg-danger">Hết hàng</span>
-                                    </c:when>
-                                    <c:when test="${item.stockQuantity le 5}">
-                                        <span class="badge bg-warning text-dark">Sắp hết</span>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="badge bg-success">Còn hàng</span>
-                                    </c:otherwise>
-                                </c:choose>
-                                </td>
-                                <td>
-                                <c:choose>
-                                    <c:when test="${item.editable}">
-                                        <form method="POST" class="inventory-form"
-                                              action="${pageContext.request.contextPath}/inventory">
-                                            <input type="hidden" name="csrfToken" value="${fn:escapeXml(csrfToken)}">
-                                            <input type="hidden" name="skuId" value="${item.skuId}">
-                                            <select name="action" class="form-select form-select-sm"
-                                                    aria-label="Thao tác tồn kho" required>
-                                                <option value="IN">Nhập thêm</option>
-                                                <option value="OUT">Xuất kho</option>
-                                                <option value="SET">Kiểm kê</option>
-                                            </select>
-                                            <input name="quantity" type="number" class="form-control form-control-sm"
-                                                   min="0" max="2147483647" step="1" required value="1"
-                                                   aria-label="Số lượng hoặc số tồn mục tiêu">
-                                            <input name="note" type="text" class="form-control form-control-sm"
-                                                   maxlength="500" required placeholder="Lý do (bắt buộc)"
-                                                   aria-label="Lý do thay đổi tồn kho">
-                                            <button class="btn btn-sm btn-primary" type="submit">Lưu</button>
-                                        </form>
-                                        <small class="text-muted">Kiểm kê = đặt số tồn đúng bằng số nhập.</small>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <span class="text-muted small">Không thể chỉnh khi ngừng bán.</span>
-                                    </c:otherwise>
-                                </c:choose>
-                                </td>
-                                </tr>
-                            </c:forEach>
-                        </c:when>
-                        <c:otherwise>
-                            <tr><td colspan="4" class="text-center text-muted py-5">
-                                    Không tìm thấy SKU phù hợp.
-                                </td></tr>
-                        </c:otherwise>
-                    </c:choose>
+                        <c:choose>
+                            <c:when test="${not empty items}">
+                                <c:forEach items="${items}" var="item">
+                                    <tr>
+                                        <td class="ps-3">
+                                            <div class="inventory-product"><c:out value="${item.productName}"/></div>
+                                            <div class="inventory-sku"><c:out value="${item.skuCode}"/></div>
+                                            <a class="small" href="${pageContext.request.contextPath}/product-sku?productId=${item.productId}">
+                                                Xem quản lý SKU
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <strong class="fs-5"><fmt:formatNumber value="${item.stockQuantity}" pattern="#,##0"/></strong>
+                                        </td>
+                                        <td>
+                                            <c:choose>
+                                                <c:when test="${not item.editable}">
+                                                    <span class="badge bg-secondary">Ngừng kinh doanh</span>
+                                                </c:when>
+                                                <c:when test="${item.stockQuantity eq 0}">
+                                                    <span class="badge bg-danger">Hết hàng</span>
+                                                </c:when>
+                                                <c:when test="${item.stockQuantity le 5}">
+                                                    <span class="badge bg-warning text-dark">Sắp hết</span>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="badge bg-success">Còn hàng</span>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </td>
+                                        <td>
+                                            <c:choose>
+                                                <c:when test="${item.editable}">
+                                                    <form method="POST" class="inventory-form"
+                                                          action="${pageContext.request.contextPath}/inventory">
+                                                        <input type="hidden" name="csrfToken" value="${fn:escapeXml(csrfToken)}">
+                                                        <input type="hidden" name="skuId" value="${item.skuId}">
+                                                        <select name="action" class="form-select form-select-sm"
+                                                                aria-label="Thao tác tồn kho" required>
+                                                            <option value="IN">Nhập thêm</option>
+                                                            <option value="OUT">Xuất kho</option>
+                                                            <option value="SET">Kiểm kê</option>
+                                                        </select>
+                                                        <input name="quantity" type="number" class="form-control form-control-sm"
+                                                               min="0" max="2147483647" step="1" required value="1"
+                                                               aria-label="Số lượng hoặc số tồn mục tiêu">
+                                                        <input name="note" type="text" class="form-control form-control-sm"
+                                                               maxlength="500" required placeholder="Lý do (bắt buộc)"
+                                                               aria-label="Lý do thay đổi tồn kho">
+                                                        <button class="btn btn-sm btn-primary" type="submit">Lưu</button>
+                                                    </form>
+                                                    <small class="text-muted">Kiểm kê = đặt số tồn đúng bằng số nhập.</small>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="text-muted small">Không thể chỉnh khi ngừng bán.</span>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </td>
+                                    </tr>
+                                </c:forEach>
+                            </c:when>
+                            <c:otherwise>
+                                <tr><td colspan="4" class="text-center text-muted py-5">
+                                        Không tìm thấy SKU phù hợp.
+                                    </td></tr>
+                                </c:otherwise>
+                            </c:choose>
                     </tbody>
                 </table>
             </div>
@@ -296,55 +296,48 @@
                             <th scope="col">Loại</th>
                             <th scope="col">Thay đổi</th>
                             <th scope="col">Trước → sau</th>
-                            <th scope="col">Người thực hiện</th>
                             <th scope="col">Ghi chú</th>
                         </tr>
                     </thead>
                     <tbody>
-                    <c:choose>
-                        <c:when test="${not empty movements}">
-                            <c:forEach items="${movements}" var="m">
-                                <tr>
-                                    <td class="ps-3 text-nowrap">
-                                <fmt:formatDate value="${m.createdAt}" pattern="dd/MM/yyyy HH:mm:ss"/>
-                                </td>
-                                <td>
-                                    <strong><c:out value="${m.skuCode}"/></strong>
-                                    <div class="text-muted small"><c:out value="${m.productName}"/></div>
-                                </td>
-                                <td>
-                                <c:choose>
-                                    <c:when test="${m.movementType eq 'IN'}">Nhập kho</c:when>
-                                    <c:when test="${m.movementType eq 'OUT'}">Xuất kho</c:when>
-                                    <c:when test="${m.movementType eq 'SET'}">Kiểm kê</c:when>
-                                    <c:when test="${m.movementType eq 'OPENING'}">Số dư đầu</c:when>
-                                    <c:otherwise>Hệ thống</c:otherwise>
-                                </c:choose>
-                                </td>
-                                <td>
-                                    <span class="${m.quantityDelta ge 0 ? 'inventory-positive' : 'inventory-negative'}">
-                                        <c:if test="${m.quantityDelta gt 0}">+</c:if><c:out value="${m.quantityDelta}"/>
-                                    </span>
-                                </td>
-                                <td><c:out value="${m.quantityBefore}"/> → <c:out value="${m.quantityAfter}"/></td>
-                                <td>
-                                <c:choose>
-                                    <c:when test="${not empty m.actorName}"><c:out value="${m.actorName}"/></c:when>
-                                    <c:otherwise><span class="text-muted">—</span></c:otherwise>
-                                </c:choose>
-                                </td>
-                                <td style="max-width:280px;overflow-wrap:anywhere;">
-                                <c:out value="${m.note}"/>
-                                </td>
-                                </tr>
-                            </c:forEach>
-                        </c:when>
-                        <c:otherwise>
-                            <tr><td colspan="7" class="text-center text-muted py-4">
-                                    Chưa có lịch sử biến động tồn kho.
-                                </td></tr>
-                        </c:otherwise>
-                    </c:choose>
+                        <c:choose>
+                            <c:when test="${not empty movements}">
+                                <c:forEach items="${movements}" var="m">
+                                    <tr>
+                                        <td class="ps-3 text-nowrap">
+                                            <fmt:formatDate value="${m.createdAt}" pattern="dd/MM/yyyy HH:mm:ss"/>
+                                        </td>
+                                        <td>
+                                            <strong><c:out value="${m.skuCode}"/></strong>
+                                            <div class="text-muted small"><c:out value="${m.productName}"/></div>
+                                        </td>
+                                        <td>
+                                            <c:choose>
+                                                <c:when test="${m.movementType eq 'IN'}">Nhập kho</c:when>
+                                                <c:when test="${m.movementType eq 'OUT'}">Xuất kho</c:when>
+                                                <c:when test="${m.movementType eq 'SET'}">Kiểm kê</c:when>
+                                                <c:when test="${m.movementType eq 'OPENING'}">Số dư đầu</c:when>
+                                                <c:otherwise>Hệ thống</c:otherwise>
+                                            </c:choose>
+                                        </td>
+                                        <td>
+                                            <span class="${m.quantityDelta ge 0 ? 'inventory-positive' : 'inventory-negative'}">
+                                                <c:if test="${m.quantityDelta gt 0}">+</c:if><c:out value="${m.quantityDelta}"/>
+                                                </span>
+                                            </td>
+                                            <td><c:out value="${m.quantityBefore}"/> → <c:out value="${m.quantityAfter}"/></td>
+                                        <td style="max-width:280px;overflow-wrap:anywhere;">
+                                            <c:out value="${m.note}"/>
+                                        </td>
+                                    </tr>
+                                </c:forEach>
+                            </c:when>
+                            <c:otherwise>
+                                <tr><td colspan="7" class="text-center text-muted py-4">
+                                        Chưa có lịch sử biến động tồn kho.
+                                    </td></tr>
+                                </c:otherwise>
+                            </c:choose>
                     </tbody>
                 </table>
             </div>

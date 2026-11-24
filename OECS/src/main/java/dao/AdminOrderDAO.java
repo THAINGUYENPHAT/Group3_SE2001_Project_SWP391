@@ -89,8 +89,8 @@ public class AdminOrderDAO extends DBContext {
         List<OrderItem> list = new ArrayList<>();
 
         String sql = "SELECT oi.*, "
-                + "p.product_name, "
-                + "s.sku_code, "
+                + "COALESCE(oi.product_name_snapshot,p.product_name) AS product_name, "
+                + "COALESCE(oi.sku_code_snapshot,s.sku_code) AS sku_code, "
                 + "s.stock_quantity "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "JOIN dbo.PRODUCT_SKU s ON oi.sku_id = s.sku_id "
@@ -186,6 +186,8 @@ public class AdminOrderDAO extends DBContext {
 
         String updateSql = "UPDATE dbo.[ORDER] "
                 + "SET order_status = ?, "
+                + "payment_status = CASE WHEN ?='COMPLETED' AND payment_method='COD' "
+                + "THEN 'PAID' ELSE payment_status END, "
                 + "delivered_at = CASE "
                 + "WHEN ? = 'COMPLETED' "
                 + "THEN COALESCE(delivered_at, SYSDATETIME()) "
@@ -241,7 +243,8 @@ public class AdminOrderDAO extends DBContext {
                 try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
                     ps.setString(1, next);
                     ps.setString(2, next);
-                    ps.setInt(3, orderId);
+                    ps.setString(3, next);
+                    ps.setInt(4, orderId);
 
                     if (ps.executeUpdate() != 1) {
                         throw new SQLException("Không thể cập nhật đơn hàng.");

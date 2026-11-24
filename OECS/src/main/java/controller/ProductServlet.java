@@ -1,10 +1,12 @@
 package controller;
 
+import dao.AttributeDAO;
 import dao.BrandDAO;
 import dao.CategoryAttributeDAO;
 import dao.CategoryDAO;
 import dao.ProductDAO;
 
+import model.Category;
 import model.CategoryAttribute;
 import model.Product;
 import model.ProductImage;
@@ -147,7 +149,8 @@ public class ProductServlet extends HttpServlet {
 
         loadFormCommonAttributes(request, true);
 
-        if (categoryId != null) {
+        if (categoryId != null
+                && isCategoryListedInForm(request, categoryId)) {
 
             loadCategoryAttributes(
                     request,
@@ -628,6 +631,17 @@ public class ProductServlet extends HttpServlet {
             );
         }
 
+        // Không chỉ ẩn danh mục cha trên giao diện:
+        // POST cũng phải từ chối categoryId là danh mục cha.
+        Category selectedCategory = new CategoryDAO().getById(categoryId);
+        if (selectedCategory == null
+                || selectedCategory.getParentId() == null) {
+
+            throw new IllegalArgumentException(
+                    "Vui lòng chọn danh mục con, không chọn danh mục cha."
+            );
+        }
+
         String modelCode = trimToNull(
                 request.getParameter("modelCode")
         );
@@ -816,12 +830,54 @@ public class ProductServlet extends HttpServlet {
                         : brandDAO.getList()
         );
 
+        // Giữ nguyên dữ liệu CATEGORY trong DB; chỉ hiển thị danh mục con
+        // (parent_id IS NOT NULL) trên form thêm/sửa sản phẩm.
+        List<Category> allCategories = onlyActive
+                ? categoryDAO.getActiveCategories()
+                : categoryDAO.getList();
+
+        List<Category> childCategories = new ArrayList<>();
+        for (Category category : allCategories) {
+            if (category != null && category.getParentId() != null) {
+                childCategories.add(category);
+            }
+        }
+
         request.setAttribute(
                 "categoryList",
-                onlyActive
-                        ? categoryDAO.getActiveCategories()
-                        : categoryDAO.getList()
+                childCategories
         );
+
+        /*
+         * Giữ attributeList cho các
+         * thành phần JSP cũ nếu còn sử dụng.
+         */
+        request.setAttribute(
+                "attributeList",
+                new AttributeDAO().getActiveAttributes()
+        );
+    }
+
+    // Chỉ chấp nhận categoryId nằm trong dropdown danh mục con.
+    private boolean isCategoryListedInForm(
+            HttpServletRequest request,
+            int categoryId) {
+
+        Object value = request.getAttribute("categoryList");
+        if (!(value instanceof List<?>)) {
+            return false;
+        }
+
+        for (Object item : (List<?>) value) {
+            if (item instanceof Category) {
+                Category category = (Category) item;
+                if (category.getCategoryId() == categoryId) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     // ========================================

@@ -3,7 +3,6 @@ package dao;
 import db.DBContext;
 
 import model.Brand;
-import model.ProductOverviewSection;
 import model.Category;
 import model.Product;
 import model.ProductImage;
@@ -105,7 +104,7 @@ public class ShopDAO extends DBContext {
     }
 
     // ========================================
-    // 3. LẤY SKU ĐANG KINH DOANH
+    // 3. LẤY TẤT CẢ SKU ĐỂ HIỂN THỊ TRẠNG THÁI NGỪNG KINH DOANH
     // ========================================
     public List<ProductSku> getProductSkus(
             int productId) {
@@ -123,8 +122,7 @@ public class ShopDAO extends DBContext {
                 + "is_active "
                 + "FROM PRODUCT_SKU "
                 + "WHERE product_id = ? "
-                + "AND is_active = 1 "
-                + "ORDER BY price ASC, sku_id ASC";
+                + "ORDER BY is_active DESC, price ASC, sku_id ASC";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -212,7 +210,6 @@ public class ShopDAO extends DBContext {
                 + "INNER JOIN ATTRIBUTE a "
                 + "ON v.attribute_id = a.attribute_id "
                 + "WHERE s.product_id = ? "
-                + "AND s.is_active = 1 "
                 + "ORDER BY v.sku_id, v.attribute_id";
 
         try (PreparedStatement ps
@@ -264,27 +261,23 @@ public class ShopDAO extends DBContext {
         }
     }
 
-    public List<ProductSpec> getProductSpecs(int productId) {
+    // ========================================
+    // 5. THÔNG SỐ KỸ THUẬT
+    // ========================================
+    public List<ProductSpec> getProductSpecs(
+            int productId) {
 
         List<ProductSpec> specs = new ArrayList<>();
 
         String sql
                 = "SELECT "
-                + "ps.attribute_id, "
                 + "a.attribute_name, "
-                + "ps.value, "
-                + "ca.group_name, "
-                + "COALESCE(ca.display_order, 2147483647) AS display_order "
-                + "FROM dbo.PRODUCT_SPECIFICATION ps "
-                + "INNER JOIN dbo.PRODUCT p "
-                + "ON p.product_id = ps.product_id "
-                + "INNER JOIN dbo.ATTRIBUTE a "
-                + "ON a.attribute_id = ps.attribute_id "
-                + "LEFT JOIN dbo.CATEGORY_ATTRIBUTE ca "
-                + "ON ca.category_id = p.category_id "
-                + "AND ca.attribute_id = ps.attribute_id "
+                + "ps.value "
+                + "FROM PRODUCT_SPECIFICATION ps "
+                + "INNER JOIN ATTRIBUTE a "
+                + "ON ps.attribute_id = a.attribute_id "
                 + "WHERE ps.product_id = ? "
-                + "ORDER BY display_order ASC, ps.attribute_id ASC";
+                + "ORDER BY a.attribute_name";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -294,21 +287,12 @@ public class ShopDAO extends DBContext {
 
                 while (rs.next()) {
 
-                    ProductSpec spec = new ProductSpec(
-                            rs.getInt("attribute_id"),
-                            rs.getString("attribute_name"),
-                            rs.getString("value")
+                    specs.add(
+                            new ProductSpec(
+                                    rs.getString("attribute_name"),
+                                    rs.getString("value")
+                            )
                     );
-
-                    spec.setProductId(productId);
-                    spec.setGroupName(
-                            rs.getString("group_name")
-                    );
-                    spec.setDisplayOrder(
-                            rs.getInt("display_order")
-                    );
-
-                    specs.add(spec);
                 }
             }
 
@@ -316,12 +300,7 @@ public class ShopDAO extends DBContext {
 
             LOGGER.log(
                     Level.SEVERE,
-                    "Loi lay thong so ky thuat san pham",
-                    ex
-            );
-
-            throw new IllegalStateException(
-                    "Khong the tai thong so ky thuat.",
+                    "Lỗi lấy thông số kỹ thuật",
                     ex
             );
         }
@@ -429,7 +408,6 @@ public class ShopDAO extends DBContext {
                 + "ON pi.sku_id = s.sku_id "
                 + "WHERE pi.product_id = ? "
                 + "AND s.product_id = ? "
-                + "AND s.is_active = 1 "
                 + "ORDER BY pi.sku_id, "
                 + "pi.is_primary DESC, "
                 + "pi.display_order ASC, "
@@ -1197,19 +1175,31 @@ public class ShopDAO extends DBContext {
         return product;
     }
 
-
-    public List<ProductOverviewSection> getProductOverviewSections(
+    public Map<String, List<ProductSpec>> getProductSpecGroups(
             int productId) {
 
-        List<ProductOverviewSection> sections = new ArrayList<>();
+        Map<String, List<ProductSpec>> groups
+                = new LinkedHashMap<>();
 
         String sql
-                = "SELECT section_id, product_id, section_key, "
-                + "section_title, section_content, image_url, "
-                + "image_alt, display_order "
-                + "FROM dbo.PRODUCT_CONTENT_SECTION "
-                + "WHERE product_id = ? AND is_active = 1 "
-                + "ORDER BY display_order ASC, section_id ASC";
+                = "SELECT "
+                + "COALESCE(NULLIF(LTRIM(RTRIM(ca.group_name)), ''), "
+                + "N'Thông số khác') AS group_name, "
+                + "a.attribute_name, "
+                + "ps.value "
+                + "FROM dbo.PRODUCT_SPECIFICATION ps "
+                + "JOIN dbo.PRODUCT p "
+                + "ON p.product_id = ps.product_id "
+                + "JOIN dbo.ATTRIBUTE a "
+                + "ON a.attribute_id = ps.attribute_id "
+                + "LEFT JOIN dbo.CATEGORY_ATTRIBUTE ca "
+                + "ON ca.category_id = p.category_id "
+                + "AND ca.attribute_id = ps.attribute_id "
+                + "WHERE ps.product_id = ? "
+                + "ORDER BY "
+                + "COALESCE(ca.group_name, N'Thông số khác'), "
+                + "COALESCE(ca.display_order, 9999), "
+                + "a.attribute_name";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -1219,33 +1209,30 @@ public class ShopDAO extends DBContext {
 
                 while (rs.next()) {
 
-                    ProductOverviewSection section
-                            = new ProductOverviewSection(
-                                    rs.getInt("section_id"),
-                                    rs.getInt("product_id"),
-                                    rs.getString("section_key"),
-                                    rs.getString("section_title"),
-                                    rs.getString("section_content"),
-                                    rs.getString("image_url"),
-                                    rs.getString("image_alt"),
-                                    rs.getInt("display_order")
-                            );
+                    String groupName
+                            = rs.getString("group_name");
 
-                    sections.add(section);
+                    ProductSpec spec = new ProductSpec(
+                            rs.getString("attribute_name"),
+                            rs.getString("value")
+                    );
+
+                    groups.computeIfAbsent(
+                            groupName,
+                            k -> new ArrayList<>()
+                    ).add(spec);
                 }
             }
 
         } catch (SQLException ex) {
-
             LOGGER.log(
                     Level.SEVERE,
-                    "Không thể tải nội dung Tổng quan sản phẩm "
-                    + productId,
+                    "Không thể tải nhóm thông số sản phẩm",
                     ex
             );
         }
 
-        return sections;
+        return groups;
     }
 
 }

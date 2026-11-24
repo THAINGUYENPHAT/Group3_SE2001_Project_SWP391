@@ -24,53 +24,67 @@ public class UserDAO extends DBContext {
     public User login(String account, String rawPassword) {
 
         String sql
-                = "SELECT u.user_id, u.username, u.email, u.password_hash, "
-                + "u.phone, u.created_at, u.is_active, "
-                + "u.role_id, r.role_name, "
-                + "a.address_line AS default_address "
+                = "SELECT u.user_id, u.username, u.email, "
+                + "u.is_active, u.role_id, r.role_name "
                 + "FROM [USER] u "
-                + "LEFT JOIN ROLES r ON u.role_id = r.role_id "
-                + "LEFT JOIN ADDRESSBOOK a "
-                + "ON u.user_id = a.user_id AND a.is_default = 1 "
+                + "JOIN ROLES r ON u.role_id = r.role_id "
                 + "WHERE (u.username = ? OR u.email = ?) "
                 + "AND u.password_hash = ?";
 
-        try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement statement = conn.prepareStatement(sql)) {
 
             statement.setString(1, account);
             statement.setString(2, account);
             statement.setString(3, hashMd5(rawPassword));
 
             try (ResultSet rs = statement.executeQuery()) {
-
                 if (rs.next()) {
-
-                    int roleId = rs.getInt("role_id");
-                    String roleName = rs.getString("role_name");
-                    boolean active = rs.getBoolean("is_active");
-
-                    User user = new User(
-                            rs.getInt("user_id"),
-                            rs.getString("username"),
-                            rs.getString("email"),
-                            rs.getString("password_hash"),
-                            rs.getString("phone"),
-                            rs.getTimestamp("created_at"),
-                            roleId,
-                            roleName,
-                            active
-                    );
-
-                    user.setAddress(
-                            rs.getString("default_address")
-                    );
-
+                    User user = new User();
+                    user.setUserId(rs.getInt("user_id"));
+                    user.setUsername(rs.getString("username"));
+                    user.setEmail(rs.getString("email"));
+                    user.setActive(rs.getBoolean("is_active"));
+                    user.setRoleId(rs.getInt("role_id"));
+                    user.setRoleName(rs.getString("role_name"));
                     return user;
                 }
             }
 
         } catch (SQLException ex) {
             LOGGER.log(Level.SEVERE, "Lỗi đăng nhập!", ex);
+        }
+
+        return null;
+    }
+
+    public User getProfileById(int userId) {
+        String sql
+                = "SELECT u.user_id, u.username, u.email, u.phone, "
+                + "a.address_line AS default_address "
+                + "FROM [USER] u "
+                + "LEFT JOIN ADDRESSBOOK a "
+                + "ON a.user_id = u.user_id "
+                + "AND a.is_default = 1 AND a.is_deleted = 0 "
+                + "WHERE u.user_id = ?";
+
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    User profile = new User();
+                    profile.setUserId(rs.getInt("user_id"));
+                    profile.setUsername(rs.getString("username"));
+                    profile.setEmail(rs.getString("email"));
+                    profile.setPhone(rs.getString("phone"));
+                    profile.setAddress(rs.getString("default_address"));
+                    return profile;
+                }
+            }
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Lỗi tải thông tin Profile!", ex);
         }
 
         return null;
@@ -110,8 +124,7 @@ public class UserDAO extends DBContext {
                 = "INSERT INTO [USER] "
                 + "(username, email, password_hash, phone, role_id) "
                 + "SELECT ?, ?, ?, ?, role_id "
-                + "FROM ROLES "
-                + "WHERE role_name = N'CUSTOMER'";
+                + "FROM ROLES WHERE role_name = N'CUSTOMER'";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -152,7 +165,7 @@ public class UserDAO extends DBContext {
                 + "u.role_id, "
                 + "r.role_name "
                 + "FROM [USER] u "
-                + "LEFT JOIN ROLES r ON u.role_id = r.role_id "
+                + "JOIN ROLES r ON u.role_id = r.role_id "
                 + "WHERE 1 = 1 "
         );
 
@@ -253,7 +266,7 @@ public class UserDAO extends DBContext {
                 + "u.password_hash, u.phone, u.created_at, u.is_active, "
                 + "u.role_id, r.role_name "
                 + "FROM [USER] u "
-                + "LEFT JOIN ROLES r ON u.role_id = r.role_id "
+                + "JOIN ROLES r ON u.role_id = r.role_id "
                 + "WHERE u.user_id = ?";
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -341,7 +354,8 @@ public class UserDAO extends DBContext {
     public boolean updateProfile(int userId, String email, String phone, String address, String fullName) {
         String updateProfileSql = "UPDATE [USER] SET email = ?, phone = ? WHERE user_id = ?";
 
-        String updateAddrSql = "UPDATE ADDRESSBOOK SET address_line = ?, phone_number = ? WHERE user_id = ? AND is_default = 1";
+        String updateAddrSql = "UPDATE ADDRESSBOOK SET address_line = ?, phone_number = ? "
+                + "WHERE user_id = ? AND is_default = 1 AND is_deleted = 0";
         String insertAddrSql = "INSERT INTO ADDRESSBOOK (user_id, recipient_name, phone_number, address_line, is_default) VALUES (?, ?, ?, ?, 1)";
 
         Connection conn = null;
@@ -353,12 +367,14 @@ public class UserDAO extends DBContext {
                 psUser.setString(1, email);
                 psUser.setString(2, phone);
                 psUser.setInt(3, userId);
-                psUser.executeUpdate();
+                if (psUser.executeUpdate() != 1) {
+                    conn.rollback();
+                    return false;
+                }
             }
 
             if (address != null && !address.trim().isEmpty()) {
 
-                // 1. Thu cap nhat dia chi mac dinh theo user_id.
                 int updatedRows;
 
                 try (PreparedStatement psUpdateAddr
@@ -371,8 +387,6 @@ public class UserDAO extends DBContext {
                     updatedRows = psUpdateAddr.executeUpdate();
                 }
 
-                // 2. Neu chua co dia chi mac dinh,
-                //    them dia chi moi.
                 if (updatedRows == 0) {
 
                     try (PreparedStatement psInsertAddr
@@ -432,22 +446,16 @@ public class UserDAO extends DBContext {
 
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            // Mat khau moi
-            ps.setString(
-                    1,
-                    hashMd5(rawNewPassword)
-            );
 
-            // Xac dinh tai khoan bang ID
+            ps.setString(1, hashMd5(rawNewPassword));
+
+           
             ps.setInt(2, userId);
 
-            // Kiem tra mat khau cu ngay trong UPDATE
-            ps.setString(
-                    3,
-                    hashMd5(rawOldPassword)
-            );
+       
+            ps.setString(3, hashMd5(rawOldPassword));
 
-            // 1 dong duoc cap nhat = thanh cong
+           
             return ps.executeUpdate() == 1;
 
         } catch (SQLException ex) {
@@ -455,8 +463,7 @@ public class UserDAO extends DBContext {
             LOGGER.log(
                     Level.SEVERE,
                     "Loi doi mat khau nguoi dung!",
-                    ex
-            );
+                    ex);
         }
 
         return false;
@@ -527,7 +534,7 @@ public class UserDAO extends DBContext {
                 + "u.password_hash, u.phone, u.created_at, "
                 + "u.is_active, u.role_id, r.role_name "
                 + "FROM [USER] u "
-                + "LEFT JOIN ROLES r ON u.role_id = r.role_id "
+                + "JOIN ROLES r ON u.role_id = r.role_id "
                 + "WHERE u.email = ?";
 
         try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -560,17 +567,19 @@ public class UserDAO extends DBContext {
 
     public boolean resetPassword(int userId, String rawNewPassword)
             throws SQLException {
+        try (Connection connection = getConnection()) {
+            return resetPassword(connection, userId, rawNewPassword);
+        }
+    }
 
-        String sql = "UPDATE [USER] "
-                + "SET password_hash = ? "
-                + "WHERE user_id = ?";
 
-        try (Connection connection = getConnection(); PreparedStatement ps = connection.prepareStatement(sql)) {
-
+    public boolean resetPassword(Connection connection, int userId, String rawNewPassword)
+            throws SQLException {
+        String sql = "UPDATE [USER] SET password_hash = ? WHERE user_id = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, hashMd5(rawNewPassword));
             ps.setInt(2, userId);
-
-            return ps.executeUpdate() > 0;
+            return ps.executeUpdate() == 1;
         }
     }
 }

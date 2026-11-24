@@ -324,7 +324,10 @@ public class OrderService {
                             int quantity = rs.getInt("quantity");
                             BigDecimal price = rs.getBigDecimal("price");
                             if (quantity > rs.getInt("stock_quantity")) {
-                                throw new IllegalArgumentException("Sản phẩm SKU " + skuId + " không đủ tồn kho.");
+                                throw new IllegalArgumentException(
+                                        "Sản phẩm SKU " + skuId
+                                        + " không đủ tồn kho."
+                                );
                             }
 
                             if (quantity <= 0
@@ -453,6 +456,10 @@ public class OrderService {
                     );
                 }
 
+                // Keep the stock until confirmation, cancellation or timeout.
+                // ORDER_ITEM has been persisted and checkout still holds SKU row locks.
+                new dao.OrderInventoryDAO().reserve(conn, orderId);
+
                 orderDAO.addHistory(
                         conn,
                         orderId,
@@ -578,10 +585,12 @@ public class OrderService {
 
         sql
                 = "SELECT COUNT_BIG(*) AS total_used, "
-                + "COALESCE(SUM(CASE WHEN user_id = ? "
+                + "COALESCE(SUM(CASE WHEN vu.user_id = ? "
                 + "THEN CAST(1 AS bigint) ELSE 0 END), 0) AS user_used "
-                + "FROM dbo.VOUCHER_USAGES "
-                + "WHERE voucher_id = ?";
+                + "FROM dbo.VOUCHER_USAGES vu "
+                + "JOIN dbo.[ORDER] o ON o.order_id = vu.order_id "
+                + "WHERE vu.voucher_id = ? "
+                + "AND o.order_status NOT IN ('CANCELLED','EXPIRED')";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
