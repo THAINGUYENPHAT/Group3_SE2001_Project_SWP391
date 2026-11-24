@@ -9,8 +9,10 @@
         <h3 class="fw-bold text-dark mb-1">Quản lý Sản Phẩm</h3>
         <p class="text-muted fs-7 mb-0">Hiển thị và quản lý toàn bộ sản phẩm trong hệ thống.</p>
     </div>
-
-    <a href="${pageContext.request.contextPath}/product?view=create" class="btn btn-primary btn-md fw-semibold px-3 py-2 shadow-sm rounded-3">
+    <a href="${pageContext.request.contextPath}/inventory" class="btn btn-primary btn-md fw-semibold px-3 py-2 shadow-sm rounded-3 ">
+        <i class="bi"></i> Tồn kho
+    </a>
+    <a href="${pageContext.request.contextPath}/product?view=create" class="btn btn-primary btn-md fw-semibold px-3 py-2 shadow-sm rounded-3 ">
         <i class="bi bi-plus-lg me-1"></i> Thêm sản phẩm
     </a>
 </div>
@@ -84,7 +86,7 @@
         <table class="table table-custom align-middle">
             <thead>
                 <tr>
-<!--                    <th style="width: 50px;">#</th>-->
+                    <!--                    <th style="width: 50px;">#</th>-->
                     <th>HÌNH ẢNH</th>
                     <th>SẢN PHẨM</th>
                     <th>DANH MỤC</th>
@@ -98,9 +100,9 @@
                     <c:when test="${not empty productList}">
                         <c:forEach items="${productList}" var="product">
                             <tr>
-<!--                                <td>
-                                    <span class="badge bg-light text-secondary border">#${product.productId}</span>
-                                </td>-->
+                                <!--                                <td>
+                                                                    <span class="badge bg-light text-secondary border">#${product.productId}</span>
+                                                                </td>-->
 
                                 <td>
                                     <c:choose>

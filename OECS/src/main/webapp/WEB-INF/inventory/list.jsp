@@ -296,7 +296,7 @@
                             <th scope="col">Loại</th>
                             <th scope="col">Thay đổi</th>
                             <th scope="col">Trước → sau</th>
-                            <th scope="col">Người thực hiện</th>
+                            <!--<th scope="col">Người thực hiện</th>-->
                             <th scope="col">Ghi chú</th>
                         </tr>
                     </thead>
@@ -327,12 +327,12 @@
                                     </span>
                                 </td>
                                 <td><c:out value="${m.quantityBefore}"/> → <c:out value="${m.quantityAfter}"/></td>
-                                <td>
+<!--                                <td>
                                 <c:choose>
                                     <c:when test="${not empty m.actorName}"><c:out value="${m.actorName}"/></c:when>
                                     <c:otherwise><span class="text-muted">—</span></c:otherwise>
                                 </c:choose>
-                                </td>
+                                </td>-->
                                 <td style="max-width:280px;overflow-wrap:anywhere;">
                                 <c:out value="${m.note}"/>
                                 </td>

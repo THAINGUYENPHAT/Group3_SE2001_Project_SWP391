@@ -500,11 +500,11 @@
                                                             class="btn btn-sm btn-danger"
                                                             title="Xóa vĩnh viễn SKU"
                                                             onclick="return confirm(
-                                                            'XÓA VĨNH VIỄN SKU NÀY?\n\n'
-                                                            + 'SKU: ${fn:escapeXml(sku.skuCode)}\n\n'
-                                                            + 'Hành động không thể hoàn tác.\n'
-                                                            + 'Chỉ SKU chưa có giao dịch mới được xóa.'
-                                                            );">
+                                                                            'XÓA VĨNH VIỄN SKU NÀY?\n\n'
+                                                                            + 'SKU: ${fn:escapeXml(sku.skuCode)}\n\n'
+                                                                            + 'Hành động không thể hoàn tác.\n'
+                                                                            + 'Chỉ SKU chưa có giao dịch mới được xóa.'
+                                                                            );">
 
                                                         <i class="bi bi-trash me-1"></i>
                                                         Xóa
