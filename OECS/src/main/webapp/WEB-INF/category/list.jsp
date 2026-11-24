@@ -110,6 +110,18 @@
         </form>
 
         <div class="d-flex align-items-center gap-2 w-100 w-sm-auto justify-content-end">
+            <a class="btn btn-outline-primary btn-md fw-semibold px-3 py-2 rounded-3 d-inline-flex align-items-center gap-2"
+               href="${pageContext.request.contextPath}/category?view=variantAttributes"
+               title="Cấu hình thuộc tính biến thể SKU theo danh mục">
+                <i class="bi bi-layers"></i>
+                <span>Thuộc tính biến thể</span>
+            </a>
+            <a class="btn btn-outline-success btn-md fw-semibold px-3 py-2 rounded-3 d-inline-flex align-items-center gap-2"
+               href="${pageContext.request.contextPath}/category?view=specificationAttributes"
+               title="Cấu hình thông số kỹ thuật của sản phẩm theo danh mục">
+                <i class="bi bi-clipboard-data"></i>
+                <span>Thông số kỹ thuật</span>
+            </a>
             <a class="btn btn-primary btn-md fw-semibold px-3 py-2 shadow-sm rounded-3 d-inline-flex align-items-center gap-2"
                href="${pageContext.request.contextPath}/category?view=create">
                 <i class="bi bi-plus-lg fs-6"></i>
@@ -225,10 +237,10 @@
                                     <c:choose>
                                         <c:when test="${productCounts[category.categoryId] > 0
                                                         or childCounts[category.categoryId] > 0}">
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
-                                                <i class="bi bi-check-circle-fill me-1"></i>
-                                                Đang sử dụng
-                                            </span>
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>
+                                                    Đang sử dụng
+                                                </span>
                                         </c:when>
                                         <c:otherwise>
                                             <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-1">

@@ -24,9 +24,6 @@ public class SkuImageService extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(SkuImageService.class.getName());
 
-    // ========================================
-    // 1. LẤY ẢNH CỦA SKU
-    // ========================================
     public List<ProductImage> getImagesBySkuId(
             int productId,
             int skuId) throws SQLException {
@@ -152,19 +149,6 @@ public class SkuImageService extends DBContext {
         return imagesBySkuId;
     }
 
-    // ========================================
-    // 2. THÊM NHIỀU ẢNH CHO SKU
-    // ========================================
-
-    /*
-     * Trả về số ảnh đã thêm.
-     *
-     * Nếu SKU chưa có ảnh chính, tự chọn
-     * ảnh đầu tiên theo display_order.
-     *
-     * Toàn bộ ảnh được thêm trong cùng
-     * một transaction SQL.
-     */
     public int addImages(
             int productId,
             int skuId,
@@ -236,21 +220,6 @@ public class SkuImageService extends DBContext {
         }
     }
 
-    // ========================================
-    // 3. ĐẶT ẢNH CHÍNH CHO SKU
-    // ========================================
-
-    /*
-     * PRODUCT_IMAGES có unique filtered index
-     * giới hạn mỗi SKU tối đa một ảnh chính.
-     *
-     * Vì vậy phải:
-     * 1. Khóa SKU.
-     * 2. Kiểm tra ảnh thuộc SKU.
-     * 3. Bỏ trạng thái primary của ảnh cũ.
-     * 4. Đặt primary cho ảnh mới.
-     * 5. Commit.
-     */
     public boolean setPrimaryImage(
             int productId,
             int skuId,
@@ -329,17 +298,6 @@ public class SkuImageService extends DBContext {
         }
     }
 
-    // ========================================
-    // 4. SẮP XẾP ẢNH SKU
-    // ========================================
-
-    /*
-     * orderedImageIds phải chứa toàn bộ
-     * image_id hiện tại của SKU, không trùng ID.
-     *
-     * Ví dụ:
-     * [25, 22, 24] -> thứ tự 0, 1, 2.
-     */
     public boolean reorderImages(
             int productId,
             int skuId,
@@ -426,17 +384,6 @@ public class SkuImageService extends DBContext {
         }
     }
 
-    // ========================================
-    // 5. XÓA MỘT ẢNH SKU
-    // ========================================
-
-    /*
-     * Nếu xóa ảnh chính, tự chọn ảnh còn lại
-     * có display_order nhỏ nhất làm ảnh chính.
-     *
-     * Chỉ xóa bản ghi SQL.
-     * Không xóa file vật lý trên ổ đĩa.
-     */
     public boolean deleteImage(
             int productId,
             int skuId,
@@ -494,9 +441,6 @@ public class SkuImageService extends DBContext {
         }
     }
 
-    // ========================================
-    // 6. KHÓA SKU VÀ KIỂM TRA PRODUCT
-    // ========================================
     private void lockSku(
             Connection conn,
             int productId,
@@ -525,9 +469,6 @@ public class SkuImageService extends DBContext {
         }
     }
 
-    // ========================================
-    // 7. KIỂM TRA ẢNH THUỘC SKU
-    // ========================================
     private boolean imageExists(
             Connection conn,
             int productId,
@@ -553,9 +494,6 @@ public class SkuImageService extends DBContext {
         }
     }
 
-    // ========================================
-    // 8. DANH SÁCH ID ẢNH HIỆN TẠI
-    // ========================================
     private Set<Integer> getImageIds(
             Connection conn,
             int productId,
@@ -584,9 +522,6 @@ public class SkuImageService extends DBContext {
         return ids;
     }
 
-    // ========================================
-    // 9. TÌM THỨ TỰ ẢNH TIẾP THEO
-    // ========================================
     private int getNextDisplayOrder(
             Connection conn,
             int productId,
@@ -628,9 +563,6 @@ public class SkuImageService extends DBContext {
         return 0;
     }
 
-    // ========================================
-    // 10. ĐẢM BẢO SKU CÓ ẢNH CHÍNH NẾU CÓ ẢNH
-    // ========================================
     private void ensurePrimaryImage(
             Connection conn,
             int productId,
@@ -691,9 +623,6 @@ public class SkuImageService extends DBContext {
         }
     }
 
-    // ========================================
-    // 11. VALIDATE ID
-    // ========================================
     private void validateIds(int productId, int skuId) {
 
         if (productId <= 0 || skuId <= 0) {
@@ -712,9 +641,6 @@ public class SkuImageService extends DBContext {
         }
     }
 
-    // ========================================
-    // 12. VALIDATE URL ẢNH
-    // ========================================
     private void validateImageUrls(
             List<String> imageUrls) {
 
@@ -735,9 +661,6 @@ public class SkuImageService extends DBContext {
         }
     }
 
-    // ========================================
-    // 13. ROLLBACK
-    // ========================================
     private void rollback(
             Connection conn,
             Exception originalException) {
@@ -757,9 +680,6 @@ public class SkuImageService extends DBContext {
         }
     }
 
-    // ========================================
-    // 14. KHÔI PHỤC AUTO COMMIT
-    // ========================================
     private void restoreAutoCommit(
             Connection conn,
             boolean oldAutoCommit) {

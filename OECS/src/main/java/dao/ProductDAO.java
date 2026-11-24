@@ -28,9 +28,6 @@ public class ProductDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(ProductDAO.class.getName());
 
-    // ========================================
-    // SQL DÙNG CHUNG KHI ĐỌC PRODUCT
-    // ========================================
     private static final String PRODUCT_SELECT
             = "SELECT "
             + "p.product_id, "
@@ -60,9 +57,6 @@ public class ProductDAO extends DBContext {
             + "INNER JOIN BRAND b "
             + "ON p.brand_id = b.brand_id ";
 
-    // ========================================
-    // MAP PRODUCT
-    // ========================================
     private Product mapProduct(ResultSet rs)
             throws SQLException {
 
@@ -108,15 +102,10 @@ public class ProductDAO extends DBContext {
         return product;
     }
 
-    // ========================================
-    // 1. LẤY DANH SÁCH SẢN PHẨM
-    // ========================================
     public List<Product> getList() {
 
         List<Product> list = new ArrayList<>();
 
-        // Giữ tất cả trạng thái để trang admin
-        // vẫn quản lý được sản phẩm đã ngừng bán.
         String sql = PRODUCT_SELECT
                 + "ORDER BY p.product_id DESC";
 
@@ -143,9 +132,6 @@ public class ProductDAO extends DBContext {
         return list;
     }
 
-    // ========================================
-    // 2. LẤY SẢN PHẨM ĐANG HOẠT ĐỘNG
-    // ========================================
     public List<Product> getActiveProducts() {
 
         List<Product> list = new ArrayList<>();
@@ -179,9 +165,6 @@ public class ProductDAO extends DBContext {
         return list;
     }
 
-    // ========================================
-    // 3. LẤY PRODUCT THEO ID
-    // ========================================
     public Product getById(int id) {
 
         String sql = PRODUCT_SELECT
@@ -209,9 +192,6 @@ public class ProductDAO extends DBContext {
         return null;
     }
 
-    // ========================================
-    // 4. THÊM PRODUCT, TRẢ VỀ ID
-    // ========================================
     public int insertReturnId(Product product) {
 
         String sql
@@ -255,9 +235,6 @@ public class ProductDAO extends DBContext {
         return 0;
     }
 
-    // ========================================
-    // 5. CẬP NHẬT PRODUCT
-    // ========================================
     public int update(Product product) {
 
         String sql
@@ -293,19 +270,11 @@ public class ProductDAO extends DBContext {
         }
     }
 
-    // ========================================
-    // 6. XÓA MỀM PRODUCT
-    // ========================================
     public int delete(int productId) {
 
-        // Không xóa vật lý vì sản phẩm có thể
-        // đã xuất hiện trong CART hoặc ORDER.
         return setProductActive(productId, false);
     }
 
-    // ========================================
-    // 7. BẬT / TẮT TRẠNG THÁI PRODUCT
-    // ========================================
     public int setProductActive(int productId, boolean active) {
 
         String sql
@@ -332,9 +301,6 @@ public class ProductDAO extends DBContext {
         }
     }
 
-    // ========================================
-    // 8. TÌM KIẾM PRODUCT
-    // ========================================
     public List<Product> searchProducts(String keyword) {
 
         List<Product> list = new ArrayList<>();
@@ -376,9 +342,6 @@ public class ProductDAO extends DBContext {
         return list;
     }
 
-    // ========================================
-    // 9. KIỂM TRA TRÙNG TÊN PRODUCT
-    // ========================================
     public boolean checkProductNameExists(String productName) {
 
         String sql
@@ -404,9 +367,6 @@ public class ProductDAO extends DBContext {
         return false;
     }
 
-    // ========================================
-    // 10. KIỂM TRA TRÙNG TÊN KHI EDIT
-    // ========================================
     public boolean checkProductNameExistsForUpdate(
             String productName,
             int excludeProductId) {
@@ -436,9 +396,6 @@ public class ProductDAO extends DBContext {
         return false;
     }
 
-    // ========================================
-    // 11. THÊM ẢNH GALLERY CHUNG
-    // ========================================
     public void insertGalleryImages(
             int productId,
             List<String> imageUrls) {
@@ -491,9 +448,6 @@ public class ProductDAO extends DBContext {
         }
     }
 
-    // ========================================
-    // 12. LẤY TOÀN BỘ ẢNH CỦA PRODUCT
-    // ========================================
     public List<ProductImage> getProductImages(int productId) {
 
         List<ProductImage> list = new ArrayList<>();
@@ -545,9 +499,6 @@ public class ProductDAO extends DBContext {
         return list;
     }
 
-    // ========================================
-    // 13. XÓA ẢNH GALLERY THEO ID
-    // ========================================
     public void deleteGalleryImageById(int imageId) {
 
         String sql
@@ -568,9 +519,6 @@ public class ProductDAO extends DBContext {
         }
     }
 
-    // ========================================
-    // 14. LẤY TOÀN BỘ ATTRIBUTE
-    // ========================================
     public List<Attribute> getAllAttributes() {
 
         List<Attribute> list = new ArrayList<>();
@@ -607,21 +555,11 @@ public class ProductDAO extends DBContext {
         return list;
     }
 
-    // ========================================
-    // 15. LƯU THÔNG SỐ KỸ THUẬT PRODUCT
-    // ========================================
     public void saveProductSpecs(
             int productId,
             String[] attributeIds,
             String[] specValues) {
 
-        /*
-         * Giữ chữ ký phương thức cũ.
-         *
-         * Tạo danh sách duy nhất theo attributeId.
-         * Sau đó xóa dữ liệu cũ và lưu dữ liệu mới
-         * trong cùng một transaction.
-         */
         Map<Integer, String> uniqueSpecs
                 = new LinkedHashMap<>();
 
@@ -744,9 +682,6 @@ public class ProductDAO extends DBContext {
         }
     }
 
-    // ========================================
-    // 16. LẤY THÔNG SỐ CHO ADMIN
-    // ========================================
     public List<ProductSpec> getProductSpecsForAdmin(
             int productId) {
 

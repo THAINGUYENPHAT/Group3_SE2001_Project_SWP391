@@ -1,4 +1,3 @@
-
 package dao;
 
 import db.DBContext;
@@ -19,46 +18,26 @@ import java.util.logging.Logger;
 
 public class ReportDAO extends DBContext {
 
-    private static final Logger LOGGER =
-            Logger.getLogger(ReportDAO.class.getName());
+    private static final Logger LOGGER
+            = Logger.getLogger(ReportDAO.class.getName());
 
-    // =====================================================
-    // 1. DIEU KIEN DON HANG HOAN THANH
-    // =====================================================
+    private static final String COMPLETED_CONDITION
+            = " o.order_status = 'COMPLETED' ";
 
-    private static final String COMPLETED_CONDITION =
-            " o.order_status = 'COMPLETED' ";
-
-    // =====================================================
-    // 2. LOAI TRU DON CO RETURN DA DUOC DUYET
-    // =====================================================
-
-    // Giu quy tac thong ke cu:
-    // Neu don hang co yeu cau tra hang APPROVED,
-    // toan bo don hang do khong duoc tinh vao
-    // cac chi so co su dung dieu kien nay.
-    //
-    // He thong chi co RETURN.
-    // Khong con cot request_type trong database.
-
-    private static final String RETURN_EXCLUSION_CONDITION =
-            " AND NOT EXISTS ("
+    private static final String RETURN_EXCLUSION_CONDITION
+            = " AND NOT EXISTS ("
             + " SELECT 1 "
             + " FROM dbo.RETURN_REQUEST rr "
             + " WHERE rr.order_id = o.order_id "
             + " AND rr.request_status = 'APPROVED' "
             + ") ";
 
-    // =====================================================
-    // 3. TONG DOANH THU
-    // =====================================================
-
     public BigDecimal getTotalRevenueByRange(
             LocalDate startDate,
             LocalDate endDate) {
 
-        String sql =
-                "SELECT ISNULL(SUM(o.total_amount), 0) "
+        String sql
+                = "SELECT ISNULL(SUM(o.total_amount), 0) "
                 + "AS total_revenue "
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
@@ -66,9 +45,8 @@ public class ReportDAO extends DBContext {
                 + "AND " + COMPLETED_CONDITION
                 + RETURN_EXCLUSION_CONDITION;
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             setDateRange(
                     ps,
@@ -80,8 +58,8 @@ public class ReportDAO extends DBContext {
 
                 if (rs.next()) {
 
-                    BigDecimal result =
-                            rs.getBigDecimal("total_revenue");
+                    BigDecimal result
+                            = rs.getBigDecimal("total_revenue");
 
                     return result != null
                             ? result
@@ -101,25 +79,20 @@ public class ReportDAO extends DBContext {
         return BigDecimal.ZERO;
     }
 
-    // =====================================================
-    // 4. TONG SO DON HANG HOAN THANH
-    // =====================================================
-
     public int getCompletedOrdersByRange(
             LocalDate startDate,
             LocalDate endDate) {
 
-        String sql =
-                "SELECT COUNT(*) AS total_orders "
+        String sql
+                = "SELECT COUNT(*) AS total_orders "
                 + "FROM dbo.[ORDER] o "
                 + "WHERE o.created_at >= ? "
                 + "AND o.created_at < ? "
                 + "AND " + COMPLETED_CONDITION
                 + RETURN_EXCLUSION_CONDITION;
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             setDateRange(
                     ps,
@@ -146,16 +119,12 @@ public class ReportDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // 5. TONG SO SAN PHAM DA BAN
-    // =====================================================
-
     public int getTotalProductsSoldByRange(
             LocalDate startDate,
             LocalDate endDate) {
 
-        String sql =
-                "SELECT ISNULL(SUM(oi.quantity), 0) "
+        String sql
+                = "SELECT ISNULL(SUM(oi.quantity), 0) "
                 + "AS total_products "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "INNER JOIN dbo.[ORDER] o "
@@ -165,9 +134,8 @@ public class ReportDAO extends DBContext {
                 + "AND " + COMPLETED_CONDITION
                 + RETURN_EXCLUSION_CONDITION;
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             setDateRange(
                     ps,
@@ -194,18 +162,14 @@ public class ReportDAO extends DBContext {
         return 0;
     }
 
-    // =====================================================
-    // 6. DOANH THU THEO NGAY
-    // =====================================================
-
     public List<Object[]> getRevenueByDateRange(
             LocalDate startDate,
             LocalDate endDate) {
 
         List<Object[]> list = new ArrayList<>();
 
-        String sql =
-                "SELECT "
+        String sql
+                = "SELECT "
                 + "CAST(o.created_at AS DATE) AS report_date, "
                 + "SUM(o.total_amount) AS revenue, "
                 + "COUNT(*) AS order_count "
@@ -217,9 +181,8 @@ public class ReportDAO extends DBContext {
                 + "GROUP BY CAST(o.created_at AS DATE) "
                 + "ORDER BY report_date DESC";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             setDateRange(
                     ps,
@@ -251,10 +214,6 @@ public class ReportDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // 7. GIA TRI TRUNG BINH MOT DON HANG
-    // =====================================================
-
     public static BigDecimal calculateAverageOrderValue(
             BigDecimal revenue,
             int completedOrders) {
@@ -270,18 +229,14 @@ public class ReportDAO extends DBContext {
         );
     }
 
-    // =====================================================
-    // 8. THONG KE TRANG THAI DON HANG
-    // =====================================================
-
     public List<Object[]> getOrderStatusByRange(
             LocalDate startDate,
             LocalDate endDate) {
 
         List<Object[]> list = new ArrayList<>();
 
-        String sql =
-                "SELECT "
+        String sql
+                = "SELECT "
                 + "o.order_status, "
                 + "COUNT(*) AS total "
                 + "FROM dbo.[ORDER] o "
@@ -291,9 +246,8 @@ public class ReportDAO extends DBContext {
                 + "GROUP BY o.order_status "
                 + "ORDER BY total DESC";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             setDateRange(
                     ps,
@@ -324,18 +278,14 @@ public class ReportDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // 9. TOP 5 SAN PHAM BAN CHAY
-    // =====================================================
-
     public List<Object[]> getTopSellingProductsByRange(
             LocalDate startDate,
             LocalDate endDate) {
 
         List<Object[]> list = new ArrayList<>();
 
-        String sql =
-                "SELECT TOP 5 "
+        String sql
+                = "SELECT TOP 5 "
                 + "p.product_name, "
                 + "SUM(oi.quantity) AS total_sold "
                 + "FROM dbo.ORDER_ITEM oi "
@@ -353,9 +303,8 @@ public class ReportDAO extends DBContext {
                 + "ORDER BY total_sold DESC, "
                 + "p.product_name ASC";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps
+                = conn.prepareStatement(sql)) {
 
             setDateRange(
                     ps,
@@ -386,10 +335,6 @@ public class ReportDAO extends DBContext {
         return list;
     }
 
-    // =====================================================
-    // 10. GAN KHOANG NGAY BAO CAO
-    // =====================================================
-
     private void setDateRange(
             PreparedStatement ps,
             LocalDate startDate,
@@ -400,7 +345,6 @@ public class ReportDAO extends DBContext {
                 java.sql.Date.valueOf(startDate)
         );
 
-        // Bao gom toan bo ngay ket thuc.
         ps.setDate(
                 2,
                 java.sql.Date.valueOf(endDate.plusDays(1))

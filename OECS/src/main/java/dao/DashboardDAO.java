@@ -1,4 +1,3 @@
-
 package dao;
 
 import db.DBContext;
@@ -20,13 +19,6 @@ public class DashboardDAO extends DBContext {
     private static final Logger LOGGER
             = Logger.getLogger(DashboardDAO.class.getName());
 
-    // =====================================================
-    // 1. TONG DOANH THU TRONG KHOANG THOI GIAN
-    // =====================================================
-
-    // Doanh thu gop cua don COMPLETED.
-    // Khong tru tien hoan xu ly ben ngoai he thong.
-
     public BigDecimal getTotalRevenueByRange(
             LocalDate start,
             LocalDate end) {
@@ -38,8 +30,7 @@ public class DashboardDAO extends DBContext {
                 + "AND o.created_at >= ? "
                 + "AND o.created_at < ? ";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             setRange(ps, start, end);
 
@@ -62,10 +53,6 @@ public class DashboardDAO extends DBContext {
                 "Truy vấn không trả về kết quả.");
     }
 
-    // =====================================================
-    // 2. TONG SO DON HANG
-    // =====================================================
-
     public int getTotalOrdersByRange(
             LocalDate start,
             LocalDate end) {
@@ -78,10 +65,6 @@ public class DashboardDAO extends DBContext {
 
         return countByRange(sql, start, end);
     }
-
-    // =====================================================
-    // 3. SO DON HANG DA HOAN THANH
-    // =====================================================
 
     public int getCompletedOrdersByRange(
             LocalDate start,
@@ -97,10 +80,6 @@ public class DashboardDAO extends DBContext {
         return countByRange(sql, start, end);
     }
 
-    // =====================================================
-    // 4. SO DON HANG DA HUY
-    // =====================================================
-
     public int getCancelledOrdersByRange(
             LocalDate start,
             LocalDate end) {
@@ -114,13 +93,6 @@ public class DashboardDAO extends DBContext {
 
         return countByRange(sql, start, end);
     }
-
-    // =====================================================
-    // 5. DOANH THU THEO NGAY TAO DON
-    // =====================================================
-
-    // Khong su dung PAYMENT_REFUND.
-    // Ket qua la doanh thu gop cua cac don COMPLETED.
 
     public List<Object[]> getRevenueByDateRange(
             LocalDate start,
@@ -139,8 +111,7 @@ public class DashboardDAO extends DBContext {
                 + "GROUP BY CAST(o.created_at AS DATE) "
                 + "ORDER BY order_date ASC";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             setRange(ps, start, end);
 
@@ -166,10 +137,6 @@ public class DashboardDAO extends DBContext {
         return result;
     }
 
-    // =====================================================
-    // 6. THONG KE TRANG THAI DON HANG
-    // =====================================================
-
     public List<Object[]> getOrderStatusByRange(
             LocalDate start,
             LocalDate end) {
@@ -186,8 +153,7 @@ public class DashboardDAO extends DBContext {
                 + "GROUP BY o.order_status "
                 + "ORDER BY total DESC, o.order_status ASC";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             setRange(ps, start, end);
 
@@ -212,15 +178,6 @@ public class DashboardDAO extends DBContext {
 
         return result;
     }
-
-    // =====================================================
-    // 7. TOP 5 SAN PHAM BAN CHAY
-    // =====================================================
-
-    // Giu cach tinh hien tai:
-    // So luong ban tru so luong Return da APPROVED.
-    // Day la so lieu theo yeu cau duoc duyet,
-    // chua phai so hang da nhan thuc te.
 
     public List<Object[]> getTopSellingProductsByRange(
             LocalDate start,
@@ -273,8 +230,7 @@ public class DashboardDAO extends DBContext {
                 + "p.product_name ASC, "
                 + "p.product_id ASC";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             setRange(ps, start, end);
 
@@ -303,10 +259,6 @@ public class DashboardDAO extends DBContext {
         return result;
     }
 
-    // =====================================================
-    // 8. THONG KE TON KHO HIEN TAI
-    // =====================================================
-
     public int[] getCurrentStockStatistics() {
 
         String sql
@@ -322,9 +274,7 @@ public class DashboardDAO extends DBContext {
                 + "THEN 1 ELSE 0 END), 0) AS out_stock "
                 + "FROM dbo.PRODUCT_SKU";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
             if (rs.next()) {
 
@@ -347,17 +297,12 @@ public class DashboardDAO extends DBContext {
                 "Không đọc được dữ liệu tồn kho.");
     }
 
-    // =====================================================
-    // 9. DEM DU LIEU THEO KHOANG NGAY
-    // =====================================================
-
     private int countByRange(
             String sql,
             LocalDate start,
             LocalDate end) {
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
 
             setRange(ps, start, end);
 
@@ -380,10 +325,6 @@ public class DashboardDAO extends DBContext {
                 "Truy vấn đếm không trả về kết quả.");
     }
 
-    // =====================================================
-    // 10. GAN KHOANG NGAY CHO PREPARED STATEMENT
-    // =====================================================
-
     private void setRange(
             PreparedStatement ps,
             LocalDate start,
@@ -394,16 +335,11 @@ public class DashboardDAO extends DBContext {
                 Date.valueOf(start)
         );
 
-        // Ngay ket thuc duoc bao gom toan bo.
         ps.setDate(
                 2,
                 Date.valueOf(end.plusDays(1))
         );
     }
-
-    // =====================================================
-    // 11. XU LY LOI DATABASE
-    // =====================================================
 
     private IllegalStateException databaseError(
             String message,
@@ -420,10 +356,6 @@ public class DashboardDAO extends DBContext {
                 ex
         );
     }
-
-    // =====================================================
-    // 12. DANH SACH SKU SAP HET HANG
-    // =====================================================
 
     public List<Object[]> getLowStockProducts() {
 
@@ -449,9 +381,7 @@ public class DashboardDAO extends DBContext {
                 + "p.product_name ASC, "
                 + "s.sku_code ASC";
 
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
 

@@ -37,21 +37,6 @@ public class SkuBulkService extends DBContext {
     private static final int MAX_SKU_CODE_LENGTH = 100;
     private static final int MAX_TEXT_VALUE_LENGTH = 255;
 
-    // ========================================
-    // 1. LƯU SKU HÀNG LOẠT
-    // ========================================
-
-    /*
-     * Trả về danh sách sku_id đã tạo,
-     * theo đúng thứ tự danh sách đầu vào.
-     *
-     * Nếu bất kỳ SKU nào thất bại:
-     * rollback toàn bộ batch.
-     *
-     * Không gọi ProductSkuDAO.insert()
-     * vì các phương thức DAO hiện tại
-     * tự quản lý Connection riêng.
-     */
     public List<Integer> insertBulk(
             int productId,
             List<ProductSku> skuList)
@@ -68,14 +53,12 @@ public class SkuBulkService extends DBContext {
 
                 conn.setAutoCommit(false);
 
-                // Khóa Product trong suốt transaction.
                 int categoryId
                         = lockAndGetProductCategory(
                                 conn,
                                 productId
                         );
 
-                // Chỉ lấy thuộc tính VARIANT / BOTH.
                 Map<Integer, VariantConfig> configs
                         = loadVariantConfigs(
                                 conn,
@@ -91,10 +74,6 @@ public class SkuBulkService extends DBContext {
                     );
                 }
 
-                /*
-                 * Validate toàn bộ batch trước
-                 * khi INSERT bản ghi đầu tiên.
-                 */
                 List<ValidatedSku> validatedSkus
                         = validateSkus(
                                 productId,
@@ -107,7 +86,6 @@ public class SkuBulkService extends DBContext {
 
                 for (ValidatedSku validated : validatedSkus) {
 
-                    // 1. INSERT PRODUCT_SKU
                     int newSkuId
                             = insertSku(
                                     conn,
@@ -115,18 +93,12 @@ public class SkuBulkService extends DBContext {
                                     validated
                             );
 
-                    // 2. INSERT SKU_ATTRIBUTE_VALUE
                     insertAttributeValues(
                             conn,
                             newSkuId,
                             validated.attributes
                     );
 
-                    /*
-                     * 3. Tính variant_key bằng cùng công thức SHA2_256
-                     * với dữ liệu mẫu OECS_DB(6).sql.
-                     * Unique index chống trùng là lớp bảo vệ cuối cùng.
-                     */
                     refreshSkuVariantKey(
                             conn,
                             newSkuId
@@ -137,18 +109,8 @@ public class SkuBulkService extends DBContext {
                     createdIds.add(newSkuId);
                 }
 
-                /*
-                 * Chỉ commit sau khi toàn bộ SKU
-                 * và tính variant_key đều thành công.
-                 */
                 conn.commit();
 
-                /*
-                 * Chỉ cập nhật Model sau commit.
-                 *
-                 * Tránh để Model có ID giả
-                 * nếu transaction bị rollback.
-                 */
                 for (int i = 0; i < skuList.size(); i++) {
 
                     skuList.get(i).setSkuId(
@@ -173,9 +135,6 @@ public class SkuBulkService extends DBContext {
         }
     }
 
-    // ========================================
-    // 2. VALIDATE BATCH
-    // ========================================
     private void validateBatchInput(
             int productId,
             List<ProductSku> skuList) {
@@ -204,9 +163,6 @@ public class SkuBulkService extends DBContext {
         }
     }
 
-    // ========================================
-    // 3. KHÓA PRODUCT
-    // ========================================
     private int lockAndGetProductCategory(
             Connection conn,
             int productId)
@@ -255,9 +211,6 @@ public class SkuBulkService extends DBContext {
         }
     }
 
-    // ========================================
-    // 4. LẤY CẤU HÌNH BIẾN THỂ
-    // ========================================
     private Map<Integer, VariantConfig> loadVariantConfigs(
             Connection conn,
             int categoryId)
@@ -307,9 +260,6 @@ public class SkuBulkService extends DBContext {
         return result;
     }
 
-    // ========================================
-    // 5. VALIDATE TOÀN BỘ SKU
-    // ========================================
     private List<ValidatedSku> validateSkus(
             int productId,
             List<ProductSku> skuList,
@@ -370,13 +320,6 @@ public class SkuBulkService extends DBContext {
                 );
             }
 
-            /*
-             * Kiểm tra trùng mã trong chính batch.
-             *
-             * Kiểm tra độc lập với database.
-             * Unique constraint của SQL Server
-             * vẫn là nơi chống trùng cuối cùng.
-             */
             String normalizedCode
                     = skuCode.toUpperCase(
                             Locale.ROOT
@@ -435,9 +378,6 @@ public class SkuBulkService extends DBContext {
         return result;
     }
 
-    // ========================================
-    // 6. VALIDATE GIÁ TIỀN
-    // ========================================
     private BigDecimal validateMoney(
             double value,
             String fieldName) {
@@ -479,9 +419,6 @@ public class SkuBulkService extends DBContext {
         return amount;
     }
 
-    // ========================================
-    // 7. VALIDATE SKU ATTRIBUTE VALUES
-    // ========================================
     private List<ValidatedAttribute> validateSkuAttributes(
             ProductSku sku,
             Map<Integer, VariantConfig> configs) {
@@ -554,12 +491,6 @@ public class SkuBulkService extends DBContext {
                 populatedFields++;
             }
 
-            /*
-             * SKU_ATTRIBUTE_VALUE yêu cầu
-             * đúng một cột typed có giá trị.
-             *
-             * BOOLEAN false vẫn là một giá trị.
-             */
             if (populatedFields != 1) {
 
                 throw new IllegalArgumentException(
@@ -667,9 +598,6 @@ public class SkuBulkService extends DBContext {
             );
         }
 
-        /*
-         * Kiểm tra đủ thuộc tính bắt buộc.
-         */
         for (VariantConfig config : configs.values()) {
 
             if (config.required
@@ -687,9 +615,6 @@ public class SkuBulkService extends DBContext {
         return validated;
     }
 
-    // ========================================
-    // 8. INSERT PRODUCT_SKU
-    // ========================================
     private int insertSku(
             Connection conn,
             int productId,
@@ -773,9 +698,6 @@ public class SkuBulkService extends DBContext {
                 );
     }
 
-    // ========================================
-    // 9. INSERT SKU_ATTRIBUTE_VALUE
-    // ========================================
     private void insertAttributeValues(
             Connection conn,
             int skuId,
@@ -859,18 +781,12 @@ public class SkuBulkService extends DBContext {
         }
     }
 
-    // ========================================
-    // 10. REFRESH VARIANT KEY
-    // ========================================
     private void refreshSkuVariantKey(
             Connection conn,
             int skuId) throws SQLException {
         SkuVariantKeyHelper.refresh(conn, skuId);
     }
 
-    // ========================================
-    // 11. ROLLBACK
-    // ========================================
     private void rollback(
             Connection conn,
             Exception originalException) {
@@ -893,9 +809,6 @@ public class SkuBulkService extends DBContext {
         }
     }
 
-    // ========================================
-    // 12. KHÔI PHỤC AUTOCOMMIT
-    // ========================================
     private void restoreAutoCommit(
             Connection conn,
             boolean oldAutoCommit) {
@@ -914,9 +827,6 @@ public class SkuBulkService extends DBContext {
         }
     }
 
-    // ========================================
-    // 13. CLASS NỘI BỘ: VARIANT CONFIG
-    // ========================================
     private static class VariantConfig {
 
         private final int attributeId;
@@ -937,9 +847,6 @@ public class SkuBulkService extends DBContext {
         }
     }
 
-    // ========================================
-    // 14. CLASS NỘI BỘ: VALIDATED ATTRIBUTE
-    // ========================================
     private static class ValidatedAttribute {
 
         private final int attributeId;
@@ -960,9 +867,6 @@ public class SkuBulkService extends DBContext {
         }
     }
 
-    // ========================================
-    // 15. CLASS NỘI BỘ: VALIDATED SKU
-    // ========================================
     private static class ValidatedSku {
 
         private final String skuCode;

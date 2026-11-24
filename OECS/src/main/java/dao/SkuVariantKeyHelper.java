@@ -4,13 +4,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-/**
- * Synchronize PRODUCT_SKU.variant_key with dbo.SKU_ATTRIBUTE_VALUE.
- * OECS_DB(6).sql intentionally ships WITHOUT stored procedures/triggers. This
- * query uses the SAME canonical value and SHA2_256 hashing as the seed SQL.
- * Call on the caller's Connection BEFORE commit so unique index validation
- * rolls back the entire SKU operation when two combinations are identical.
- */
 public final class SkuVariantKeyHelper {
 
     private SkuVariantKeyHelper() {

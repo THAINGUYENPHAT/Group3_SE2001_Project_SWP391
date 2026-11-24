@@ -102,11 +102,7 @@ public class InventoryDAO extends DBContext {
         return result;
     }
 
-    /**
-     * Executes a row-locked, transactional stock change. The DB trigger writes
-     * the movement in the SAME transaction, tagged by SESSION_CONTEXT. action:
-     * IN adds; OUT subtracts; SET makes an absolute correction.
-     */
+  
     public int changeStock(int skuId, String action, int quantity,
             String note, int actorUserId) throws SQLException {
         if (skuId <= 0 || actorUserId <= 0) {
@@ -176,8 +172,7 @@ public class InventoryDAO extends DBContext {
                     }
                 }
 
-                // Ghi lịch sử nhập/xuất kho bằng Java
-                // Sử dụng cùng transaction với cập nhật tồn kho
+               
                 InventoryMovementHelper.record(
                         conn,
                         skuId,
@@ -188,7 +183,6 @@ public class InventoryDAO extends DBContext {
                         actorUserId
                 );
 
-                // Chỉ commit khi cập nhật kho và lịch sử đều thành công
                 conn.commit();
                 return newQty;
 
@@ -200,9 +194,7 @@ public class InventoryDAO extends DBContext {
                 }
                 throw ex;
             } finally {
-                // SESSION_CONTEXT is per SQL connection, NOT per transaction.
-                // Clear it even after rollback to prevent metadata leaking into
-                // a subsequent request when JDBC connections are pooled.
+               
                 SQLException clearError = null;
                 for (String key : new String[]{
                     "oecs_inventory_action", "oecs_inventory_note",
@@ -235,7 +227,6 @@ public class InventoryDAO extends DBContext {
 
     private void setContext(Connection conn, String key, Object value)
             throws SQLException {
-        // Only internally fixed keys, never user-controlled SQL identifiers.
         String sql = "EXEC sys.sp_set_session_context @key=N'" + key
                 + "', @value=?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {

@@ -31,9 +31,6 @@ public class ProductCatalogService extends DBContext {
                     ProductCatalogService.class.getName()
             );
 
-    // ========================================
-    // 1. TẠO SẢN PHẨM TRONG MỘT TRANSACTION
-    // ========================================
     public int createProduct(
             Product product,
             List<ProductSpec> specifications,
@@ -99,9 +96,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 2. CẬP NHẬT SẢN PHẨM TRONG TRANSACTION
-    // ========================================
     public boolean updateProduct(
             Product product,
             List<ProductSpec> specifications,
@@ -162,13 +156,6 @@ public class ProductCatalogService extends DBContext {
                                 specifications
                         );
 
-                /*
-                 * Không được âm thầm xóa các thông số
-                 * cũ đã mất cấu hình hoặc bị vô hiệu hóa.
-                 *
-                 * Nếu có dữ liệu như vậy, yêu cầu
-                 * quản trị viên xử lý cấu hình trước.
-                 */
                 validateExistingSpecifications(
                         conn,
                         product.getProductId(),
@@ -227,9 +214,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 3. INSERT PRODUCT
-    // ========================================
     private int insertProduct(
             Connection conn,
             Product product)
@@ -304,9 +288,6 @@ public class ProductCatalogService extends DBContext {
                 );
     }
 
-    // ========================================
-    // 4. UPDATE PRODUCT
-    // ========================================
     private int updateProductRow(
             Connection conn,
             Product product)
@@ -361,9 +342,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 5. KHÓA PRODUCT KHI CẬP NHẬT
-    // ========================================
     private ProductIdentity lockProduct(
             Connection conn,
             int productId)
@@ -394,9 +372,6 @@ public class ProductCatalogService extends DBContext {
         return null;
     }
 
-    // ========================================
-    // 6. KIỂM TRA THÔNG TIN PRODUCT
-    // ========================================
     private void validateProduct(Product product) {
 
         if (product == null) {
@@ -443,9 +418,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 7. KIỂM TRA CATEGORY VÀ BRAND
-    // ========================================
     private void validateReferences(
             Connection conn,
             Product product,
@@ -491,9 +463,6 @@ public class ProductCatalogService extends DBContext {
             }
         }
 
-        /*
-         * Đã đóng ResultSet trước khi tiếp tục.
-         */
         if (categoryActive == null
                 || brandActive == null) {
 
@@ -515,13 +484,6 @@ public class ProductCatalogService extends DBContext {
             return;
         }
 
-        /*
-         * Khi sửa sản phẩm:
-         * - Category đã được khóa và giữ nguyên.
-         * - Cho phép giữ category cũ đã ngừng dùng.
-         * - Cho phép giữ brand cũ đã ngừng dùng.
-         * - Không cho đổi sang brand khác đã ngừng dùng.
-         */
         if (!brandActive
                 && existing.brandId
                 != product.getBrandId()) {
@@ -533,9 +495,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 8. BOOLEAN NULLABLE TỪ SQL
-    // ========================================
     private Boolean readNullableBoolean(
             ResultSet rs,
             String column)
@@ -546,9 +505,6 @@ public class ProductCatalogService extends DBContext {
         return rs.wasNull() ? null : value;
     }
 
-    // ========================================
-    // 9. VALIDATE SPECIFICATIONS
-    // ========================================
     private List<ValidatedSpec> validateSpecifications(
             Connection conn,
             int categoryId,
@@ -698,13 +654,6 @@ public class ProductCatalogService extends DBContext {
             );
         }
 
-        /*
-         * Kiểm tra trên savedIds,
-         * không phải submittedIds.
-         *
-         * Attribute bắt buộc có gửi ID
-         * nhưng giá trị trống vẫn bị từ chối.
-         */
         for (SpecConfig config : configs.values()) {
 
             if (config.required
@@ -721,9 +670,6 @@ public class ProductCatalogService extends DBContext {
         return validated;
     }
 
-    // ========================================
-    // 10. PARSE BOOLEAN SPEC
-    // ========================================
     private boolean parseBooleanSpec(
             String value,
             String attributeName) {
@@ -748,9 +694,6 @@ public class ProductCatalogService extends DBContext {
         );
     }
 
-    // ========================================
-    // 11. LẤY CẤU HÌNH SPEC CỦA CATEGORY
-    // ========================================
     private Map<Integer, SpecConfig> loadSpecificationConfigs(
             Connection conn,
             int categoryId)
@@ -801,9 +744,6 @@ public class ProductCatalogService extends DBContext {
         return configs;
     }
 
-    // ========================================
-    // 12. PHÁT HIỆN SPEC CŨ MẤT CẤU HÌNH
-    // ========================================
     private void validateExistingSpecifications(
             Connection conn,
             int productId,
@@ -846,9 +786,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 13. INSERT SPECIFICATIONS
-    // ========================================
     private void insertSpecifications(
             Connection conn,
             int productId,
@@ -873,10 +810,6 @@ public class ProductCatalogService extends DBContext {
                 ps.setInt(1, productId);
                 ps.setInt(2, spec.attributeId);
 
-                /*
-                 * PRODUCT_SPECIFICATION.value
-                 * vẫn NOT NULL trong SQL V2.
-                 */
                 ps.setNString(3, spec.value);
 
                 if (spec.numericValue == null) {
@@ -910,9 +843,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 14. XÓA SPECIFICATIONS CŨ
-    // ========================================
     private void deleteAllSpecifications(
             Connection conn,
             int productId)
@@ -930,9 +860,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 15. KIỂM TRA ĐƯỜNG DẪN ẢNH
-    // ========================================
     private void validateGalleryUrls(
             List<String> galleryUrls) {
 
@@ -953,9 +880,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 16. THÊM GALLERY IMAGES
-    // ========================================
     private void insertGalleryImages(
             Connection conn,
             int productId,
@@ -966,10 +890,6 @@ public class ProductCatalogService extends DBContext {
             return;
         }
 
-        /*
-         * Lấy vị trí tiếp theo để không
-         * trùng display_order khi cập nhật.
-         */
         int nextOrder
                 = getNextGalleryOrder(
                         conn,
@@ -998,9 +918,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 17. VỊ TRÍ TIẾP THEO CỦA GALLERY
-    // ========================================
     private int getNextGalleryOrder(
             Connection conn,
             int productId)
@@ -1029,9 +946,6 @@ public class ProductCatalogService extends DBContext {
         return 0;
     }
 
-    // ========================================
-    // 18. KIỂM TRA ID ẢNH CẦN XÓA
-    // ========================================
     private void validateDeleteImageIds(
             List<Integer> imageIds) {
 
@@ -1050,9 +964,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 19. XÓA GALLERY CHUNG
-    // ========================================
     private void deleteGalleryImages(
             Connection conn,
             int productId,
@@ -1092,9 +1003,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 20. SET STRING NULLABLE
-    // ========================================
     private void setNullableString(
             PreparedStatement ps,
             int index,
@@ -1116,9 +1024,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 21. ROLLBACK
-    // ========================================
     private void rollback(
             Connection conn,
             Exception originalException) {
@@ -1141,9 +1046,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 22. KHÔI PHỤC AUTOCOMMIT
-    // ========================================
     private void restoreAutoCommit(
             Connection conn,
             boolean oldAutoCommit) {
@@ -1162,9 +1064,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 23. CLASS NỘI BỘ: PRODUCT IDENTITY
-    // ========================================
     private static class ProductIdentity {
 
         private final int categoryId;
@@ -1179,9 +1078,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 24. CLASS NỘI BỘ: SPEC CONFIG
-    // ========================================
     private static class SpecConfig {
 
         private final int attributeId;
@@ -1202,9 +1098,6 @@ public class ProductCatalogService extends DBContext {
         }
     }
 
-    // ========================================
-    // 25. CLASS NỘI BỘ: VALIDATED SPEC
-    // ========================================
     private static class ValidatedSpec {
 
         private final int attributeId;

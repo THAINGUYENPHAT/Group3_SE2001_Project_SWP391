@@ -28,27 +28,6 @@ public class SkuGenerationService extends DBContext {
     private static final int MAX_SKU_CODE_LENGTH = 100;
     private static final int MAX_ATTRIBUTE_LENGTH = 255;
 
-    // ========================================
-    // 1. SINH DANH SÁCH SKU XEM TRƯỚC
-    // ========================================
-
-    /*
-     * Ví dụ options:
-     *
-     * attributeId 3:
-     * ["128GB", "256GB"]
-     *
-     * attributeId 10:
-     * ["Đen", "Bạc", "Xanh"]
-     *
-     * Kết quả:
-     * List<ProductSku> chứa các tổ hợp mới.
-     *
-     * Chưa INSERT vào database.
-     *
-     * price, originalPrice:
-     * Đơn vị VNĐ.
-     */
     public List<ProductSku> generatePreview(
             int productId,
             Map<Integer, List<String>> options,
@@ -131,20 +110,12 @@ public class SkuGenerationService extends DBContext {
                                 combination
                         );
 
-                /*
-                 * Bỏ qua tổ hợp đã có SKU.
-                 * Bao gồm cả SKU đang ngừng bán.
-                 */
                 if (existingKeys.contains(combinationKey)) {
                     continue;
                 }
 
                 String skuCode;
 
-                /*
-                 * Mã SKU phải duy nhất toàn hệ thống.
-                 * Không tái sử dụng mã đã tồn tại.
-                 */
                 do {
 
                     skuCode
@@ -214,10 +185,6 @@ public class SkuGenerationService extends DBContext {
 
                 preview.add(sku);
 
-                /*
-                 * Chặn trùng ngay trong kết quả
-                 * nếu các tổ hợp tương đương nhau.
-                 */
                 existingKeys.add(combinationKey);
             }
 
@@ -225,9 +192,6 @@ public class SkuGenerationService extends DBContext {
         }
     }
 
-    // ========================================
-    // 2. VALIDATE THÔNG TIN CHUNG
-    // ========================================
     private void validateBasicInput(
             int productId,
             Map<Integer, List<String>> options,
@@ -258,11 +222,6 @@ public class SkuGenerationService extends DBContext {
             );
         }
 
-        /*
-         * Giữ chỗ cho hậu tố -001, -002...
-         * Kiểm tra độ dài thực tế thêm lần nữa
-         * trong buildSkuCode().
-         */
         if (skuPrefix.trim().length() > 95) {
 
             throw new IllegalArgumentException(
@@ -288,9 +247,6 @@ public class SkuGenerationService extends DBContext {
         }
     }
 
-    // ========================================
-    // 3. VALIDATE TIỀN
-    // ========================================
     private void validateMoney(
             double amount,
             String fieldName) {
@@ -303,13 +259,6 @@ public class SkuGenerationService extends DBContext {
             );
         }
 
-        /*
-         * PRODUCT_SKU.price:
-         * DECIMAL(18,2).
-         *
-         * Do Model đang dùng double,
-         * chỉ nhận giá VNĐ nguyên ở tính năng này.
-         */
         BigDecimal decimal
                 = BigDecimal.valueOf(amount);
 
@@ -336,9 +285,6 @@ public class SkuGenerationService extends DBContext {
         }
     }
 
-    // ========================================
-    // 4. LẤY CATEGORY CỦA PRODUCT
-    // ========================================
     private int getProductCategoryId(
             Connection conn,
             int productId)
@@ -376,9 +322,6 @@ public class SkuGenerationService extends DBContext {
         }
     }
 
-    // ========================================
-    // 5. LẤY CẤU HÌNH BIẾN THỂ
-    // ========================================
     private List<VariantConfig> loadVariantConfigs(
             Connection conn,
             int categoryId)
@@ -426,9 +369,6 @@ public class SkuGenerationService extends DBContext {
         return configs;
     }
 
-    // ========================================
-    // 6. CHUẨN BỊ CÁC CHIỀU BIẾN THỂ
-    // ========================================
     private List<VariantDimension> prepareDimensions(
             List<VariantConfig> configs,
             Map<Integer, List<String>> options) {
@@ -444,10 +384,6 @@ public class SkuGenerationService extends DBContext {
             );
         }
 
-        /*
-         * Không cho gửi attribute_id
-         * nằm ngoài cấu hình danh mục.
-         */
         for (Integer attributeId : options.keySet()) {
 
             if (attributeId == null
@@ -499,10 +435,6 @@ public class SkuGenerationService extends DBContext {
                                 rawValue
                         );
 
-                /*
-                 * Loại bỏ các giá trị bị trùng
-                 * trong cùng một thuộc tính.
-                 */
                 if (uniqueValues.add(
                         value.canonicalValue
                 )) {
@@ -524,10 +456,6 @@ public class SkuGenerationService extends DBContext {
                 continue;
             }
 
-            /*
-             * Giới hạn tổ hợp trước khi sinh,
-             * tránh tạo danh sách quá lớn.
-             */
             if (combinationCount
                     > MAX_COMBINATIONS / normalized.size()) {
 
@@ -557,9 +485,6 @@ public class SkuGenerationService extends DBContext {
         return dimensions;
     }
 
-    // ========================================
-    // 7. CHUẨN HÓA GIÁ TRỊ THEO DATA TYPE
-    // ========================================
     private NormalizedValue normalizeValue(
             VariantConfig config,
             String rawValue) {
@@ -670,9 +595,6 @@ public class SkuGenerationService extends DBContext {
         );
     }
 
-    // ========================================
-    // 8. SINH TÍCH DESCARTES
-    // ========================================
     private void generateCombinations(
             List<VariantDimension> dimensions,
             int index,
@@ -709,9 +631,6 @@ public class SkuGenerationService extends DBContext {
         current.remove(dimension.attributeId);
     }
 
-    // ========================================
-    // 9. ĐỌC TỔ HỢP SKU ĐÃ TỒN TẠI
-    // ========================================
     private Set<String> loadExistingVariantKeys(
             Connection conn,
             int productId,
@@ -822,14 +741,6 @@ public class SkuGenerationService extends DBContext {
         for (Map<Integer, NormalizedValue> attributes
                 : bySku.values()) {
 
-            /*
-             * Chỉ so sánh các SKU có đúng
-             * tập thuộc tính của preview.
-             *
-             * Stored procedure trong SQL vẫn
-             * là nơi quyết định chống trùng
-             * chính thức lúc lưu.
-             */
             if (!attributes.keySet().equals(
                     selectedAttributeIds
             )) {
@@ -844,9 +755,6 @@ public class SkuGenerationService extends DBContext {
         return keys;
     }
 
-    // ========================================
-    // 10. TẠO KHÓA SO SÁNH TỔ HỢP
-    // ========================================
     private String buildCombinationKey(
             Map<Integer, NormalizedValue> attributes) {
 
@@ -862,11 +770,6 @@ public class SkuGenerationService extends DBContext {
             String value
                     = attributes.get(attributeId).canonicalValue;
 
-            /*
-             * Có độ dài kèm theo để tránh
-             * nhầm lẫn nếu chuỗi chứa dấu
-             * phân cách đặc biệt.
-             */
             key.append(attributeId)
                     .append(':')
                     .append(value.length())
@@ -878,9 +781,6 @@ public class SkuGenerationService extends DBContext {
         return key.toString();
     }
 
-    // ========================================
-    // 11. LẤY CÁC SKU CODE ĐÃ SỬ DỤNG
-    // ========================================
     private Set<String> loadUsedSkuCodes(
             Connection conn)
             throws SQLException {
@@ -911,9 +811,6 @@ public class SkuGenerationService extends DBContext {
         return codes;
     }
 
-    // ========================================
-    // 12. TẠO MÃ SKU TỰ ĐỘNG
-    // ========================================
     private String buildSkuCode(
             String prefix,
             int sequence) {
@@ -937,9 +834,6 @@ public class SkuGenerationService extends DBContext {
         return code;
     }
 
-    // ========================================
-    // 13. CLASS NỘI BỘ: VARIANT CONFIG
-    // ========================================
     private static class VariantConfig {
 
         private final int attributeId;
@@ -960,9 +854,6 @@ public class SkuGenerationService extends DBContext {
         }
     }
 
-    // ========================================
-    // 14. CLASS NỘI BỘ: VARIANT DIMENSION
-    // ========================================
     private static class VariantDimension {
 
         private final int attributeId;
@@ -977,9 +868,6 @@ public class SkuGenerationService extends DBContext {
         }
     }
 
-    // ========================================
-    // 15. CLASS NỘI BỘ: NORMALIZED VALUE
-    // ========================================
     private static class NormalizedValue {
 
         private final String textValue;
