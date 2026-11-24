@@ -595,13 +595,6 @@
 
                                                 <li>
                                                     <a class="dropdown-item rounded-2 py-2"
-                                                       href="${pageContext.request.contextPath}/inventory">
-                                                        <i class="bi bi-box-seam text-blue me-2"></i>
-                                                        Quản lý Tồn Kho
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item rounded-2 py-2"
                                                        href="${pageContext.request.contextPath}/category">
                                                         <i class="bi bi-diagram-3 text-warning me-2"></i>
                                                         Quản lý Danh mục
