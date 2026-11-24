@@ -26,7 +26,7 @@ public class SearchApiServlet extends HttpServlet {
         PrintWriter out = response.getWriter();
 
         if (keyword == null || keyword.trim().isEmpty()) {
-            out.write("[]"); 
+            out.write("[]");
             return;
         }
 
@@ -37,14 +37,14 @@ public class SearchApiServlet extends HttpServlet {
         for (int i = 0; i < products.size(); i++) {
             Product p = products.get(i);
 
-            String safeName = p.getProductName() != null ? p.getProductName().replace("\"", "\\\"") : "";
-            String safeImageUrl = p.getImageUrl() != null ? p.getImageUrl().replace("\"", "\\\"").replace("\\", "\\\\") : "";
+            String safeName = escapeJson(p.getProductName());
+            String safeImageUrl = escapeJson(p.getImageUrl());
 
             json.append("{");
             json.append("\"id\":").append(p.getProductId()).append(",");
             json.append("\"name\":\"").append(safeName).append("\",");
             json.append("\"price\":").append(p.getMinPrice()).append(",");
-            json.append("\"imageUrl\":\"").append(safeImageUrl).append("\""); 
+            json.append("\"imageUrl\":\"").append(safeImageUrl).append("\"");
             json.append("}");
 
             if (i < products.size() - 1) {
@@ -55,5 +55,48 @@ public class SearchApiServlet extends HttpServlet {
 
         out.write(json.toString());
         out.flush();
+    }
+
+    /**
+     * Correct JSON string escaping without adding an external dependency.
+     */
+    private static String escapeJson(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        StringBuilder safe = new StringBuilder(raw.length() + 8);
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            switch (c) {
+                case '"':
+                    safe.append("\\\"");
+                    break;
+                case '\\':
+                    safe.append("\\\\");
+                    break;
+                case '\b':
+                    safe.append("\\b");
+                    break;
+                case '\f':
+                    safe.append("\\f");
+                    break;
+                case '\n':
+                    safe.append("\\n");
+                    break;
+                case '\r':
+                    safe.append("\\r");
+                    break;
+                case '\t':
+                    safe.append("\\t");
+                    break;
+                default:
+                    if (c < 0x20) {
+                        safe.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        safe.append(c);
+                    }
+            }
+        }
+        return safe.toString();
     }
 }

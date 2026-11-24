@@ -1,10 +1,12 @@
 package service;
 
 import db.DBContext;
+import dao.SkuVariantKeyHelper;
+import dao.SkuAdminInventoryAudit;
 
 import model.ProductSku;
 import model.SkuAttributeValue;
-import dao.SkuVariantKeyHelper;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -121,27 +123,23 @@ public class SkuBulkService extends DBContext {
                     );
 
                     /*
-                     * 3. Gọi stored procedure.
-                     *
-                     * Procedure kiểm tra:
-                     * - Thuộc tính thuộc danh mục
-                     * - Thuộc tính bắt buộc
-                     * - Tổ hợp biến thể
-                     *
-                     * Unique index trong SQL Server
-                     * là lớp bảo vệ trùng cuối cùng.
+                     * 3. Tính variant_key bằng cùng công thức SHA2_256
+                     * với dữ liệu mẫu OECS_DB(6).sql.
+                     * Unique index chống trùng là lớp bảo vệ cuối cùng.
                      */
                     refreshSkuVariantKey(
                             conn,
                             newSkuId
                     );
+                    SkuAdminInventoryAudit.recordOpening(
+                            conn, newSkuId, validated.stock);
 
                     createdIds.add(newSkuId);
                 }
 
                 /*
                  * Chỉ commit sau khi toàn bộ SKU
-                 * và procedure đều thành công.
+                 * và tính variant_key đều thành công.
                  */
                 conn.commit();
 
@@ -861,10 +859,12 @@ public class SkuBulkService extends DBContext {
         }
     }
 
+    // ========================================
+    // 10. REFRESH VARIANT KEY
+    // ========================================
     private void refreshSkuVariantKey(
             Connection conn,
             int skuId) throws SQLException {
-
         SkuVariantKeyHelper.refresh(conn, skuId);
     }
 

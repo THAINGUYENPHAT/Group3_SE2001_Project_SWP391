@@ -369,7 +369,7 @@
     }
 
     .product-description-content {
-        white-space: pre-line;
+        white-space: normal;
         line-height: 1.8;
         color: #334155;
         overflow: hidden;
@@ -597,6 +597,10 @@
                          class="product-price-display">
 
                         <c:choose>
+                            <c:when test="${not empty selectedSku and not selectedSku.active}">
+                                Ngừng kinh doanh
+                            </c:when>
+
                             <c:when test="${not empty selectedSku}">
 
                                 <fmt:formatNumber
@@ -618,9 +622,9 @@
 
                         <span id="displayOriginalPrice"
                               class="product-original-price"
-                              style="${selectedSku.originalPrice ne null and selectedSku.originalPrice > selectedSku.price ? '' : 'display:none;'}">
+                              style="${not empty selectedSku and selectedSku.active and selectedSku.originalPrice ne null and selectedSku.originalPrice > selectedSku.price ? '' : 'display:none;'}">
 
-                            <c:if test="${selectedSku.originalPrice ne null and selectedSku.originalPrice > selectedSku.price}">
+                            <c:if test="${not empty selectedSku and selectedSku.active and selectedSku.originalPrice ne null and selectedSku.originalPrice > selectedSku.price}">
                                 <fmt:formatNumber
                                     value="${selectedSku.originalPrice}"
                                     pattern="#,##0"/>
@@ -645,6 +649,13 @@
                                     Chưa có phiên bản kinh doanh
                                 </span>
 
+                            </c:when>
+
+                            <c:when test="${not empty selectedSku and not selectedSku.active}">
+                                <span class="text-secondary">
+                                    <i class="bi bi-pause-circle me-1"></i>
+                                    Phiên bản này đã ngừng kinh doanh
+                                </span>
                             </c:when>
 
                             <c:when test="${selectedSku.stockQuantity > 0}">
@@ -732,9 +743,10 @@
                                                data-price="${sku.price}"
                                                data-original-price="${sku.originalPrice}"
                                                data-stock="${sku.stockQuantity}"
+                                               data-active="${sku.active}"
 
-                                               ${sku.skuId eq selectedSkuId and sku.stockQuantity > 0 ? 'checked' : ''}
-                                               ${sku.stockQuantity <= 0 ? 'disabled' : ''}>
+                                               ${sku.skuId eq selectedSkuId and sku.active and sku.stockQuantity > 0 ? 'checked' : ''}
+                                               ${not sku.active or sku.stockQuantity <= 0 ? 'disabled' : ''}>
 
                                         <label class="sku-label"
                                                for="sku_${sku.skuId}">
@@ -782,15 +794,25 @@
                                             </span>
 
                                             <span class="sku-label-price">
-                                                <fmt:formatNumber
-                                                    value="${sku.price}"
-                                                    pattern="#,##0"/>
-                                                ₫
+                                                <c:choose>
+                                                    <c:when test="${not sku.active}">
+                                                        Ngừng kinh doanh
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <fmt:formatNumber
+                                                            value="${sku.price}"
+                                                            pattern="#,##0"/>
+                                                        ₫
+                                                    </c:otherwise>
+                                                </c:choose>
                                             </span>
 
                                             <span class="sku-label-stock">
 
                                                 <c:choose>
+                                                    <c:when test="${not sku.active}">
+                                                        Ngừng kinh doanh
+                                                    </c:when>
                                                     <c:when test="${sku.stockQuantity > 0}">
                                                         Còn ${sku.stockQuantity}
                                                     </c:when>
@@ -833,7 +855,7 @@
                             <i class="bi bi-cart-plus me-2"></i>
 
                             <span id="addToCartText">
-                                ${hasAvailableSku ? 'THÊM VÀO GIỎ HÀNG' : 'TẠM HẾT HÀNG'}
+                                ${hasAvailableSku ? 'THÊM VÀO GIỎ HÀNG' : (not empty skus and not hasActiveSku ? 'NGỪNG KINH DOANH' : 'TẠM HẾT HÀNG')}
                             </span>
 
                         </button>
@@ -914,46 +936,84 @@
                 color: #475569;
                 line-height: 1.9;
                 font-size: 15px;
+                white-space: pre-line;
             }
 
-            .product-description-intro h2 {
-                font-size: 22px;
+            .product-description-item {
+                padding: 24px 0;
+                border-top: 1px solid #edf0f4;
+            }
+
+            .product-description-item:first-child {
+                border-top: none;
+            }
+
+            .product-description-item h4 {
+                font-size: 20px;
                 font-weight: 750;
                 color: #172033;
-                line-height: 1.5;
-                margin: 0 0 16px;
+                margin-bottom: 14px;
             }
 
-            .product-description-intro p {
+            .product-description-item p {
+                color: #475569;
                 font-size: 15px;
                 line-height: 1.9;
-                color: #475569;
-                margin-bottom: 16px;
+                white-space: pre-line;
+                margin-bottom: 0;
             }
 
-            .product-description-intro ul {
-                padding-left: 24px;
-                margin: 16px 0;
+            .product-description-image {
+                display: block;
+                width: 100%;
+                max-height: 420px;
+                object-fit: contain;
+                border-radius: 14px;
+                margin-top: 20px;
+                background: #f8fafc;
             }
-
-            .product-description-intro li {
-                margin-bottom: 10px;
-                line-height: 1.8;
-                color: #475569;
-            }
-
-            .product-description-intro strong {
-                color: #1e293b;
-                font-weight: 700;
-            }
-
-
 
             @media (max-width: 575.98px) {
                 .product-description-box {
                     padding: 18px;
                 }
 
+                .product-description-item h4 {
+                    font-size: 18px;
+                }
+            }
+            /* OECS_DB(6): HTML đã lọc an toàn từ PRODUCT.description. */
+            .product-description-intro {
+                line-height: 1.9;
+                color: #475569;
+            }
+            .product-description-intro h2,
+            .product-description-intro h3,
+            .product-description-intro h4 {
+                color: #172033;
+                font-weight: 750;
+                line-height: 1.45;
+                margin: 24px 0 12px;
+            }
+            .product-description-intro h2 {
+                font-size: 23px;
+            }
+            .product-description-intro h3 {
+                font-size: 19px;
+            }
+            .product-description-intro h4 {
+                font-size: 16px;
+            }
+            .product-description-intro p {
+                margin: 0 0 13px;
+            }
+            .product-description-intro ul,
+            .product-description-intro ol {
+                padding-left: 28px;
+                margin: 0 0 18px;
+            }
+            .product-description-intro li {
+                margin-bottom: 6px;
             }
         </style>
 
@@ -969,9 +1029,7 @@
 
                     <c:choose>
 
-
                         <c:when test="${not empty product.description}">
-
 
                             <div id="descContainer"
                                  class="description-container">
@@ -983,14 +1041,12 @@
                                          MÔ TẢ CHÍNH
                                          =========================== --%>
 
-
                                     <c:if test="${not empty product.description}">
 
                                         <div class="product-description-intro">
 
-                                            <c:out
-                                                value="${safeProductDescription}"
-                                                escapeXml="false"/>
+                                            <%-- SafeHtml đã được mã hóa/allowlist trong Servlet --%>
+                                            <c:out value="${productDescriptionHtml}" escapeXml="false"/>
 
                                         </div>
 
@@ -2082,6 +2138,18 @@
                 return;
             }
 
+            // SKU ngừng bán vẫn hiện trong Detail, tuyệt đối không cho đặt mua.
+            if (radio.dataset.active !== "true") {
+                displayPrice.textContent = "Ngừng kinh doanh";
+                displayOriginalPrice.style.display = "none";
+                displayDiscount.style.display = "none";
+                displayStock.className = "mt-3 fw-medium text-secondary";
+                displayStock.textContent = "Phiên bản này đã ngừng kinh doanh";
+                btnAddToCart.disabled = true;
+                addToCartText.textContent = "NGỪNG KINH DOANH";
+                return;
+            }
+
             const price =
                     Number(radio.dataset.price);
 
@@ -2250,9 +2318,9 @@
              */
 
             const firstSku =
-                    skuRadios.length > 0
-                    ? skuRadios[0]
-                    : null;
+                    Array.from(skuRadios).find(function (radio) {
+                return radio.dataset.active === "true";
+            }) || skuRadios[0] || null;
 
             updateSkuInfo(firstSku);
 
@@ -2269,8 +2337,8 @@
             }
 
             btnAddToCart.disabled = true;
-            addToCartText.textContent =
-                    "TẠM HẾT HÀNG";
+            // Giữ nguyên nhãn do updateSkuInfo() đã xác định:
+            // hết hàng khác với ngừng kinh doanh.
         }
 
         // ========================================
@@ -2377,6 +2445,7 @@
                     id: node.dataset.skuId,
                     radio: radio,
                     stock: Number(radio.dataset.stock) || 0,
+                    active: radio.dataset.active === "true",
                     attrs: attrs
                 });
             });
@@ -2473,9 +2542,14 @@
                     const matching = variants.filter(function (item) {
                         return item.attrs.get(id).key === attr.key;
                     });
-                    const available = matching.some(function (item) {
+                    const matchingActive = matching.filter(function (item) {
+                        return item.active;
+                    });
+                    const available = matchingActive.some(function (item) {
                         return item.stock > 0;
                     });
+                    const unavailableReason = matchingActive.length === 0
+                            ? "Ngừng kinh doanh" : "Hết hàng";
 
                     const button = document.createElement("button");
                     button.type = "button";
@@ -2484,7 +2558,7 @@
                     button.dataset.valueKey = attr.key;
                     button.disabled = !available;
                     button.setAttribute("aria-pressed", "false");
-                    button.title = available ? "Chọn " + attr.label : "Hết hàng";
+                    button.title = available ? "Chọn " + attr.label : unavailableReason;
 
                     if (foldText(displayName(id)).includes("mau sac")) {
                         // Chỉ dùng ảnh thực sự gắn với một SKU mang màu này.
@@ -2518,7 +2592,7 @@
 
                     if (!available) {
                         const soldOut = document.createElement("small");
-                        soldOut.textContent = "(Hết hàng)";
+                        soldOut.textContent = "(" + unavailableReason + ")";
                         button.appendChild(soldOut);
                     }
 
@@ -2527,7 +2601,7 @@
                             return item.radio.checked;
                         }) || variants[0];
                         const candidates = matching.filter(function (item) {
-                            return item.stock > 0;
+                            return item.active && item.stock > 0;
                         });
                         if (!candidates.length) {
                             return;
@@ -2624,6 +2698,7 @@
                                         );
 
                         if (!checked
+                                || checked.dataset.active !== "true"
                                 || Number(checked.dataset.stock) <= 0) {
 
                             event.preventDefault();
