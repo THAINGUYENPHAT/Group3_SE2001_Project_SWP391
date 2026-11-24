@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public final class OrderInventoryDAO {
 
     public void deduct(Connection connection, int orderId) throws SQLException {
@@ -18,7 +17,6 @@ public final class OrderInventoryDAO {
         adjust(connection, orderId, false);
     }
 
-    
     public void reserve(Connection connection, int orderId) throws SQLException {
         changeReservation(connection, orderId, true);
     }
@@ -60,6 +58,15 @@ public final class OrderInventoryDAO {
         if (count == 0) throw new SQLException("Không có SKU trong đơn hàng.");
     }
 
+    public boolean usesReservations(Connection connection) throws SQLException {
+        String sql = "SELECT COL_LENGTH('dbo.PRODUCT_SKU', 'reserved_quantity')";
+        try (PreparedStatement statement = connection.prepareStatement(sql);
+                ResultSet row = statement.executeQuery()) {
+            row.next();
+            return row.getObject(1) != null;
+        }
+    }
+
     private void adjust(Connection connection, int orderId, boolean deduct) throws SQLException {
         List<long[]> items = new ArrayList<>();
         String itemsSql = "SELECT sku_id, SUM(CAST(quantity AS bigint)) AS quantity "
@@ -79,31 +86,41 @@ public final class OrderInventoryDAO {
         if (items.isEmpty()) {
             throw new SQLException("Đơn hàng không có sản phẩm.");
         }
-        String updateSql = deduct
-                ? "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity - ?, "
-                + "reserved_quantity = reserved_quantity - ? "
-                + "WHERE sku_id = ? AND reserved_quantity >= ? AND stock_quantity >= ?"
-                : "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity + ? WHERE sku_id = ?";
+        boolean consumeReservation = deduct && usesReservations(connection);
+        String updateSql;
+        if (consumeReservation) {
+            updateSql = "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity - ?, "
+                    + "reserved_quantity = reserved_quantity - ? "
+                    + "WHERE sku_id = ? AND reserved_quantity >= ? AND stock_quantity >= ?";
+        } else if (deduct) {
+            updateSql = "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity - ? "
+                    + "WHERE sku_id = ? AND stock_quantity >= ? AND is_active = 1";
+        } else {
+            updateSql = "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity + ? WHERE sku_id = ?";
+        }
         try (PreparedStatement statement = connection.prepareStatement(updateSql)) {
             for (long[] item : items) {
+                int skuId = Math.toIntExact(item[0]);
                 statement.setLong(1, item[1]);
-                if (deduct) {
+                if (consumeReservation) {
                     statement.setLong(2, item[1]);
-                    statement.setInt(3, (int) item[0]);
+                    statement.setInt(3, skuId);
                     statement.setLong(4, item[1]);
                     statement.setLong(5, item[1]);
                 } else {
-                    statement.setInt(2, (int) item[0]);
+                    statement.setInt(2, skuId);
+                    if (deduct) {
+                        statement.setLong(3, item[1]);
+                    }
                 }
                 if (statement.executeUpdate() != 1) {
                     if (deduct) {
-                        throw new IllegalArgumentException("SKU " + item[0]
-                                + " không đủ tồn kho để xác nhận đơn hàng. Vui lòng kiểm tra hoặc hủy đơn.");
+                        throw new IllegalArgumentException("Không thể xác nhận đơn. "
+                                + "Vui lòng kiểm tra tồn kho và trạng thái SKU #" + skuId + ".");
                     }
                     throw new SQLException("Không hoàn được tồn kho SKU " + item[0] + ".");
                 }
 
-                int skuId = Math.toIntExact(item[0]);
                 int qty = Math.toIntExact(item[1]);
 
                 InventoryMovementHelper.recordAfterDelta(
@@ -116,8 +133,6 @@ public final class OrderInventoryDAO {
                                 : "Hoan kho don hang #") + orderId,
                         null
                 );
-
-                
             }
         }
     }
