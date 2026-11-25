@@ -672,13 +672,18 @@ public class OrderService {
         for (Map<String, Object> entry : history) {
             String status = (String) entry.get("status");
             String label = statusLabel(status);
-            if (java.util.Objects.equals(status, entry.get("oldStatus"))) {
+
+            if ("CANCELLED".equals(normalizeStatus(status))
+                    && "STAFF".equals(entry.get("actorType"))) {
+                label = "Nhân viên đã hủy";
+            } else if (java.util.Objects.equals(status, entry.get("oldStatus"))) {
                 if ("CUSTOMER".equals(entry.get("actorType"))) {
                     label = "Đã gửi yêu cầu hủy";
                 } else if ("STAFF".equals(entry.get("actorType"))) {
                     label = "Nhân viên đã từ chối yêu cầu hủy";
                 }
             }
+
             entry.put("label", label);
         }
 

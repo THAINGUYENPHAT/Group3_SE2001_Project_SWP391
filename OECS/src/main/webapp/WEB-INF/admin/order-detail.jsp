@@ -882,11 +882,14 @@
                                     <tr>
                                         <td>
                                             <strong><c:out value="${item.productName}" /></strong>
-                                            <small>Dòng đơn #${item.orderItemId}</small>
+                                            <c:if test="${not empty item.variantDescription}">
+                                                <small>Phiên bản: <c:out value="${item.variantDescription}" /></small>
+                                            </c:if>
+                                            
                                         </td>
                                         <td>
                                             <c:out value="${item.skuCode}" />
-                                            <small>SKU #${item.skuId}</small>
+                                           
                                         </td>
                                         <td>${item.quantity}</td>
                                         <td class="price"><fmt:formatNumber value="${item.price}" type="number" /> ₫</td>

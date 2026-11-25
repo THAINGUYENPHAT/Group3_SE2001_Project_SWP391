@@ -75,10 +75,23 @@ public class AdminOrderDAO extends DBContext {
         String sql = "SELECT oi.order_item_id, oi.order_id, oi.sku_id, oi.price, oi.quantity, "
                 + "COALESCE(oi.product_name_snapshot,p.product_name) AS product_name, "
                 + "COALESCE(oi.sku_code_snapshot,s.sku_code) AS sku_code, "
-                + "s.stock_quantity "
+                + "s.stock_quantity, v.variant_description "
                 + "FROM dbo.ORDER_ITEM oi "
                 + "JOIN dbo.PRODUCT_SKU s ON oi.sku_id = s.sku_id "
                 + "JOIN dbo.PRODUCT p ON s.product_id = p.product_id "
+                + "OUTER APPLY ( "
+                + "    SELECT STRING_AGG(CONVERT(nvarchar(max), "
+                + "        CONCAT(a.attribute_name, N': ', COALESCE( "
+                + "            NULLIF(LTRIM(RTRIM(sav.text_value)), N''), "
+                + "            FORMAT(sav.numeric_value, '0.####', 'en-US') + COALESCE(a.unit, N''), "
+                + "            CASE sav.boolean_value WHEN 1 THEN N'Có' WHEN 0 THEN N'Không' END "
+                + "        ))), N' · ') WITHIN GROUP (ORDER BY a.attribute_id) AS variant_description "
+                + "    FROM dbo.SKU_ATTRIBUTE_VALUE sav "
+                + "    JOIN dbo.ATTRIBUTE a ON a.attribute_id = sav.attribute_id "
+                + "    WHERE sav.sku_id = oi.sku_id "
+                + "      AND (NULLIF(LTRIM(RTRIM(sav.text_value)), N'') IS NOT NULL "
+                + "           OR sav.numeric_value IS NOT NULL OR sav.boolean_value IS NOT NULL) "
+                + ") v "
                 + "WHERE oi.order_id = ? ORDER BY oi.order_item_id";
 
         try (Connection conn = getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
@@ -109,6 +122,7 @@ public class AdminOrderDAO extends DBContext {
                     );
                     item.setProductName(rs.getString("product_name"));
                     item.setSkuCode(rs.getString("sku_code"));
+                    item.setVariantDescription(rs.getString("variant_description"));
                     item.setStockQuantity(rs.getInt("stock_quantity"));
 
                     list.add(item);
