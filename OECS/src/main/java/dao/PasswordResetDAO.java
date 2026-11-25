@@ -19,7 +19,7 @@ public class PasswordResetDAO {
                 Integer userId = null;
                 int resetId = 0;
                 String select = "SELECT reset_id,user_id FROM dbo.PASSWORD_RESET_TOKEN "
-                        + "WITH (UPDLOCK,HOLDLOCK) WHERE token_hash=? "
+                        + "WITH (UPDLOCK) WHERE token_hash=? "
                         + "AND used_at IS NULL AND expires_at>GETDATE()";
                 try (PreparedStatement ps = conn.prepareStatement(select)) {
                     ps.setString(1, tokenHash);
@@ -115,23 +115,6 @@ public class PasswordResetDAO {
         }
 
         return null;
-    }
-
-    
-    public boolean markAsUsed(int resetId) throws SQLException {
-
-        String sql = "UPDATE PASSWORD_RESET_TOKEN "
-                + "SET used_at = GETDATE() "
-                + "WHERE reset_id = ? "
-                + "AND used_at IS NULL";
-
-        try (Connection connection = new DBContext().getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
-
-            ps.setInt(1, resetId);
-
-            return ps.executeUpdate() > 0;
-        }
     }
 
    

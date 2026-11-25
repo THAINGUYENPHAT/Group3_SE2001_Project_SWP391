@@ -565,13 +565,6 @@ public class UserDAO extends DBContext {
         return null;
     }
 
-    public boolean resetPassword(int userId, String rawNewPassword)
-            throws SQLException {
-        try (Connection connection = getConnection()) {
-            return resetPassword(connection, userId, rawNewPassword);
-        }
-    }
-
 
     public boolean resetPassword(Connection connection, int userId, String rawNewPassword)
             throws SQLException {
