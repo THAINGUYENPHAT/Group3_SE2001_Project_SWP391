@@ -429,6 +429,133 @@
             padding: 18px;
         }
     }
+
+    /* Gallery navigation and lightbox */
+    #mainProductImage {
+        cursor: zoom-in;
+    }
+
+    #mainProductImage:focus-visible,
+    .gallery-nav:focus-visible,
+    .lightbox-close:focus-visible {
+        outline: 3px solid #93c5fd;
+        outline-offset: -3px;
+    }
+
+    .gallery-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 42px;
+        height: 42px;
+        border: 1px solid #e2e8f0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .95);
+        color: #334155;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        cursor: pointer;
+        z-index: 5;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .1);
+    }
+
+    .gallery-nav:hover {
+        background: #0d6efd;
+        color: #fff;
+    }
+
+    .gallery-nav[hidden] {
+        display: none !important;
+    }
+
+    .gallery-prev {
+        left: 10px;
+    }
+    .gallery-next {
+        right: 10px;
+    }
+
+    .product-lightbox {
+        width: min(94vw, 1100px);
+        max-width: none;
+        max-height: 95vh;
+        margin: auto;
+        padding: 16px;
+        border: none;
+        border-radius: 18px;
+        background: #fff;
+        color: #334155;
+        box-shadow: 0 20px 70px rgba(0, 0, 0, .3);
+    }
+
+    .product-lightbox::backdrop {
+        background: rgba(0, 0, 0, .85);
+    }
+
+    .lightbox-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 12px;
+    }
+
+    .lightbox-close {
+        width: 38px;
+        height: 38px;
+        border: none;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+    .lightbox-close:hover {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .lightbox-stage {
+        position: relative;
+        width: 100%;
+        height: min(75vh, 750px);
+    }
+
+    .lightbox-stage img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .lightbox-stage .gallery-nav {
+        width: 48px;
+        height: 48px;
+    }
+
+    .lightbox-counter {
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        color: #64748b;
+        padding-top: 12px;
+    }
+
+    @media (max-width: 575.98px) {
+        .gallery-nav,
+        .lightbox-stage .gallery-nav {
+            width: 34px;
+            height: 34px;
+            font-size: 16px;
+        }
+        .product-lightbox {
+            padding: 10px;
+        }
+        .lightbox-stage {
+            height: 65vh;
+        }
+    }
 </style>
 
 <div class="detail-page">
@@ -473,12 +600,27 @@
                     <div class="gallery-main mb-2">
 
                         <img id="mainProductImage"
-                             src=""
                              alt="Ảnh sản phẩm"
+                             role="button"
+                             tabindex="0"
+                             aria-label="Phóng to ảnh sản phẩm"
+                             aria-haspopup="dialog"
                              style="display:none;">
 
                         <i id="galleryPlaceholder"
                            class="bi bi-image gallery-placeholder-icon"></i>
+
+                        <button type="button" id="galleryPrev"
+                                class="gallery-nav gallery-prev"
+                                aria-label="Ảnh trước" hidden>
+                            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                        </button>
+
+                        <button type="button" id="galleryNext"
+                                class="gallery-nav gallery-next"
+                                aria-label="Ảnh tiếp theo" hidden>
+                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                        </button>
 
                         <span id="galleryCount"
                               class="gallery-count"
@@ -882,7 +1024,7 @@
             </div>
         </div>
 
-       
+
 
         <style>
             .product-description-section {
@@ -1000,7 +1142,7 @@
                                 <div id="descContent"
                                      class="product-description-content collapsed">
 
-                                   
+
                                     <c:if test="${not empty product.description}">
 
                                         <div class="product-description-intro">
@@ -1194,7 +1336,7 @@
 
                 </c:choose>
 
-         
+
 
                 <c:choose>
 
@@ -1709,6 +1851,29 @@
     </div>
 </div>
 
+<dialog id="productLightbox" class="product-lightbox"
+        aria-labelledby="lightboxTitle">
+    <div class="lightbox-header">
+        <strong id="lightboxTitle">Hình ảnh sản phẩm</strong>
+        <button type="button" id="lightboxClose" class="lightbox-close"
+                aria-label="Đóng cửa sổ xem ảnh" autofocus>
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </div>
+    <div class="lightbox-stage">
+        <img id="lightboxImage" alt="Ảnh sản phẩm phóng to">
+        <button type="button" id="lightboxPrev"
+                class="gallery-nav gallery-prev" aria-label="Ảnh trước" hidden>
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+        </button>
+        <button type="button" id="lightboxNext"
+                class="gallery-nav gallery-next" aria-label="Ảnh tiếp theo" hidden>
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </button>
+    </div>
+    <div id="lightboxCounter" class="lightbox-counter" aria-live="polite"></div>
+</dialog>
+
 <div id="productGalleryData" hidden>
 
     <c:if test="${not empty product.imageUrl}">
@@ -1863,7 +2028,7 @@
                                 )
                         );
 
-       
+
 
         const skuGalleries = new Map();
 
@@ -1876,7 +2041,7 @@
                             );
                 });
 
-      
+
 
         function showMainImage(image, index, total) {
 
@@ -1904,86 +2069,179 @@
             galleryCount.style.display = "";
         }
 
-        
 
-        function renderGallery(images, isSkuGallery) {
 
-            galleryThumbnails.replaceChildren();
+        // ========================================
+        // GALLERY NAVIGATION & LIGHTBOX
+        // ========================================
+        const galleryPrev = document.getElementById("galleryPrev");
+        const galleryNext = document.getElementById("galleryNext");
+        const lightbox = document.getElementById("productLightbox");
+        const lightboxImage = document.getElementById("lightboxImage");
+        const lightboxPrev = document.getElementById("lightboxPrev");
+        const lightboxNext = document.getElementById("lightboxNext");
+        const lightboxClose = document.getElementById("lightboxClose");
+        const lightboxCounter = document.getElementById("lightboxCounter");
+        const galleryElement = mainImage.closest(".detail-gallery");
 
-            gallerySourceLabel.textContent =
-                    isSkuGallery
-                    ? "Hình ảnh của phiên bản đang chọn"
-                    : "Hình ảnh chung của sản phẩm";
+        let currentGallery = [];
+        let currentImageIndex = 0;
 
-            if (!images || images.length === 0) {
+        function updateGalleryControls() {
+            const hide = currentGallery.length <= 1;
+            galleryPrev.hidden = hide;
+            galleryNext.hidden = hide;
+            lightboxPrev.hidden = hide;
+            lightboxNext.hidden = hide;
+        }
 
-                showMainImage(null, 0, 0);
-                gallerySourceLabel.textContent =
-                        "Sản phẩm chưa có hình ảnh.";
+        function updateLightbox() {
+            const image = currentGallery[currentImageIndex];
+            if (!image) {
+                return;
+            }
+            lightboxImage.src = image.url;
+            lightboxImage.alt = image.alt;
+            lightboxCounter.textContent = (currentImageIndex + 1)
+                    + " / " + currentGallery.length;
+        }
 
+        function selectGalleryImage(index) {
+            const total = currentGallery.length;
+            if (total === 0) {
                 return;
             }
 
-            function selectImage(index) {
+            // Quay vòng từ ảnh cuối về ảnh đầu và ngược lại.
+            currentImageIndex = ((index % total) + total) % total;
+            showMainImage(currentGallery[currentImageIndex], currentImageIndex, total);
 
-                showMainImage(
-                        images[index],
-                        index,
-                        images.length
-                        );
+            galleryThumbnails.querySelectorAll(".gallery-thumb-button")
+                    .forEach(function (button, buttonIndex) {
+                        const selected = buttonIndex === currentImageIndex;
+                        button.classList.toggle("active", selected);
+                        button.setAttribute("aria-pressed", String(selected));
 
-                galleryThumbnails
-                        .querySelectorAll(".gallery-thumb-button")
-                        .forEach(function (button, buttonIndex) {
+                        if (selected) {
+                            const thumbRect = button.getBoundingClientRect();
+                            const galleryRect = galleryThumbnails.getBoundingClientRect();
+                            if (thumbRect.left < galleryRect.left) {
+                                galleryThumbnails.scrollLeft -= galleryRect.left - thumbRect.left;
+                            } else if (thumbRect.right > galleryRect.right) {
+                                galleryThumbnails.scrollLeft += thumbRect.right - galleryRect.right;
+                            }
+                        }
+                    });
 
-                            const selected =
-                                    buttonIndex === index;
+            if (lightbox.open) {
+                updateLightbox();
+            }
+        }
 
-                            button.classList.toggle(
-                                    "active",
-                                    selected
-                                    );
+        function moveGalleryImage(direction) {
+            selectGalleryImage(currentImageIndex + direction);
+        }
 
-                            button.setAttribute(
-                                    "aria-pressed",
-                                    String(selected)
-                                    );
-                        });
+        function openLightbox() {
+            if (currentGallery.length === 0 || lightbox.open) {
+                return;
+            }
+            updateLightbox();
+            lightbox.showModal();
+        }
+
+        function closeLightbox() {
+            if (lightbox.open) {
+                lightbox.close();
+            }
+        }
+
+        function renderGallery(images, isSkuGallery) {
+            currentGallery = images || [];
+            currentImageIndex = 0;
+            galleryThumbnails.replaceChildren();
+            galleryThumbnails.scrollLeft = 0;
+            gallerySourceLabel.textContent = isSkuGallery
+                    ? "Hình ảnh của phiên bản đang chọn"
+                    : "Hình ảnh chung của sản phẩm";
+            updateGalleryControls();
+
+            if (currentGallery.length === 0) {
+                showMainImage(null, 0, 0);
+                closeLightbox();
+                gallerySourceLabel.textContent = "Sản phẩm chưa có hình ảnh.";
+                return;
             }
 
-            images.forEach(function (image, index) {
-
-                const button =
-                        document.createElement("button");
-
+            currentGallery.forEach(function (image, index) {
+                const button = document.createElement("button");
                 button.type = "button";
                 button.className = "gallery-thumb-button";
+                button.setAttribute("aria-label", "Xem ảnh " + (index + 1));
 
-                button.setAttribute(
-                        "aria-label",
-                        "Xem ảnh " + (index + 1)
-                        );
-
-                const thumb =
-                        document.createElement("img");
-
+                const thumb = document.createElement("img");
                 thumb.src = image.url;
                 thumb.alt = image.alt;
                 thumb.loading = "lazy";
-
                 button.appendChild(thumb);
-
                 button.addEventListener("click", function () {
-                    selectImage(index);
+                    selectGalleryImage(index);
                 });
-
                 galleryThumbnails.appendChild(button);
             });
 
-            selectImage(0);
+            selectGalleryImage(0);
         }
 
-       
+        galleryPrev.addEventListener("click", function () {
+            moveGalleryImage(-1);
+        });
+        galleryNext.addEventListener("click", function () {
+            moveGalleryImage(1);
+        });
+        lightboxPrev.addEventListener("click", function () {
+            moveGalleryImage(-1);
+        });
+        lightboxNext.addEventListener("click", function () {
+            moveGalleryImage(1);
+        });
+        mainImage.addEventListener("click", openLightbox);
+        mainImage.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openLightbox();
+            }
+        });
+        lightboxClose.addEventListener("click", closeLightbox);
+
+        // Nhấp vào nền bên ngoài dialog để đóng.
+        lightbox.addEventListener("click", function (event) {
+            if (event.target !== lightbox) {
+                return;
+            }
+            const rect = lightbox.getBoundingClientRect();
+            if (event.clientX < rect.left || event.clientX > rect.right
+                    || event.clientY < rect.top || event.clientY > rect.bottom) {
+                closeLightbox();
+            }
+        });
+
+        // Esc được dialog hỗ trợ sẵn. Không chiếm phím của form chọn SKU.
+        document.addEventListener("keydown", function (event) {
+            if (event.defaultPrevented || event.altKey || event.ctrlKey
+                    || event.metaKey || event.shiftKey || currentGallery.length <= 1) {
+                return;
+            }
+            const focused = document.activeElement;
+            if (!lightbox.open && focused !== document.body
+                    && !galleryElement.contains(focused)) {
+                return;
+            }
+            if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                event.preventDefault();
+                moveGalleryImage(event.key === "ArrowLeft" ? -1 : 1);
+            }
+        });
 
         function formatPrice(value) {
 
@@ -2679,7 +2937,7 @@
                                     "descContainer"
                                     ).scrollIntoView({
                                 behavior: "smooth",
-                                block: "start"
+                                block: "starts"
                             });
                         }
                     });
