@@ -32,7 +32,9 @@ public final class OrderInventoryDAO {
                 + "FROM dbo.ORDER_ITEM WHERE order_id=? GROUP BY sku_id ORDER BY sku_id";
         String updateSql = reserve
                 ? "UPDATE dbo.PRODUCT_SKU SET reserved_quantity=reserved_quantity+? "
-                + "WHERE sku_id=? AND stock_quantity-reserved_quantity>=?"
+                + "WHERE sku_id=? AND stock_quantity-reserved_quantity>=? AND is_active=1 "
+                + "AND EXISTS (SELECT 1 FROM dbo.PRODUCT p WITH (HOLDLOCK) "
+                + "WHERE p.product_id=PRODUCT_SKU.product_id AND p.is_active=1)"
                 : "UPDATE dbo.PRODUCT_SKU SET reserved_quantity=reserved_quantity-? "
                 + "WHERE sku_id=? AND reserved_quantity>=?";
         int count = 0;
@@ -49,7 +51,8 @@ public final class OrderInventoryDAO {
                     update.setInt(3, quantity);
                     if (update.executeUpdate() != 1) {
                         throw new IllegalArgumentException("SKU " + skuId
-                                + (reserve ? " không đủ hàng khả dụng." : " không đủ hàng giữ chỗ."));
+                                + (reserve ? " đã ngừng bán hoặc không đủ hàng khả dụng."
+                                        : " không đủ hàng giữ chỗ."));
                     }
                     count++;
                 }
@@ -91,10 +94,14 @@ public final class OrderInventoryDAO {
         if (consumeReservation) {
             updateSql = "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity - ?, "
                     + "reserved_quantity = reserved_quantity - ? "
-                    + "WHERE sku_id = ? AND reserved_quantity >= ? AND stock_quantity >= ?";
+                    + "WHERE sku_id = ? AND reserved_quantity >= ? AND stock_quantity >= ? AND is_active = 1 "
+                    + "AND EXISTS (SELECT 1 FROM dbo.PRODUCT p WITH (HOLDLOCK) "
+                    + "WHERE p.product_id=PRODUCT_SKU.product_id AND p.is_active=1)";
         } else if (deduct) {
             updateSql = "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity - ? "
-                    + "WHERE sku_id = ? AND stock_quantity >= ? AND is_active = 1";
+                    + "WHERE sku_id = ? AND stock_quantity >= ? AND is_active = 1 "
+                    + "AND EXISTS (SELECT 1 FROM dbo.PRODUCT p WITH (HOLDLOCK) "
+                    + "WHERE p.product_id=PRODUCT_SKU.product_id AND p.is_active=1)";
         } else {
             updateSql = "UPDATE dbo.PRODUCT_SKU SET stock_quantity = stock_quantity + ? WHERE sku_id = ?";
         }
@@ -116,7 +123,7 @@ public final class OrderInventoryDAO {
                 if (statement.executeUpdate() != 1) {
                     if (deduct) {
                         throw new IllegalArgumentException("Không thể xác nhận đơn. "
-                                + "Vui lòng kiểm tra tồn kho và trạng thái SKU #" + skuId + ".");
+                                + "Vui lòng kiểm tra tồn kho và trạng thái bán của SKU #" + skuId + ".");
                     }
                     throw new SQLException("Không hoàn được tồn kho SKU " + item[0] + ".");
                 }

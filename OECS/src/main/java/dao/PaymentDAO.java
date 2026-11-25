@@ -256,15 +256,19 @@ public class PaymentDAO {
                 }
 
                 PaymentGateway.requireConfigured(order.method);
+                BigDecimal payable = PaymentGateway.roundVnd(order.amount);
+                if (payable.signum() <= 0) {
+                    throw new IllegalArgumentException("Số tiền không hợp lệ để thanh toán online. Vui lòng đổi sang COD.");
+                }
 
                 String sql
                         = "SELECT TOP 1 transaction_code, pay_url, "
                         + "DATEDIFF(SECOND, created_at, "
-                        + "SYSUTCDATETIME()) AS age "
+                        + "SYSDATETIME()) AS age "
                         + "FROM dbo.PAYMENT_TRANSACTION "
                         + "WHERE order_id = ? "
                         + "AND payment_method = ? "
-                        + "AND status = 'PENDING' "
+                        + "AND status = 'PENDING' AND amount = ? "
                         + "ORDER BY transaction_id DESC";
 
                 try (PreparedStatement ps
@@ -272,6 +276,7 @@ public class PaymentDAO {
 
                     ps.setInt(1, orderId);
                     ps.setString(2, order.method);
+                    ps.setBigDecimal(3, payable);
 
                     try (ResultSet rs = ps.executeQuery()) {
                         if (rs.next()) {
@@ -282,7 +287,7 @@ public class PaymentDAO {
                                         rs.getString("transaction_code"),
                                         order.method,
                                         url,
-                                        order.amount,
+                                        payable,
                                         order.seconds
                                 );
 
@@ -321,7 +326,7 @@ public class PaymentDAO {
                         + "transaction_code) VALUES (?, ?, ?, ?)",
                         orderId,
                         order.method,
-                        order.amount,
+                        payable,
                         ref
                 );
 
@@ -331,7 +336,7 @@ public class PaymentDAO {
                         ref,
                         order.method,
                         null,
-                        order.amount,
+                        payable,
                         order.seconds
                 );
 
@@ -519,7 +524,7 @@ public class PaymentDAO {
                 }
 
                 if (expectedAmount.compareTo(amount) != 0
-                        || order.amount.compareTo(amount) != 0) {
+                        || PaymentGateway.roundVnd(order.amount).compareTo(amount) != 0) {
 
                     connection.rollback();
                     return "04";

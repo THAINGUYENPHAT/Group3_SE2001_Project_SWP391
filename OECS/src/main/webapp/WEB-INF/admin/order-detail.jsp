@@ -944,7 +944,24 @@
                     <c:if test="${canAdvanceOrder or canStaffCancel or pendingCancel or needsManualRefund}">
                         <div class="action-box">
                             <c:if test="${needsManualRefund}">
-                                <p>Đơn đã thanh toán online. Vui lòng liên hệ khách để xử lý hoàn tiền thủ công.</p>
+                                <p>Đối chiếu khoản đã thu và lịch sử hoàn tiền trên cổng thanh toán trước khi hoàn thủ công.</p>
+                                <c:if test="${empty successfulPayments}">
+                                    <p>Chưa tìm thấy giao dịch online đã thu tiền cho đơn này.</p>
+                                </c:if>
+                                <c:if test="${not empty successfulPayments}">
+                                    <ul>
+                                        <c:forEach var="payment" items="${successfulPayments}">
+                                            <li>
+                                                <c:out value="${payment.method}"/> ·
+                                                <fmt:formatNumber value="${payment.amount}" maxFractionDigits="0"/> đ ·
+                                                Mã giao dịch <c:out value="${payment.reference}"/>
+                                                <c:if test="${not empty payment.providerReference}">
+                                                    · Mã tại cổng <c:out value="${payment.providerReference}"/>
+                                                </c:if>
+                                            </li>
+                                        </c:forEach>
+                                    </ul>
+                                </c:if>
                             </c:if>
                             <c:if test="${canAdvanceOrder and status eq 'SHIPPING' and order.paymentMethod eq 'COD' and order.totalAmount gt 0}">
                                 <p>Xác nhận sau khi đã giao hàng và thu đủ tiền COD.</p>

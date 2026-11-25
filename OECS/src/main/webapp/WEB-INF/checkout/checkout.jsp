@@ -769,14 +769,13 @@
                         ${vnpayAvailable ? '' : 'disabled'}>
 
                     <span class="fw-semibold ms-2">
-                        VNPay
+                        VNPay / Ngân hàng
                     </span>
 
                     <div class="text-muted small ms-4 mt-1">
                         <c:choose>
                             <c:when test="${vnpayAvailable}">
-                                Thanh toán qua VNPay Sandbox.
-                                Vui lòng thanh toán trong 15 phút. Tồn kho được kiểm tra khi nhân viên xác nhận.
+                                Chọn ngân hàng hoặc quét mã QR tại VNPay.
                             </c:when>
                             <c:otherwise>
                                 Chưa cấu hình tài khoản VNPay Sandbox.
@@ -785,8 +784,7 @@
                     </div>
                 </label>
 
-
-
+                <p class="text-muted small mt-3 mb-0">Đơn thanh toán online được giữ chỗ trong 15 phút.</p>
             </div>
 
         </div>

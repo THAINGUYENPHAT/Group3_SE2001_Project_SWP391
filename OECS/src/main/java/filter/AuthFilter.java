@@ -37,9 +37,7 @@ public class AuthFilter implements Filter {
             "/favicon.ico",
             "/guide",
             "/payment/vnpay/ipn",
-            "/payment/momo/ipn",
-            "/payment/vnpay/return",
-            "/payment/momo/return"
+            "/payment/vnpay/return"
     );
 
     private static final List<String> CUSTOMER_URLS = Arrays.asList(

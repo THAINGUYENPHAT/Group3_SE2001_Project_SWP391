@@ -13,9 +13,6 @@ public final class PaymentReturnChecks {
     public static void main(String[] args) throws Exception {
         System.setProperty("VNPAY_TMN_CODE", "test-merchant");
         System.setProperty("VNPAY_HASH_SECRET", "test-secret");
-        System.setProperty("MOMO_PARTNER_CODE", "test-partner");
-        System.setProperty("MOMO_ACCESS_KEY", "test-access");
-        System.setProperty("MOMO_SECRET_KEY", "test-secret");
 
         Map<String, String> vnp = new HashMap<>();
         vnp.put("vnp_TmnCode", "test-merchant");
@@ -24,40 +21,21 @@ public final class PaymentReturnChecks {
         vnp.put("vnp_ResponseCode", "00");
         vnp.put("vnp_TransactionStatus", "00");
         signVnp(vnp);
-        check("vnpay", vnp, true, false);
-        check("vnpay", vnp, false, true);
+        check(vnp, true, false);
+        check(vnp, false, true);
         vnp.put("vnp_ResponseCode", "24");
         signVnp(vnp);
-        check("vnpay", vnp, false, false);
+        check(vnp, false, false);
         vnp.put("vnp_ResponseCode", "00"); // Tamper with a signed cancellation.
-        check("vnpay", vnp, false, false);
+        check(vnp, false, false);
         vnp.put("vnp_TransactionStatus", "02");
         signVnp(vnp);
-        check("vnpay", vnp, false, false);
-        check("vnpay", new HashMap<>(), false, false);
+        check(vnp, false, false);
+        check(new HashMap<>(), false, false);
 
-        Map<String, String> momo = new HashMap<>();
-        for (String key : new String[]{"amount", "extraData", "message", "orderInfo",
-            "orderType", "payType", "responseTime", "transId"}) {
-            momo.put(key, "test");
-        }
-        momo.put("amount", "100000");
-        momo.put("partnerCode", "test-partner");
-        momo.put("orderId", "OECS-test");
-        momo.put("requestId", "OECS-test");
-        momo.put("resultCode", "0");
-        signMomo(momo);
-        check("momo", momo, true, false);
-        check("momo", momo, false, true);
-        momo.put("resultCode", "1006");
-        signMomo(momo);
-        check("momo", momo, false, false);
-        momo.put("resultCode", "0");
-        check("momo", momo, false, false);
-        check("momo", new HashMap<>(), false, false);
         System.clearProperty("VNPAY_HASH_SECRET");
-        check("vnpay", vnp, false, false);
-        System.out.println("Passed 12 payment return checks.");
+        check(vnp, false, false);
+        System.out.println("Passed 7 VNPay return checks.");
     }
 
     private static void signVnp(Map<String, String> params) {
@@ -65,19 +43,11 @@ public final class PaymentReturnChecks {
                 PaymentGateway.vnpCanonical(params)));
     }
 
-    private static void signMomo(Map<String, String> params) {
-        Map<String, String> signed = new HashMap<>(params);
-        signed.remove("signature");
-        signed.put("accessKey", "test-access");
-        params.put("signature", PaymentGateway.hmac("HmacSHA256", "test-secret",
-                PaymentGateway.raw(signed)));
-    }
-
-    private static void check(String provider, Map<String, String> params,
+    private static void check(Map<String, String> params,
             boolean expected, boolean duplicate) throws Exception {
         Map<String, String[]> query = new HashMap<>();
         params.forEach((key, value) -> query.put(key, new String[]{value}));
-        if (duplicate) query.put("resultCode", new String[]{"0", "1006"});
+        if (duplicate) query.put("vnp_ResponseCode", new String[]{"00", "24"});
         Map<String, Object> attributes = new HashMap<>();
         boolean[] forwarded = {false};
         RequestDispatcher dispatcher = (RequestDispatcher) Proxy.newProxyInstance(
@@ -87,7 +57,7 @@ public final class PaymentReturnChecks {
                 PaymentReturnChecks.class.getClassLoader(), new Class<?>[]{HttpServletRequest.class},
                 (proxy, method, args) -> {
                     switch (method.getName()) {
-                        case "getServletPath": return "/payment/" + provider + "/return";
+                        case "getServletPath": return "/payment/vnpay/return";
                         case "getParameterMap": return query;
                         case "setAttribute": attributes.put((String) args[0], args[1]); return null;
                         case "getRequestDispatcher":
@@ -108,7 +78,7 @@ public final class PaymentReturnChecks {
                 });
         new PaymentCallbackServlet().doGet(request, response);
         if (!forwarded[0] || !Boolean.valueOf(expected).equals(attributes.get("paymentSuccess"))) {
-            throw new AssertionError(provider + " returned incorrect payment result");
+            throw new AssertionError("VNPay returned incorrect payment result");
         }
     }
 }

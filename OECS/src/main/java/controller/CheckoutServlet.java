@@ -266,9 +266,9 @@ public class CheckoutServlet extends HttpServlet {
             session.removeAttribute("selectedAddressId");
         }
 
-        double subtotal = calculateSubtotal(cartItems);
-        double shippingFee = OrderService.calculateShippingFee(BigDecimal.valueOf(subtotal)).doubleValue();
-        double discount = 0;
+        BigDecimal subtotal = calculateSubtotal(cartItems);
+        BigDecimal shippingFee = OrderService.calculateShippingFee(subtotal);
+        BigDecimal discount = BigDecimal.ZERO;
 
         Voucher appliedVoucher =
                 (Voucher) session.getAttribute("appliedVoucher");
@@ -276,17 +276,17 @@ public class CheckoutServlet extends HttpServlet {
         if (appliedVoucher != null) {
             Voucher valid = voucherDAO.getValidVoucher(
                     appliedVoucher.getCode(),
-                    subtotal,
+                    subtotal.doubleValue(),
                     userId
             );
 
             if (valid != null) {
                 appliedVoucher = valid;
 
-                discount = voucherDAO.calculateDiscount(
-                        valid,
-                        subtotal
-                );
+                Double maxDiscount = valid.getMaxDiscount();
+                discount = OrderService.calculateVoucherDiscount(subtotal, valid.getDiscountType(),
+                        BigDecimal.valueOf(valid.getDiscountValue()),
+                        maxDiscount == null ? null : BigDecimal.valueOf(maxDiscount));
 
                 session.setAttribute("appliedVoucher", valid);
             } else {
@@ -302,7 +302,7 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         List<Voucher> availableVouchers =
-                voucherDAO.getAvailableVouchers(subtotal, userId);
+                voucherDAO.getAvailableVouchers(subtotal.doubleValue(), userId);
 
         request.setAttribute("cartItems", cartItems);
         request.setAttribute("addresses", addresses);
@@ -315,7 +315,7 @@ public class CheckoutServlet extends HttpServlet {
 
         request.setAttribute(
                 "totalAmount",
-                Math.max(0, subtotal + shippingFee - discount)
+                OrderService.calculateTotalAmount(subtotal, shippingFee, discount)
         );
 
         try {
@@ -709,11 +709,11 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
-        double subtotal = calculateSubtotal(items);
+        BigDecimal subtotal = calculateSubtotal(items);
 
         Voucher voucher = voucherDAO.getValidVoucher(
                 code.trim(),
-                subtotal,
+                subtotal.doubleValue(),
                 user.getUserId()
         );
 
@@ -945,15 +945,15 @@ public class CheckoutServlet extends HttpServlet {
         return list;
     }
 
-    private double calculateSubtotal(List<CartItem> items) {
-        double total = 0;
+    private BigDecimal calculateSubtotal(List<CartItem> items) {
+        BigDecimal total = BigDecimal.ZERO;
 
         if (items == null) {
             return total;
         }
 
         for (CartItem item : items) {
-            total += item.getPrice() * item.getQuantity();
+            total = total.add(BigDecimal.valueOf(item.getPrice()).multiply(BigDecimal.valueOf(item.getQuantity())));
         }
 
         return total;

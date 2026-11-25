@@ -457,6 +457,7 @@
                 <option value="SHIPPING">Đang giao hàng</option>
                 <option value="COMPLETED">Hoàn tất</option>
                 <option value="CANCELLED">Đã hủy</option>
+                <option value="PAYMENT_REVIEW">Đã hủy/hết hạn, cần đối soát</option>
 
             </select>
         </div>
@@ -481,10 +482,12 @@
                     <c:choose>
                         <c:when test="${not empty orders}">
                             <c:forEach var="order" items="${orders}">
+                                <c:set var="needsReview" value="${(order.orderStatus eq 'CANCELLED' or order.orderStatus eq 'EXPIRED') and order.paymentStatus eq 'PAID' and order.totalAmount gt 0}"/>
                                 <tr class="order-row"
                                     data-order-id="${order.orderId}"
                                     data-recipient="<c:out value='${order.recipientName}'/>"
-                                    data-status="<c:out value='${order.orderStatus}'/>">
+                                    data-status="<c:out value='${order.orderStatus}'/>"
+                                    data-payment-review="${needsReview}">
                                     <td class="order-id-cell">
                                         #${order.orderId}
                                         <c:if test="${order.cancelRequestStatus eq 'PENDING'}">
@@ -520,7 +523,7 @@
                                         <c:choose>
                                             <c:when test="${order.paymentStatus eq 'PAID'}">
                                                 <span class="payment-badge-order is-paid"><span class="payment-dot-order"></span>Đã thanh toán</span>
-                                                <c:if test="${(order.orderStatus eq 'CANCELLED' or order.orderStatus eq 'EXPIRED') and order.totalAmount gt 0}">
+                                                <c:if test="${needsReview}">
                                                     <span class="payment-review-order">Cần đối soát</span>
                                                 </c:if>
                                             </c:when>
@@ -591,7 +594,9 @@
 
             const matchKeyword = ('#' + orderId).includes(keyword)
                     || name.includes(keyword);
-            const matchStatus = status === '' || row.dataset.status === status;
+            const matchStatus = status === 'PAYMENT_REVIEW'
+                    ? row.dataset.paymentReview === 'true'
+                    : status === '' || row.dataset.status === status;
 
             row.hidden = !(matchKeyword && matchStatus);
             if (!row.hidden) {
