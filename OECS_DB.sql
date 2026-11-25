@@ -1493,6 +1493,59 @@ WHERE NOT EXISTS (
     FROM PRODUCT p
     WHERE p.product_name = v.product_name
 );
+INSERT INTO dbo.PRODUCT_IMAGES
+    (product_id, sku_id, image_url, is_primary, display_order)
+SELECT
+    p.product_id,
+    NULL,
+    'assets/images/product_gallery/' 
+        + v.file_prefix 
+        + '-' 
+        + CAST(n.display_order AS VARCHAR(1))
+        + '.jpg',
+    0,
+    n.display_order
+FROM (VALUES
+    -- DIEN THOAI
+    (N'iPhone 15 Pro',           'ip15p'),
+    (N'iPhone 15 Pro Max',       'ip15pm'),
+    (N'iPhone 16 Pro',           'ip16p'),
+    (N'iPhone 16 Pro Max',       'ip16pm'),
+    (N'Samsung Galaxy S24 Ultra','ss24ultra'),
+    (N'Samsung Galaxy S24 Plus', 'ss24plus'),
+    (N'Samsung Galaxy A55 5G',   'ssA55'),
+    (N'Samsung Galaxy A35 5G',   'ssA35'),
+
+    -- LAPTOP
+    (N'Lenovo IdeaPad Slim 3',   'slim3'),
+    (N'Lenovo ThinkBook 14',      'book14'),
+    (N'Lenovo IdeaPad 5',         'pad5'),
+    (N'Lenovo LOQ 15',            'loq15'),
+    (N'Lenovo Legion 5',          'legion5'),
+    (N'Lenovo Legion Pro 5',      'legionpro5')
+
+) AS v(product_name, file_prefix)
+
+INNER JOIN dbo.PRODUCT p
+    ON p.product_name = v.product_name
+
+CROSS JOIN (VALUES
+    (1), (2), (3), (4), (5)
+) AS n(display_order)
+
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM dbo.PRODUCT_IMAGES pi
+    WHERE pi.product_id = p.product_id
+      AND pi.sku_id IS NULL
+      AND pi.image_url = 
+          'assets/images/product_gallery/'
+          + v.file_prefix
+          + '-'
+          + CAST(n.display_order AS VARCHAR(1))
+          + '.jpg'
+);
+GO
 GO
 IF SUBSTRING(CONTEXT_INFO(),1,8) <> 0x4F45435353454544 RETURN;
 INSERT INTO PRODUCT_SPECIFICATION (product_id, attribute_id, value)
@@ -2947,4 +3000,164 @@ IF EXISTS (
 BEGIN
     THROW 58105, N'OECS bootstrap: duplicate SKU variant combinations.', 1;
 END;
+GO
+------SKU_images------
+;WITH SkuImages AS (
+    SELECT
+        s.product_id,
+        s.sku_id,
+        CASE
+            -- iPhone 15 Pro
+            WHEN s.sku_code LIKE 'IP15P-%-BLK' THEN 'ip15p-black.jpg'
+            WHEN s.sku_code LIKE 'IP15P-%-SLV' THEN 'ip15p-silver.jpg'
+
+            -- iPhone 15 Pro Max
+            WHEN s.sku_code LIKE 'IP15PM-%-BLK' THEN 'ip15pm-black.jpg'
+            WHEN s.sku_code LIKE 'IP15PM-%-NAT' THEN 'ip15pm-natural.jpg'
+
+            -- iPhone 16 Pro
+            WHEN s.sku_code LIKE 'IP16P-%-BLK' THEN 'ip16p-black.jpg'
+            WHEN s.sku_code LIKE 'IP16P-%-WHT' THEN 'ip16p-white.jpg'
+
+            -- iPhone 16 Pro Max
+            WHEN s.sku_code LIKE 'IP16PM-%-BLK' THEN 'ip16pm-black.jpg'
+            WHEN s.sku_code LIKE 'IP16PM-%-DES' THEN 'ip16pm-desert.jpg'
+
+            -- Samsung Galaxy S24 Ultra
+            WHEN s.sku_code LIKE 'SS-S24U-%-BLK' THEN 's24u-black.jpg'
+            WHEN s.sku_code LIKE 'SS-S24U-%-GRY' THEN 's24u-gray.jpg'
+
+            -- Samsung Galaxy S24 Plus
+            WHEN s.sku_code LIKE 'SS-S24P-%-BLK' THEN 's24p-black.jpg'
+            WHEN s.sku_code LIKE 'SS-S24P-%-VIO' THEN 's24p-violet.jpg'
+
+            -- Samsung Galaxy A55 5G
+            WHEN s.sku_code LIKE 'SS-A55-%-BLU' THEN 'a55-blue.jpg'
+            WHEN s.sku_code LIKE 'SS-A55-%-BLK' THEN 'a55-black.jpg'
+
+            -- Samsung Galaxy A35 5G
+            WHEN s.sku_code LIKE 'SS-A35-%-YLW' THEN 'a35-yellow.jpg'
+            WHEN s.sku_code LIKE 'SS-A35-%-BLU' THEN 'a35-blue.jpg'
+
+            -- AirPods Pro 2
+            WHEN s.sku_code = 'APP-AP2-WHT' THEN 'airpods-pro2-lightning.jpg'
+            WHEN s.sku_code = 'APP-AP2-USBC' THEN 'airpods-pro2-usbc.jpg'
+
+            -- AirPods 4
+            WHEN s.sku_code LIKE 'APP-AP4-%' THEN 'airpods4-white.jpg'
+
+            -- Samsung Galaxy Buds3 Pro
+            WHEN s.sku_code = 'SS-B3P-SLV' THEN 'buds3pro-silver.jpg'
+            WHEN s.sku_code = 'SS-BUDS3-PRO' THEN 'buds3pro-white.jpg'
+
+            -- Samsung Galaxy Buds FE
+            WHEN s.sku_code = 'SS-BFE-BLK' THEN 'budsfe-black.jpg'
+            WHEN s.sku_code = 'SS-BFE-WHT' THEN 'budsfe-white.jpg'
+
+            -- Apple USB-C 20W Power Adapter
+            WHEN s.sku_code LIKE 'APP-20W-%' THEN 'apple-20w-white.jpg'
+
+            -- Samsung 25W USB-C Fast Charger
+            WHEN s.sku_code = 'SS-25W-BLK' THEN 'samsung-25w-black.jpg'
+            WHEN s.sku_code = 'SS-25W-WHT' THEN 'samsung-25w-white.jpg'
+
+            -- Apple USB-C Charge Cable
+            WHEN s.sku_code LIKE 'APP-C2C-%' THEN 'apple-c2c.jpg'
+
+            -- Apple USB-C to Lightning Cable
+            WHEN s.sku_code LIKE 'APP-C2L-%' THEN 'apple-c2l.jpg'
+
+            -- Samsung USB-C Cable
+            WHEN s.sku_code = 'SS-C2C-1M' THEN 'samsung-c2c-black.jpg'
+            WHEN s.sku_code = 'SS-C2C-1M-WHT' THEN 'samsung-c2c-white.jpg'
+
+            -- Laptop Lenovo
+            WHEN s.sku_code LIKE 'LEN-IDP3-%' THEN 'ideapad-slim3-gray.jpg'
+            WHEN s.sku_code LIKE 'LEN-TB14-%' THEN 'thinkbook14-gray.jpg'
+            WHEN s.sku_code LIKE 'LEN-IDP5-%' THEN 'ideapad5-gray.jpg'
+            WHEN s.sku_code LIKE 'LOQ-15-%' THEN 'loq15-gray.jpg'
+            WHEN s.sku_code LIKE 'LEN-LEG5-%' THEN 'legion5-gray.jpg'
+            WHEN s.sku_code LIKE 'LEN-LEG5P-%' THEN 'legion-pro5-gray.jpg'
+
+            -- Lenovo Legion M300 RGB
+            WHEN s.sku_code = 'LEN-M300-BLK' THEN 'm300-black.jpg'
+            WHEN s.sku_code = 'LEN-M300-WHT' THEN 'm300-white.jpg'
+
+            -- Lenovo Legion M600 Wireless
+            WHEN s.sku_code = 'LEN-M600-BLK' THEN 'm600-black.jpg'
+            WHEN s.sku_code = 'LEN-M600-WHT' THEN 'm600-white.jpg'
+
+            -- Lenovo Legion K300 RGB
+            WHEN s.sku_code = 'LEN-K300-BLK' THEN 'k300-black.jpg'
+            WHEN s.sku_code = 'LEN-K300-WHT' THEN 'k300-white.jpg'
+
+            -- Lenovo Go Wireless Split Keyboard
+            WHEN s.sku_code = 'LEN-GOW-GRY' THEN 'lenovo-go-keyboard-gray.jpg'
+            WHEN s.sku_code = 'LEN-GOW-BLK' THEN 'lenovo-go-keyboard-black.jpg'
+
+            -- Lenovo 300 FHD Webcam
+            WHEN s.sku_code = 'LEN-W300-BLK' THEN 'webcam300-black.jpg'
+            WHEN s.sku_code = 'LEN-W300-WHT' THEN 'webcam300-white.jpg'
+
+            -- Lenovo Performance FHD Webcam
+            WHEN s.sku_code = 'LEN-WPF-BLK' THEN 'webcam-performance-black.jpg'
+            WHEN s.sku_code = 'LEN-WPF-WHT' THEN 'webcam-performance-white.jpg'
+
+            -- Lenovo Laptop Backpack
+            WHEN s.sku_code = 'LEN-BP15-BLK' THEN 'backpack15-black.jpg'
+            WHEN s.sku_code = 'LEN-BP15-BLU' THEN 'backpack15-blue.jpg'
+
+            -- Lenovo Legion Gaming Backpack
+            WHEN s.sku_code = 'LEN-BPG17-BLK' THEN 'legion-backpack-black.jpg'
+            WHEN s.sku_code = 'LEN-BPG17-GRY' THEN 'legion-backpack-gray.jpg'
+
+            -- Apple Watch SE 2
+            WHEN s.sku_code IN ('WATCH-SE2-40', 'WATCH-SE2-44-BLK') THEN 'watch-se2-black.jpg'
+            WHEN s.sku_code LIKE 'WATCH-SE2-%-SLV' THEN 'watch-se2-silver.jpg'
+
+            -- Samsung Galaxy Watch7
+            WHEN s.sku_code IN ('WATCH-GW7-44', 'WATCH-GW7-40-SLV') THEN 'watch7-silver.jpg'
+            WHEN s.sku_code LIKE 'WATCH-GW7-%-GRN' THEN 'watch7-green.jpg'
+
+            -- Sony WH-1000XM5
+            WHEN s.sku_code = 'SONY-WH1000XM5' THEN 'sony-xm5-black.jpg'
+            WHEN s.sku_code = 'SONY-WH1000XM5-SLV' THEN 'sony-xm5-silver.jpg'
+
+            -- Sony Alpha A6400
+            WHEN s.sku_code = 'CAM-SONY-A6400' THEN 'sony-a6400-body.jpg'
+            WHEN s.sku_code = 'CAM-SONY-A6400-KIT1650' THEN 'sony-a6400-kit1650.jpg'
+
+            -- JBL Tune 770NC
+            WHEN s.sku_code = 'JBL-T770NC' THEN 'jbl770nc-black.jpg'
+            WHEN s.sku_code = 'JBL-T770NC-WHT' THEN 'jbl770nc-white.jpg'
+
+            -- Garmin Forerunner 165
+            WHEN s.sku_code = 'WATCH-GARMIN-165' THEN 'garmin165-black.jpg'
+            WHEN s.sku_code = 'WATCH-GARMIN-165-WHT' THEN 'garmin165-white.jpg'
+
+            -- Canon EOS R50
+            WHEN s.sku_code = 'CAM-CANON-R50' THEN 'canon-r50-body.jpg'
+            WHEN s.sku_code = 'CAM-CANON-R50-KIT1845' THEN 'canon-r50-kit1845.jpg'
+
+            -- Fujifilm X-S20
+            WHEN s.sku_code = 'CAM-FUJI-XS20' THEN 'fuji-xs20-body.jpg'
+            WHEN s.sku_code = 'CAM-FUJI-XS20-KIT1545' THEN 'fuji-xs20-kit1545.jpg'
+        END AS file_name
+    FROM dbo.PRODUCT_SKU s
+)
+INSERT INTO dbo.PRODUCT_IMAGES
+    (product_id, sku_id, image_url, is_primary, display_order)
+SELECT
+    s.product_id,
+    s.sku_id,
+    'assets/images/sku_images/' + s.file_name,
+    1,
+    0
+FROM SkuImages s
+WHERE s.file_name IS NOT NULL
+AND NOT EXISTS (
+    SELECT 1
+    FROM dbo.PRODUCT_IMAGES pi
+    WHERE pi.sku_id = s.sku_id
+);
 GO
