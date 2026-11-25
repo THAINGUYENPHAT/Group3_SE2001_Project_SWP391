@@ -62,9 +62,6 @@ public class ProductServlet extends HttpServlet {
     private static final long MAX_IMAGE_SIZE
             = 10L * 1024 * 1024;
 
-    // ========================================
-    // 1. DO GET
-    // ========================================
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -100,9 +97,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    // ========================================
-    // 2. HIỂN THỊ DANH SÁCH SẢN PHẨM
-    // ========================================
     private void showList(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -135,9 +129,6 @@ public class ProductServlet extends HttpServlet {
         ).forward(request, response);
     }
 
-    // ========================================
-    // 3. HIỂN THỊ FORM THÊM
-    // ========================================
     private void showCreate(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -167,9 +158,6 @@ public class ProductServlet extends HttpServlet {
         ).forward(request, response);
     }
 
-    // ========================================
-    // 4. HIỂN THỊ FORM CHỈNH SỬA
-    // ========================================
     private void showEdit(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -219,9 +207,6 @@ public class ProductServlet extends HttpServlet {
         ).forward(request, response);
     }
 
-    // ========================================
-    // 5. HIỂN THỊ FORM NGỪNG BÁN
-    // ========================================
     private void showDelete(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -254,9 +239,6 @@ public class ProductServlet extends HttpServlet {
         ).forward(request, response);
     }
 
-    // ========================================
-    // 6. DO POST
-    // ========================================
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -279,7 +261,7 @@ public class ProductServlet extends HttpServlet {
 
             } else if ("delete".equals(action)) {
 
-                deactivateProduct(request, response);
+                deleteProduct(request, response);
 
             } else {
 
@@ -332,9 +314,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    // ========================================
-    // 7. TẠO PRODUCT BẰNG SERVICE
-    // ========================================
     private void createProduct(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -405,12 +384,6 @@ public class ProductServlet extends HttpServlet {
 
         } finally {
 
-            /*
-             * Nếu transaction SQL thất bại,
-             * xóa các file vừa upload.
-             *
-             * Không xóa file sau khi commit.
-             */
             if (!committed) {
                 deleteUploadedFiles(uploadedFiles);
             }
@@ -424,9 +397,6 @@ public class ProductServlet extends HttpServlet {
         redirectToList(request, response);
     }
 
-    // ========================================
-    // 8. CẬP NHẬT PRODUCT BẰNG SERVICE
-    // ========================================
     private void updateProduct(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -460,12 +430,6 @@ public class ProductServlet extends HttpServlet {
 
         product.setProductId(productId);
 
-        /*
-         * Chặn đổi category ngay tại Servlet.
-         *
-         * Service cũng kiểm tra lại trong
-         * transaction để bảo vệ dữ liệu.
-         */
         if (product.getCategoryId()
                 != oldProduct.getCategoryId()) {
 
@@ -503,12 +467,6 @@ public class ProductServlet extends HttpServlet {
                     uploadedFiles
             );
 
-            /*
-             * imageUrl = null nghĩa là giữ lại
-             * ảnh đại diện cũ.
-             *
-             * Service dùng COALESCE tại SQL.
-             */
             product.setImageUrl(imageUrl);
 
             List<String> galleryUrls
@@ -539,13 +497,6 @@ public class ProductServlet extends HttpServlet {
 
         } finally {
 
-            /*
-             * File mới được dọn nếu transaction
-             * không commit thành công.
-             *
-             * Ảnh gallery cũ chỉ bị xóa khỏi
-             * database trong transaction.
-             */
             if (!committed) {
                 deleteUploadedFiles(uploadedFiles);
             }
@@ -559,10 +510,7 @@ public class ProductServlet extends HttpServlet {
         redirectToList(request, response);
     }
 
-    // ========================================
-    // 9. NGỪNG BÁN PRODUCT
-    // ========================================
-    private void deactivateProduct(
+    private void deleteProduct(
             HttpServletRequest request,
             HttpServletResponse response)
             throws IOException {
@@ -572,7 +520,6 @@ public class ProductServlet extends HttpServlet {
         );
 
         if (productId == null) {
-
             throw new IllegalArgumentException(
                     "ID sản phẩm không hợp lệ."
             );
@@ -583,23 +530,19 @@ public class ProductServlet extends HttpServlet {
         int result = productDAO.delete(productId);
 
         if (result <= 0) {
-
             throw new IllegalStateException(
-                    "Không thể ngừng bán sản phẩm."
+                    "Không thể xóa sản phẩm."
             );
         }
 
         setSuccess(
                 request,
-                "Đã ngừng kinh doanh sản phẩm."
+                "Đã xóa vĩnh viễn sản phẩm."
         );
 
         redirectToList(request, response);
     }
 
-    // ========================================
-    // 10. ĐỌC THÔNG TIN PRODUCT
-    // ========================================
     private Product readProductFromRequest(
             HttpServletRequest request) {
 
@@ -631,8 +574,6 @@ public class ProductServlet extends HttpServlet {
             );
         }
 
-        // Không chỉ ẩn danh mục cha trên giao diện:
-        // POST cũng phải từ chối categoryId là danh mục cha.
         Category selectedCategory = new CategoryDAO().getById(categoryId);
         if (selectedCategory == null
                 || selectedCategory.getParentId() == null) {
@@ -670,9 +611,6 @@ public class ProductServlet extends HttpServlet {
         return product;
     }
 
-    // ========================================
-    // 11. ĐỌC THÔNG SỐ KỸ THUẬT
-    // ========================================
     private List<ProductSpec> readSpecifications(
             HttpServletRequest request) {
 
@@ -685,11 +623,6 @@ public class ProductServlet extends HttpServlet {
         String[] specValues
                 = request.getParameterValues("specValues");
 
-        /*
-         * Không có thông số được gửi:
-         * Service sẽ tự kiểm tra có thiếu
-         * thuộc tính bắt buộc hay không.
-         */
         if (attributeIds == null
                 && specValues == null) {
 
@@ -715,10 +648,6 @@ public class ProductServlet extends HttpServlet {
                     ? ""
                     : specValues[i].trim();
 
-            /*
-             * Bỏ qua một dòng chỉ khi cả
-             * attributeId và value đều trống.
-             */
             if ((idText == null || idText.trim().isEmpty())
                     && value.isEmpty()) {
 
@@ -749,13 +678,6 @@ public class ProductServlet extends HttpServlet {
                 );
             }
 
-            /*
-             * Giữ cả giá trị trống.
-             *
-             * Service sẽ quyết định:
-             * - required + trống: báo lỗi
-             * - optional + trống: bỏ qua
-             */
             ProductSpec spec = new ProductSpec(
                     attributeId,
                     null,
@@ -768,9 +690,6 @@ public class ProductServlet extends HttpServlet {
         return specifications;
     }
 
-    // ========================================
-    // 12. ĐỌC DANH SÁCH ẢNH CẦN XÓA
-    // ========================================
     private List<Integer> readDeleteImageIds(
             HttpServletRequest request) {
 
@@ -804,18 +723,9 @@ public class ProductServlet extends HttpServlet {
             }
         }
 
-        /*
-         * Service kiểm tra image_id thuộc
-         * product_id hiện tại và sku_id IS NULL.
-         *
-         * Không tin dữ liệu ID từ form.
-         */
         return imageIds;
     }
 
-    // ========================================
-    // 13. LOAD DỮ LIỆU FORM
-    // ========================================
     private void loadFormCommonAttributes(
             HttpServletRequest request,
             boolean onlyActive) {
@@ -830,8 +740,6 @@ public class ProductServlet extends HttpServlet {
                         : brandDAO.getList()
         );
 
-        // Giữ nguyên dữ liệu CATEGORY trong DB; chỉ hiển thị danh mục con
-        // (parent_id IS NOT NULL) trên form thêm/sửa sản phẩm.
         List<Category> allCategories = onlyActive
                 ? categoryDAO.getActiveCategories()
                 : categoryDAO.getList();
@@ -848,17 +756,12 @@ public class ProductServlet extends HttpServlet {
                 childCategories
         );
 
-        /*
-         * Giữ attributeList cho các
-         * thành phần JSP cũ nếu còn sử dụng.
-         */
         request.setAttribute(
                 "attributeList",
                 new AttributeDAO().getActiveAttributes()
         );
     }
 
-    // Chỉ chấp nhận categoryId nằm trong dropdown danh mục con.
     private boolean isCategoryListedInForm(
             HttpServletRequest request,
             int categoryId) {
@@ -880,9 +783,6 @@ public class ProductServlet extends HttpServlet {
         return false;
     }
 
-    // ========================================
-    // 14. LOAD THUỘC TÍNH THEO CATEGORY
-    // ========================================
     private void loadCategoryAttributes(
             HttpServletRequest request,
             int categoryId) {
@@ -912,9 +812,6 @@ public class ProductServlet extends HttpServlet {
         );
     }
 
-    // ========================================
-    // 15. GÁN DANH SÁCH THUỘC TÍNH RỖNG
-    // ========================================
     private void setEmptyCategoryAttributes(
             HttpServletRequest request) {
 
@@ -934,9 +831,6 @@ public class ProductServlet extends HttpServlet {
         );
     }
 
-    // ========================================
-    // 16. LƯU ẢNH UPLOAD
-    // ========================================
     private String saveUploadedPart(
             Part part,
             HttpServletRequest request,
@@ -954,13 +848,6 @@ public class ProductServlet extends HttpServlet {
             );
         }
 
-        /*
-         * Không dùng submittedFileName
-         * để tạo đường dẫn lưu.
-         *
-         * Tên file được tạo hoàn toàn
-         * bằng UUID.
-         */
         String contentType = part.getContentType();
 
         String extension;
@@ -1018,10 +905,6 @@ public class ProductServlet extends HttpServlet {
                     extension
             );
 
-            /*
-             * Ghi nhận đường dẫn trước khi copy
-             * để có thể dọn cả file ghi dở.
-             */
             uploadedFiles.add(destination);
 
             Files.copy(input, destination);
@@ -1030,9 +913,6 @@ public class ProductServlet extends HttpServlet {
         return UPLOAD_FOLDER + "/" + fileName;
     }
 
-    // ========================================
-    // 17. KIỂM TRA CHỮ KÝ FILE ẢNH
-    // ========================================
     private void validateImageSignature(
             BufferedInputStream input,
             String extension) throws IOException {
@@ -1109,9 +989,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    // ========================================
-    // 18. LƯU NHIỀU ẢNH GALLERY
-    // ========================================
     private List<String> uploadMultipleImages(
             HttpServletRequest request,
             String partName,
@@ -1141,9 +1018,6 @@ public class ProductServlet extends HttpServlet {
         return galleryUrls;
     }
 
-    // ========================================
-    // 19. DỌN FILE KHI LƯU THẤT BẠI
-    // ========================================
     private void deleteUploadedFiles(
             List<Path> uploadedFiles) {
 
@@ -1164,9 +1038,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    // ========================================
-    // 20. PARSE ID DƯƠNG
-    // ========================================
     private Integer parseOptionalPositiveInt(
             String value) {
 
@@ -1187,9 +1058,6 @@ public class ProductServlet extends HttpServlet {
         }
     }
 
-    // ========================================
-    // 21. CHUẨN HÓA CHUỖI
-    // ========================================
     private String trimToNull(String value) {
 
         if (value == null || value.trim().isEmpty()) {
@@ -1199,9 +1067,6 @@ public class ProductServlet extends HttpServlet {
         return value.trim();
     }
 
-    // ========================================
-    // 22. THÔNG BÁO
-    // ========================================
     private void setError(
             HttpServletRequest request,
             String message) {
@@ -1222,9 +1087,6 @@ public class ProductServlet extends HttpServlet {
         );
     }
 
-    // ========================================
-    // 23. REDIRECT
-    // ========================================
     private void redirectToList(
             HttpServletRequest request,
             HttpServletResponse response)
