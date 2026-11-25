@@ -11,6 +11,7 @@ public class OrderItem {
     private int quantity;
     private String productName;
     private String skuCode;
+    private String variantDescription;
     private int stockQuantity;
 
     public OrderItem() {
@@ -78,6 +79,14 @@ public class OrderItem {
 
     public void setSkuCode(String skuCode) {
         this.skuCode = skuCode;
+    }
+
+    public String getVariantDescription() {
+        return variantDescription;
+    }
+
+    public void setVariantDescription(String variantDescription) {
+        this.variantDescription = variantDescription;
     }
 
     public int getStockQuantity() {
