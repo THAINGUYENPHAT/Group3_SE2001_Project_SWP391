@@ -272,7 +272,26 @@ public class ProductDAO extends DBContext {
 
     public int delete(int productId) {
 
-        return setProductActive(productId, false);
+        String sql = "DELETE FROM PRODUCT WHERE product_id = ?";
+
+        try (Connection conn = this.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, productId);
+
+            return ps.executeUpdate();
+
+        } catch (SQLException ex) {
+
+            LOGGER.log(Level.SEVERE, "Lỗi xóa sản phẩm!", ex);
+
+            if (ex.getErrorCode() == 547) {
+                throw new IllegalArgumentException(
+                        "Không thể xóa sản phẩm vì có dữ liệu liên quan."
+                );
+            }
+
+            return 0;
+        }
     }
 
     public int setProductActive(int productId, boolean active) {
