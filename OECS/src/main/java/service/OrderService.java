@@ -33,6 +33,10 @@ public class OrderService {
         return SHIPPING_FEE;
     }
 
+    public static BigDecimal calculateTotalAmount(BigDecimal subtotal, BigDecimal shippingFee, BigDecimal discount) {
+        return PaymentGateway.roundVnd(subtotal.add(shippingFee).subtract(discount).max(BigDecimal.ZERO));
+    }
+
     private final OrderPolicyDAO policy = new OrderPolicyDAO();
     private final OrderDAO orderDAO;
     private final CheckoutConnectionFactory connections;
@@ -280,12 +284,14 @@ public class OrderService {
 
                 StringBuilder itemsSql = new StringBuilder(
                         "SELECT ci.cart_item_id, ci.sku_id, "
-                        + "ci.quantity, s.price, s.stock_quantity, s.reserved_quantity "
+                        + "ci.quantity, s.price, s.stock_quantity, s.reserved_quantity, "
+                        + "s.is_active AS sku_active, p.is_active AS product_active "
                         + "FROM dbo.CART_ITEMS ci "
                         + "WITH (UPDLOCK, HOLDLOCK) "
                         + "JOIN dbo.PRODUCT_SKU s "
                         + "WITH (UPDLOCK, HOLDLOCK) "
                         + "ON s.sku_id = ci.sku_id "
+                        + "JOIN dbo.PRODUCT p WITH (HOLDLOCK) ON p.product_id = s.product_id "
                         + "WHERE ci.cart_id = ? "
                 );
 
@@ -323,6 +329,9 @@ public class OrderService {
                             int skuId = rs.getInt("sku_id");
                             int quantity = rs.getInt("quantity");
                             BigDecimal price = rs.getBigDecimal("price");
+                            if (!rs.getBoolean("sku_active") || !rs.getBoolean("product_active")) {
+                                throw new IllegalArgumentException("Sản phẩm SKU " + skuId + " đã ngừng bán.");
+                            }
                             if (quantity > rs.getInt("stock_quantity") - rs.getInt("reserved_quantity")) {
                                 throw new IllegalArgumentException("Sản phẩm SKU " + skuId + " không đủ tồn kho.");
                             }
@@ -385,10 +394,7 @@ public class OrderService {
 
                 BigDecimal shippingFee = calculateShippingFee(subtotal);
 
-                BigDecimal totalAmount = subtotal
-                        .add(shippingFee)
-                        .subtract(voucher.discount)
-                        .max(BigDecimal.ZERO);
+                BigDecimal totalAmount = calculateTotalAmount(subtotal, shippingFee, voucher.discount);
 
                 order.setShippingFee(shippingFee);
                 order.setDiscountAmount(voucher.discount);
@@ -613,6 +619,12 @@ public class OrderService {
             }
         }
 
+        return new VoucherResult(voucherId, calculateVoucherDiscount(
+                subtotal, discountType, discountValue, maxDiscount));
+    }
+
+    public static BigDecimal calculateVoucherDiscount(BigDecimal subtotal, String discountType,
+            BigDecimal discountValue, BigDecimal maxDiscount) {
         BigDecimal discount;
 
         if ("AMOUNT".equalsIgnoreCase(discountType)) {
@@ -637,12 +649,10 @@ public class OrderService {
             );
         }
 
-        discount = discount
+        return discount
                 .max(BigDecimal.ZERO)
                 .min(subtotal)
                 .setScale(2, RoundingMode.HALF_UP);
-
-        return new VoucherResult(voucherId, discount);
     }
 
     public String orderingRestriction(int userId) throws SQLException {

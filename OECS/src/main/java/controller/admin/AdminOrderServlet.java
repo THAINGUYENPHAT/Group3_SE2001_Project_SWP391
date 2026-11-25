@@ -55,9 +55,11 @@ public class AdminOrderServlet extends HttpServlet {
                         !pendingCancel && OrderStatusPolicy.nextStatus(status) != null);
                 request.setAttribute("canStaffCancel",
                         !pendingCancel && OrderWorkflowService.canCancel(status));
-                request.setAttribute("needsManualRefund",
-                        "CANCELLED".equals(status) && OrderWorkflowService.isPaidOnline(
-                                order.getPaymentMethod(), order.getPaymentStatus(), order.getTotalAmount()));
+                boolean closed = "CANCELLED".equals(status) || "EXPIRED".equals(status);
+                if (closed && "PAID".equals(order.getPaymentStatus()) && order.getTotalAmount().signum() > 0) {
+                    request.setAttribute("needsManualRefund", true);
+                    request.setAttribute("successfulPayments", orderDAO.getSuccessfulPayments(orderId));
+                }
 
                 request.setAttribute("order", order);
                 request.setAttribute("history", orderDAO.getHistory(orderId));

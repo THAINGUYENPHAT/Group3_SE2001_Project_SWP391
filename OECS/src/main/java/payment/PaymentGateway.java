@@ -1,24 +1,16 @@
 package payment;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.TreeMap;
 
@@ -47,7 +39,7 @@ public final class PaymentGateway {
             return;
         }
 
-        if (!Arrays.asList("VNPAY", "MOMO").contains(method)) {
+        if (!"VNPAY".equals(method)) {
             throw new IllegalArgumentException(
                     "Phương thức thanh toán không hợp lệ."
             );
@@ -66,14 +58,8 @@ public final class PaymentGateway {
             );
         }
 
-        if ("VNPAY".equals(method)) {
-            config("VNPAY_TMN_CODE");
-            config("VNPAY_HASH_SECRET");
-        } else {
-            config("MOMO_PARTNER_CODE");
-            config("MOMO_ACCESS_KEY");
-            config("MOMO_SECRET_KEY");
-        }
+        config("VNPAY_TMN_CODE");
+        config("VNPAY_HASH_SECRET");
     }
 
     public static boolean available(String method) {
@@ -165,14 +151,21 @@ public final class PaymentGateway {
                 .replaceAll("/+$", "");
     }
 
+    public static BigDecimal roundVnd(BigDecimal amount) {
+        return amount.setScale(0, RoundingMode.HALF_UP);
+    }
+
     public static String create(
             String method,
             String ref,
             BigDecimal amount,
             long remainingSeconds,
             String ip
-    ) throws Exception {
+    ) {
 
+        if ("COD".equals(method)) {
+            throw new IllegalArgumentException("COD không dùng cổng thanh toán.");
+        }
         requireConfigured(method);
 
         long dong = amount.longValueExact();
@@ -183,195 +176,71 @@ public final class PaymentGateway {
             );
         }
 
-        if ("VNPAY".equals(method)) {
-            ZonedDateTime now = ZonedDateTime.now(
-                    ZoneId.of("Asia/Ho_Chi_Minh")
-            );
+        ZonedDateTime now = ZonedDateTime.now(
+                ZoneId.of("Asia/Ho_Chi_Minh")
+        );
 
-            DateTimeFormatter formatter =
-                    DateTimeFormatter.ofPattern(
-                            "yyyyMMddHHmmss"
-                    );
-
-            Map<String, String> params = new TreeMap<>();
-
-            params.put("vnp_Version", "2.1.0");
-            params.put("vnp_Command", "pay");
-            params.put(
-                    "vnp_TmnCode",
-                    config("VNPAY_TMN_CODE")
-            );
-
-            params.put(
-                    "vnp_Amount",
-                    Long.toString(
-                            Math.multiplyExact(dong, 100)
-                    )
-            );
-
-            params.put("vnp_CurrCode", "VND");
-            params.put("vnp_TxnRef", ref);
-            params.put(
-                    "vnp_OrderInfo",
-                    "Thanh toan OECS " + ref
-            );
-            params.put("vnp_OrderType", "other");
-            params.put("vnp_Locale", "vn");
-            params.put("vnp_IpAddr", ip);
-
-            params.put(
-                    "vnp_ReturnUrl",
-                    base() + "/payment/vnpay/return"
-            );
-
-            params.put(
-                    "vnp_CreateDate",
-                    formatter.format(now)
-            );
-
-            params.put(
-                    "vnp_ExpireDate",
-                    formatter.format(
-                            now.plusSeconds(remainingSeconds)
-                    )
-            );
-
-            String query = vnpCanonical(params);
-
-            String signature = hmac(
-                    "HmacSHA512",
-                    config("VNPAY_HASH_SECRET"),
-                    query
-            );
-
-            return "https://sandbox.vnpayment.vn"
-                    + "/paymentv2/vpcpay.html?"
-                    + query
-                    + "&vnp_SecureHash="
-                    + signature;
-        }
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern(
+                        "yyyyMMddHHmmss"
+                );
 
         Map<String, String> params = new TreeMap<>();
 
+        params.put("vnp_Version", "2.1.0");
+        params.put("vnp_Command", "pay");
         params.put(
-                "accessKey",
-                config("MOMO_ACCESS_KEY")
+                "vnp_TmnCode",
+                config("VNPAY_TMN_CODE")
         );
-        params.put("amount", Long.toString(dong));
-        params.put("extraData", "");
+
         params.put(
-                "ipnUrl",
-                base() + "/payment/momo/ipn"
+                "vnp_Amount",
+                Long.toString(
+                        Math.multiplyExact(dong, 100)
+                )
         );
-        params.put("orderId", ref);
+
+        params.put("vnp_CurrCode", "VND");
+        params.put("vnp_TxnRef", ref);
         params.put(
-                "orderInfo",
+                "vnp_OrderInfo",
                 "Thanh toan OECS " + ref
         );
+        params.put("vnp_OrderType", "other");
+        params.put("vnp_Locale", "vn");
+        params.put("vnp_IpAddr", ip);
+
         params.put(
-                "partnerCode",
-                config("MOMO_PARTNER_CODE")
+                "vnp_ReturnUrl",
+                base() + "/payment/vnpay/return"
         );
+
         params.put(
-                "redirectUrl",
-                base() + "/payment/momo/return"
+                "vnp_CreateDate",
+                formatter.format(now)
         );
-        params.put("requestId", ref);
-        params.put("requestType", "captureWallet");
+
+        params.put(
+                "vnp_ExpireDate",
+                formatter.format(
+                        now.plusSeconds(remainingSeconds)
+                )
+        );
+
+        String query = vnpCanonical(params);
 
         String signature = hmac(
-                "HmacSHA256",
-                config("MOMO_SECRET_KEY"),
-                raw(params)
+                "HmacSHA512",
+                config("VNPAY_HASH_SECRET"),
+                query
         );
 
-        JsonObject body = new JsonObject();
-
-        params.forEach((key, value) -> {
-            if (!key.equals("accessKey")
-                    && !key.equals("amount")) {
-                body.addProperty(key, value);
-            }
-        });
-
-        body.addProperty("amount", dong);
-        body.addProperty("signature", signature);
-        body.addProperty("lang", "vi");
-        body.addProperty("autoCapture", true);
-
-        HttpRequest request = HttpRequest.newBuilder(
-                URI.create(
-                        "https://test-payment.momo.vn"
-                        + "/v2/gateway/api/create"
-                )
-        )
-                .timeout(Duration.ofSeconds(20))
-                .header(
-                        "Content-Type",
-                        "application/json"
-                )
-                .POST(
-                        HttpRequest.BodyPublishers.ofString(
-                                body.toString()
-                        )
-                )
-                .build();
-
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
-
-        HttpResponse<String> response = client.send(
-                request,
-                HttpResponse.BodyHandlers.ofString()
-        );
-
-        if (response.statusCode() != 200) {
-            throw new IllegalStateException(
-                    "Cổng MoMo chưa phản hồi. "
-                    + "Thử lại từ đơn hàng."
-            );
-        }
-
-        JsonObject result = JsonParser.parseString(
-                response.body()
-        ).getAsJsonObject();
-
-        if (!result.has("resultCode")
-                || result.get("resultCode").getAsInt() != 0) {
-
-            throw new IllegalArgumentException(
-                    "MoMo chưa tạo được thanh toán. "
-                    + "Kiểm tra tài khoản sandbox hoặc thử lại."
-            );
-        }
-
-        URI paymentUrl = URI.create(
-                result.get("payUrl").getAsString()
-        );
-
-        if (!"https".equals(paymentUrl.getScheme())
-                || !"test-payment.momo.vn".equals(
-                        paymentUrl.getHost()
-                )) {
-
-            throw new IllegalArgumentException(
-                    "URL MoMo không hợp lệ."
-            );
-        }
-
-        return paymentUrl.toString();
-    }
-
-    public static String raw(Map<String, String> params) {
-        StringJoiner result = new StringJoiner("&");
-
-        new TreeMap<>(params).forEach(
-                (key, value) ->
-                        result.add(key + "=" + value)
-        );
-
-        return result.toString();
+        return "https://sandbox.vnpayment.vn"
+                + "/paymentv2/vpcpay.html?"
+                + query
+                + "&vnp_SecureHash="
+                + signature;
     }
 
     public static boolean verifyVnp(
@@ -386,56 +255,6 @@ public final class PaymentGateway {
                         vnpCanonical(params)
                 ),
                 params.get("vnp_SecureHash")
-        );
-    }
-
-    public static boolean verifyMomo(
-            Map<String, String> params
-    ) {
-        if (!config("MOMO_PARTNER_CODE").equals(
-                params.get("partnerCode")
-        ) || !Objects.equals(
-                params.get("orderId"),
-                params.get("requestId")
-        )) {
-            return false;
-        }
-
-        Map<String, String> signed = new TreeMap<>();
-
-        signed.put(
-                "accessKey",
-                config("MOMO_ACCESS_KEY")
-        );
-
-        for (String key : Arrays.asList(
-                "amount",
-                "extraData",
-                "message",
-                "orderId",
-                "orderInfo",
-                "orderType",
-                "partnerCode",
-                "payType",
-                "requestId",
-                "responseTime",
-                "resultCode",
-                "transId"
-        )) {
-            if (!params.containsKey(key)) {
-                return false;
-            }
-
-            signed.put(key, params.get(key));
-        }
-
-        return equalSignature(
-                hmac(
-                        "HmacSHA256",
-                        config("MOMO_SECRET_KEY"),
-                        raw(signed)
-                ),
-                params.get("signature")
         );
     }
 }

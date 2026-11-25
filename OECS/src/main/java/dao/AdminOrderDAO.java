@@ -135,6 +135,28 @@ public class AdminOrderDAO extends DBContext {
         return order;
     }
 
+    public List<Map<String, Object>> getSuccessfulPayments(int orderId) throws SQLException {
+        String sql = "SELECT payment_method, amount, transaction_code, provider_transaction_id "
+                + "FROM dbo.PAYMENT_TRANSACTION WHERE order_id = ? AND status = 'SUCCESS' AND amount > 0 "
+                + "ORDER BY transaction_id";
+        List<Map<String, Object>> payments = new ArrayList<>();
+        try (Connection connection = getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, orderId);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    Map<String, Object> payment = new LinkedHashMap<>();
+                    payment.put("method", rows.getString("payment_method"));
+                    payment.put("amount", rows.getBigDecimal("amount"));
+                    payment.put("reference", rows.getString("transaction_code"));
+                    payment.put("providerReference", rows.getString("provider_transaction_id"));
+                    payments.add(payment);
+                }
+            }
+        }
+        return payments;
+    }
+
     public List<Map<String, Object>> getHistory(int orderId) {
         String sql = "SELECT status, old_status, reason, actor_type, changed_by, updated_at "
                 + "FROM dbo.ORDER_STATUS_HISTORY "

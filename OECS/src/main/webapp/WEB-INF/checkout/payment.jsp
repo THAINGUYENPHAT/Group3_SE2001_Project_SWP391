@@ -24,7 +24,7 @@
             <p class="payment-muted">Thông tin thanh toán của bạn</p>
             <div class="payment-total">
                 <span>Tổng thanh toán</span>
-                <strong><fmt:formatNumber value="${order.totalAmount}" type="number" maxFractionDigits="0"/><small>đ</small></strong>
+                <strong><fmt:formatNumber value="${payableAmount}" type="number" maxFractionDigits="0"/><small>đ</small></strong>
             </div>
             <dl class="payment-details">
                 <div>
@@ -49,7 +49,14 @@
         <section class="payment-panel payment-actions" aria-labelledby="payment-action-title">
             <span class="payment-step">BƯỚC TIẾP THEO</span>
             <h2 id="payment-action-title">Thanh toán đơn hàng</h2>
-            <p class="payment-muted">Bạn sẽ được chuyển đến cổng <strong><c:out value="${order.paymentMethod}"/></strong> để hoàn tất giao dịch.</p>
+            <c:choose>
+                <c:when test="${paymentAvailable}">
+                    <p class="payment-muted">Bạn sẽ được chuyển đến cổng <strong>VNPay</strong> để hoàn tất giao dịch.</p>
+                </c:when>
+                <c:otherwise>
+                    <p class="payment-muted">Thanh toán online không khả dụng cho đơn này. Bạn có thể chuyển sang COD hoặc hủy đơn.</p>
+                </c:otherwise>
+            </c:choose>
             <c:if test="${not empty sessionScope.paymentError}">
                 <div class="alert alert-warning" role="alert"><c:out value="${sessionScope.paymentError}"/></div>
                 <c:remove var="paymentError" scope="session"/>
@@ -58,11 +65,15 @@
             <form method="post" action="${pageContext.request.contextPath}/payment/action">
                 <input type="hidden" name="id" value="${order.orderId}">
                 <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.paymentCsrf}'/>">
-                <button id="payment-pay-button" type="submit" class="payment-button payment-button-primary" name="action" value="pay">
+                <button id="payment-pay-button" type="submit" name="action" value="pay"
+                        class="payment-button payment-button-primary ${paymentAvailable ? '' : 'd-none'}"
+                        ${paymentAvailable ? '' : 'hidden disabled'}>
                     Thanh toán ngay <i class="bi bi-arrow-right" aria-hidden="true"></i>
                 </button>
-                <p class="payment-retry-hint">Nếu giao dịch trước chưa hoàn tất, bạn có thể thử lại bằng nút này.</p>
-                <div class="payment-divider"><span>Hoặc thanh toán khi nhận hàng</span></div>
+                <c:if test="${paymentAvailable}">
+                    <p class="payment-retry-hint">Nếu giao dịch trước chưa hoàn tất, bạn có thể thử lại bằng nút này.</p>
+                    <div class="payment-divider"><span>Hoặc thanh toán khi nhận hàng</span></div>
+                </c:if>
                 <button id="payment-cod-button" type="submit" class="payment-button payment-button-secondary" name="action" value="cod">
                     <i class="bi bi-truck" aria-hidden="true"></i> Chuyển sang COD
                 </button>

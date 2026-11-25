@@ -1,8 +1,6 @@
 package controller;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import dao.PaymentDAO;
 import payment.PaymentGateway;
@@ -14,9 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -26,9 +22,7 @@ import java.util.logging.Logger;
         name = "PaymentCallbackServlet",
         urlPatterns = {
             "/payment/vnpay/ipn",
-            "/payment/momo/ipn",
-            "/payment/vnpay/return",
-            "/payment/momo/return"
+            "/payment/vnpay/return"
         }
 )
 public class PaymentCallbackServlet extends HttpServlet {
@@ -50,13 +44,13 @@ public class PaymentCallbackServlet extends HttpServlet {
 
         String path = request.getServletPath();
 
-        if (path.endsWith("/return")) {
+        if ("/payment/vnpay/return".equals(path)) {
             showReturnResult(request, response);
             return;
         }
 
         if (!"/payment/vnpay/ipn".equals(path)) {
-            response.setHeader("Allow", "POST");
+            response.setHeader("Allow", "GET");
             response.sendError(
                     HttpServletResponse.SC_METHOD_NOT_ALLOWED
             );
@@ -143,16 +137,9 @@ public class PaymentCallbackServlet extends HttpServlet {
                 params.put(entry.getKey(), entry.getValue()[0]);
             }
 
-            boolean vnpay = "/payment/vnpay/return".equals(request.getServletPath());
-            boolean verified = vnpay
-                    ? PaymentGateway.verifyVnp(params)
-                    : PaymentGateway.verifyMomo(params);
-
-            if (verified) {
-                success = vnpay
-                        ? "00".equals(params.get("vnp_ResponseCode"))
-                            && "00".equals(params.get("vnp_TransactionStatus"))
-                        : "0".equals(params.get("resultCode"));
+            if (PaymentGateway.verifyVnp(params)) {
+                success = "00".equals(params.get("vnp_ResponseCode"))
+                        && "00".equals(params.get("vnp_TransactionStatus"));
                 message = success
                         ? "Cổng thanh toán đã xác nhận giao dịch thành công. "
                             + "Cảm ơn bạn đã mua sắm tại OECS!"
@@ -209,130 +196,5 @@ public class PaymentCallbackServlet extends HttpServlet {
         body.addProperty("Message", message);
 
         response.getWriter().write(body.toString());
-    }
-
-    @Override
-    protected void doPost(
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) throws IOException {
-
-        response.setHeader("Cache-Control", "no-store");
-
-        if (!"/payment/momo/ipn".equals(
-                request.getServletPath()
-        )) {
-            response.setHeader("Allow", "GET");
-            response.sendError(
-                    HttpServletResponse.SC_METHOD_NOT_ALLOWED
-            );
-            return;
-        }
-
-        request.setCharacterEncoding("UTF-8");
-
-        try {
-            char[] buffer = new char[16385];
-
-            int total = 0;
-            int count;
-
-            Reader reader = request.getReader();
-
-            while (total < buffer.length
-                    && (count = reader.read(
-                            buffer,
-                            total,
-                            buffer.length - total
-                    )) != -1) {
-
-                total += count;
-            }
-
-            if (total > 16384) {
-                response.sendError(413);
-                return;
-            }
-
-            String json = new String(
-                    buffer,
-                    0,
-                    total
-            );
-
-            JsonObject body = JsonParser.parseString(
-                    json
-            ).getAsJsonObject();
-
-            Map<String, String> params = new HashMap<>();
-
-            for (Map.Entry<String, JsonElement> entry
-                    : body.entrySet()) {
-
-                if (entry.getValue().isJsonPrimitive()) {
-                    params.put(
-                            entry.getKey(),
-                            entry.getValue().getAsString()
-                    );
-                }
-            }
-
-            if (!PaymentGateway.verifyMomo(params)) {
-                response.sendError(
-                        HttpServletResponse.SC_BAD_REQUEST
-                );
-                return;
-            }
-
-            String providerCode = params.get("resultCode");
-
-            BigDecimal amount = new BigDecimal(
-                    params.get("amount")
-            );
-
-            String result = payments.settle(
-                    "MOMO",
-                    params.get("orderId"),
-                    amount,
-                    params.get("transId"),
-                    providerCode,
-                    "0".equals(providerCode)
-            );
-
-            if ("00".equals(result)
-                    || "02".equals(result)) {
-
-                response.setStatus(
-                        HttpServletResponse.SC_NO_CONTENT
-                );
-
-            } else {
-                response.sendError(
-                        HttpServletResponse.SC_BAD_REQUEST
-                );
-            }
-
-        } catch (SQLException e) {
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Lỗi database khi nhận MoMo IPN.",
-                    e
-            );
-
-            response.sendError(
-                    HttpServletResponse.SC_SERVICE_UNAVAILABLE
-            );
-
-        } catch (Exception e) {
-            LOGGER.log(
-                    Level.WARNING,
-                    "MoMo IPN không hợp lệ.",
-                    e
-            );
-
-            response.sendError(
-                    HttpServletResponse.SC_BAD_REQUEST
-            );
-        }
     }
 }

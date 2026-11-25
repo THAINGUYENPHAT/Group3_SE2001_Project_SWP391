@@ -161,6 +161,8 @@ public class PaymentServlet extends HttpServlet {
             }
 
             request.setAttribute("order", order);
+            request.setAttribute("payableAmount", PaymentGateway.roundVnd(order.getTotalAmount()));
+            request.setAttribute("paymentAvailable", PaymentGateway.available(order.getPaymentMethod()));
 
             request.getRequestDispatcher(
                     "/WEB-INF/checkout/payment.jsp"
@@ -312,10 +314,6 @@ public class PaymentServlet extends HttpServlet {
             );
 
         } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-
             LOGGER.log(
                     Level.WARNING,
                     "Không khởi tạo được thanh toán.",
