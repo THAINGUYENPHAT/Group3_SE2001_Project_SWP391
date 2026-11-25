@@ -482,7 +482,6 @@
             const start = new Date('${startDate}T00:00:00Z');
             const end = new Date('${endDate}T00:00:00Z');
             const count = byMonth ? (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + end.getUTCMonth() - start.getUTCMonth() + 1 : Math.round((end - start) / 86400000) + 1;
-            // Điền mốc không có doanh thu, giới hạn độ dài biểu đồ.
             if (count > 0 && count <= (byMonth ? 1200 : 3660)) {
                 const amounts = new Map(rows.map(row => [row.date, row.revenue]));
                 const date = new Date(start);

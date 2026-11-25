@@ -438,111 +438,218 @@
             </section>
         </c:when>
     </c:choose>
+    <%-- Thông báo gửi yêu cầu trả hàng thành công --%>
+    <c:if test="${not empty returnSuccessMessage}">
 
-    <c:if test="${not empty latestReturnExchangeRequest}">
-        <c:choose>
-            <c:when test="${latestReturnExchangeRequest.requestStatus == 'PENDING'}">
-                <div class="purchase-panel"
-                     style="margin-bottom: 20px;
-                     border-left: 4px solid #d97706;
-                     background: #fffbeb;">
+        <div class="purchase-panel"
+             style="margin-bottom: 20px;
+             border-left: 4px solid #16a34a;
+             background: #f0fdf4;"
+             role="status">
 
-                    <div style="display: flex;
-                         align-items: flex-start;
-                         gap: 12px;">
+            <div style="color: #166534;">
 
-                        <i class="bi bi-clock-history"
-                           style="font-size: 24px; color: #d97706;"></i>
+                <i class="bi bi-check-circle-fill me-2"></i>
 
-                        <div>
-                            <strong style="color: #92400e;">
-                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đang được xử lý
-                            </strong>
+                <c:out value="${returnSuccessMessage}"/>
 
-                            <p style="color: #92400e; margin: 6px 0 0;">
-                                Bạn đã gửi yêu cầu thành công.
-                                Cửa hàng đang xem xét yêu cầu của bạn.
-                                Vui lòng chờ kết quả xử lý.
-                            </p>
+            </div>
 
-                            <small style="display: block;
-                                   color: #a16207;
-                                   margin-top: 8px;">
-                                Mã yêu cầu:
-                                #<c:out value="${latestReturnExchangeRequest.requestId}"/>
-                                · Gửi lúc:
-                                <fmt:formatDate
-                                    value="${latestReturnExchangeRequest.createdAt}"
-                                    pattern="dd/MM/yyyy HH:mm"/>
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </c:when>
+        </div>
 
-            <c:when test="${latestReturnExchangeRequest.requestStatus == 'APPROVED'}">
-                <div class="purchase-panel"
-                     style="margin-bottom: 20px;
-                     border-left: 4px solid #16a34a;
-                     background: #f0fdf4;">
-
-                    <div style="display: flex; align-items: flex-start; gap: 12px;">
-                        <i class="bi bi-check-circle-fill"
-                           style="font-size: 24px; color: #16a34a;"></i>
-
-                        <div>
-                            <strong style="color: #166534;">
-                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đã được chấp nhận
-                            </strong>
-
-                            <p style="color: #166534; margin: 6px 0 0;">
-                                Cửa hàng đã chấp nhận yêu cầu của bạn.
-                                Vui lòng theo dõi thông báo để cập nhật thông tin tiếp theo.
-                            </p>
-
-                            <c:if test="${not empty latestReturnExchangeRequest.staffNote}">
-                                <p style="color: #166534; margin: 8px 0 0;">
-                                    <strong>Ghi chú từ cửa hàng:</strong>
-                                    <c:out value="${latestReturnExchangeRequest.staffNote}"/>
-                                </p>
-                            </c:if>
-                        </div>
-                    </div>
-                </div>
-            </c:when>
-
-            <c:when test="${latestReturnExchangeRequest.requestStatus == 'REJECTED'}">
-                <div class="purchase-panel"
-                     style="margin-bottom: 20px;
-                     border-left: 4px solid #dc2626;
-                     background: #fef2f2;">
-
-                    <div style="display: flex; align-items: flex-start; gap: 12px;">
-                        <i class="bi bi-x-circle-fill"
-                           style="font-size: 24px; color: #dc2626;"></i>
-
-                        <div>
-                            <strong style="color: #991b1b;">
-                                Yêu cầu ${latestReturnExchangeRequest.requestType == 'RETURN' ? 'trả hàng' : 'đổi hàng'} đã bị từ chối
-                            </strong>
-
-                            <p style="color: #991b1b; margin: 6px 0 0;">
-                                Rất tiếc, cửa hàng chưa thể chấp nhận yêu cầu này.
-                            </p>
-
-                            <c:if test="${not empty latestReturnExchangeRequest.staffNote}">
-                                <p style="color: #991b1b; margin: 8px 0 0;">
-                                    <strong>Lý do từ chối:</strong>
-                                    <c:out value="${latestReturnExchangeRequest.staffNote}"/>
-                                </p>
-                            </c:if>
-                        </div>
-                    </div>
-                </div>
-            </c:when>
-        </c:choose>
     </c:if>
 
+    <%-- Lịch sử trả hàng của đơn --%>
+    <c:if test="${not empty returnExchangeRequests}">
+
+        <section class="purchase-panel"
+                 style="margin-bottom: 20px;">
+
+            <h2>
+                <i class="bi bi-arrow-counterclockwise me-2"></i>
+                Lịch sử trả hàng
+            </h2>
+
+            <c:forEach var="returnRequest"
+                       items="${returnExchangeRequests}">
+
+                <div style="border: 1px solid #e5e7eb;
+                     border-radius: 10px;
+                     padding: 16px;
+                     margin-top: 12px;">
+
+                    <%-- Mã yêu cầu và trạng thái --%>
+                    <div class="d-flex flex-wrap
+                         justify-content-between
+                         align-items-center gap-2">
+
+                        <strong>
+                            Yêu cầu trả hàng
+                            #<c:out value="${returnRequest.requestId}"/>
+                        </strong>
+
+                        <c:choose>
+
+                            <c:when test="${returnRequest.requestStatus eq 'PENDING'}">
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-clock-history me-1"></i>
+                                    Đang chờ xử lý
+                                </span>
+                            </c:when>
+
+                            <c:when test="${returnRequest.requestStatus eq 'APPROVED'}">
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    Đã chấp nhận
+                                </span>
+                            </c:when>
+
+                            <c:when test="${returnRequest.requestStatus eq 'REJECTED'}">
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle me-1"></i>
+                                    Đã từ chối
+                                </span>
+                            </c:when>
+
+                        </c:choose>
+
+                    </div>
+
+                    <%-- Thời gian gửi yêu cầu --%>
+                    <div class="purchase-muted small mt-2">
+
+                        Gửi lúc:
+
+                        <fmt:formatDate
+                            value="${returnRequest.createdAt}"
+                            pattern="dd/MM/yyyy HH:mm"/>
+
+                    </div>
+
+                    <%-- Danh sách sản phẩm được yêu cầu trả --%>
+                    <div class="mt-3">
+
+                        <strong>Sản phẩm trả hàng:</strong>
+
+                        <c:forEach var="returnItem"
+                                   items="${returnRequest.items}">
+
+                            <div style="background: #f8fafc;
+                                 border-radius: 8px;
+                                 padding: 12px;
+                                 margin-top: 8px;">
+
+                                <strong>
+                                    <c:out value="${returnItem.productName}"/>
+                                </strong>
+
+                                <div class="purchase-muted small mt-1">
+
+                                    SKU:
+                                    <c:out value="${returnItem.skuCode}"/>
+
+                                </div>
+
+                                <div class="small mt-1">
+
+                                    Số lượng trả:
+                                    <strong>
+                                        <c:out value="${returnItem.quantity}"/>
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </c:forEach>
+
+                    </div>
+
+                    <%-- Lý do trả hàng --%>
+                    <div class="mt-3 small">
+
+                        <strong>Lý do trả hàng:</strong>
+
+                        <c:out value="${returnRequest.reason}"/>
+
+                    </div>
+
+                    <%-- Thời gian Staff xử lý --%>
+                    <c:if test="${not empty returnRequest.reviewedAt}">
+
+                        <div class="purchase-muted small mt-2">
+
+                            Xử lý lúc:
+
+                            <fmt:formatDate
+                                value="${returnRequest.reviewedAt}"
+                                pattern="dd/MM/yyyy HH:mm"/>
+
+                        </div>
+
+                    </c:if>
+
+                    <%-- Ghi chú từ Staff --%>
+                    <c:if test="${not empty returnRequest.staffNote}">
+
+                        <div class="mt-3 small">
+
+                            <strong>Ghi chú từ cửa hàng:</strong>
+
+                            <c:out value="${returnRequest.staffNote}"/>
+
+                        </div>
+
+                    </c:if>
+
+                    <%-- Hướng dẫn theo trạng thái --%>
+                    <c:choose>
+
+                        <c:when test="${returnRequest.requestStatus eq 'PENDING'}">
+
+                            <div class="alert alert-warning small mt-3 mb-0">
+
+                                Cửa hàng đang xem xét yêu cầu.
+                                Vui lòng chờ nhân viên liên hệ
+                                để hướng dẫn trả hàng.
+
+                            </div>
+
+                        </c:when>
+
+                        <c:when test="${returnRequest.requestStatus eq 'APPROVED'}">
+
+                            <div class="alert alert-success small mt-3 mb-0">
+
+                                Yêu cầu trả hàng đã được chấp nhận.
+                                Nhân viên sẽ liên hệ để xử lý
+                                việc hoàn tiền ngoài hệ thống.
+
+                            </div>
+
+                        </c:when>
+
+                        <c:when test="${returnRequest.requestStatus eq 'REJECTED'}">
+
+                            <div class="alert alert-danger small mt-3 mb-0">
+
+                                Yêu cầu trả hàng đã bị từ chối.
+                                Bạn chỉ có thể gửi lại yêu cầu
+                                nếu đơn hàng vẫn đủ điều kiện.
+
+                            </div>
+
+                        </c:when>
+
+                    </c:choose>
+
+                </div>
+
+            </c:forEach>
+
+        </section>
+
+    </c:if>
     <div class="purchase-detail-grid">
 
         <div>
@@ -649,19 +756,19 @@
                                               or order.orderStatus eq 'DELIVERED'
                                               or order.orderStatus eq 'Delivered'}">
 
-                                    <c:if test="${not empty item.orderItemId}">
-                                        <c:url var="reviewUrl" value="/review">
-                                            <c:param name="view" value="create" />
-                                            <c:param name="orderItemId" value="${item.orderItemId}" />
-                                        </c:url>
+                                      <c:if test="${not empty item.orderItemId}">
+                                          <c:url var="reviewUrl" value="/review">
+                                              <c:param name="view" value="create" />
+                                              <c:param name="orderItemId" value="${item.orderItemId}" />
+                                          </c:url>
 
-                                        <div class="purchase-review-action">
-                                            <a href="${reviewUrl}" class="purchase-review-btn">
-                                                <i class="bi bi-star-fill"></i>
-                                                Đánh giá
-                                            </a>
-                                        </div>
-                                    </c:if>
+                                          <div class="purchase-review-action">
+                                              <a href="${reviewUrl}" class="purchase-review-btn">
+                                                  <i class="bi bi-star-fill"></i>
+                                                  Đánh giá
+                                              </a>
+                                          </div>
+                                      </c:if>
                                 </c:if>
                             </div>
 
@@ -689,8 +796,9 @@
                     </h2>
 
                     <p class="purchase-muted">
-                        Nếu sản phẩm có vấn đề, bạn có thể gửi yêu cầu
-                        trả hàng để cửa hàng xem xét.
+                        Bạn có thể gửi yêu cầu trả hàng cho từng
+                        sản phẩm trong vòng 7 ngày kể từ ngày nhận hàng.
+                        Mỗi sản phẩm chỉ được duyệt trả một lần.
                     </p>
 
                     <c:url var="returnExchangeUrl" value="/return-exchange">
@@ -868,10 +976,6 @@
 </c:if>
 
 <script>
-    /* =========================
-       CUSTOMER TOAST
-       ========================= */
-
     function closeCustomerToast(button) {
         const toast = button.closest(".customer-toast");
 
@@ -898,9 +1002,6 @@
         });
     });
 
-    /* =========================
-       CANCEL ORDER MODAL
-       ========================= */
 
     const cancelDialog = document.getElementById("cancelModal");
     if (cancelDialog) {

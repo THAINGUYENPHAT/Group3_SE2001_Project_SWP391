@@ -269,9 +269,9 @@
 
 
     <div class="d-flex flex-column flex-md-row
-                justify-content-between
-                align-items-start
-                align-items-md-center gap-3 mb-4">
+         justify-content-between
+         align-items-start
+         align-items-md-center gap-3 mb-4">
 
         <div>
             <h3 class="fw-bold text-dark mb-1">
@@ -346,15 +346,26 @@
                 </div>
 
                 <div class="mt-1">
-                    Vui lòng chọn đúng sản phẩm, số lượng
-                    và nhập lý do trả hàng.
+                    Mỗi yêu cầu chỉ được chọn một sản phẩm
+                    và phải trả toàn bộ số lượng của sản phẩm đó.
                 </div>
 
                 <div class="mt-1">
-                    Sau khi yêu cầu được chấp nhận,
-                    nhân viên sẽ liên hệ để hướng dẫn
-                    việc gửi trả hàng và xử lý các vấn đề
-                    thanh toán bên ngoài hệ thống.
+                    Bạn có thể gửi nhiều yêu cầu trả hàng
+                    trên cùng một đơn hàng, nhưng mỗi sản phẩm
+                    chỉ được duyệt trả một lần.
+                </div>
+
+                <div class="mt-1">
+                    Bạn không thể gửi yêu cầu mới khi đang có
+                    yêu cầu chờ xử lý hoặc đã bị từ chối 2 lần.
+                </div>
+
+                <div class="mt-1">
+                    Nhân viên sẽ liên hệ để hướng dẫn trả hàng.
+                    Yêu cầu được duyệt sau khi cửa hàng nhận
+                    và kiểm tra sản phẩm đủ điều kiện nhập kho.
+                    Việc hoàn tiền được xử lý ngoài hệ thống.
                 </div>
 
             </div>
@@ -397,7 +408,7 @@
                     </h5>
 
                     <div class="alert alert-light border
-                                rounded-3 mb-0 small">
+                         rounded-3 mb-0 small">
 
                         <i class="bi bi-shield-check
                            text-success me-2"></i>
@@ -413,10 +424,10 @@
                 <div class="form-card">
 
                     <div class="d-flex flex-column
-                                flex-sm-row
-                                justify-content-between
-                                align-items-sm-center
-                                gap-2 mb-3">
+                         flex-sm-row
+                         justify-content-between
+                         align-items-sm-center
+                         gap-2 mb-3">
 
                         <h5 class="section-title mb-0">
 
@@ -428,7 +439,7 @@
                         </h5>
 
                         <span class="text-muted small">
-                            Đánh dấu sản phẩm muốn trả
+                            Chọn một sản phẩm muốn trả
                         </span>
 
                     </div>
@@ -444,19 +455,29 @@
 
                                     <div class="product-heading">
 
-                                        <input type="checkbox"
+                                        <input type="radio"
                                                name="orderItemId"
                                                value="${item.orderItemId}"
                                                class="form-check-input
-                                                      product-checkbox
-                                                      item-checkbox"
-                                               aria-label="Chọn sản phẩm trả hàng">
+                                               product-checkbox
+                                               item-checkbox"
+                                               aria-label="Chọn sản phẩm trả hàng"
+                                               <c:if test="${item.isReturned}">
+                                                   disabled
+                                               </c:if>>
 
                                         <div class="flex-grow-1">
 
                                             <div class="product-name">
 
                                                 <c:out value="${item.productName}"/>
+
+                                                <c:if test="${item.isReturned}">
+                                                    <span class="badge bg-secondary ms-2">
+                                                        <i class="bi bi-check-circle me-1"></i>
+                                                        Đã trả hàng
+                                                    </span>
+                                                </c:if>
 
                                             </div>
 
@@ -495,34 +516,37 @@
                                             </div>
 
 
-                                            <div class="row g-3 mt-2">
+                                            <c:if test="${not item.isReturned}">
 
-                                                <div class="col-12
-                                                            col-sm-6
-                                                            col-md-4">
+                                                <input type="hidden"
+                                                       id="quantity_${item.orderItemId}"
+                                                       name="quantity_${item.orderItemId}"
+                                                       value="${item.quantity}">
 
-                                                    <label
-                                                        for="quantity_${item.orderItemId}"
-                                                        class="form-label">
+                                                <div class="mt-3 text-muted small">
 
-                                                        Số lượng muốn trả
+                                                    <i class="bi bi-box-seam me-1"></i>
 
-                                                    </label>
-
-                                                    <input
-                                                        type="number"
-                                                        id="quantity_${item.orderItemId}"
-                                                        name="quantity_${item.orderItemId}"
-                                                        class="form-control"
-                                                        min="1"
-                                                        max="${item.quantity}"
-                                                        value="1"
-                                                        step="1"
-                                                        required>
+                                                    Số lượng trả:
+                                                    <strong>
+                                                        <c:out value="${item.quantity}"/>
+                                                    </strong>
 
                                                 </div>
 
-                                            </div>
+                                            </c:if>
+
+                                            <c:if test="${item.isReturned}">
+
+                                                <div class="mt-3 text-success small">
+
+                                                    <i class="bi bi-check-circle-fill me-1"></i>
+
+                                                    Sản phẩm này đã được duyệt trả hàng.
+
+                                                </div>
+
+                                            </c:if>
 
                                         </div>
 
@@ -599,19 +623,19 @@
                         <button
                             type="submit"
                             class="btn btn-primary rounded-3
-                                   px-4 py-2"
+                            px-4 py-2"
                             id="submitReturnButton"
                             <c:if test="${empty orderItems}">disabled</c:if>>
 
-                            <i class="bi bi-send me-1"></i>
+                                <i class="bi bi-send me-1"></i>
 
-                            Gửi yêu cầu trả hàng
+                                Gửi yêu cầu trả hàng
 
-                        </button>
+                            </button>
 
-                        <a class="btn btn-outline-secondary
-                                  rounded-3 px-4 py-2"
-                           href="${pageContext.request.contextPath}/my-orders">
+                            <a class="btn btn-outline-secondary
+                               rounded-3 px-4 py-2"
+                               href="${pageContext.request.contextPath}/my-orders">
 
                             <i class="bi bi-arrow-left me-1"></i>
 
@@ -636,15 +660,14 @@
 
 
         document.querySelectorAll(
-            ".return-form-page .notification"
-        ).forEach(function (message) {
+                ".return-form-page .notification"
+                ).forEach(function (message) {
 
             setTimeout(function () {
 
                 message.classList.add(
-                    "notification-hide"
-                );
-
+                        "notification-hide"
+                        );
                 setTimeout(function () {
                     message.remove();
                 }, 300);
@@ -657,14 +680,14 @@
         function showValidationToast(message) {
 
             document.querySelectorAll(
-                ".return-form-page .validation-toast"
-            ).forEach(function (toast) {
+                    ".return-form-page .validation-toast"
+                    ).forEach(function (toast) {
                 toast.remove();
             });
 
             const container = document.querySelector(
-                ".return-form-page"
-            );
+                    ".return-form-page"
+                    );
 
             if (!container) {
                 return;
@@ -690,8 +713,8 @@
             setTimeout(function () {
 
                 toast.classList.add(
-                    "notification-hide"
-                );
+                        "notification-hide"
+                        );
 
                 setTimeout(function () {
                     toast.remove();
@@ -702,109 +725,65 @@
 
 
         const form = document.getElementById(
-            "returnExchangeForm"
-        );
+                "returnExchangeForm"
+                );
 
         if (!form) {
             return;
         }
 
         form.addEventListener(
-            "submit",
-            function (event) {
+                "submit",
+                function (event) {
 
-                const selectedItems = form.querySelectorAll(
-                    ".item-checkbox:checked"
-                );
+                    const selectedItems = form.querySelectorAll(
+                            ".item-checkbox:checked:not(:disabled)"
+                            );
 
-                if (selectedItems.length === 0) {
-
-                    event.preventDefault();
-
-                    showValidationToast(
-                        "Vui lòng chọn ít nhất một sản phẩm muốn trả."
-                    );
-
-                    return;
-                }
-
-                for (const checkbox of selectedItems) {
-
-                    const orderItemId = checkbox.value;
-
-                    const quantityInput =
-                        document.getElementById(
-                            "quantity_" + orderItemId
-                        );
-
-                    if (!quantityInput) {
+                    if (selectedItems.length !== 1) {
 
                         event.preventDefault();
 
                         showValidationToast(
-                            "Không tìm thấy số lượng của sản phẩm được chọn."
-                        );
+                                "Vui lòng chọn đúng một sản phẩm muốn trả."
+                                );
 
                         return;
                     }
+                    const reasonInput =
+                            document.getElementById("reason");
 
-                    const quantity =
-                        Number(quantityInput.value);
+                    const reason = reasonInput
+                            ? reasonInput.value.trim()
+                            : "";
 
-                    const maxQuantity =
-                        Number(quantityInput.max);
-
-                    if (!Number.isInteger(quantity)
-                            || quantity < 1
-                            || quantity > maxQuantity) {
+                    if (reason.length === 0) {
 
                         event.preventDefault();
 
                         showValidationToast(
-                            "Số lượng muốn trả phải từ 1 đến "
-                            + maxQuantity + "."
-                        );
+                                "Vui lòng nhập lý do trả hàng."
+                                );
 
-                        quantityInput.focus();
+                        if (reasonInput) {
+                            reasonInput.focus();
+                        }
 
                         return;
                     }
-                }
 
-                const reasonInput =
-                    document.getElementById("reason");
+                    if (reason.length > 1000) {
 
-                const reason = reasonInput
-                        ? reasonInput.value.trim()
-                        : "";
+                        event.preventDefault();
 
-                if (reason.length === 0) {
+                        showValidationToast(
+                                "Lý do trả hàng không được vượt quá 1000 ký tự."
+                                );
 
-                    event.preventDefault();
-
-                    showValidationToast(
-                        "Vui lòng nhập lý do trả hàng."
-                    );
-
-                    if (reasonInput) {
-                        reasonInput.focus();
+                        return;
                     }
 
-                    return;
                 }
-
-                if (reason.length > 1000) {
-
-                    event.preventDefault();
-
-                    showValidationToast(
-                        "Lý do trả hàng không được vượt quá 1000 ký tự."
-                    );
-
-                    return;
-                }
-
-            }
         );
 
     })();

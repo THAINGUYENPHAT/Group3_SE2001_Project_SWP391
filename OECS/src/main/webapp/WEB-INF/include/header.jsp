@@ -433,7 +433,7 @@
             <div class="container-fluid px-4 px-lg-5">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center gap-3">
-                        <i class="bi bi-hdd-network text-secondary"></i> Server Node: <strong class="text-light">VN-CTO-01</strong><!-- VN-CTO-01 có nghĩa là: "Máy chủ số 01 đặt tại cụm Cần Thơ, Việt Nam". -->
+                        <i class="bi bi-hdd-network text-secondary"></i> Server Node: <strong class="text-light">VN-CTO-01</strong>
                     </div>
                     <div class="d-flex align-items-center gap-3">
                         <span class="text-secondary">

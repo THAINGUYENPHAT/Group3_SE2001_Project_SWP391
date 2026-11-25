@@ -84,10 +84,10 @@ public class ReturnExchangeService {
                     + "1000 ký tự.");
         }
 
-        if (items == null || items.isEmpty()) {
+        if (items == null || items.size() != 1) {
             throw new IllegalArgumentException(
-                    "Vui lòng chọn ít nhất một sản phẩm "
-                    + "muốn trả.");
+                    "Mỗi yêu cầu trả hàng chỉ được chọn "
+                    + "một sản phẩm.");
         }
 
         for (Map<String, Integer> item : items) {

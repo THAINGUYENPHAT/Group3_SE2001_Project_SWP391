@@ -204,10 +204,6 @@
         margin-top: 4px;
     }
 
-    /* ========================================
-       SKU VARIANT GROUPS - OECS V2
-       Tao nut theo ATTRIBUTE, nhung luon chon SKU thuc co
-       ======================================== */
     .variant-selector[hidden],
     #skuFallback[hidden] {
         display: none !important;
@@ -438,9 +434,7 @@
 <div class="detail-page">
     <div class="container">
 
-        <%-- ======================================== --%>
-        <%-- 1. BREADCRUMB                          --%>
-        <%-- ======================================== --%>
+
 
         <nav aria-label="breadcrumb"
              class="detail-breadcrumb mb-4">
@@ -468,15 +462,9 @@
             </ol>
         </nav>
 
-        <%-- ======================================== --%>
-        <%-- 2. THÔNG TIN SẢN PHẨM                   --%>
-        <%-- ======================================== --%>
 
         <div class="row g-4 g-lg-5 mb-5">
 
-            <%-- ==================================== --%>
-            <%-- 2.1. THƯ VIỆN ẢNH                  --%>
-            <%-- ==================================== --%>
 
             <div class="col-lg-5">
 
@@ -511,9 +499,6 @@
 
             </div>
 
-            <%-- ==================================== --%>
-            <%-- 2.2. THÔNG TIN VÀ MUA HÀNG         --%>
-            <%-- ==================================== --%>
 
             <div class="col-lg-7">
 
@@ -583,9 +568,6 @@
 
                 </div>
 
-                <%-- ================================ --%>
-                <%-- GIÁ VÀ TỒN KHO                 --%>
-                <%-- ================================ --%>
 
                 <div class="product-price-panel mb-4">
 
@@ -681,9 +663,6 @@
 
                 </div>
 
-                <%-- ================================ --%>
-                <%-- FORM THÊM GIỎ HÀNG             --%>
-                <%-- ================================ --%>
 
                 <form id="addToCartForm"
                       action="${pageContext.request.contextPath}/cart"
@@ -714,7 +693,6 @@
 
                             </div>
 
-                            <%-- UI nhóm biến thể được JS dựng từ thuộc tính SKU thực tế. --%>
                             <div id="skuVariantGroups"
                                  class="variant-selector mb-3"
                                  aria-label="Chọn cấu hình và màu sắc"
@@ -726,7 +704,6 @@
                                aria-live="polite"
                                hidden></p>
 
-                            <%-- Fallback khi không có JS hoặc thuộc tính SKU không đồng nhất. --%>
                             <div id="skuFallback" class="row g-2 mb-4">
 
                                 <c:forEach items="${skus}"
@@ -864,7 +841,6 @@
 
                 </form>
 
-                <%-- Dữ liệu SKU cho bộ chọn biến thể động. Không tự sinh tổ hợp ảo. --%>
                 <div id="skuVariantData" hidden>
                     <c:forEach items="${skus}" var="sku">
                         <div class="sku-variant-record"
@@ -900,25 +876,13 @@
 
         </div>
 
-        <%-- ======================================== --%>
-        <%-- 3. THÔNG SỐ KỸ THUẬT                    --%>
-        <%-- ======================================== --%>
-
         <div class="row mt-5">
             <div class="col-12">
                 <jsp:include page="/WEB-INF/shop/specifications.jsp"/>
             </div>
         </div>
 
-        <%-- ======================================== --%>
-        <%-- 4. MÔ TẢ SẢN PHẨM                       --%>
-        <%-- ======================================== --%>
-
-
-
-        <%-- =========================================
-             4. MÔ TẢ SẢN PHẨM - OECS V2
-             ========================================= --%>
+       
 
         <style>
             .product-description-section {
@@ -982,7 +946,6 @@
                     font-size: 18px;
                 }
             }
-            /* OECS_DB(6): HTML đã lọc an toàn từ PRODUCT.description. */
             .product-description-intro {
                 line-height: 1.9;
                 color: #475569;
@@ -1037,15 +1000,11 @@
                                 <div id="descContent"
                                      class="product-description-content collapsed">
 
-                                    <%-- ===========================
-                                         MÔ TẢ CHÍNH
-                                         =========================== --%>
-
+                                   
                                     <c:if test="${not empty product.description}">
 
                                         <div class="product-description-intro">
 
-                                            <%-- SafeHtml đã được mã hóa/allowlist trong Servlet --%>
                                             <c:out value="${productDescriptionHtml}" escapeXml="false"/>
 
                                         </div>
@@ -1054,9 +1013,6 @@
 
                                 </div>
 
-                                <%-- ===========================
-                                     GRADIENT THU GỌN
-                                     =========================== --%>
 
                                 <div id="descOverlay"
                                      class="description-overlay">
@@ -1064,9 +1020,6 @@
 
                             </div>
 
-                            <%-- ===========================
-                                 NÚT XEM THÊM / THU GỌN
-                                 =========================== --%>
 
                             <div class="text-center mt-4">
 
@@ -1104,9 +1057,6 @@
         </div>
 
 
-        <%-- ======================================== --%>
-        <%-- 5. ĐÁNH GIÁ VÀ BÌNH LUẬN                 --%>
-        <%-- ======================================== --%>
 
         <div class="row mt-5">
 
@@ -1178,9 +1128,6 @@
 
                 </div>
 
-                <%-- ================================ --%>
-                <%-- THÔNG BÁO BÁO CÁO ĐÁNH GIÁ      --%>
-                <%-- ================================ --%>
 
                 <c:choose>
 
@@ -1247,9 +1194,7 @@
 
                 </c:choose>
 
-                <%-- ================================ --%>
-                <%-- DANH SÁCH ĐÁNH GIÁ             --%>
-                <%-- ================================ --%>
+         
 
                 <c:choose>
 
@@ -1339,7 +1284,6 @@
 
                                 </c:if>
 
-                                <%-- BÁO CÁO ĐÁNH GIÁ --%>
 
                                 <c:if test="${sessionScope.loggedInUser.customer
                                               and sessionScope.loggedInUser.userId ne review.userId}">
@@ -1414,9 +1358,6 @@
 
         </div>
 
-        <%-- ======================================== --%>
-        <%-- 6. SẢN PHẨM TƯƠNG TỰ - OECS V2           --%>
-        <%-- ======================================== --%>
 
         <c:if test="${not empty relatedProducts}">
 
@@ -1598,7 +1539,6 @@
 
                     </div>
 
-                    <%-- XEM THÊM THEO DANH MỤC --%>
 
                     <c:url var="categoryUrl" value="/shop">
                         <c:param name="categoryId"
@@ -1616,7 +1556,6 @@
 
                 </div>
 
-                <%-- DANH SÁCH SẢN PHẨM --%>
 
                 <div class="row g-3 g-lg-4">
 
@@ -1628,15 +1567,11 @@
 
                             <div class="col-6 col-lg-3">
 
-                                <%-- LINK CHI TIẾT --%>
-
                                 <c:url var="relatedUrl" value="/shop">
                                     <c:param name="action" value="detail"/>
                                     <c:param name="id"
                                              value="${related.productId}"/>
                                 </c:url>
-
-                                <%-- LINK ẢNH --%>
 
                                 <c:set var="relatedImageUrl" value=""/>
 
@@ -1671,12 +1606,8 @@
 
                                 </c:if>
 
-                                <%-- CARD --%>
-
                                 <a class="related-card"
                                    href="${fn:escapeXml(relatedUrl)}">
-
-                                    <%-- IMAGE --%>
 
                                     <div class="related-card-image">
 
@@ -1701,7 +1632,6 @@
 
                                     </div>
 
-                                    <%-- BODY --%>
 
                                     <div class="related-card-body">
 
@@ -1779,11 +1709,6 @@
     </div>
 </div>
 
-<%-- ============================================ --%>
-<%-- 6. DỮ LIỆU ẢNH DÀNH CHO JAVASCRIPT           --%>
-<%-- ============================================ --%>
-
-<%-- Gallery chung của Product --%>
 <div id="productGalleryData" hidden>
 
     <c:if test="${not empty product.imageUrl}">
@@ -1807,7 +1732,6 @@
 
 </div>
 
-<%-- Gallery riêng từng SKU --%>
 <div id="skuGalleryData" hidden>
 
     <c:forEach items="${skus}" var="sku">
@@ -1833,10 +1757,6 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-
-        // ========================================
-        // 1. THAM CHIẾU CÁC THÀNH PHẦN
-        // ========================================
 
         const mainImage =
                 document.getElementById("mainProductImage");
@@ -1879,10 +1799,6 @@
         const contextPath =
                 "<c:out value='${pageContext.request.contextPath}'/>";
 
-        // ========================================
-        // 2. CHUẨN HÓA ĐƯỜNG DẪN ẢNH
-        // ========================================
-
         function resolveImageUrl(path) {
 
             if (!path) {
@@ -1890,15 +1806,6 @@
             }
 
             const value = path.trim();
-
-            /*
-             * Ảnh do ứng dụng quản lý thường lưu:
-             * uploads/products/abc.jpg
-             *
-             * Cũng hỗ trợ:
-             * /uploads/products/abc.jpg
-             * https://...
-             */
 
             if (/^https?:\/\//i.test(value)) {
                 return value;
@@ -1912,10 +1819,6 @@
 
             return contextPath + "/" + normalized;
         }
-
-        // ========================================
-        // 3. ĐỌC GALLERY CHUNG
-        // ========================================
 
         function readGallery(container) {
 
@@ -1960,9 +1863,7 @@
                                 )
                         );
 
-        // ========================================
-        // 4. ĐỌC ẢNH CỦA TỪNG SKU
-        // ========================================
+       
 
         const skuGalleries = new Map();
 
@@ -1975,9 +1876,7 @@
                             );
                 });
 
-        // ========================================
-        // 5. HIỂN THỊ ẢNH LỚN
-        // ========================================
+      
 
         function showMainImage(image, index, total) {
 
@@ -2005,9 +1904,7 @@
             galleryCount.style.display = "";
         }
 
-        // ========================================
-        // 6. RENDER THUMBNAILS
-        // ========================================
+        
 
         function renderGallery(images, isSkuGallery) {
 
@@ -2086,9 +1983,7 @@
             selectImage(0);
         }
 
-        // ========================================
-        // 7. ĐỊNH DẠNG TIỀN
-        // ========================================
+       
 
         function formatPrice(value) {
 

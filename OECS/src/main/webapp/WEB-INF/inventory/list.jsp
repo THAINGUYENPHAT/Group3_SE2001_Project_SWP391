@@ -113,7 +113,6 @@
 <div class="inventory-page">
     <div class="container-fluid px-3 px-lg-4">
 
-        <%-- BREADCRUMB AND HEADER --%>
         <nav aria-label="breadcrumb" class="mb-3">
             <ol class="breadcrumb small mb-0">
                 <li class="breadcrumb-item">
@@ -137,7 +136,6 @@
             </a>
         </div>
 
-        <%-- FLASH MESSAGES (PRG) --%>
         <c:if test="${not empty sessionScope.inventorySuccess}">
             <div class="alert alert-success" role="status">
                 <c:out value="${sessionScope.inventorySuccess}"/>
@@ -151,7 +149,6 @@
             <c:remove var="inventoryError" scope="session"/>
         </c:if>
 
-        <%-- SEARCH & STATUS FILTER --%>
         <section class="inventory-panel mb-4">
             <div class="inventory-panel-header">
                 <form method="GET" action="${pageContext.request.contextPath}/inventory"
@@ -182,7 +179,6 @@
                 <span class="inventory-muted">Trang <c:out value="${pageNumber}"/> / <c:out value="${totalPages}"/></span>
             </div>
 
-            <%-- SKU TABLE --%>
             <div class="table-responsive">
                 <table class="table table-hover inventory-table">
                     <thead>
@@ -265,7 +261,6 @@
                 </table>
             </div>
 
-            <%-- PAGINATION --%>
             <div class="d-flex justify-content-end align-items-center gap-2 px-3 px-md-4 py-3 border-top">
                 <c:if test="${pageNumber gt 1}">
                     <a class="btn btn-outline-secondary btn-sm"
@@ -279,7 +274,6 @@
             </div>
         </section>
 
-        <%-- RECENT MOVEMENT HISTORY --%>
         <section class="inventory-panel" aria-labelledby="movementTitle">
             <div class="inventory-panel-header">
                 <h2 id="movementTitle" class="h5 fw-bold mb-1">Lịch sử biến động kho gần đây</h2>

@@ -6,11 +6,6 @@
 
 <%@include file="/WEB-INF/include/header.jsp"%>
 
-<%-- =========================================
-     OECS V2 - PROFESSIONAL CATALOG
-     Compatible with current ShopServlet
-     ========================================= --%>
-
 <c:url var="resetFilterUrl" value="/shop">
     <c:if test="${not empty searchKeyword}">
         <c:param name="keyword" value="${searchKeyword}"/>
@@ -23,9 +18,6 @@
                 or not empty selectedRating}"/>
 
 <style>
-    /* =========================================
-       1. PAGE
-       ========================================= */
 
     .oecs-catalog {
         background: #f6f8fc;
@@ -69,10 +61,7 @@
         font-size: 14px;
     }
 
-    /* =========================================
-       2. FILTER SIDEBAR
-       ========================================= */
-
+    
     .oecs-filter-sidebar {
         position: sticky;
         top: 96px;
@@ -187,10 +176,6 @@
         color: #2563eb;
     }
 
-    /* =========================================
-       3. TOOLBAR
-       ========================================= */
-
     .oecs-catalog-toolbar {
         display: flex;
         justify-content: space-between;
@@ -231,10 +216,6 @@
         border-color: #93c5fd;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
     }
-
-    /* =========================================
-       4. ACTIVE FILTER CHIPS
-       ========================================= */
 
     .oecs-active-filters {
         display: flex;
@@ -289,10 +270,7 @@
         color: #dc2626;
     }
 
-    /* =========================================
-       5. PRODUCT CARD
-       ========================================= */
-
+   
     .oecs-product-card {
         display: flex;
         flex-direction: column;
@@ -432,9 +410,7 @@
         font-weight: 700;
     }
 
-    /* =========================================
-       6. EMPTY STATE
-       ========================================= */
+   
 
     .oecs-catalog-empty {
         padding: 70px 22px;
@@ -463,9 +439,7 @@
         color: #64748b;
     }
 
-    /* =========================================
-       7. MOBILE FILTER
-       ========================================= */
+   
 
     .oecs-mobile-filter-button,
     .oecs-filter-close {
@@ -586,9 +560,7 @@
 
     <div class="container">
 
-        <%-- ===================================
-             1. BREADCRUMB
-             =================================== --%>
+        
 
         <nav class="oecs-catalog-breadcrumb"
              aria-label="breadcrumb">
@@ -614,9 +586,7 @@
 
         </nav>
 
-        <%-- ===================================
-             2. PAGE HEADER
-             =================================== --%>
+       
 
         <div class="oecs-catalog-heading">
 
@@ -630,9 +600,6 @@
 
         </div>
 
-        <%-- ===================================
-             3. FILTER FORM
-             =================================== --%>
 
         <form id="catalogFilterForm"
               action="${pageContext.request.contextPath}/shop"
@@ -650,9 +617,7 @@
 
             <div class="row g-4">
 
-                <%-- ===========================
-                     3.1. FILTER SIDEBAR
-                     =========================== --%>
+                
 
                 <div class="col-lg-3">
 
@@ -686,9 +651,6 @@
 
                         </div>
 
-                        <%-- =======================
-                             DANH MỤC
-                             ======================= --%>
 
                         <div class="oecs-filter-section">
 
@@ -755,10 +717,6 @@
 
                         </div>
 
-                        <%-- =======================
-                             MỨC GIÁ
-                             ======================= --%>
-
                         <div class="oecs-filter-section">
 
                             <h3 class="oecs-filter-title">
@@ -810,9 +768,6 @@
 
                         </div>
 
-                        <%-- =======================
-                             ĐÁNH GIÁ
-                             ======================= --%>
 
                         <div class="oecs-filter-section">
 
@@ -877,9 +832,6 @@
 
                         </div>
 
-                        <%-- =======================
-                             FILTER ACTIONS
-                             ======================= --%>
 
                         <div class="oecs-filter-actions">
 
@@ -908,9 +860,6 @@
 
                 </div>
 
-                <%-- ===========================
-                     3.2. RESULTS
-                     =========================== --%>
 
                 <div class="col-lg-9">
 
@@ -1005,9 +954,6 @@
 
                     </div>
 
-                    <%-- ===========================
-                         ACTIVE FILTERS
-                         =========================== --%>
 
                     <c:if test="${hasActiveFilters}">
 
@@ -1061,7 +1007,6 @@
 
                             </c:forEach>
 
-                            <%-- PRICE CHIP --%>
 
                             <c:if test="${not empty selectedPrice}">
 
@@ -1101,8 +1046,6 @@
 
                             </c:if>
 
-                            <%-- RATING CHIP --%>
-
                             <c:if test="${not empty selectedRating}">
 
                                 <button type="button"
@@ -1132,9 +1075,7 @@
 
                     </c:if>
 
-                    <%-- ===========================
-                         PRODUCT GRID
-                         =========================== --%>
+                    
 
                     <div class="row g-3 g-md-4">
 
@@ -1147,7 +1088,6 @@
 
                                     <div class="col-6 col-md-4">
 
-                                        <%-- DETAIL URL --%>
 
                                         <c:url var="detailUrl"
                                                value="/shop">
@@ -1160,7 +1100,6 @@
 
                                         </c:url>
 
-                                        <%-- IMAGE URL --%>
 
                                         <c:set var="productImageUrl"
                                                value=""/>
@@ -1198,7 +1137,6 @@
 
                                         </c:if>
 
-                                        <%-- PRODUCT CARD --%>
 
                                         <a class="oecs-product-card"
                                            href="${fn:escapeXml(detailUrl)}">
@@ -1231,7 +1169,6 @@
 
                                             </div>
 
-                                            <%-- CARD BODY --%>
 
                                             <div class="oecs-product-body">
 
@@ -1247,7 +1184,6 @@
 
                                                 </h3>
 
-                                                <%-- RATING --%>
 
                                                 <div class="oecs-product-rating">
 
@@ -1290,7 +1226,6 @@
 
                                                 </div>
 
-                                                <%-- PRICE --%>
 
                                                 <div class="oecs-product-price-box">
 
@@ -1326,7 +1261,6 @@
 
                                                 </div>
 
-                                                <%-- CATEGORY --%>
 
                                                 <div class="oecs-product-category">
 
@@ -1335,8 +1269,6 @@
                                                     <c:out value="${item.category.categoryName}"/>
 
                                                 </div>
-
-                                                <%-- CARD FOOTER --%>
 
                                                 <div class="oecs-product-footer">
 
@@ -1361,7 +1293,6 @@
 
                             <c:otherwise>
 
-                                <%-- EMPTY STATE --%>
 
                                 <div class="col-12">
 
@@ -1413,9 +1344,7 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
 
-        // =========================================
-        // 1. ELEMENT REFERENCES
-        // =========================================
+       
 
         const form =
                 document.getElementById("catalogFilterForm");
@@ -1440,9 +1369,7 @@
 
         let previousFocus = null;
 
-        // =========================================
-        // 2. OPEN MOBILE FILTER
-        // =========================================
+        
 
         function openFilter() {
 
@@ -1470,9 +1397,7 @@
             }
         }
 
-        // =========================================
-        // 3. CLOSE MOBILE FILTER
-        // =========================================
+       
 
         function closeFilter() {
 
@@ -1550,9 +1475,7 @@
                 }
         );
 
-        // =========================================
-        // 4. SORT: KEEP FILTERS
-        // =========================================
+      
 
         if (sortSelect && form) {
 
@@ -1565,9 +1488,6 @@
             );
         }
 
-        // =========================================
-        // 5. REMOVE ONE FILTER CHIP
-        // =========================================
 
         document.querySelectorAll(
                 "[data-filter-remove]"
@@ -1625,9 +1545,7 @@
             );
         });
 
-        // =========================================
-        // 6. PREVENT DOUBLE SUBMIT
-        // =========================================
+        
 
         if (form) {
 

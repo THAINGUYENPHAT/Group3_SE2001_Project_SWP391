@@ -162,16 +162,68 @@ public class CustomerOrderServlet extends HttpServlet {
         request.setAttribute("canCancelOrder", cancellableStatus && !waitingForReview && !paidOnline);
         request.setAttribute("contactStoreToCancel", cancellableStatus && !waitingForReview && paidOnline);
 
-        request.setAttribute("canRequestReturnExchange", returnExchangeDAO.canRequest(id, userId));
-        request.setAttribute("latestReturnExchangeRequest", returnExchangeDAO.getLatestRequestByOrder(id, userId));
-        request.setAttribute("items", orders.findItems(id, userId));
+        // Kiểm tra điều kiện trả hàng.
+        request.setAttribute(
+                "canRequestReturnExchange",
+                returnExchangeDAO.canRequest(id, userId)
+        );
+
+// Lấy yêu cầu trả hàng mới nhất.
+        request.setAttribute(
+                "latestReturnExchangeRequest",
+                returnExchangeDAO.getLatestRequestByOrder(id, userId)
+        );
+
+// Lấy toàn bộ lịch sử trả hàng của đơn.
+        request.setAttribute(
+                "returnExchangeRequests",
+                returnExchangeDAO.getRequestsByOrder(id, userId)
+        );
+
+// Lấy danh sách sản phẩm trong đơn.
+        request.setAttribute(
+                "items",
+                orders.findItems(id, userId)
+        );
 
         List<Map<String, Object>> history = service.findHistory(id, userId);
         request.setAttribute("trackingSteps", OrderService.trackingSteps(order, history));
         Collections.reverse(history);
         request.setAttribute("history", history);
 
-        request.getRequestDispatcher("/WEB-INF/customer-orders/detail.jsp").forward(request, response);
+        // Hiển thị thông báo sau khi gửi yêu cầu trả hàng.
+        HttpSession session = request.getSession(false);
+
+        if (session != null) {
+
+            String returnSuccessMessage
+                    = (String) session.getAttribute(
+                            "returnSuccessMessage");
+
+            Integer returnSuccessOrderId
+                    = (Integer) session.getAttribute(
+                            "returnSuccessOrderId");
+
+            if (returnSuccessMessage != null
+                    && returnSuccessOrderId != null
+                    && returnSuccessOrderId.intValue() == id) {
+
+                request.setAttribute(
+                        "returnSuccessMessage",
+                        returnSuccessMessage
+                );
+
+                session.removeAttribute(
+                        "returnSuccessMessage");
+
+                session.removeAttribute(
+                        "returnSuccessOrderId");
+            }
+        }
+
+        request.getRequestDispatcher(
+                "/WEB-INF/customer-orders/detail.jsp"
+        ).forward(request, response);
     }
 
     @Override

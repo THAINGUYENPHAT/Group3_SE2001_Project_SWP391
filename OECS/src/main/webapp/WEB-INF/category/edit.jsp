@@ -133,11 +133,6 @@
                 </form>
             </div>
         </div>
-        <%-- ============================================================
-             CẤU HÌNH THÔNG SỐ KỸ THUẬT THEO DANH MỤC CON
-             Form riêng, không ảnh hưởng nút Lưu Thay Đổi danh mục.
-             Không xóa phần VARIANT của SKU khi bỏ chọn thông số.
-             ============================================================ --%>
         <c:if test="${not empty category.parentId}">
             <div class="card shadow-sm border-0 rounded-4 mt-4">
                 <div class="card-body p-4 p-md-5">

@@ -900,7 +900,6 @@
                         </table>
                     </div>
 
-                    <%-- Tổng tiền hàng lấy từ giá và số lượng đã lưu trong ORDER_ITEM. --%>
                     <c:set var="subtotal" value="${0}" />
                     <c:forEach var="item" items="${items}">
                         <c:set var="subtotal" value="${subtotal + item.price * item.quantity}" />

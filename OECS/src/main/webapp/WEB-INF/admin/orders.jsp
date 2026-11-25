@@ -172,7 +172,6 @@
         width: 12%;
     }
 
-    /* Giữ cột thao tác bên phải khi bảng cần cuộn ngang. */
     .order-table th:nth-child(9),
     .order-table td:nth-child(9) {
         position: sticky;
@@ -384,7 +383,6 @@
 
     }
 
-    /* Tìm kiếm và lọc đơn hàng */
     .order-filter {
         display: flex;
         flex-wrap: wrap;

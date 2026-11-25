@@ -1,4 +1,3 @@
-
 package controller;
 
 import jakarta.servlet.ServletException;
@@ -32,7 +31,6 @@ public class ReturnExchangeServlet extends HttpServlet {
     // =====================================================
     // 1. HIỂN THỊ BIỂU MẪU TRẢ HÀNG
     // =====================================================
-
     @Override
     protected void doGet(
             HttpServletRequest request,
@@ -62,41 +60,6 @@ public class ReturnExchangeServlet extends HttpServlet {
         } catch (NumberFormatException ex) {
             response.sendRedirect(
                     request.getContextPath() + "/my-orders");
-            return;
-        }
-
-        HttpSession session = request.getSession();
-
-        String successMessage =
-                (String) session.getAttribute(
-                        "returnSuccessMessage");
-
-        Integer successOrderId =
-                (Integer) session.getAttribute(
-                        "returnSuccessOrderId");
-
-        // Hiển thị thông báo sau khi tạo thành công.
-        // Không cần kiểm tra canRequest lần nữa,
-        // vì đơn hàng đã có yêu cầu PENDING.
-        if (successMessage != null
-                && successOrderId != null
-                && successOrderId.intValue() == orderId) {
-
-            request.setAttribute(
-                    "successMessage", successMessage);
-
-            request.setAttribute("orderId", orderId);
-
-            session.removeAttribute(
-                    "returnSuccessMessage");
-
-            session.removeAttribute(
-                    "returnSuccessOrderId");
-
-            request.getRequestDispatcher(
-                    "/WEB-INF/customer-orders/return-exchange.jsp"
-            ).forward(request, response);
-
             return;
         }
 
@@ -134,7 +97,6 @@ public class ReturnExchangeServlet extends HttpServlet {
     // =====================================================
     // 2. CUSTOMER GỬI YÊU CẦU TRẢ HÀNG
     // =====================================================
-
     @Override
     protected void doPost(
             HttpServletRequest request,
@@ -175,36 +137,36 @@ public class ReturnExchangeServlet extends HttpServlet {
 
         String reason = request.getParameter("reason");
 
-        String[] selectedItems =
-                request.getParameterValues("orderItemId");
+        String[] selectedItems
+                = request.getParameterValues("orderItemId");
 
-        List<Map<String, Integer>> items =
-                new ArrayList<>();
+        List<Map<String, Integer>> items
+                = new ArrayList<>();
 
         try {
 
-            // Kiểm tra đã chọn sản phẩm hay chưa.
+            // Mỗi yêu cầu chỉ được chọn một sản phẩm.
             if (selectedItems == null
-                    || selectedItems.length == 0) {
+                    || selectedItems.length != 1) {
 
                 throw new IllegalArgumentException(
-                        "Vui lòng chọn ít nhất một sản phẩm "
-                        + "muốn trả.");
+                        "Mỗi yêu cầu trả hàng chỉ được chọn "
+                        + "một sản phẩm.");
             }
 
             // Đọc danh sách sản phẩm và số lượng trả.
             for (String selectedItem : selectedItems) {
 
-                int orderItemId =
-                        Integer.parseInt(selectedItem);
+                int orderItemId
+                        = Integer.parseInt(selectedItem);
 
                 if (orderItemId <= 0) {
                     throw new IllegalArgumentException(
                             "Sản phẩm được chọn không hợp lệ.");
                 }
 
-                String quantityParam =
-                        request.getParameter(
+                String quantityParam
+                        = request.getParameter(
                                 "quantity_" + orderItemId);
 
                 if (quantityParam == null
@@ -214,16 +176,16 @@ public class ReturnExchangeServlet extends HttpServlet {
                             "Vui lòng nhập số lượng trả hàng.");
                 }
 
-                int quantity =
-                        Integer.parseInt(quantityParam.trim());
+                int quantity
+                        = Integer.parseInt(quantityParam.trim());
 
                 if (quantity <= 0) {
                     throw new IllegalArgumentException(
                             "Số lượng trả hàng phải lớn hơn 0.");
                 }
 
-                Map<String, Integer> item =
-                        new HashMap<>();
+                Map<String, Integer> item
+                        = new HashMap<>();
 
                 item.put("orderItemId", orderItemId);
                 item.put("quantity", quantity);
@@ -234,8 +196,8 @@ public class ReturnExchangeServlet extends HttpServlet {
             // Tạo yêu cầu thông qua Service.
             // Service và DAO tiếp tục kiểm tra
             // quyền sở hữu, thời hạn và số lượng.
-            int requestId =
-                    returnExchangeService.createRequest(
+            int requestId
+                    = returnExchangeService.createRequest(
                             orderId,
                             user.getUserId(),
                             requestType,
@@ -260,11 +222,10 @@ public class ReturnExchangeServlet extends HttpServlet {
                     orderId
             );
 
-            // PRG: Post -> Redirect -> Get
-            // Tránh gửi lại yêu cầu khi refresh.
+            // Quay về chi tiết đơn hàng sau khi gửi Return.
             response.sendRedirect(
                     request.getContextPath()
-                    + "/return-exchange?orderId="
+                    + "/my-orders/detail?id="
                     + orderId
             );
 
@@ -301,7 +262,6 @@ public class ReturnExchangeServlet extends HttpServlet {
     // =====================================================
     // 3. TẢI DỮ LIỆU CHO FORM RETURN
     // =====================================================
-
     private void loadFormData(
             HttpServletRequest request,
             int orderId,
@@ -317,8 +277,8 @@ public class ReturnExchangeServlet extends HttpServlet {
             );
         }
 
-        List<Map<String, Object>> orderItems =
-                returnExchangeService.getOrderItems(
+        List<Map<String, Object>> orderItems
+                = returnExchangeService.getOrderItems(
                         orderId,
                         userId
                 );
@@ -340,7 +300,6 @@ public class ReturnExchangeServlet extends HttpServlet {
     // =====================================================
     // 4. HIỂN THỊ LỖI TRÊN FORM
     // =====================================================
-
     private void showFormError(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -389,19 +348,18 @@ public class ReturnExchangeServlet extends HttpServlet {
     // =====================================================
     // 5. LẤY THÔNG TIN CUSTOMER ĐÃ ĐĂNG NHẬP
     // =====================================================
-
     private User getLoggedInUser(
             HttpServletRequest request) {
 
-        HttpSession session =
-                request.getSession(false);
+        HttpSession session
+                = request.getSession(false);
 
         if (session == null) {
             return null;
         }
 
-        Object loggedInUser =
-                session.getAttribute("loggedInUser");
+        Object loggedInUser
+                = session.getAttribute("loggedInUser");
 
         if (loggedInUser instanceof User) {
             return (User) loggedInUser;

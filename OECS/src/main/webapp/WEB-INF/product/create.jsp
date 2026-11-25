@@ -4,7 +4,6 @@
 
 <%@include file="/WEB-INF/include/header.jsp"%>
 
-<!-- Quill Editor CSS -->
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 
@@ -32,7 +31,6 @@
 <div class="row justify-content-center">
     <div class="col-12 col-lg-9 col-xl-8">
 
-        <!-- QUAY LẠI -->
         <div class="mb-3">
             <a href="${pageContext.request.contextPath}/product?view=list"
                class="text-decoration-none text-muted fw-medium">
@@ -44,7 +42,6 @@
         <div class="card shadow-sm border-0 rounded-4">
             <div class="card-body p-4 p-md-5">
 
-                <!-- TIÊU ĐỀ -->
                 <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
                     <div class="bg-primary bg-opacity-10 text-primary rounded
                          d-flex align-items-center justify-content-center me-3"
@@ -62,7 +59,6 @@
                     </div>
                 </div>
 
-                <!-- THÔNG BÁO LỖI -->
                 <c:if test="${not empty sessionScope.errorMsg}">
                     <div class="alert alert-danger">
                         <i class="bi bi-exclamation-triangle me-2"></i>
@@ -78,7 +74,6 @@
                     </div>
                 </c:if>
 
-                <!-- HƯỚNG DẪN -->
                 <div class="alert alert-info border-0 mb-4">
                     <i class="bi bi-info-circle me-2"></i>
                     <strong>Bước 1:</strong> Chọn danh mục sản phẩm
@@ -87,7 +82,6 @@
                     Các phiên bản SKU sẽ được quản lý riêng.
                 </div>
 
-                <!-- FORM -->
                 <form id="createProductForm"
                       action="${pageContext.request.contextPath}/product"
                       method="POST"
@@ -97,9 +91,6 @@
                            name="action"
                            value="create">
 
-                    <!-- =========================== -->
-                    <!-- 1. DANH MỤC                -->
-                    <!-- =========================== -->
 
                     <div class="mb-4">
                         <label for="categoryId"
@@ -137,9 +128,6 @@
                         </div>
                     </div>
 
-                    <!-- =========================== -->
-                    <!-- 2. TÊN SẢN PHẨM            -->
-                    <!-- =========================== -->
 
                     <div class="mb-4">
                         <label for="productName"
@@ -158,9 +146,6 @@
                                required>
                     </div>
 
-                    <!-- =========================== -->
-                    <!-- 3. MODEL CODE              -->
-                    <!-- =========================== -->
 
                     <div class="mb-4">
                         <label for="modelCode"
@@ -181,9 +166,7 @@
                         </div>
                     </div>
 
-                    <!-- =========================== -->
-                    <!-- 4. THƯƠNG HIỆU             -->
-                    <!-- =========================== -->
+                  
 
                     <div class="mb-4">
                         <label for="brandId"
@@ -216,9 +199,6 @@
                         </select>
                     </div>
 
-                    <!-- =========================== -->
-                    <!-- 5. ẢNH ĐẠI DIỆN            -->
-                    <!-- =========================== -->
 
                     <div class="mb-4">
                         <label for="imageFile"
@@ -247,9 +227,7 @@
                         </div>
                     </div>
 
-                    <!-- =========================== -->
-                    <!-- 6. ẢNH PHỤ                 -->
-                    <!-- =========================== -->
+                   
 
                     <div class="mb-4 p-3 bg-light border rounded-3">
                         <label for="galleryFiles"
@@ -274,9 +252,7 @@
                         </div>
                     </div>
 
-                    <!-- =========================== -->
-                    <!-- 7. THÔNG SỐ KỸ THUẬT       -->
-                    <!-- =========================== -->
+                 
 
                     <div class="mb-4 border rounded-3 p-3 p-md-4">
 
@@ -301,7 +277,6 @@
 
                         <c:choose>
 
-                            <%-- Chưa chọn danh mục --%>
                             <c:when test="${empty selectedCategoryId}">
 
                                 <div class="text-center py-4
@@ -316,7 +291,6 @@
 
                             </c:when>
 
-                            <%-- Danh mục không có thông số --%>
                             <c:when test="${empty specificationAttributes}">
 
                                 <div class="alert alert-light border mb-0">
@@ -326,7 +300,6 @@
 
                             </c:when>
 
-                            <%-- Hiển thị thông số theo cấu hình --%>
                             <c:otherwise>
 
                                 <c:set var="currentGroup" value=""/>
@@ -334,7 +307,6 @@
                                 <c:forEach items="${specificationAttributes}"
                                            var="config">
 
-                                    <%-- Tiêu đề nhóm thông số --%>
                                     <c:if test="${currentGroup ne config.groupName}">
 
                                         <div class="mt-3 mb-3 pb-2 border-bottom">
@@ -394,9 +366,7 @@
 
                     </div>
 
-                    <!-- =========================== -->
-                    <!-- 8. THÔNG TIN BIẾN THỂ      -->
-                    <!-- =========================== -->
+                 
 
                     <c:if test="${not empty selectedCategoryId}">
 
@@ -459,11 +429,9 @@
                             Mô Tả Sản Phẩm
                         </label>
 
-                        <!-- Khung soan thao truc quan -->
                         <div id="descriptionEditor"
                              style="display:none"></div>
 
-                        <!-- Du lieu gui den ProductServlet -->
                         <textarea
                             id="description"
                             name="description"
@@ -480,9 +448,6 @@
                     </div>
 
 
-                    <!-- =========================== -->
-                    <!-- 10. NÚT LƯU                -->
-                    <!-- =========================== -->
 
                     <div class="d-flex flex-wrap gap-2 pt-3 mt-4 border-top">
 
@@ -532,9 +497,7 @@
         const galleryPreview =
                 document.getElementById("galleryPreview");
 
-        // ========================================
-        // 1. ĐỔI CATEGORY -> TẢI LẠI FORM
-        // ========================================
+     
 
         let lastCategoryId = categorySelect.value;
 
@@ -580,9 +543,7 @@
             }
         });
 
-        // ========================================
-        // 2. XEM TRƯỚC ẢNH ĐẠI DIỆN
-        // ========================================
+      
 
         let imagePreviewUrl = null;
 
@@ -607,9 +568,6 @@
             imagePreview.classList.remove("d-none");
         });
 
-        // ========================================
-        // 3. XEM TRƯỚC ẢNH GALLERY
-        // ========================================
 
         let galleryPreviewUrls = [];
 
@@ -641,9 +599,7 @@
             });
         });
 
-        // ========================================
-        // 4. KIỂM TRA TRƯỚC KHI SUBMIT
-        // ========================================
+       
 
         productForm.addEventListener("submit", function (event) {
 
@@ -689,7 +645,6 @@
     });
 </script>
 
-<!-- Quill Editor JavaScript -->
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
 <script>
@@ -705,7 +660,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
-    // Neu thu vien khong tai duoc, giu textarea cu
     if (typeof Quill === "undefined") {
         console.error("Khong tai duoc Quill Editor.");
         return;
@@ -739,7 +693,6 @@ document.addEventListener("DOMContentLoaded", function () {
             ]
         });
 
-        // Tai noi dung cu vao editor
         if (description.value.trim()) {
             const delta = quill.clipboard.convert({
                 html: description.value
@@ -748,7 +701,6 @@ document.addEventListener("DOMContentLoaded", function () {
             quill.setContents(delta, "silent");
         }
 
-        // An textarea chi khi editor da khoi tao
         description.classList.add("d-none");
 
         function syncDescription() {
@@ -759,10 +711,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 : "";
         }
 
-        // Dong bo khi nhan vien nhap noi dung
         quill.on("text-change", syncDescription);
 
-        // Dong bo ngay truoc khi gui form
         const form = description.closest("form");
 
         if (form) {

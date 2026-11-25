@@ -382,8 +382,9 @@
 
                     <c:when test="${param.message == 'approved'}">
                         Yêu cầu trả hàng đã được chấp nhận.
+                        Tồn kho sản phẩm đã được cập nhật.
                         Vui lòng liên hệ khách hàng để
-                        hướng dẫn các bước tiếp theo.
+                        xử lý hoàn tiền ngoài hệ thống.
                     </c:when>
 
                     <c:when test="${param.message == 'rejected'}">
@@ -444,8 +445,8 @@
 
 
     <div class="d-flex flex-column flex-md-row
-                justify-content-between align-items-start
-                align-items-md-center gap-3 mb-4">
+         justify-content-between align-items-start
+         align-items-md-center gap-3 mb-4">
 
         <div>
             <h3 class="fw-bold text-dark mb-1">
@@ -481,8 +482,8 @@
             <div class="detail-card">
 
                 <div class="d-flex flex-column flex-sm-row
-                            justify-content-between
-                            align-items-sm-center gap-3 mb-4">
+                     justify-content-between
+                     align-items-sm-center gap-3 mb-4">
 
                     <div>
                         <h5 class="fw-bold mb-1">
@@ -818,16 +819,16 @@
             <div class="detail-card">
 
                 <div class="d-flex align-items-center
-                            justify-content-between
-                            gap-3 mb-3">
+                     justify-content-between
+                     gap-3 mb-3">
 
                     <h5 class="fw-bold mb-0">
                         Sản phẩm yêu cầu trả
                     </h5>
 
                     <span class="badge bg-light
-                                 text-secondary border
-                                 rounded-pill px-3 py-2">
+                          text-secondary border
+                          rounded-pill px-3 py-2">
 
                         <i class="bi bi-box-seam me-1"></i>
                         Danh sách sản phẩm
@@ -885,7 +886,7 @@
                                     <td>
 
                                         <span class="badge bg-light
-                                                     text-secondary border">
+                                              text-secondary border">
 
                                             <c:out value="${item.originalSkuCode}"/>
 
@@ -897,9 +898,9 @@
                                     <td class="text-center">
 
                                         <span class="badge
-                                                     bg-primary-subtle
-                                                     text-primary
-                                                     rounded-pill px-3 py-2">
+                                              bg-primary-subtle
+                                              text-primary
+                                              rounded-pill px-3 py-2">
 
                                             <c:out value="${item.quantity}"/>
 
@@ -918,8 +919,8 @@
 
 
                                     <td class="text-end
-                                               fw-semibold
-                                               text-nowrap">
+                                        fw-semibold
+                                        text-nowrap">
 
                                         <fmt:formatNumber
                                             value="${lineTotal}"
@@ -937,7 +938,7 @@
 
                                     <td colspan="5"
                                         class="text-center
-                                               text-muted py-4">
+                                        text-muted py-4">
 
                                         <i class="bi bi-inbox
                                            fs-3 d-block mb-2"></i>
@@ -967,8 +968,8 @@
                                     </td>
 
                                     <td class="text-end fw-bold
-                                               text-primary fs-5
-                                               text-nowrap py-3">
+                                        text-primary fs-5
+                                        text-nowrap py-3">
 
                                         <fmt:formatNumber
                                             value="${requestTotal}"
@@ -1015,13 +1016,29 @@
                     <c:when test="${selectedRequest.requestStatus == 'PENDING'}">
 
                         <div class="alert alert-info
-                                    border-0 rounded-3 small">
+                             border-0 rounded-3 small">
 
                             <i class="bi bi-info-circle-fill me-2"></i>
 
                             Vui lòng kiểm tra thông tin đơn hàng,
-                            sản phẩm và lý do trả hàng trước
-                            khi chấp nhận hoặc từ chối yêu cầu.
+                            sản phẩm và lý do trả hàng.
+
+                            <div class="mt-2">
+                                Chỉ chấp nhận yêu cầu khi cửa hàng
+                                đã nhận lại sản phẩm và xác nhận
+                                sản phẩm đủ điều kiện nhập kho.
+                            </div>
+
+                            <div class="mt-2">
+                                Khi chấp nhận, hệ thống sẽ tự động
+                                cộng số lượng sản phẩm được trả
+                                vào tồn kho tương ứng.
+                            </div>
+
+                            <div class="mt-2">
+                                Việc hoàn tiền được xử lý
+                                ngoài hệ thống.
+                            </div>
 
                         </div>
 
@@ -1073,12 +1090,12 @@
 
 
                             <div class="d-flex flex-column
-                                        flex-sm-row flex-wrap gap-2">
+                                 flex-sm-row flex-wrap gap-2">
 
                                 <button
                                     type="button"
                                     class="btn btn-success
-                                           rounded-3 px-4 py-2"
+                                    rounded-3 px-4 py-2"
                                     onclick="showReviewModal('approve')">
 
                                     <i class="bi bi-check-circle me-1"></i>
@@ -1089,7 +1106,7 @@
                                 <button
                                     type="button"
                                     class="btn btn-danger
-                                           rounded-3 px-4 py-2"
+                                    rounded-3 px-4 py-2"
                                     onclick="showReviewModal('reject')">
 
                                     <i class="bi bi-x-circle me-1"></i>
@@ -1098,7 +1115,7 @@
                                 </button>
 
                                 <a class="btn btn-outline-secondary
-                                          rounded-3 px-4 py-2"
+                                   rounded-3 px-4 py-2"
                                    href="${pageContext.request.contextPath}/staff/return-exchange">
 
                                     <i class="bi bi-arrow-left me-1"></i>
@@ -1120,7 +1137,7 @@
                             <c:when test="${selectedRequest.requestStatus == 'APPROVED'}">
 
                                 <div class="alert alert-success
-                                            border-0 rounded-3 mb-3">
+                                     border-0 rounded-3 mb-3">
 
                                     <div class="fw-bold mb-1">
 
@@ -1134,9 +1151,14 @@
 
                                     <div class="mt-2">
 
-                                        Vui lòng liên hệ khách hàng,
-                                        hướng dẫn trả sản phẩm và
-                                        xử lý các bước tiếp theo
+                                        Yêu cầu trả hàng đã được xử lý.
+
+                                    </div>
+
+                                    <div class="mt-2">
+
+                                        Vui lòng liên hệ khách hàng
+                                        để xử lý việc hoàn tiền
                                         bên ngoài hệ thống.
 
                                     </div>
@@ -1148,7 +1170,7 @@
                             <c:when test="${selectedRequest.requestStatus == 'REJECTED'}">
 
                                 <div class="alert alert-danger
-                                            border-0 rounded-3 mb-3">
+                                     border-0 rounded-3 mb-3">
 
                                     <div class="fw-bold mb-1">
 
@@ -1168,7 +1190,7 @@
                             <c:otherwise>
 
                                 <div class="alert alert-secondary
-                                            border-0 rounded-3 mb-3">
+                                     border-0 rounded-3 mb-3">
 
                                     Trạng thái yêu cầu không hợp lệ.
                                     Vui lòng kiểm tra lại dữ liệu.
@@ -1180,7 +1202,7 @@
                         </c:choose>
 
                         <a class="btn btn-outline-secondary
-                                  rounded-3 px-4 py-2"
+                           rounded-3 px-4 py-2"
                            href="${pageContext.request.contextPath}/staff/return-exchange">
 
                             <i class="bi bi-arrow-left me-1"></i>
@@ -1257,7 +1279,7 @@
                 <button
                     type="button"
                     class="review-modal-btn
-                           review-modal-btn-secondary"
+                    review-modal-btn-secondary"
                     onclick="closeReviewModal()">
 
                     Hủy bỏ
@@ -1268,7 +1290,7 @@
                     type="button"
                     id="confirmReviewButton"
                     class="review-modal-btn
-                           review-modal-btn-approve"
+                    review-modal-btn-approve"
                     onclick="confirmReview()">
 
                     Xác nhận
@@ -1349,10 +1371,12 @@
                     "Xác nhận chấp nhận yêu cầu trả hàng";
 
             message.textContent =
-                    "Bạn có chắc chắn muốn chấp nhận "
-                    + "yêu cầu trả hàng này không? "
-                    + "Thao tác này chỉ duyệt yêu cầu, "
-                    + "không tự động nhận hàng hoặc hoàn tiền.";
+                    "Bạn xác nhận cửa hàng đã nhận lại "
+                    + "và kiểm tra sản phẩm đủ điều kiện "
+                    + "nhập kho chưa? "
+                    + "Khi chấp nhận, hệ thống sẽ tự động "
+                    + "cộng lại tồn kho của sản phẩm được trả. "
+                    + "Việc hoàn tiền được xử lý ngoài hệ thống.";
 
             confirmButton.className =
                     "review-modal-btn review-modal-btn-approve";
@@ -1450,70 +1474,70 @@
 
 
     document.addEventListener(
-        "DOMContentLoaded",
-        function () {
+            "DOMContentLoaded",
+            function () {
 
-            const note =
-                    document.getElementById("staffNote");
+                const note =
+                        document.getElementById("staffNote");
 
-            const error =
-                    document.getElementById("noteError");
+                const error =
+                        document.getElementById("noteError");
 
-            if (note && error) {
+                if (note && error) {
 
-                note.addEventListener(
-                    "input",
-                    function () {
+                    note.addEventListener(
+                            "input",
+                            function () {
 
-                        if (this.value.trim() !== "") {
-                            error.classList.remove("show");
-                        }
-                    }
-                );
-            }
-
-            document.querySelectorAll(
-                ".return-detail .notification"
-            ).forEach(function (notification) {
-
-                setTimeout(function () {
-
-                    notification.classList.add(
-                        "notification-hide"
+                                if (this.value.trim() !== "") {
+                                    error.classList.remove("show");
+                                }
+                            }
                     );
+                }
+
+                document.querySelectorAll(
+                        ".return-detail .notification"
+                        ).forEach(function (notification) {
 
                     setTimeout(function () {
-                        notification.remove();
-                    }, 300);
 
-                }, 3500);
-            });
-            const modal =
-                    document.getElementById("reviewModal");
+                        notification.classList.add(
+                                "notification-hide"
+                                );
 
-            if (modal) {
+                        setTimeout(function () {
+                            notification.remove();
+                        }, 300);
 
-                modal.addEventListener(
-                    "click",
-                    function (event) {
+                    }, 3500);
+                });
+                const modal =
+                        document.getElementById("reviewModal");
 
-                        if (event.target === modal) {
-                            closeReviewModal();
-                        }
-                    }
-                );
+                if (modal) {
+
+                    modal.addEventListener(
+                            "click",
+                            function (event) {
+
+                                if (event.target === modal) {
+                                    closeReviewModal();
+                                }
+                            }
+                    );
+                }
             }
-        }
     );
 
     document.addEventListener(
-        "keydown",
-        function (event) {
+            "keydown",
+            function (event) {
 
-            if (event.key === "Escape") {
-                closeReviewModal();
+                if (event.key === "Escape") {
+                    closeReviewModal();
+                }
             }
-        }
     );
 </script>
 
