@@ -2937,7 +2937,7 @@
                                     "descContainer"
                                     ).scrollIntoView({
                                 behavior: "smooth",
-                                block: "start"
+                                block: "starts"
                             });
                         }
                     });
