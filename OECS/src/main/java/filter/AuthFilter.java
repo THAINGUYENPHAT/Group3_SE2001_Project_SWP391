@@ -1,5 +1,6 @@
 package filter;
 
+import dao.UserDAO;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -153,6 +154,24 @@ public class AuthFilter implements Filter {
             httpResponse.sendRedirect(
                     contextPath + "/login"
             );
+
+            return;
+        }
+
+        UserDAO userDAO = new UserDAO();
+
+        User currentUser = userDAO.getUserById(user.getUserId());
+
+        if (currentUser == null || !currentUser.isActive()) {
+
+            session.invalidate();
+
+            httpRequest.getSession(true).setAttribute(
+                    "errorMessage",
+                    "Tài khoản của bạn đã bị khóa."
+            );
+
+            httpResponse.sendRedirect(contextPath + "/login");
 
             return;
         }
